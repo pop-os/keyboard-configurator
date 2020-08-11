@@ -1,0 +1,18 @@
+[package]
+name = "keyboard-color-widget"
+version = "0.1.0"
+authors = ["Ian Douglas Scott <idscott@system76.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+cascade = "0.1"
+cairo-rs = "0.8"
+derive_more = "0.99"
+gdk = "0.12"
+gio = "0.8"
+glib = "0.9"
+gtk = { version = "0.8", features = ["v3_22"] }
+gtk-sys = "0.9"
+system76-power = { git = "https://github.com/pop-os/system76-power", branch="keyboard-backlight"  }
