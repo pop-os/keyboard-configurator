@@ -99,12 +99,11 @@ impl KeyboardColorButton {
         edit_button.connect_clicked(move |_| keyboard_color_button_clone.edit_clicked());
 
         let colors = vec![
-            (1., 0., 0.),
-            (0., 1., 0.),
+            (1., 1., 1.),
             (0., 0., 1.),
+            (1., 0., 0.),
             (1., 1., 0.),
-            (0., 1., 1.),
-            (1., 0., 1.),
+            (0., 1., 0.),
         ];
 
         for rgb in colors.iter() {
