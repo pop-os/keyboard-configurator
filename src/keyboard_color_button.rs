@@ -12,7 +12,12 @@ use super::color_circle::ColorCircle;
 fn set_keyboard_color(color: (f64, f64, f64)) {
     let mut client = PowerClient::new().unwrap();
     let mut colors = client.get_keyboard_colors().unwrap();
-    let color_str = format!("{:02x}{:02x}{:02x}", (color.0 * 255.) as u8, (color.1 * 255.) as u8, (color.2 * 255.) as u8);
+    let color_str = format!(
+        "{:02x}{:02x}{:02x}",
+        (color.0 * 255.) as u8,
+        (color.1 * 255.) as u8,
+        (color.2 * 255.) as u8
+    );
     for (_k, v) in colors.iter_mut() {
         *v = color_str.clone();
     }
@@ -79,9 +84,12 @@ impl KeyboardColorButton {
         });
 
         let keyboard_color_button_clone = keyboard_color_button.clone();
-        keyboard_color_button.add_circle.clone().connect_clicked(move |_| {
-            keyboard_color_button_clone.clone().add_clicked();
-        });
+        keyboard_color_button
+            .add_circle
+            .clone()
+            .connect_clicked(move |_| {
+                keyboard_color_button_clone.clone().add_clicked();
+            });
 
         let keyboard_color_button_clone = keyboard_color_button.clone();
         remove_button.connect_clicked(move |_| keyboard_color_button_clone.remove_clicked());
@@ -121,7 +129,11 @@ impl KeyboardColorButton {
         self.grid.foreach(|w| self.grid.remove(w));
 
         let circles = self.circles.borrow();
-        for (i, circle) in circles.iter().chain(iter::once(&self.add_circle)).enumerate() {
+        for (i, circle) in circles
+            .iter()
+            .chain(iter::once(&self.add_circle))
+            .enumerate()
+        {
             let x = i as i32 % 3;
             let y = i as i32 / 3;
             self.grid.attach(circle.widget(), x, y, 1, 1);
@@ -140,7 +152,10 @@ impl KeyboardColorButton {
     fn remove_clicked(&self) {
         if let Some(current_circle) = &mut *self.current_circle.borrow_mut() {
             let mut circles = self.circles.borrow_mut();
-            if let Some(index) = circles.iter().position(|c| ptr::eq(c.as_ref(), current_circle.as_ref())) {
+            if let Some(index) = circles
+                .iter()
+                .position(|c| ptr::eq(c.as_ref(), current_circle.as_ref()))
+            {
                 circles.remove(index);
                 *current_circle = circles[index.saturating_sub(1)].clone();
             }

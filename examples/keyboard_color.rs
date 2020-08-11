@@ -1,5 +1,5 @@
-use gtk::prelude::*;
 use cascade::cascade;
+use gtk::prelude::*;
 
 use keyboard_color_widget::KeyboardColorButton;
 
