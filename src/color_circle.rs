@@ -101,8 +101,8 @@ impl ColorCircle {
                 cr.line_to(1.2 * radius, radius);
             }
             ColorCircleSymbol::Check => {
-                cr.move_to(0.6 * radius, radius);
-                cr.line_to(0.8 * radius, 1.2 * radius);
+                cr.move_to(0.8 * radius, radius);
+                cr.line_to(radius, 1.2 * radius);
                 cr.line_to(1.2 * radius, 0.8 * radius);
             }
             ColorCircleSymbol::None => {}
