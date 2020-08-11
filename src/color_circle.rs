@@ -13,6 +13,7 @@ const CSS: &[u8] = b"
 
 #[derive(Clone, Copy)]
 pub enum ColorCircleSymbol {
+    Check,
     Plus,
     None,
 }
@@ -85,19 +86,26 @@ impl ColorCircle {
         cr.set_source_rgb(rgb.0, rgb.1, rgb.2);
         cr.fill_preserve();
 
+        cr.new_path();
+        cr.set_source_rgb(0.25, 0.25, 0.25);
+        cr.set_line_width(1.5);
+
         match self.symbol.get() {
             ColorCircleSymbol::Plus => {
-                cr.new_path();
-                cr.set_source_rgb(0.25, 0.25, 0.25);
-                cr.set_line_width(1.5);
                 cr.move_to(radius, 0.8 * radius);
                 cr.line_to(radius, 1.2 * radius);
                 cr.move_to(0.8 * radius, radius);
                 cr.line_to(1.2 * radius, radius);
-                cr.stroke();
+            }
+            ColorCircleSymbol::Check => {
+                cr.move_to(0.6 * radius, radius);
+                cr.line_to(0.8 * radius, 1.2 * radius);
+                cr.line_to(1.2 * radius, 0.8 * radius);
             }
             ColorCircleSymbol::None => {}
         }
+
+        cr.stroke();
     }
 
     pub fn set_rgb(&self, color: (f64, f64, f64)) {

@@ -159,6 +159,7 @@ impl KeyboardColorButton {
             {
                 circles.remove(index);
                 *current_circle = circles[index.saturating_sub(1)].clone();
+                current_circle.set_symbol(ColorCircleSymbol::Check);
             }
         }
         self.populate_grid();
@@ -176,7 +177,10 @@ impl KeyboardColorButton {
         let color = circle.rgb();
         set_keyboard_color(color);
         self.button.set_rgb(color);
-        self.current_circle.replace(Some(circle.clone()));
+
+        circle.set_symbol(ColorCircleSymbol::Check);
+        let old_circle = self.current_circle.replace(Some(circle.clone()));
+        old_circle.map(|c| c.set_symbol(ColorCircleSymbol::None));
     }
 
     pub fn widget(&self) -> &gtk::Widget {
