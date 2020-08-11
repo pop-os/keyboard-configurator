@@ -72,7 +72,7 @@ impl KeyboardColorButton {
 
         let add_circle = cascade! {
             ColorCircle::new(45);
-            ..set_rgb((1., 1., 1.));
+            ..set_alpha(0.);
             ..set_symbol(ColorCircleSymbol::Plus);
         };
 

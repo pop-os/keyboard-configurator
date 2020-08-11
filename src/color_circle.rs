@@ -22,6 +22,7 @@ pub struct ColorCircle {
     frame: gtk::AspectFrame,
     button: gtk::Button,
     rgb: Cell<(f64, f64, f64)>,
+    alpha: Cell<f64>,
     symbol: Cell<ColorCircleSymbol>,
 }
 
@@ -54,6 +55,7 @@ impl ColorCircle {
             button: button.clone(),
             rgb: Cell::new((0., 0., 0.)),
             symbol: Cell::new(ColorCircleSymbol::None),
+            alpha: Cell::new(1.),
         });
 
         let color_circle_clone = color_circle.clone();
@@ -81,9 +83,10 @@ impl ColorCircle {
 
         let radius = width.min(height) / 2.;
         let rgb = self.rgb();
+        let alpha = self.alpha.get();
 
         cr.arc(radius, radius, radius, 0., 2. * PI);
-        cr.set_source_rgb(rgb.0, rgb.1, rgb.2);
+        cr.set_source_rgba(rgb.0, rgb.1, rgb.2, alpha);
         cr.fill_preserve();
 
         cr.new_path();
@@ -120,5 +123,9 @@ impl ColorCircle {
     pub fn set_symbol(&self, symbol: ColorCircleSymbol) {
         self.symbol.set(symbol);
         self.widget().queue_draw();
+    }
+
+    pub fn set_alpha(&self, alpha: f64) {
+        self.alpha.set(alpha);
     }
 }
