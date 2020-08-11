@@ -11,10 +11,17 @@ const CSS: &[u8] = b"
     }
 ";
 
+#[derive(Clone, Copy)]
+pub enum ColorCircleSymbol {
+    Plus,
+    None,
+}
+
 pub struct ColorCircle {
     frame: gtk::AspectFrame,
     button: gtk::Button,
     rgb: Cell<(f64, f64, f64)>,
+    symbol: Cell<ColorCircleSymbol>,
 }
 
 impl ColorCircle {
@@ -45,6 +52,7 @@ impl ColorCircle {
             frame,
             button: button.clone(),
             rgb: Cell::new((0., 0., 0.)),
+            symbol: Cell::new(ColorCircleSymbol::None),
         });
 
         let color_circle_clone = color_circle.clone();
@@ -77,15 +85,19 @@ impl ColorCircle {
         cr.set_source_rgb(rgb.0, rgb.1, rgb.2);
         cr.fill_preserve();
 
-        /*
-        cr.new_path();
-        cr.set_source_rgb(0., 0., 0.);
-        cr.set_font_size(radius);
-        let extents = cr.text_extents("+");
-        cr.translate(radius - extents.width / 2., radius * 2. - extents.height);
-        cr.show_text("+");
-        cr.stroke();
-        */
+        match self.symbol.get() {
+            ColorCircleSymbol::Plus => {
+                cr.new_path();
+                cr.set_source_rgb(0.25, 0.25, 0.25);
+                cr.set_line_width(1.5);
+                cr.move_to(radius, 0.8 * radius);
+                cr.line_to(radius, 1.2 * radius);
+                cr.move_to(0.8 * radius, radius);
+                cr.line_to(1.2 * radius, radius);
+                cr.stroke();
+            }
+            ColorCircleSymbol::None => {}
+        }
     }
 
     pub fn set_rgb(&self, color: (f64, f64, f64)) {
@@ -95,5 +107,10 @@ impl ColorCircle {
 
     pub fn rgb(&self) -> (f64, f64, f64) {
         self.rgb.get()
+    }
+
+    pub fn set_symbol(&self, symbol: ColorCircleSymbol) {
+        self.symbol.set(symbol);
+        self.widget().queue_draw();
     }
 }

@@ -7,7 +7,7 @@ use std::rc::Rc;
 use system76_power::{client::PowerClient, Power};
 
 use super::choose_color::choose_color;
-use super::color_circle::ColorCircle;
+use super::color_circle::{ColorCircle, ColorCircleSymbol};
 
 fn set_keyboard_color(color: (f64, f64, f64)) {
     let mut client = PowerClient::new().unwrap();
@@ -73,6 +73,7 @@ impl KeyboardColorButton {
         let add_circle = cascade! {
             ColorCircle::new(45);
             ..set_rgb((1., 1., 1.));
+            ..set_symbol(ColorCircleSymbol::Plus);
         };
 
         let keyboard_color_button = Rc::new(Self {
