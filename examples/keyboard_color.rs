@@ -1,11 +1,7 @@
 use gtk::prelude::*;
 use cascade::cascade;
 
-mod choose_color;
-mod color_circle;
-mod keyboard_color_button;
-
-use keyboard_color_button::KeyboardColorButton;
+use keyboard_color_widget::KeyboardColorButton;
 
 fn keyboard_color_button() -> gtk::Widget {
     let button = KeyboardColorButton::new();
