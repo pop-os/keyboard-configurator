@@ -18,4 +18,5 @@ gio = "0.9"
 glib = "0.10"
 gtk = { version = "0.9", features = ["v3_22"] }
 gtk-sys = "0.10"
+palette = "0.5"
 system76-power = { git = "https://github.com/pop-os/system76-power", branch="keyboard-backlight"  }
