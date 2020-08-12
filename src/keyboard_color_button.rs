@@ -38,6 +38,7 @@ impl KeyboardColorButton {
             gtk::Grid::new();
             ..set_column_spacing(6);
             ..set_row_spacing(6);
+            ..set_halign(gtk::Align::Center);
         };
 
         let remove_button = gtk::Button::with_label("Remove");
