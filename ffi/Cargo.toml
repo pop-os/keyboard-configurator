@@ -1,0 +1,15 @@
+[package]
+name = "ffi"
+version = "0.1.0"
+authors = ["Ian Douglas Scott <idscott@system76.com>"]
+edition = "2018"
+
+[lib]
+name = "pop_keyboard_backlight"
+crate-type = [ "cdylib" ]
+
+[dependencies]
+glib = "0.10"
+gtk-sys = "0.10"
+gtk = "0.9"
+pop-keyboard-backlight = { path = "../" }

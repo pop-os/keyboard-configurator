@@ -1,0 +1,5 @@
+Name: {name}
+Description: {description}
+Version: {version}
+Cflags: -I${{includedir}}
+Libs: -L${{libdir}} -l{name}
