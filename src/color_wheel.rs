@@ -1,6 +1,6 @@
 use cascade::cascade;
 use gtk::prelude::*;
-use palette::{Component, Srgb, IntoColor};
+use palette::{Component, RgbHue, Hsv, IntoColor, Blend};
 use std::cell::RefCell;
 use std::rc::Rc;
 
@@ -27,11 +27,15 @@ pub fn color_wheel() -> gtk::Widget {
                 let s = distance / radius;
                 let v = 1.;
 
-                let hsv = palette::Hsv::new(palette::RgbHue::from_radians(h), s, v);
-                let rgb = hsv.into_rgb::<palette::encoding::srgb::Srgb>();
-                let (mut r, mut g, mut b) = rgb.into_format::<u8>().into_components();
+                let alpha = (radius - distance).max(0.).min(1.);
 
-                let a = (radius - distance).max(0.).min(1.).convert::<u8>();
+                let hsv = Hsv::new(RgbHue::from_radians(h), s, v);
+                let mut rgb = hsv.into_rgb::<palette::encoding::srgb::Srgb>();
+
+                rgb = rgb.multiply(palette::LinSrgb::new(alpha, alpha, alpha));
+
+                let (r, g, b) = rgb.into_format::<u8>().into_components();
+                let a = alpha.convert::<u8>();
 
                 let offset = (row * stride + col * 4) as usize;
                 data[offset + 0] = b;
