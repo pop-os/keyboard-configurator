@@ -25,11 +25,8 @@ pub fn color_wheel() -> gtk::Widget {
         let angle = y.atan2(x);
         let distance = (x.powi(2) + y.powi(2)).sqrt();
 
-        if distance < radius {
-            println!("{:?}", (angle, distance / radius));
-            selected_hs_clone.set((angle, distance / radius));
-            w.queue_draw();
-        }
+        selected_hs_clone.set((angle, (distance / radius).min(1.)));
+        w.queue_draw();
 
         Inhibit(false)
     });
@@ -47,11 +44,8 @@ pub fn color_wheel() -> gtk::Widget {
             let angle = y.atan2(x);
             let distance = (x.powi(2) + y.powi(2)).sqrt();
 
-            if distance < radius {
-                println!("{:?}", (angle, distance / radius));
-                selected_hs_clone.set((angle, distance / radius));
-                w.queue_draw();
-            }
+            selected_hs_clone.set((angle, (distance / radius).min(1.)));
+            w.queue_draw();
         }
         Inhibit(false)
     });
