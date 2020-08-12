@@ -30,6 +30,7 @@ pub struct KeyboardColorButton {
     grid: gtk::Grid,
     current_circle: RefCell<Option<Rc<ColorCircle>>>,
     add_circle: Rc<ColorCircle>,
+    remove_button: gtk::Button,
 }
 
 impl KeyboardColorButton {
@@ -83,6 +84,7 @@ impl KeyboardColorButton {
             grid,
             current_circle: RefCell::new(None),
             add_circle,
+            remove_button: remove_button.clone(),
         });
 
         let keyboard_color_button_clone = keyboard_color_button.clone();
@@ -146,6 +148,7 @@ impl KeyboardColorButton {
     fn add_clicked(self: Rc<Self>) {
         if let Some(color) = choose_color(self.widget()) {
             self.clone().add_color(color);
+            self.remove_button.set_visible(true);
             self.populate_grid();
         }
     }
@@ -161,6 +164,7 @@ impl KeyboardColorButton {
                 *current_circle = circles[index.saturating_sub(1)].clone();
                 current_circle.set_symbol(ColorCircleSymbol::Check);
             }
+            self.remove_button.set_visible(circles.len() > 1);
         }
         self.populate_grid();
     }
