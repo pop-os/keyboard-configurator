@@ -1,7 +1,7 @@
 use cascade::cascade;
 use gtk::prelude::*;
 
-use keyboard_color_widget::KeyboardColorButton;
+use pop_keyboard_backlight::KeyboardColorButton;
 
 fn keyboard_color_button() -> gtk::Widget {
     let button = KeyboardColorButton::new();

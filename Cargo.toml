@@ -1,5 +1,5 @@
 [package]
-name = "keyboard-color-widget"
+name = "pop-keyboard-backlight"
 version = "0.1.0"
 authors = ["Ian Douglas Scott <idscott@system76.com>"]
 edition = "2018"
