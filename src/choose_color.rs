@@ -7,7 +7,7 @@ pub fn choose_color<W: IsA<gtk::Widget>>(w: &W) -> Option<(f64, f64, f64)> {
     let color_dialog = gtk::ColorChooserDialog::new(None, window.as_ref());
     let response = color_dialog.run();
     let rgba = color_dialog.get_rgba();
-    color_dialog.destroy();
+    color_dialog.close();
 
     if response == gtk::ResponseType::Ok {
         Some((rgba.red, rgba.green, rgba.blue))

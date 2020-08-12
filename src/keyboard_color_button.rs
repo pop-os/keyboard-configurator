@@ -40,8 +40,8 @@ impl KeyboardColorButton {
             ..set_row_spacing(6);
         };
 
-        let remove_button = gtk::Button::new_with_label("Remove");
-        let edit_button = gtk::Button::new_with_label("Edit");
+        let remove_button = gtk::Button::with_label("Remove");
+        let edit_button = gtk::Button::with_label("Edit");
 
         let buttons_box = cascade! {
             gtk::Box::new(gtk::Orientation::Horizontal, 0);

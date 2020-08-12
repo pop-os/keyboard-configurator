@@ -8,11 +8,11 @@ edition = "2018"
 
 [dependencies]
 cascade = "0.1"
-cairo-rs = "0.8"
+cairo-rs = "0.9"
 derive_more = "0.99"
-gdk = "0.12"
-gio = "0.8"
-glib = "0.9"
-gtk = { version = "0.8", features = ["v3_22"] }
-gtk-sys = "0.9"
+gdk = "0.13"
+gio = "0.9"
+glib = "0.10"
+gtk = { version = "0.9", features = ["v3_22"] }
+gtk-sys = "0.10"
 system76-power = { git = "https://github.com/pop-os/system76-power", branch="keyboard-backlight"  }
