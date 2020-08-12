@@ -34,6 +34,28 @@ pub fn color_wheel() -> gtk::Widget {
         Inhibit(false)
     });
 
+    let selected_hs_clone = selected_hs.clone();
+    drawing_area.connect_motion_notify_event(move |w, evt| {
+        if evt.get_state().contains(gdk::ModifierType::BUTTON1_MASK) {
+            let width = f64::from(w.get_allocated_width());
+            let height = f64::from(w.get_allocated_height());
+
+            let radius = width.min(height) / 2.;
+            let pos = evt.get_position();
+            let (x, y) = (pos.0 - radius, radius - pos.1);
+
+            let angle = y.atan2(x);
+            let distance = (x.powi(2) + y.powi(2)).sqrt();
+
+            if distance < radius {
+                println!("{:?}", (angle, distance / radius));
+                selected_hs_clone.set((angle, distance / radius));
+                w.queue_draw();
+            }
+        }
+        Inhibit(false)
+    });
+
     let surface = Rc::new(RefCell::new(cairo::ImageSurface::create(cairo::Format::ARgb32, 0, 0).unwrap()));
 
     let surface_clone = surface.clone();
