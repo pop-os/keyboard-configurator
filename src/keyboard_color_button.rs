@@ -142,7 +142,7 @@ impl KeyboardColorButton {
     }
 
     fn add_clicked(self: Rc<Self>) {
-        if let Some(color) = choose_color(self.widget()) {
+        if let Some(color) = choose_color(self.widget(), "Add Color") {
             self.clone().add_color(color);
             self.remove_button.set_visible(true);
             self.populate_grid();
@@ -166,7 +166,7 @@ impl KeyboardColorButton {
     }
 
     fn edit_clicked(&self) {
-        if let Some(color) = choose_color(self.widget()) {
+        if let Some(color) = choose_color(self.widget(), "Edit Color") {
             if let Some(circle) = &*self.current_circle.borrow() {
                 circle.set_rgb(color);
             }
