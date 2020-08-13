@@ -1,9 +1,44 @@
+// A hue/saturation color wheel that allows a color to be selected.
+
 use cascade::cascade;
 use gtk::prelude::*;
-use palette::{RgbHue, Hsv, IntoColor};
+use palette::{RgbHue, IntoColor};
 use std::cell::{Cell, RefCell};
 use std::rc::Rc;
 use std::f64::consts::PI;
+
+#[derive(Clone, Copy)]
+struct Hs {
+    h: f64,
+    s: f64,
+}
+
+impl Hs {
+    fn new(h: f64, s: f64) -> Self {
+        Self { h, s }
+    }
+
+    fn to_rgb(self) -> Rgb {
+        let hue = RgbHue::from_radians(self.h);
+        let hsv = palette::Hsv::new(hue, self.s, 1.);
+        let rgb = hsv.into_rgb::<palette::encoding::srgb::Srgb>();
+        let (r, g, b) = rgb.into_format::<u8>().into_components();
+        Rgb::new(r, g, b)
+    }
+}
+
+#[derive(Clone, Copy)]
+struct Rgb {
+    r: u8,
+    g: u8,
+    b: u8,
+}
+
+impl Rgb {
+    fn new(r: u8, g: u8, b: u8) -> Self {
+        Self {r, g, b}
+    }
+}
 
 pub fn color_wheel() -> gtk::Widget {
     let drawing_area = cascade! {
@@ -11,7 +46,7 @@ pub fn color_wheel() -> gtk::Widget {
         ..add_events(gdk::EventMask::POINTER_MOTION_MASK | gdk::EventMask::BUTTON_PRESS_MASK);
     };
 
-    let selected_hs = Rc::new(Cell::new((0., 0.)));
+    let selected_hs = Rc::new(Cell::new(Hs::new(0., 0.)));
 
     let selected_hs_clone = selected_hs.clone();
     drawing_area.connect_button_press_event(move |w, evt| {
@@ -23,9 +58,9 @@ pub fn color_wheel() -> gtk::Widget {
         let (x, y) = (pos.0 - radius, radius - pos.1);
 
         let angle = y.atan2(x);
-        let distance = (x.powi(2) + y.powi(2)).sqrt();
+        let distance = y.hypot(x);
 
-        selected_hs_clone.set((angle, (distance / radius).min(1.)));
+        selected_hs_clone.set(Hs::new(angle, (distance / radius).min(1.)));
         w.queue_draw();
 
         Inhibit(false)
@@ -42,9 +77,9 @@ pub fn color_wheel() -> gtk::Widget {
             let (x, y) = (pos.0 - radius, radius - pos.1);
 
             let angle = y.atan2(x);
-            let distance = (x.powi(2) + y.powi(2)).sqrt();
+            let distance = y.hypot(x);
 
-            selected_hs_clone.set((angle, (distance / radius).min(1.)));
+            selected_hs_clone.set(Hs::new(angle, (distance / radius).min(1.)));
             w.queue_draw();
         }
         Inhibit(false)
@@ -64,15 +99,9 @@ pub fn color_wheel() -> gtk::Widget {
                 let (x, y) = (col as f64 - radius, radius - row as f64);
 
                 let angle = y.atan2(x);
-                let distance = (x.powi(2) + y.powi(2)).sqrt();
+                let distance = y.hypot(x);
 
-                let h = angle;
-                let s = distance / radius;
-                let v = 1.;
-
-                let hsv = Hsv::new(RgbHue::from_radians(h), s, v);
-                let rgb = hsv.into_rgb::<palette::encoding::srgb::Srgb>();
-                let (r, g, b) = rgb.into_format::<u8>().into_components();
+                let Rgb {r, g, b} = Hs::new(angle, distance / radius).to_rgb();
 
                 let offset = (row * stride + col * 4) as usize;
                 data[offset + 0] = b;
@@ -97,7 +126,7 @@ pub fn color_wheel() -> gtk::Widget {
         cr.arc(radius, radius, radius, 0., 2. * PI);
         cr.fill();
 
-        let (h, s) = selected_hs_clone.get();
+        let Hs {h, s} = selected_hs_clone.get();
         let x = radius + h.cos() * s * radius;
         let y = radius - h.sin() * s * radius;
         cr.arc(x, y, 7.5, 0., 2. * PI);
