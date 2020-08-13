@@ -4,6 +4,8 @@ use std::cell::Cell;
 use std::f64::consts::PI;
 use std::rc::Rc;
 
+use crate::color::Rgb;
+
 // The standard "circular" class includes padding, so disable that
 const CSS: &[u8] = b"
     button.keyboard_color_button {
@@ -21,7 +23,7 @@ pub enum ColorCircleSymbol {
 pub struct ColorCircle {
     frame: gtk::AspectFrame,
     button: gtk::Button,
-    rgb: Cell<(f64, f64, f64)>,
+    rgb: Cell<Rgb>,
     alpha: Cell<f64>,
     symbol: Cell<ColorCircleSymbol>,
 }
@@ -53,7 +55,7 @@ impl ColorCircle {
         let color_circle = Rc::new(Self {
             frame,
             button: button.clone(),
-            rgb: Cell::new((0., 0., 0.)),
+            rgb: Cell::new(Rgb::new(0, 0, 0)),
             symbol: Cell::new(ColorCircleSymbol::None),
             alpha: Cell::new(1.),
         });
@@ -82,11 +84,11 @@ impl ColorCircle {
         let height = f64::from(w.get_allocated_height());
 
         let radius = width.min(height) / 2.;
-        let rgb = self.rgb();
+        let (r, g, b) = self.rgb().to_floats();
         let alpha = self.alpha.get();
 
         cr.arc(radius, radius, radius, 0., 2. * PI);
-        cr.set_source_rgba(rgb.0, rgb.1, rgb.2, alpha);
+        cr.set_source_rgba(r, g, b, alpha);
         cr.fill_preserve();
 
         cr.new_path();
@@ -111,12 +113,12 @@ impl ColorCircle {
         cr.stroke();
     }
 
-    pub fn set_rgb(&self, color: (f64, f64, f64)) {
+    pub fn set_rgb(&self, color: Rgb) {
         self.rgb.set(color);
         self.widget().queue_draw();
     }
 
-    pub fn rgb(&self) -> (f64, f64, f64) {
+    pub fn rgb(&self) -> Rgb {
         self.rgb.get()
     }
 

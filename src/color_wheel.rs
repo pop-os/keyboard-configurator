@@ -2,48 +2,11 @@
 
 use cascade::cascade;
 use gtk::prelude::*;
-use palette::{RgbHue, IntoColor};
 use std::cell::{Cell, RefCell};
 use std::rc::Rc;
 use std::f64::consts::PI;
 
-#[derive(Clone, Copy)]
-struct Hs {
-    /// Hue, in radians
-    h: f64,
-    /// Saturation, from 0.0 to 1.0
-    s: f64,
-}
-
-impl Hs {
-    fn new(h: f64, s: f64) -> Self {
-        Self { h, s }
-    }
-
-    fn to_rgb(self) -> Rgb {
-        let hue = RgbHue::from_radians(self.h);
-        let hsv = palette::Hsv::new(hue, self.s, 1.);
-        let rgb = hsv.into_rgb::<palette::encoding::srgb::Srgb>();
-        let (r, g, b) = rgb.into_format::<u8>().into_components();
-        Rgb::new(r, g, b)
-    }
-}
-
-#[derive(Clone, Copy)]
-struct Rgb {
-    /// Red
-    r: u8,
-    /// Green
-    g: u8,
-    /// Blue
-    b: u8,
-}
-
-impl Rgb {
-    fn new(r: u8, g: u8, b: u8) -> Self {
-        Self {r, g, b}
-    }
-}
+use crate::color::{Rgb, Hs};
 
 struct ColorWheelInner {
     selected_hs: Cell<Hs>,
@@ -53,10 +16,10 @@ struct ColorWheelInner {
 }
 
 #[derive(Clone)]
-struct ColorWheel(Rc<ColorWheelInner>);
+pub struct ColorWheel(Rc<ColorWheelInner>);
 
 impl ColorWheel {
-    fn new() -> Self {
+    pub fn new() -> Self {
         let drawing_area = cascade! {
             gtk::DrawingArea::new();
             ..add_events(gdk::EventMask::POINTER_MOTION_MASK | gdk::EventMask::BUTTON_PRESS_MASK);
@@ -81,8 +44,17 @@ impl ColorWheel {
         wheel
     }
 
-    fn widget(&self) -> &gtk::Widget {
+    pub fn widget(&self) -> &gtk::Widget {
         self.0.frame.upcast_ref()
+    }
+
+    pub fn hs(&self) -> Hs {
+        self.0.selected_hs.get()
+    }
+
+    pub fn set_hs(&self, hs: Hs) {
+        self.0.selected_hs.set(hs);
+        self.0.drawing_area.queue_draw();
     }
 
     fn connect_signals(&self) {
@@ -93,7 +65,7 @@ impl ColorWheel {
         });
 
         let self_clone = self.clone();
-        self.0.drawing_area.connect_size_allocate(move |w, rect| {
+        self.0.drawing_area.connect_size_allocate(move |_w, rect| {
             self_clone.generate_surface(rect);
         });
 
@@ -122,7 +94,7 @@ impl ColorWheel {
         cr.arc(radius, radius, radius, 0., 2. * PI);
         cr.fill();
 
-        let Hs {h, s} = self.0.selected_hs.get();
+        let Hs {h, s} = self.hs();
         let x = radius + h.cos() * s * radius;
         let y = radius - h.sin() * s * radius;
         cr.arc(x, y, 7.5, 0., 2. * PI);
@@ -169,12 +141,6 @@ impl ColorWheel {
         let angle = y.atan2(x);
         let distance = y.hypot(x);
 
-        self.0.selected_hs.set(Hs::new(angle, (distance / radius).min(1.)));
-
-        w.queue_draw();
+        self.set_hs(Hs::new(angle, (distance / radius).min(1.)));
     }
-}
-
-pub fn color_wheel() -> gtk::Widget {
-    ColorWheel::new().widget().clone()
 }

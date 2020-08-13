@@ -1,7 +1,7 @@
 use cascade::cascade;
 use gtk::prelude::*;
 
-use pop_keyboard_backlight::{color_wheel, KeyboardColorButton};
+use pop_keyboard_backlight::KeyboardColorButton;
 
 fn keyboard_color_button() -> gtk::Widget {
     let button = KeyboardColorButton::new();
@@ -40,7 +40,6 @@ fn main() {
     let listbox = cascade! {
         gtk::ListBox::new();
         ..add(&row);
-        ..add(&color_wheel());
     };
 
     let _window = cascade! {

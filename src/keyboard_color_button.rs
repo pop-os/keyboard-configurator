@@ -6,18 +6,14 @@ use std::ptr;
 use std::rc::Rc;
 use system76_power::{client::PowerClient, Power};
 
+use super::color::Rgb;
 use super::choose_color::choose_color;
 use super::color_circle::{ColorCircle, ColorCircleSymbol};
 
-fn set_keyboard_color(color: (f64, f64, f64)) {
+fn set_keyboard_color(rgb: Rgb) {
     let mut client = PowerClient::new().unwrap();
     let mut colors = client.get_keyboard_colors().unwrap();
-    let color_str = format!(
-        "{:02x}{:02x}{:02x}",
-        (color.0 * 255.) as u8,
-        (color.1 * 255.) as u8,
-        (color.2 * 255.) as u8
-    );
+    let color_str = rgb.to_string();
     for (_k, v) in colors.iter_mut() {
         *v = color_str.clone();
     }
@@ -102,11 +98,11 @@ impl KeyboardColorButton {
         edit_button.connect_clicked(move |_| keyboard_color_button_clone.edit_clicked());
 
         let colors = vec![
-            (1., 1., 1.),
-            (0., 0., 1.),
-            (1., 0., 0.),
-            (1., 1., 0.),
-            (0., 1., 0.),
+            Rgb::new(255, 255, 255),
+            Rgb::new(0, 0, 255),
+            Rgb::new(255, 0, 0),
+            Rgb::new(255, 255, 0),
+            Rgb::new(0, 255, 0),
         ];
 
         for rgb in colors.iter() {
@@ -118,7 +114,7 @@ impl KeyboardColorButton {
         keyboard_color_button
     }
 
-    fn add_color(self: Rc<Self>, color: (f64, f64, f64)) {
+    fn add_color(self: Rc<Self>, color: Rgb) {
         let self_clone = self.clone();
         let circle = cascade! {
             ColorCircle::new(45);
