@@ -100,8 +100,11 @@ pub fn color_wheel() -> gtk::Widget {
         let (h, s) = selected_hs_clone.get();
         let x = radius + h.cos() * s * radius;
         let y = radius - h.sin() * s * radius;
-        cr.arc(x, y, 20., 0., 2. * PI);
+        cr.arc(x, y, 7.5, 0., 2. * PI);
         cr.set_source_rgb(1., 1., 1.);
+        cr.fill_preserve();
+        cr.set_source_rgb(0., 0., 0.);
+        cr.set_line_width(1.);
         cr.stroke();
 
         Inhibit(false)
