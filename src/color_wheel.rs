@@ -13,6 +13,7 @@ struct ColorWheelInner {
     surface: RefCell<cairo::ImageSurface>,
     drawing_area: gtk::DrawingArea,
     frame: gtk::AspectFrame,
+    hs_changed_handlers: RefCell<Vec<Box<dyn Fn(&ColorWheel) + 'static>>>,
 }
 
 #[derive(Clone)]
@@ -37,6 +38,7 @@ impl ColorWheel {
             surface: RefCell::new(cairo::ImageSurface::create(cairo::Format::Rgb24, 0, 0).unwrap()),
             drawing_area,
             frame,
+            hs_changed_handlers: RefCell::new(Vec::new()),
         }));
 
         wheel.connect_signals();
@@ -55,6 +57,13 @@ impl ColorWheel {
     pub fn set_hs(&self, hs: Hs) {
         self.0.selected_hs.set(hs);
         self.0.drawing_area.queue_draw();
+        for handler in self.0.hs_changed_handlers.borrow().iter() {
+            handler(self);
+        }
+    }
+
+    pub fn connect_hs_changed<F: Fn(&Self) + 'static>(&self, f: F) {
+        self.0.hs_changed_handlers.borrow_mut().push(std::boxed::Box::new(f) as Box<dyn Fn(&Self)>);
     }
 
     fn connect_signals(&self) {
