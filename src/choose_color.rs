@@ -24,7 +24,11 @@ pub fn choose_color<W: IsA<gtk::Widget>>(w: &W, title: &'static str) -> Option<R
     color_wheel.connect_hs_changed(move |_| preview_clone.queue_draw());
 
     let vbox = cascade! {
-        gtk::Box::new(gtk::Orientation::Vertical, 0);
+        gtk::Box::new(gtk::Orientation::Vertical, 12);
+        ..set_margin_start(12);
+        ..set_margin_end(12);
+        ..set_margin_top(12);
+        ..set_margin_bottom(12);
         ..add(color_wheel.widget());
         ..add(&preview);
         ..show_all();
