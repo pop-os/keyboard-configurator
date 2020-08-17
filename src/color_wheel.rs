@@ -5,10 +5,10 @@ use glib::clone;
 use glib::clone::{Downgrade, Upgrade};
 use gtk::prelude::*;
 use std::cell::{Cell, RefCell};
-use std::rc::{Rc, Weak};
 use std::f64::consts::PI;
+use std::rc::{Rc, Weak};
 
-use crate::color::{Rgb, Hs};
+use crate::color::{Hs, Rgb};
 
 struct ColorWheelInner {
     selected_hs: Cell<Hs>,
@@ -83,32 +83,43 @@ impl ColorWheel {
     }
 
     pub fn connect_hs_changed<F: Fn(&Self) + 'static>(&self, f: F) {
-        self.0.hs_changed_handlers.borrow_mut().push(std::boxed::Box::new(f) as Box<dyn Fn(&Self)>);
+        self.0
+            .hs_changed_handlers
+            .borrow_mut()
+            .push(std::boxed::Box::new(f) as Box<dyn Fn(&Self)>);
     }
 
     fn connect_signals(&self) {
         let self_ = self;
 
-        self.0.drawing_area.connect_draw(clone!(@weak self_ => @default-panic, move |w, cr| {
-            self_.draw(w, cr);
-            Inhibit(false)
-        }));
+        self.0
+            .drawing_area
+            .connect_draw(clone!(@weak self_ => @default-panic, move |w, cr| {
+                self_.draw(w, cr);
+                Inhibit(false)
+            }));
 
-        self.0.drawing_area.connect_size_allocate(clone!(@weak self_ => @default-panic, move |_w, rect| {
-            self_.generate_surface(rect);
-        }));
+        self.0.drawing_area.connect_size_allocate(
+            clone!(@weak self_ => @default-panic, move |_w, rect| {
+                self_.generate_surface(rect);
+            }),
+        );
 
-        self.0.drawing_area.connect_button_press_event(clone!(@weak self_ => @default-panic, move |w, evt| {
-            self_.mouse_select(w, evt.get_position());
-            Inhibit(false)
-        }));
-
-        self.0.drawing_area.connect_motion_notify_event(clone!(@weak self_ => @default-panic, move |w, evt| {
-            if evt.get_state().contains(gdk::ModifierType::BUTTON1_MASK) {
+        self.0.drawing_area.connect_button_press_event(
+            clone!(@weak self_ => @default-panic, move |w, evt| {
                 self_.mouse_select(w, evt.get_position());
-            }
-            Inhibit(false)
-        }));
+                Inhibit(false)
+            }),
+        );
+
+        self.0.drawing_area.connect_motion_notify_event(
+            clone!(@weak self_ => @default-panic, move |w, evt| {
+                if evt.get_state().contains(gdk::ModifierType::BUTTON1_MASK) {
+                    self_.mouse_select(w, evt.get_position());
+                }
+                Inhibit(false)
+            }),
+        );
     }
 
     fn draw(&self, w: &gtk::DrawingArea, cr: &cairo::Context) {
@@ -121,7 +132,7 @@ impl ColorWheel {
         cr.arc(radius, radius, radius, 0., 2. * PI);
         cr.fill();
 
-        let Hs {h, s} = self.hs();
+        let Hs { h, s } = self.hs();
         let x = radius + h.cos() * s * radius;
         let y = radius - h.sin() * s * radius;
         cr.arc(x, y, 7.5, 0., 2. * PI);
@@ -145,7 +156,7 @@ impl ColorWheel {
                 let angle = y.atan2(x);
                 let distance = y.hypot(x);
 
-                let Rgb {r, g, b} = Hs::new(angle, distance / radius).to_rgb();
+                let Rgb { r, g, b } = Hs::new(angle, distance / radius).to_rgb();
 
                 let offset = (row * stride + col * 4) as usize;
                 data[offset + 0] = b;
@@ -154,7 +165,9 @@ impl ColorWheel {
             }
         }
 
-        let image_surface = cairo::ImageSurface::create_for_data(data, cairo::Format::Rgb24, size, size, stride).unwrap();
+        let image_surface =
+            cairo::ImageSurface::create_for_data(data, cairo::Format::Rgb24, size, size, stride)
+                .unwrap();
         self.0.surface.replace(image_surface);
     }
 
