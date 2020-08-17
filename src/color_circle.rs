@@ -1,8 +1,11 @@
 use cascade::cascade;
+use glib::clone;
+use glib::clone::{Downgrade, Upgrade};
 use gtk::prelude::*;
 use std::cell::Cell;
 use std::f64::consts::PI;
-use std::rc::Rc;
+use std::ptr;
+use std::rc::{Rc, Weak};
 
 use crate::color::Rgb;
 
@@ -20,16 +23,38 @@ pub enum ColorCircleSymbol {
     None,
 }
 
-pub struct ColorCircle {
+pub struct ColorCircleInner {
     frame: gtk::AspectFrame,
+    drawing_area: gtk::DrawingArea,
     button: gtk::Button,
     rgb: Cell<Rgb>,
     alpha: Cell<f64>,
     symbol: Cell<ColorCircleSymbol>,
 }
 
+#[derive(Clone)]
+pub struct ColorCircle(Rc<ColorCircleInner>);
+
+pub struct ColorCircleWeak(Weak<ColorCircleInner>);
+
+impl Downgrade for ColorCircle {
+    type Weak = ColorCircleWeak;
+
+    fn downgrade(&self) -> Self::Weak {
+        ColorCircleWeak(self.0.downgrade())
+    }
+}
+
+impl Upgrade for ColorCircleWeak {
+    type Strong = ColorCircle;
+
+    fn upgrade(&self) -> Option<Self::Strong> {
+        self.0.upgrade().map(ColorCircle)
+    }
+}
+
 impl ColorCircle {
-    pub fn new(size: i32) -> Rc<Self> {
+    pub fn new(size: i32) -> Self {
         let drawing_area = gtk::DrawingArea::new();
 
         let provider = cascade! {
@@ -52,31 +77,41 @@ impl ColorCircle {
             ..add(&button);
         };
 
-        let color_circle = Rc::new(Self {
+        let color_circle = Self(Rc::new(ColorCircleInner {
             frame,
+            drawing_area,
             button: button.clone(),
             rgb: Cell::new(Rgb::new(0, 0, 0)),
             symbol: Cell::new(ColorCircleSymbol::None),
             alpha: Cell::new(1.),
-        });
+        }));
 
-        let color_circle_clone = color_circle.clone();
-        drawing_area.connect_draw(move |w, cr| {
-            color_circle_clone.draw(w, cr);
-            Inhibit(false)
-        });
+        color_circle.connect_signals();
 
         color_circle
     }
 
+    fn connect_signals(&self) {
+        let self_ = self;
+
+        self.0
+            .drawing_area
+            .connect_draw(clone!(@strong self_ => move |w, cr| {
+                self_.draw(w, cr);
+                Inhibit(false)
+            }));
+    }
+
     // `arbitrary_self_types` feature would allow `self: &Rc<Self>`
-    pub fn connect_clicked<F: Fn(&Rc<Self>) + 'static>(self: Rc<Self>, cb: F) {
-        let self_clone = self.clone();
-        self.button.connect_clicked(move |_| cb(&self_clone));
+    pub fn connect_clicked<F: Fn(&Self) + 'static>(&self, cb: F) {
+        let self_ = self;
+        self.0
+            .button
+            .connect_clicked(clone!(@weak self_ => @default-panic, move |_| cb(&self_)));
     }
 
     pub fn widget(&self) -> &gtk::Widget {
-        self.frame.upcast_ref::<gtk::Widget>()
+        self.0.frame.upcast_ref::<gtk::Widget>()
     }
 
     fn draw(&self, w: &gtk::DrawingArea, cr: &cairo::Context) {
@@ -85,7 +120,7 @@ impl ColorCircle {
 
         let radius = width.min(height) / 2.;
         let (r, g, b) = self.rgb().to_floats();
-        let alpha = self.alpha.get();
+        let alpha = self.0.alpha.get();
 
         cr.arc(radius, radius, radius, 0., 2. * PI);
         cr.set_source_rgba(r, g, b, alpha);
@@ -95,7 +130,7 @@ impl ColorCircle {
         cr.set_source_rgb(0.25, 0.25, 0.25);
         cr.set_line_width(1.5);
 
-        match self.symbol.get() {
+        match self.0.symbol.get() {
             ColorCircleSymbol::Plus => {
                 cr.move_to(radius, 0.8 * radius);
                 cr.line_to(radius, 1.2 * radius);
@@ -114,20 +149,24 @@ impl ColorCircle {
     }
 
     pub fn set_rgb(&self, color: Rgb) {
-        self.rgb.set(color);
+        self.0.rgb.set(color);
         self.widget().queue_draw();
     }
 
     pub fn rgb(&self) -> Rgb {
-        self.rgb.get()
+        self.0.rgb.get()
     }
 
     pub fn set_symbol(&self, symbol: ColorCircleSymbol) {
-        self.symbol.set(symbol);
+        self.0.symbol.set(symbol);
         self.widget().queue_draw();
     }
 
     pub fn set_alpha(&self, alpha: f64) {
-        self.alpha.set(alpha);
+        self.0.alpha.set(alpha);
+    }
+
+    pub fn ptr_eq(&self, other: &Self) -> bool {
+        ptr::eq(self.0.as_ref(), other.0.as_ref())
     }
 }

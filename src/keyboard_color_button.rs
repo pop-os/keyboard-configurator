@@ -1,13 +1,14 @@
 use cascade::cascade;
+use glib::clone;
+use glib::clone::{Downgrade, Upgrade};
 use gtk::prelude::*;
 use std::cell::RefCell;
 use std::iter;
-use std::ptr;
-use std::rc::Rc;
+use std::rc::{Rc, Weak};
 use system76_power::{client::PowerClient, Power};
 
-use super::color::Rgb;
 use super::choose_color::choose_color;
+use super::color::Rgb;
 use super::color_circle::{ColorCircle, ColorCircleSymbol};
 
 fn set_keyboard_color(rgb: Rgb) {
@@ -20,17 +21,39 @@ fn set_keyboard_color(rgb: Rgb) {
     client.set_keyboard_colors(colors).unwrap();
 }
 
-pub struct KeyboardColorButton {
-    button: Rc<ColorCircle>,
-    circles: RefCell<Vec<Rc<ColorCircle>>>,
+struct KeyboardColorButtonInner {
+    button: ColorCircle,
+    circles: RefCell<Vec<ColorCircle>>,
     grid: gtk::Grid,
-    current_circle: RefCell<Option<Rc<ColorCircle>>>,
-    add_circle: Rc<ColorCircle>,
+    current_circle: RefCell<Option<ColorCircle>>,
+    add_circle: ColorCircle,
     remove_button: gtk::Button,
+    edit_button: gtk::Button,
+}
+
+#[derive(Clone)]
+pub struct KeyboardColorButton(Rc<KeyboardColorButtonInner>);
+
+pub struct KeyboardColorButtonWeak(Weak<KeyboardColorButtonInner>);
+
+impl Downgrade for KeyboardColorButton {
+    type Weak = KeyboardColorButtonWeak;
+
+    fn downgrade(&self) -> Self::Weak {
+        KeyboardColorButtonWeak(self.0.downgrade())
+    }
+}
+
+impl Upgrade for KeyboardColorButtonWeak {
+    type Strong = KeyboardColorButton;
+
+    fn upgrade(&self) -> Option<Self::Strong> {
+        self.0.upgrade().map(KeyboardColorButton)
+    }
 }
 
 impl KeyboardColorButton {
-    pub fn new() -> Rc<Self> {
+    pub fn new() -> Self {
         let grid = cascade! {
             gtk::Grid::new();
             ..set_column_spacing(6);
@@ -60,10 +83,9 @@ impl KeyboardColorButton {
             ..add(&vbox);
         };
 
-        let popover_clone = popover.clone();
         let button = cascade! {
             ColorCircle::new(30);
-            ..clone().connect_clicked(move |_| popover_clone.popup());
+            ..connect_clicked(clone!(@weak popover => @default-panic, move |_| popover.popup()));
         };
 
         popover.set_relative_to(Some(button.widget()));
@@ -74,28 +96,17 @@ impl KeyboardColorButton {
             ..set_symbol(ColorCircleSymbol::Plus);
         };
 
-        let keyboard_color_button = Rc::new(Self {
+        let keyboard_color_button = Self(Rc::new(KeyboardColorButtonInner {
             button,
             circles: RefCell::new(Vec::new()),
             grid,
             current_circle: RefCell::new(None),
             add_circle,
-            remove_button: remove_button.clone(),
-        });
+            remove_button,
+            edit_button,
+        }));
 
-        let keyboard_color_button_clone = keyboard_color_button.clone();
-        keyboard_color_button
-            .add_circle
-            .clone()
-            .connect_clicked(move |_| {
-                keyboard_color_button_clone.clone().add_clicked();
-            });
-
-        let keyboard_color_button_clone = keyboard_color_button.clone();
-        remove_button.connect_clicked(move |_| keyboard_color_button_clone.remove_clicked());
-
-        let keyboard_color_button_clone = keyboard_color_button.clone();
-        edit_button.connect_clicked(move |_| keyboard_color_button_clone.edit_clicked());
+        keyboard_color_button.connect_signals();
 
         let colors = vec![
             Rgb::new(255, 255, 255),
@@ -106,7 +117,7 @@ impl KeyboardColorButton {
         ];
 
         for rgb in colors.iter() {
-            keyboard_color_button.clone().add_color(*rgb);
+            keyboard_color_button.add_color(*rgb);
         }
 
         keyboard_color_button.populate_grid();
@@ -114,76 +125,91 @@ impl KeyboardColorButton {
         keyboard_color_button
     }
 
-    fn add_color(self: Rc<Self>, color: Rgb) {
-        let self_clone = self.clone();
+    fn connect_signals(&self) {
+        let self_ = self;
+
+        self.0
+            .add_circle
+            .connect_clicked(clone!(@strong self_ => move |_| {
+                self_.add_clicked();
+            }));
+
+        self.0.remove_button.connect_clicked(
+            clone!(@weak self_ => @default-panic, move |_| self_.remove_clicked()),
+        );
+
+        self.0
+            .edit_button
+            .connect_clicked(clone!(@weak self_ => @default-panic, move |_| self_.edit_clicked()));
+    }
+
+    fn add_color(&self, color: Rgb) {
+        let self_ = self;
         let circle = cascade! {
             ColorCircle::new(45);
-            ..clone().connect_clicked(move |c| self_clone.circle_clicked(c));
+            ..connect_clicked(clone!(@weak self_ => @default-panic, move |c| self_.circle_clicked(c)));
             ..set_rgb(color);
         };
-        self.circles.borrow_mut().push(circle);
+        self.0.circles.borrow_mut().push(circle);
     }
 
     fn populate_grid(&self) {
-        self.grid.foreach(|w| self.grid.remove(w));
+        self.0.grid.foreach(|w| self.0.grid.remove(w));
 
-        let circles = self.circles.borrow();
+        let circles = self.0.circles.borrow();
         for (i, circle) in circles
             .iter()
-            .chain(iter::once(&self.add_circle))
+            .chain(iter::once(&self.0.add_circle))
             .enumerate()
         {
             let x = i as i32 % 3;
             let y = i as i32 / 3;
-            self.grid.attach(circle.widget(), x, y, 1, 1);
+            self.0.grid.attach(circle.widget(), x, y, 1, 1);
         }
 
-        self.grid.show_all();
+        self.0.grid.show_all();
     }
 
-    fn add_clicked(self: Rc<Self>) {
+    fn add_clicked(&self) {
         if let Some(color) = choose_color(self.widget(), "Add Color") {
-            self.clone().add_color(color);
-            self.remove_button.set_visible(true);
+            self.add_color(color);
+            self.0.remove_button.set_visible(true);
             self.populate_grid();
         }
     }
 
     fn remove_clicked(&self) {
-        if let Some(current_circle) = &mut *self.current_circle.borrow_mut() {
-            let mut circles = self.circles.borrow_mut();
-            if let Some(index) = circles
-                .iter()
-                .position(|c| ptr::eq(c.as_ref(), current_circle.as_ref()))
-            {
+        if let Some(current_circle) = &mut *self.0.current_circle.borrow_mut() {
+            let mut circles = self.0.circles.borrow_mut();
+            if let Some(index) = circles.iter().position(|c| c.ptr_eq(current_circle)) {
                 circles.remove(index);
                 *current_circle = circles[index.saturating_sub(1)].clone();
                 current_circle.set_symbol(ColorCircleSymbol::Check);
             }
-            self.remove_button.set_visible(circles.len() > 1);
+            self.0.remove_button.set_visible(circles.len() > 1);
         }
         self.populate_grid();
     }
 
     fn edit_clicked(&self) {
         if let Some(color) = choose_color(self.widget(), "Edit Color") {
-            if let Some(circle) = &*self.current_circle.borrow() {
+            if let Some(circle) = &*self.0.current_circle.borrow() {
                 circle.set_rgb(color);
             }
         }
     }
 
-    fn circle_clicked(&self, circle: &Rc<ColorCircle>) {
+    fn circle_clicked(&self, circle: &ColorCircle) {
         let color = circle.rgb();
         set_keyboard_color(color);
-        self.button.set_rgb(color);
+        self.0.button.set_rgb(color);
 
         circle.set_symbol(ColorCircleSymbol::Check);
-        let old_circle = self.current_circle.replace(Some(circle.clone()));
+        let old_circle = self.0.current_circle.replace(Some(circle.clone()));
         old_circle.map(|c| c.set_symbol(ColorCircleSymbol::None));
     }
 
     pub fn widget(&self) -> &gtk::Widget {
-        self.button.widget()
+        self.0.button.widget()
     }
 }

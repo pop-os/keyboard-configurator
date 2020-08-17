@@ -94,7 +94,7 @@ impl ColorWheel {
 
         self.0
             .drawing_area
-            .connect_draw(clone!(@weak self_ => @default-panic, move |w, cr| {
+            .connect_draw(clone!(@strong self_ => move |w, cr| {
                 self_.draw(w, cr);
                 Inhibit(false)
             }));
