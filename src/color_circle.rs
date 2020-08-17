@@ -80,7 +80,7 @@ impl ColorCircle {
         let color_circle = Self(Rc::new(ColorCircleInner {
             frame,
             drawing_area,
-            button: button.clone(),
+            button,
             rgb: Cell::new(Rgb::new(0, 0, 0)),
             symbol: Cell::new(ColorCircleSymbol::None),
             alpha: Cell::new(1.),
