@@ -1,9 +1,11 @@
 // A hue/saturation color wheel that allows a color to be selected.
 
 use cascade::cascade;
+use glib::clone;
+use glib::clone::{Downgrade, Upgrade};
 use gtk::prelude::*;
 use std::cell::{Cell, RefCell};
-use std::rc::Rc;
+use std::rc::{Rc, Weak};
 use std::f64::consts::PI;
 
 use crate::color::{Rgb, Hs};
@@ -18,6 +20,24 @@ struct ColorWheelInner {
 
 #[derive(Clone)]
 pub struct ColorWheel(Rc<ColorWheelInner>);
+
+pub struct ColorWheelWeak(Weak<ColorWheelInner>);
+
+impl Downgrade for ColorWheel {
+    type Weak = ColorWheelWeak;
+
+    fn downgrade(&self) -> Self::Weak {
+        ColorWheelWeak(self.0.downgrade())
+    }
+}
+
+impl Upgrade for ColorWheelWeak {
+    type Strong = ColorWheel;
+
+    fn upgrade(&self) -> Option<Self::Strong> {
+        self.0.upgrade().map(ColorWheel)
+    }
+}
 
 impl ColorWheel {
     pub fn new() -> Self {
@@ -67,30 +87,28 @@ impl ColorWheel {
     }
 
     fn connect_signals(&self) {
-        let self_clone = self.clone();
-        self.0.drawing_area.connect_draw(move |w, cr| {
-            self_clone.draw(w, cr);
+        let self_ = self;
+
+        self.0.drawing_area.connect_draw(clone!(@weak self_ => @default-panic, move |w, cr| {
+            self_.draw(w, cr);
             Inhibit(false)
-        });
+        }));
 
-        let self_clone = self.clone();
-        self.0.drawing_area.connect_size_allocate(move |_w, rect| {
-            self_clone.generate_surface(rect);
-        });
+        self.0.drawing_area.connect_size_allocate(clone!(@weak self_ => @default-panic, move |_w, rect| {
+            self_.generate_surface(rect);
+        }));
 
-        let self_clone = self.clone();
-        self.0.drawing_area.connect_button_press_event(move |w, evt| {
-            self_clone.mouse_select(w, evt.get_position());
+        self.0.drawing_area.connect_button_press_event(clone!(@weak self_ => @default-panic, move |w, evt| {
+            self_.mouse_select(w, evt.get_position());
             Inhibit(false)
-        });
+        }));
 
-        let self_clone = self.clone();
-        self.0.drawing_area.connect_motion_notify_event(move |w, evt| {
+        self.0.drawing_area.connect_motion_notify_event(clone!(@weak self_ => @default-panic, move |w, evt| {
             if evt.get_state().contains(gdk::ModifierType::BUTTON1_MASK) {
-                self_clone.mouse_select(w, evt.get_position());
+                self_.mouse_select(w, evt.get_position());
             }
             Inhibit(false)
-        });
+        }));
     }
 
     fn draw(&self, w: &gtk::DrawingArea, cr: &cairo::Context) {
