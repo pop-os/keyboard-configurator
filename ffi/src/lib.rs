@@ -1,7 +1,7 @@
 use glib::object::ObjectType;
 use pop_keyboard_backlight::KeyboardColorButton;
+use std::boxed::Box;
 use std::ptr;
-use std::rc::Rc;
 
 #[no_mangle]
 pub struct PopKeyboardColorButton;
@@ -12,7 +12,7 @@ pub extern "C" fn pop_keyboard_color_button_new() -> *mut PopKeyboardColorButton
         gtk::set_initialized();
     }
 
-    Rc::into_raw(KeyboardColorButton::new()) as *mut PopKeyboardColorButton
+    Box::into_raw(Box::new(KeyboardColorButton::new())) as *mut PopKeyboardColorButton
 }
 
 #[no_mangle]
@@ -25,5 +25,5 @@ pub extern "C" fn pop_keyboard_color_button_widget(
 
 #[no_mangle]
 pub extern "C" fn pop_keyboard_color_button_free(widget: *mut PopKeyboardColorButton) {
-    unsafe { Rc::from_raw(widget as *mut KeyboardColorButton) };
+    unsafe { Box::from_raw(widget as *mut KeyboardColorButton) };
 }
