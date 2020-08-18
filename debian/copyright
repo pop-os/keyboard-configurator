@@ -1,0 +1,7 @@
+Format: http://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: pop-keyboard-backlight
+Source: https://github.com/pop-os/keyboard-backlight
+
+Files: *
+Copyright: Copyright 2020 System76
+License: GPL-3

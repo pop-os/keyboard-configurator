@@ -1,0 +1,29 @@
+Source: pop-keyboard-backlight
+Section: admin
+Priority: optional
+Maintainer: System76 <info@system76.com>
+Build-Depends:
+  debhelper (>=9),
+  cargo,
+  rustc (>=1.36.0),
+  libgtk-3-dev,
+  pkg-config,
+Standards-Version: 4.3.0
+Homepage: https://github.com/pop-os/keyboard-backlight
+
+Package: libpop-keyboard-backlight
+Architecture: amd64
+Depends:
+  libgtk-3-0,
+  ${misc:Depends},
+  ${shlib:Depends}
+Description: Pop keyboard backlight library
+ Shared library for C which provides the Pop!_OS keyboard backlight as a GTK widget.
+
+Package: libpop-keyboard-backlight-dev
+Architecture: all
+Depends:
+  libpop-keyboard-backlight (= ${binary:Version}),
+  ${misc:Depends}
+Description: Pop keyboard backlight library header
+ The C header required to link to the Pop!_OS keyboard backlight widget library.

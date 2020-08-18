@@ -1,0 +1,24 @@
+#!/usr/bin/make -f
+
+CLEAN ?= 1
+VENDOR ?= 1
+
+%:
+	dh $@
+
+override_dh_auto_clean:
+ifeq ($(CLEAN),1)
+	make clean
+endif
+ifeq ($(VENDOR),1)
+	if ! ischroot; then \
+		make vendor; \
+	fi
+endif
+
+override_dh_auto_build:
+	env CARGO_HOME="$$(pwd)/target/cargo" \
+		make all VENDOR=$(VENDOR) prefix=/usr
+
+override_dh_auto_install:
+	dh_auto_install -- prefix=/usr
