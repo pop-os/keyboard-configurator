@@ -7,6 +7,7 @@ Build-Depends:
   cargo,
   rustc (>=1.36.0),
   libgtk-3-dev,
+  libusb-1.0-0-dev,
   pkg-config,
 Standards-Version: 4.3.0
 Homepage: https://github.com/pop-os/keyboard-backlight
@@ -15,8 +16,9 @@ Package: libpop-keyboard-backlight
 Architecture: amd64
 Depends:
   libgtk-3-0,
+  libusb-1.0-0,
   ${misc:Depends},
-  ${shlib:Depends}
+  ${shlibs:Depends}
 Description: Pop keyboard backlight library
  Shared library for C which provides the Pop!_OS keyboard backlight as a GTK widget.
 
