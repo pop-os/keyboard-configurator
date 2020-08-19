@@ -13,12 +13,7 @@ use super::color_circle::{ColorCircle, ColorCircleSymbol};
 
 fn set_keyboard_color(rgb: Rgb) {
     let mut client = PowerClient::new().unwrap();
-    let mut colors = client.get_keyboard_colors().unwrap();
-    let color_str = rgb.to_string();
-    for (_k, v) in colors.iter_mut() {
-        *v = color_str.clone();
-    }
-    client.set_keyboard_colors(colors).unwrap();
+    client.set_keyboard_color(&rgb.to_string()).unwrap();
 }
 
 struct KeyboardColorButtonInner {
