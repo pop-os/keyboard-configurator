@@ -26,6 +26,22 @@ fn main() {
         ..pack_end(&button, false, false, 0);
     };
 
+    let brightness_scale = cascade! {
+        gtk::Scale::with_range(gtk::Orientation::Horizontal, 0., 100., 1.);
+        ..connect_value_changed(|_| {});
+    };
+
+    let brightness_row = cascade! {
+        gtk::ListBoxRow::new();
+        ..set_selectable(false);
+        ..set_activatable(false);
+        ..set_margin_top(12);
+        ..set_margin_bottom(12);
+        ..set_margin_start(12);
+        ..set_margin_end(12);
+        ..add(&brightness_scale);
+    };
+
     let row = cascade! {
         gtk::ListBoxRow::new();
         ..set_selectable(false);
@@ -39,6 +55,7 @@ fn main() {
 
     let listbox = cascade! {
         gtk::ListBox::new();
+        ..add(&brightness_row);
         ..add(&row);
     };
 
