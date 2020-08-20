@@ -44,4 +44,12 @@ impl Rgb {
     pub fn to_string(self) -> String {
         format!("{:02x}{:02x}{:02x}", self.r, self.g, self.b)
     }
+
+    pub fn to_hs_lossy(self) -> Hs {
+        let rgb = palette::Srgb::new(self.r, self.g, self.b);
+        let rgb = rgb.into_format::<f64>();
+        let hsv = rgb.into_hsv::<palette::encoding::srgb::Srgb>();
+        let (h, s, _) = hsv.into_components();
+        Hs::new(h.to_radians(), s)
+    }
 }

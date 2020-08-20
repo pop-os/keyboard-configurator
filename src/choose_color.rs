@@ -5,8 +5,12 @@ use crate::color::Rgb;
 use crate::color_wheel::ColorWheel;
 use crate::set_keyboard_color;
 
-pub fn choose_color<W: IsA<gtk::Widget>>(w: &W, title: &'static str) -> Option<Rgb> {
+pub fn choose_color<W: IsA<gtk::Widget>>(w: &W, title: &'static str, color: Option<Rgb>) -> Option<Rgb> {
     let color_wheel = ColorWheel::new();
+
+    if let Some(color) = color {
+        color_wheel.set_hs(color.to_hs_lossy());
+    }
 
     let color_wheel_clone = color_wheel.clone();
     let preview = cascade! {
