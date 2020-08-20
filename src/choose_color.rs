@@ -1,35 +1,38 @@
 use cascade::cascade;
+use glib::clone;
 use gtk::prelude::*;
 
 use crate::color::Rgb;
 use crate::color_wheel::ColorWheel;
 use crate::set_keyboard_color;
 
-pub fn choose_color<W: IsA<gtk::Widget>>(w: &W, title: &'static str, color: Option<Rgb>) -> Option<Rgb> {
+pub fn choose_color<W: IsA<gtk::Widget>>(
+    w: &W,
+    title: &'static str,
+    color: Option<Rgb>,
+) -> Option<Rgb> {
     let color_wheel = ColorWheel::new();
 
     if let Some(color) = color {
         color_wheel.set_hs(color.to_hs_lossy());
     }
 
-    let color_wheel_clone = color_wheel.clone();
     let preview = cascade! {
         gtk::DrawingArea::new();
         ..set_halign(gtk::Align::Center);
         ..set_size_request(300, 25);
-        ..connect_draw(move |_w, cr| {
-            let (r, g, b) = color_wheel_clone.hs().to_rgb().to_floats();
+        ..connect_draw(clone!(@weak color_wheel => @default-panic, move |_w, cr| {
+            let (r, g, b) = color_wheel.hs().to_rgb().to_floats();
             cr.set_source_rgb(r, g, b);
             cr.paint();
             Inhibit(false)
-        });
+        }));
     };
 
-    let preview_clone = preview.clone();
-    color_wheel.connect_hs_changed(move |wheel| {
+    color_wheel.connect_hs_changed(clone!(@weak preview => @default-panic, move |wheel| {
         set_keyboard_color(wheel.hs().to_rgb());
-        preview_clone.queue_draw();
-    });
+        preview.queue_draw();
+    }));
 
     let vbox = cascade! {
         gtk::Box::new(gtk::Orientation::Vertical, 12);
