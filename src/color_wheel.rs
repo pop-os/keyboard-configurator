@@ -128,10 +128,12 @@ impl ColorWheel {
 
         let radius = width.min(height) / 2.;
 
+        // Draw color wheel
         cr.set_source_surface(&self.0.surface.borrow(), 0., 0.);
         cr.arc(radius, radius, radius, 0., 2. * PI);
         cr.fill();
 
+        // Draw selector circle
         let Hs { h, s } = self.hs();
         let x = radius + h.cos() * s * radius;
         let y = radius - h.sin() * s * radius;
