@@ -5,16 +5,12 @@ use gtk::prelude::*;
 use std::cell::RefCell;
 use std::iter;
 use std::rc::{Rc, Weak};
-use system76_power::{client::PowerClient, Power};
 
-use super::choose_color::choose_color;
-use super::color::Rgb;
-use super::color_circle::{ColorCircle, ColorCircleSymbol};
+use crate::choose_color::choose_color;
+use crate::color::Rgb;
+use crate::color_circle::{ColorCircle, ColorCircleSymbol};
+use crate::set_keyboard_color;
 
-fn set_keyboard_color(rgb: Rgb) {
-    let mut client = PowerClient::new().unwrap();
-    client.set_keyboard_color(&rgb.to_string()).unwrap();
-}
 
 struct KeyboardColorButtonInner {
     button: ColorCircle,
@@ -170,6 +166,10 @@ impl KeyboardColorButton {
             self.add_color(color);
             self.0.remove_button.set_visible(true);
             self.populate_grid();
+        } else {
+            if let Some(circle) = &*self.0.current_circle.borrow() {
+                set_keyboard_color(circle.rgb());
+            }
         }
     }
 
@@ -190,6 +190,10 @@ impl KeyboardColorButton {
         if let Some(color) = choose_color(self.widget(), "Edit Color") {
             if let Some(circle) = &*self.0.current_circle.borrow() {
                 circle.set_rgb(color);
+            }
+        } else {
+            if let Some(circle) = &*self.0.current_circle.borrow() {
+                set_keyboard_color(circle.rgb());
             }
         }
     }

@@ -3,6 +3,7 @@ use gtk::prelude::*;
 
 use crate::color::Rgb;
 use crate::color_wheel::ColorWheel;
+use crate::set_keyboard_color;
 
 pub fn choose_color<W: IsA<gtk::Widget>>(w: &W, title: &'static str) -> Option<Rgb> {
     let color_wheel = ColorWheel::new();
@@ -21,7 +22,10 @@ pub fn choose_color<W: IsA<gtk::Widget>>(w: &W, title: &'static str) -> Option<R
     };
 
     let preview_clone = preview.clone();
-    color_wheel.connect_hs_changed(move |_| preview_clone.queue_draw());
+    color_wheel.connect_hs_changed(move |wheel| {
+        set_keyboard_color(wheel.hs().to_rgb());
+        preview_clone.queue_draw();
+    });
 
     let vbox = cascade! {
         gtk::Box::new(gtk::Orientation::Vertical, 12);
