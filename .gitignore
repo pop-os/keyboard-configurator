@@ -1,5 +1,6 @@
 /target
 /windows/out
+/windows/libraries.wxi
 *.msi
 *.wixobj
 *.wixpdb

@@ -1,0 +1,63 @@
+<?xml version='1.0' encoding='utf-8'?>
+<Wix xmlns='http://schemas.microsoft.com/wix/2006/wi'>
+    <Product
+        Name='Keyboard Configurator'
+        Manufacturer='System76, Inc.'
+        Id='0a2ab015-8952-4130-aeb7-f0409eb86202' 
+        UpgradeCode='548e3064-0ff9-421a-91dc-1f1bd0afe9b6'
+        Language='1033'
+        Codepage='1252'
+        Version='0.0.1'
+            >
+
+        <!-- Comments='' -->
+        <Package
+            Id='*'
+            Keywords='Installer'
+            Description="Keyboard Configurator Installer"
+            Manufacturer='System76, Inc.'
+            InstallerVersion='100'
+            Languages='1033'
+            Compressed='yes'
+            SummaryCodepage='1252'
+            />
+
+        <Media Id='1' Cabinet='KeyboardConfigurator.cab' EmbedCab='yes' />
+
+        <Property Id='DiskPrompt' Value="System76 Keyboard Configurator Installation [1]" />
+
+        <Directory Id='TARGETDIR' Name='SourceDir'>
+            <Directory Id='ProgramFilesFolder' Name='PFiles'>
+                <Directory Id='System76' Name='System76'>
+                    <Directory Id='INSTALLDIR' Name='Keyboard Backlight'>
+                        <Component Id='MainExecutable' Guid='2860bcd8-dbc0-4c00-a0ff-9f24c6d76f5b'>
+                            <File Name='keyboard_color.exe' DiskId='1' Source='out/keyboard_color.exe' KeyPath='yes'>
+                                <!-- TODO: Icon -->
+                                <Shortcut Id="startmenuKeyboardColor" Directory="ProgramMenuDir" Name="Keyboard Color"
+                                    WorkingDirectory='INSTALLDIR' Advertise="yes" />
+                            </File>
+                            <?include libraries.wxi ?>
+                        </Component>
+                    </Directory>
+                </Directory>
+            </Directory>
+
+            <!-- Probably put dll dependencies in at least one component: https://www.firegiant.com/wix/tutorial/getting-started/the-files-inside/ -->
+
+            <Directory Id="ProgramMenuFolder" Name="Programs">
+                <Directory Id="ProgramMenuDir" Name="System76 Keyboard Configurator">
+                    <Component Id="ProgramMenuDir" Guid="47cf0b1d-bbc4-45c1-92de-c5e0a2d7ac20">
+                        <RemoveFolder Id='ProgramMenuDir' On='uninstall' />
+                        <RegistryValue Root='HKCU' Key='Software\[Manufacturer]\[ProductName]' Type='string' Value='' KeyPath='yes' />
+                    </Component>
+                </Directory>
+            </Directory>
+        </Directory>
+
+        <Feature Id='Complete' Level='1'>
+            <ComponentRef Id='MainExecutable' />
+            <ComponentRef Id='ProgramMenuDir' />
+        </Feature>
+
+    </Product>
+</Wix>
