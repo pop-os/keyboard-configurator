@@ -1,7 +1,7 @@
 SET PATH=C:\msys64\mingw32\bin;%PATH%;C:\msys64\usr\bin
 rustup run stable-i686-pc-windows-gnu cargo build --release --examples
 mkdir out
-xcopy target\release\examples\keyboard_color.exe out\ /Y
+xcopy ..\target\release\examples\keyboard_color.exe out\ /Y
 strip out\keyboard_color.exe
 xcopy C:\msys64\mingw32\bin\libcairo-gobject-2.dll out\ /Y
 xcopy C:\msys64\mingw32\bin\libcairo-2.dll out\ /Y
