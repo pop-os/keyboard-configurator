@@ -12,7 +12,6 @@ xcopy C:\msys64\mingw32\bin\libgobject-2.0-0.dll out\ /Y
 xcopy C:\msys64\mingw32\bin\libglib-2.0-0.dll out\ /Y
 xcopy C:\msys64\mingw32\bin\libgtk-3-0.dll out\ /Y
 xcopy C:\msys64\mingw32\bin\libpango-1.0-0.dll out\ /Y
-xcopy C:\msys64\mingw32\bin\libgcc_s_seh-1.dll out\ /Y
 xcopy C:\msys64\mingw32\bin\libgcc_s_dw2-1.dll out\ /Y
 xcopy C:\msys64\mingw32\bin\libssp-0.dll out\ /Y
 xcopy C:\msys64\mingw32\bin\libfontconfig-1.dll out\ /Y
