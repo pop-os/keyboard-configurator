@@ -4,7 +4,6 @@ import shutil
 import subprocess
 
 # Paths to find executables and libraries
-NTLDD = 'ntldd.exe'
 RUSTUP = f"{os.environ['HOMEPATH']}/.cargo/bin/rustup.exe"
 MINGW = 'C:/msys64/mingw32'
 WIX = "C:/Program Files (x86)/WiX Toolset v3.11"
@@ -20,7 +19,7 @@ DLL_RE = r"C:\\msys64\\mingw32\\bin\\(\S+.dll)"
 
 # Use ntldd to find the mingw dlls required by a .exe
 def find_depends(exe):
-    output = subprocess.check_output([NTLDD, '-R', exe], universal_newlines=True)
+    output = subprocess.check_output(['ntldd.exe', '-R', exe], universal_newlines=True)
     dlls = set()
     for l in output.splitlines():
         m = re.search(DLL_RE, l, re.IGNORECASE)
@@ -53,10 +52,10 @@ if os.path.exists('out'):
     shutil.rmtree('out')
 os.mkdir('out')
 for i in EXES:
-    print(f"{i} -> out/{i}")
-    shutil.copy(i, 'out')
+    print(f"Strip {i} -> out/{i}")
+    subprocess.call([f"strip.exe", '-o', f"out/{i.split('/')[-1]}", i])
 for i in dlls:
-    print(f"{MINGW}/bin/{i} -> out/{i}")
+    print(f"Copy {MINGW}/bin/{i} -> out/{i}")
     shutil.copy(f"{MINGW}/bin/{i}", 'out')
 
 # Build .msi
