@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <Wix xmlns='http://schemas.microsoft.com/wix/2006/wi'>
     <Product
-        Name='System76 Keyboard Configurator'
+        Name='System76 Keyboard Configurator 0.0.1'
         Manufacturer='System76, Inc.'
         Id='0a2ab015-8952-4130-aeb7-f0409eb86202' 
         UpgradeCode='548e3064-0ff9-421a-91dc-1f1bd0afe9b6'
@@ -14,7 +14,7 @@
         <Package
             Id='*'
             Keywords='Installer'
-            Description="System76 Keyboard Configurator Installer"
+            Description="System76 Keyboard Configurator 0.0.1 Installer"
             Manufacturer='System76, Inc.'
             InstallerVersion='100'
             Languages='1033'
@@ -58,6 +58,7 @@
         </Feature>
 
         <WixVariable Id="WixUILicenseRtf" Value="gpl.rtf" />
+        <WixVariable Id="WixUIBannerBmp" Value="banner.bmp" />
         <UIRef Id="WixUI_Minimal" />
         <UIRef Id="WixUI_ErrorProgressText" />
     </Product>
