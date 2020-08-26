@@ -1,2 +1,0 @@
-[target.'cfg(windows)']
-rustflags = ["-C", "link-args=-mwindows"]

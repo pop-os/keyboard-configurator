@@ -1,3 +1,5 @@
+#![windows_subsystem = "windows"]
+
 use cascade::cascade;
 use gtk::prelude::*;
 
