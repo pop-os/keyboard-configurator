@@ -58,10 +58,12 @@ if os.path.exists('out'):
     shutil.rmtree('out')
 os.mkdir('out')
 for i in EXES:
-    print(f"Strip {i} -> out/{i}")
-    subprocess.call([f"strip.exe", '-o', f"out/{i.split('/')[-1]}", i])
+    filename = i.split('/')[-1]
+    print(f"Strip {i} -> out/{filename}")
+    subprocess.call([f"strip.exe", '-o', f"out/{filename}", i])
 for i in dlls:
-    print(f"Copy {MINGW}/bin/{i} -> out/{i}")
+    filename = i.split('/')[-1]
+    print(f"Copy {MINGW}/bin/{i} -> out/{filename}")
     shutil.copy(f"{MINGW}/bin/{i}", 'out')
 
 # Build .msi
