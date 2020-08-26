@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <Wix xmlns='http://schemas.microsoft.com/wix/2006/wi'>
     <Product
-        Name='Keyboard Configurator'
+        Name='System76 Keyboard Configurator'
         Manufacturer='System76, Inc.'
         Id='0a2ab015-8952-4130-aeb7-f0409eb86202' 
         UpgradeCode='548e3064-0ff9-421a-91dc-1f1bd0afe9b6'
@@ -14,7 +14,7 @@
         <Package
             Id='*'
             Keywords='Installer'
-            Description="Keyboard Configurator Installer"
+            Description="System76 Keyboard Configurator Installer"
             Manufacturer='System76, Inc.'
             InstallerVersion='100'
             Languages='1033'
@@ -23,8 +23,6 @@
             />
 
         <Media Id='1' Cabinet='KeyboardConfigurator.cab' EmbedCab='yes' />
-
-        <Property Id='DiskPrompt' Value="System76 Keyboard Configurator Installation [1]" />
 
         <Directory Id='TARGETDIR' Name='SourceDir'>
             <Directory Id='ProgramFilesFolder' Name='PFiles'>
@@ -59,5 +57,8 @@
             <ComponentRef Id='ProgramMenuDir' />
         </Feature>
 
+        <WixVariable Id="WixUILicenseRtf" Value="gpl.rtf" />
+        <UIRef Id="WixUI_Minimal" />
+        <UIRef Id="WixUI_ErrorProgressText" />
     </Product>
 </Wix>

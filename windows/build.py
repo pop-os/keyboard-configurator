@@ -66,4 +66,4 @@ for i in dlls:
 
 # Build .msi
 subprocess.call([f"{WIX}/bin/candle.exe", ".\keyboard-configurator.wxs"])
-subprocess.call([f"{WIX}/bin/light.exe", ".\keyboard-configurator.wixobj"])
+subprocess.call([f"{WIX}/bin/light.exe", "-ext", "WixUIExtension", ".\keyboard-configurator.wixobj"])
