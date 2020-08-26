@@ -23,3 +23,11 @@ jobs:
         cd windows
         sed -i 's|RUSTUP =.*$|RUSTUP = \"C:/Rust/.cargo/bin/rustup.exe\"|' build.py
         python build.py --debug
+    - name: Upload artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: keyboard-configurator-mingw32-${{ github.sha }}
+        path: |
+          windows/keyboard-configurator.msi
+          windows/out/
+        if-no-files-found: error
