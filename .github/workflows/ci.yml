@@ -6,28 +6,24 @@ jobs:
   Windows-MinGW32:
     runs-on: windows-latest
     steps:
-    - name: Install MINGW32 Dependencies
-      uses: msys2/setup-msys2@v2
+    - uses: msys2/setup-msys2@v2
       with:
         msystem: MINGW32
         install: mingw-w64-i686-gtk3 mingw-w64-i686-toolchain mingw-w64-i686-ntldd
-    - name: Rust toolchain
-      uses: actions-rs/toolchain@v1
+    - uses: actions-rs/toolchain@v1
       with:
         toolchain: stable-i686-pc-windows-gnu
-    - name: Checkout
-      uses: actions/checkout@v2
-    - name: Build and Package
+    - uses: actions/checkout@v2
+    - name: Build and package
       shell: msys2 {0}
       run: |
         cd windows
         sed -i 's|RUSTUP =.*$|RUSTUP = \"C:/Rust/.cargo/bin/rustup.exe\"|' build.py
         python build.py --debug
-    - name: Upload artifact
-      uses: actions/upload-artifact@v2
+    - uses: actions/upload-artifact@v2
       with:
+        if-no-files-found: error
         name: keyboard-configurator-mingw32-${{ github.sha }}
         path: |
           windows/keyboard-configurator.msi
           windows/out/
-        if-no-files-found: error
