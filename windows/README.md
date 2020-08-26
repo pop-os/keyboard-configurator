@@ -15,3 +15,9 @@ Run `rustup toolchain add stable-i686-pc-windows-gnu`.
 
 ### Building
 `.\build.bat` will build and generate a `.msi` installer.
+
+### Installation
+Click on the `.msi` in Windows explorer, or run `msiexec /i keyboard-configurator.msi`.
+
+### Uninstallation
+Uninstall from *Add or Remove Programs* or with `msiexec /x keyboard-configurator.msi`.
