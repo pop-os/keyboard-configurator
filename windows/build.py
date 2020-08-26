@@ -34,7 +34,7 @@ def find_depends(exe):
 # Build application with rustup
 cmd = [RUSTUP, 'run', RUST_TOOLCHAIN, 'cargo', 'build', '--examples']
 if not DEBUG:
-    cmd.append('release')
+    cmd.append('--release')
 subprocess.call(cmd)
 
 # Generate set of all required dlls
