@@ -1,9 +1,9 @@
 on: [push, pull_request]
 
-name: CI
+name: ci
 
 jobs:
-  Windows-MinGW32:
+  windows-mingw32:
     runs-on: windows-latest
     steps:
     - uses: msys2/setup-msys2@v2
@@ -27,3 +27,10 @@ jobs:
         path: |
           windows/keyboard-configurator.msi
           windows/out/
+
+  macos:
+    runs-on: macos-latest
+    steps:
+    - run: brew install gtk+3
+    - uses: actions/checkout@v2
+    - run: cargo build --examples

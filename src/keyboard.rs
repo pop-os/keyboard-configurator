@@ -85,7 +85,7 @@ pub fn keyboards() -> impl Iterator<Item = Keyboard> {
     vec![Keyboard::S76Power, Keyboard::Dummy].into_iter()
 }
 
-#[cfg(windows)]
+#[cfg(any(windows, target_os = "macos"))]
 pub fn keyboards() -> impl Iterator<Item = Keyboard> {
     vec![Keyboard::Dummy].into_iter()
 }
