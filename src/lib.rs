@@ -3,7 +3,7 @@ mod color;
 mod color_circle;
 mod color_wheel;
 mod keyboard;
+mod keyboard_backlight_widget;
 mod keyboard_color_button;
 
-pub use keyboard::{Keyboard, keyboards};
-pub use keyboard_color_button::KeyboardColorButton;
+pub use keyboard_backlight_widget::keyboard_backlight_widget;
