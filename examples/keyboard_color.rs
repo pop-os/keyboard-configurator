@@ -1,7 +1,10 @@
 #![windows_subsystem = "windows"]
 
 use cascade::cascade;
+use gio::prelude::*;
 use gtk::prelude::*;
+use std::env;
+use std::process;
 
 use pop_keyboard_backlight::{keyboards, Keyboard, KeyboardColorButton};
 
@@ -72,12 +75,21 @@ fn main() {
         notebook.append_page(&page(i), Some(&label));
     }
 
-    let _window = cascade! {
-        gtk::Window::new(gtk::WindowType::Toplevel);
+    let application = cascade! {
+        gtk::Application::new(None, gio::ApplicationFlags::FLAGS_NONE).unwrap();
+
+    };
+
+    let window = cascade! {
+        gtk::ApplicationWindow::new(&application);
         ..set_default_size(500, 500);
         ..add(&notebook);
         ..show_all();
     };
 
-    gtk::main();
+    application.connect_activate(move |app| {
+        app.add_window(&window);
+    });
+
+    process::exit(application.run(&env::args().collect::<Vec<_>>()));
 }
