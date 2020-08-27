@@ -3,10 +3,10 @@
 use cascade::cascade;
 use gtk::prelude::*;
 
-use pop_keyboard_backlight::{Keyboard, keyboards, KeyboardColorButton};
+use pop_keyboard_backlight::{keyboards, Keyboard, KeyboardColorButton};
 
 fn page(keyboard: Keyboard) -> gtk::Widget {
-    let button = KeyboardColorButton::new(keyboard).widget().clone();
+    let button = KeyboardColorButton::new(keyboard.clone()).widget().clone();
 
     let label = cascade! {
         gtk::Label::new(Some("Color"));
@@ -21,9 +21,13 @@ fn page(keyboard: Keyboard) -> gtk::Widget {
         ..pack_end(&button, false, false, 0);
     };
 
+    let keyboard_clone = keyboard.clone();
+    let max_brightness = keyboard.get_max_brightness().unwrap() as f64;
     let brightness_scale = cascade! {
-        gtk::Scale::with_range(gtk::Orientation::Horizontal, 0., 100., 1.);
-        ..connect_value_changed(|_| {});
+        gtk::Scale::with_range(gtk::Orientation::Horizontal, 0., max_brightness, 1.);
+        ..connect_value_changed(move |scale| {
+            keyboard_clone.set_brightness(scale.get_value() as i32);
+        });
     };
 
     let brightness_row = cascade! {
