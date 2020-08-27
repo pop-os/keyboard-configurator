@@ -4,9 +4,10 @@ use gtk::prelude::*;
 
 use crate::color::Rgb;
 use crate::color_wheel::ColorWheel;
-use crate::set_keyboard_color;
+use crate::keyboard::Keyboard;
 
 pub fn choose_color<W: IsA<gtk::Widget>>(
+    keyboard: Keyboard,
     w: &W,
     title: &'static str,
     color: Option<Rgb>,
@@ -30,7 +31,7 @@ pub fn choose_color<W: IsA<gtk::Widget>>(
     };
 
     color_wheel.connect_hs_changed(clone!(@weak preview => @default-panic, move |wheel| {
-        set_keyboard_color(wheel.hs().to_rgb());
+        keyboard.set_color(wheel.hs().to_rgb());
         preview.queue_draw();
     }));
 

@@ -3,17 +3,15 @@
 use cascade::cascade;
 use gtk::prelude::*;
 
-use pop_keyboard_backlight::KeyboardColorButton;
-
-fn keyboard_color_button() -> gtk::Widget {
-    let button = KeyboardColorButton::new();
-    button.widget().clone()
-}
+use pop_keyboard_backlight::{keyboards, KeyboardColorButton};
 
 fn main() {
     gtk::init().unwrap();
 
-    let button = keyboard_color_button();
+    // TODO: UI For multiple
+    let keyboard = keyboards().next().unwrap();
+
+    let button = KeyboardColorButton::new(keyboard).widget().clone();
 
     let label = cascade! {
         gtk::Label::new(Some("Color"));

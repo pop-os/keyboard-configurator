@@ -1,5 +1,5 @@
 use glib::object::ObjectType;
-use pop_keyboard_backlight::KeyboardColorButton;
+use pop_keyboard_backlight::{keyboards, KeyboardColorButton};
 use std::boxed::Box;
 use std::ptr;
 
@@ -12,7 +12,10 @@ pub extern "C" fn pop_keyboard_color_button_new() -> *mut PopKeyboardColorButton
         gtk::set_initialized();
     }
 
-    Box::into_raw(Box::new(KeyboardColorButton::new())) as *mut PopKeyboardColorButton
+    // TODO: UI For multiple
+    let keyboard = keyboards().next().unwrap();
+
+    Box::into_raw(Box::new(KeyboardColorButton::new(keyboard))) as *mut PopKeyboardColorButton
 }
 
 #[no_mangle]

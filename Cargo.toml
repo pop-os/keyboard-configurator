@@ -10,6 +10,7 @@ edition = "2018"
 members = [ "tools", "ffi" ]
 
 [dependencies]
+anyhow = "1"
 cascade = "0.1"
 cairo-rs = "0.9"
 derive_more = "0.99"

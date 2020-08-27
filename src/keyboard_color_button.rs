@@ -9,7 +9,7 @@ use std::rc::{Rc, Weak};
 use crate::choose_color::choose_color;
 use crate::color::Rgb;
 use crate::color_circle::{ColorCircle, ColorCircleSymbol};
-use crate::set_keyboard_color;
+use crate::keyboard::{Keyboard, keyboards};
 
 
 struct KeyboardColorButtonInner {
@@ -20,6 +20,7 @@ struct KeyboardColorButtonInner {
     add_circle: ColorCircle,
     remove_button: gtk::Button,
     edit_button: gtk::Button,
+    keyboard: Keyboard,
 }
 
 #[derive(Clone)]
@@ -44,7 +45,7 @@ impl Upgrade for KeyboardColorButtonWeak {
 }
 
 impl KeyboardColorButton {
-    pub fn new() -> Self {
+    pub fn new(keyboard: Keyboard) -> Self {
         let grid = cascade! {
             gtk::Grid::new();
             ..set_column_spacing(6);
@@ -95,6 +96,7 @@ impl KeyboardColorButton {
             add_circle,
             remove_button,
             edit_button,
+            keyboard,
         }));
 
         keyboard_color_button.connect_signals();
@@ -162,13 +164,13 @@ impl KeyboardColorButton {
     }
 
     fn add_clicked(&self) {
-        if let Some(color) = choose_color(self.widget(), "Add Color", None) {
+        if let Some(color) = choose_color(self.0.keyboard.clone(), self.widget(), "Add Color", None) {
             self.add_color(color);
             self.0.remove_button.set_visible(true);
             self.populate_grid();
         } else {
             if let Some(circle) = &*self.0.current_circle.borrow() {
-                set_keyboard_color(circle.rgb());
+                self.0.keyboard.set_color(circle.rgb());
             }
         }
     }
@@ -188,17 +190,17 @@ impl KeyboardColorButton {
 
     fn edit_clicked(&self) {
         if let Some(circle) = &*self.0.current_circle.borrow() {
-            if let Some(color) = choose_color(self.widget(), "Edit Color", Some(circle.rgb())) {
+            if let Some(color) = choose_color(self.0.keyboard.clone(), self.widget(), "Edit Color", Some(circle.rgb())) {
                 circle.set_rgb(color);
             } else {
-                set_keyboard_color(circle.rgb());
+                self.0.keyboard.set_color(circle.rgb());
             }
         }
     }
 
     fn circle_clicked(&self, circle: &ColorCircle) {
         let color = circle.rgb();
-        set_keyboard_color(color);
+        self.0.keyboard.set_color(color);
         self.0.button.set_rgb(color);
 
         circle.set_symbol(ColorCircleSymbol::Check);
