@@ -3,14 +3,9 @@
 use cascade::cascade;
 use gtk::prelude::*;
 
-use pop_keyboard_backlight::{keyboards, KeyboardColorButton};
+use pop_keyboard_backlight::{Keyboard, keyboards, KeyboardColorButton};
 
-fn main() {
-    gtk::init().unwrap();
-
-    // TODO: UI For multiple
-    let keyboard = keyboards().next().unwrap();
-
+fn page(keyboard: Keyboard) -> gtk::Widget {
     let button = KeyboardColorButton::new(keyboard).widget().clone();
 
     let label = cascade! {
@@ -59,10 +54,24 @@ fn main() {
         ..add(&row);
     };
 
+    listbox.upcast()
+}
+
+fn main() {
+    gtk::init().unwrap();
+
+    let notebook = gtk::Notebook::new();
+
+    for i in keyboards() {
+        let title = format!("{}", i);
+        let label = gtk::Label::new(Some(&title));
+        notebook.append_page(&page(i), Some(&label));
+    }
+
     let _window = cascade! {
         gtk::Window::new(gtk::WindowType::Toplevel);
         ..set_default_size(500, 500);
-        ..add(&listbox);
+        ..add(&notebook);
         ..show_all();
     };
 
