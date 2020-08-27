@@ -8,6 +8,7 @@ use crate::color::Rgb;
 
 #[derive(Clone)]
 pub enum Keyboard {
+    #[cfg(target_os = "linux")]
     S76Power,
     Dummy,
 }
@@ -29,6 +30,7 @@ impl Keyboard {
 impl fmt::Display for Keyboard {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
+            #[cfg(target_os = "linux")]
             Self::S76Power => write!(f, "system76-power Keyboard"),
             Self::Dummy => write!(f, "Dummy Keyboard"),
         }
