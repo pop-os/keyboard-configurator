@@ -34,7 +34,7 @@ def find_depends(exe):
 cmd = [RUSTUP, 'run', RUST_TOOLCHAIN, 'cargo', 'build', '--examples']
 if not DEBUG:
     cmd.append('--release')
-subprocess.call(cmd)
+subprocess.check_call(cmd)
 
 # Generate set of all required dlls
 dlls = set()
@@ -59,11 +59,11 @@ os.mkdir('out')
 for i in EXES:
     filename = i.split('/')[-1]
     print(f"Strip {i} -> out/{filename}")
-    subprocess.call([f"strip.exe", '-o', f"out/{filename}", i])
+    subprocess.check_call([f"strip.exe", '-o', f"out/{filename}", i])
 for src, filename in dlls:
     print(f"Copy {src} -> out/{filename}")
     shutil.copy(f"{src}", 'out')
 
 # Build .msi
-subprocess.call([f"{WIX}/bin/candle.exe", ".\keyboard-configurator.wxs"])
-subprocess.call([f"{WIX}/bin/light.exe", "-ext", "WixUIExtension", ".\keyboard-configurator.wixobj"])
+subprocess.check_call([f"{WIX}/bin/candle.exe", ".\keyboard-configurator.wxs"])
+subprocess.check_call([f"{WIX}/bin/light.exe", "-ext", "WixUIExtension", ".\keyboard-configurator.wixobj"])
