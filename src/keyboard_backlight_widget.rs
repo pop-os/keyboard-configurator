@@ -35,7 +35,7 @@ pub fn keyboard_backlight_widget() -> gtk::Widget {
 
 fn page(keyboard: Keyboard) -> gtk::Widget {
     let keyboard_clone = keyboard.clone();
-    let max_brightness = keyboard.get_max_brightness().unwrap() as f64;
+    let max_brightness = keyboard.max_brightness().unwrap() as f64;
     let brightness_scale = cascade! {
         gtk::Scale::with_range(gtk::Orientation::Horizontal, 0., max_brightness, 1.);
         ..set_hexpand(true);

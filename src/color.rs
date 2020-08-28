@@ -45,6 +45,17 @@ impl Rgb {
         format!("{:02x}{:02x}{:02x}", self.r, self.g, self.b)
     }
 
+    pub fn parse(s: &str) -> Option<Self> {
+        if s.len() == 6 {
+            let r = u8::from_str_radix(&s[0..2], 16).ok()?;
+            let g = u8::from_str_radix(&s[2..4], 16).ok()?;
+            let b = u8::from_str_radix(&s[4..6], 16).ok()?;
+            Some(Self::new(r, g, b))
+        } else {
+            None
+        }
+    }
+
     pub fn to_hs_lossy(self) -> Hs {
         let rgb = palette::Srgb::new(self.r, self.g, self.b);
         let rgb = rgb.into_format::<f64>();
