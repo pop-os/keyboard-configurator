@@ -13,6 +13,7 @@ pub enum Keyboard {
 }
 
 impl Keyboard {
+    #[cfg(target_os = "linux")]
     fn new_s76Power() -> Self {
         Self::S76Power
     }
