@@ -1,4 +1,6 @@
 use anyhow::{Error, Result};
+use gio::prelude::*;
+use glib::translate::{from_glib_none, ToGlibPtr};
 use std::cell::Cell;
 use std::fmt;
 use std::iter::Iterator;
@@ -10,20 +12,31 @@ enum KeyboardPattern {
     Breathe,
     Wave,
     Snake,
-    Random
+    Random,
 }
 
 #[derive(Clone)]
 pub enum Keyboard {
     #[cfg(target_os = "linux")]
-    S76Power,
+    S76Power(gio::DBusProxy),
     Dummy(Cell<Rgb>, Cell<i32>),
 }
 
 impl Keyboard {
     #[cfg(target_os = "linux")]
     fn new_s76Power() -> Self {
-        Self::S76Power
+        // XXX unwrap
+        let proxy = gio::DBusProxy::new_for_bus_sync::<gio::Cancellable>(
+            gio::BusType::System,
+            gio::DBusProxyFlags::NONE,
+            None,
+            "org.freedesktop.UPower",
+            "/org/freedesktop/UPower/KbdBacklight",
+            "org.freedesktop.UPower.KbdBacklight",
+            None,
+        )
+        .unwrap();
+        Self::S76Power(proxy)
     }
 
     fn new_dummy() -> Self {
@@ -39,7 +52,7 @@ impl Keyboard {
     pub fn color(&self) -> Result<Rgb> {
         match self {
             #[cfg(target_os = "linux")]
-            Self::S76Power => {
+            Self::S76Power(_) => {
                 use system76_power::{client::PowerClient, Power};
                 let mut client = PowerClient::new().map_err(Error::msg)?;
                 let color_str = client.get_keyboard_color().map_err(Error::msg)?;
@@ -53,7 +66,7 @@ impl Keyboard {
     pub fn set_color(&self, color: Rgb) -> Result<()> {
         match self {
             #[cfg(target_os = "linux")]
-            Self::S76Power => {
+            Self::S76Power(_) => {
                 use system76_power::{client::PowerClient, Power};
                 let mut client = PowerClient::new().map_err(Error::msg)?;
                 client
@@ -74,19 +87,18 @@ impl Keyboard {
     pub fn brightness(&self, brightness: i32) -> Result<i32> {
         match self {
             #[cfg(target_os = "linux")]
-            Self::S76Power => {
-                let conn = dbus::blocking::Connection::new_system()?;
-                let proxy = conn.with_proxy(
-                    "org.freedesktop.UPower",
-                    "/org/freedesktop/UPower/KbdBacklight",
-                    std::time::Duration::from_millis(60000),
-                );
-                let (brightness,) = proxy.method_call(
-                    "org.freedesktop.UPower.KbdBacklight",
+            Self::S76Power(ref proxy) => {
+                let ret = proxy.call_sync::<gio::Cancellable>(
                     "GetBrightness",
-                    (),
+                    None,
+                    gio::DBusCallFlags::NONE,
+                    60000,
+                    None,
                 )?;
-                Ok(brightness)
+                let brightness: glib::Variant = unsafe {
+                    from_glib_none(glib_sys::g_variant_get_child_value(ret.to_glib_none().0, 0))
+                };
+                Ok(brightness.get().unwrap())
             }
             Self::Dummy(_, b) => Ok(b.get()),
         }
@@ -96,17 +108,19 @@ impl Keyboard {
     pub fn set_brightness(&self, brightness: i32) -> Result<()> {
         match self {
             #[cfg(target_os = "linux")]
-            Self::S76Power => {
-                let conn = dbus::blocking::Connection::new_system()?;
-                let proxy = conn.with_proxy(
-                    "org.freedesktop.UPower",
-                    "/org/freedesktop/UPower/KbdBacklight",
-                    std::time::Duration::from_millis(60000),
-                );
-                proxy.method_call(
-                    "org.freedesktop.UPower.KbdBacklight",
+            Self::S76Power(ref proxy) => {
+                let args: glib::Variant = unsafe {
+                    from_glib_none(glib_sys::g_variant_new_tuple(
+                        vec![brightness.to_variant()].to_glib_none().0,
+                        1,
+                    ))
+                };
+                let brightness = proxy.call_sync::<gio::Cancellable>(
                     "SetBrightness",
-                    (brightness,),
+                    Some(&args),
+                    gio::DBusCallFlags::NONE,
+                    60000,
+                    None,
                 )?;
             }
             Self::Dummy(_, b) => b.set(brightness),
@@ -118,19 +132,18 @@ impl Keyboard {
     pub fn max_brightness(&self) -> Result<i32> {
         match self {
             #[cfg(target_os = "linux")]
-            Self::S76Power => {
-                let conn = dbus::blocking::Connection::new_system()?;
-                let proxy = conn.with_proxy(
-                    "org.freedesktop.UPower",
-                    "/org/freedesktop/UPower/KbdBacklight",
-                    std::time::Duration::from_millis(60000),
-                );
-                let (brightness,) = proxy.method_call(
-                    "org.freedesktop.UPower.KbdBacklight",
+            Self::S76Power(ref proxy) => {
+                let ret = proxy.call_sync::<gio::Cancellable>(
                     "GetMaxBrightness",
-                    (),
+                    None,
+                    gio::DBusCallFlags::NONE,
+                    60000,
+                    None,
                 )?;
-                Ok(brightness)
+                let brightness: glib::Variant = unsafe {
+                    from_glib_none(glib_sys::g_variant_get_child_value(ret.to_glib_none().0, 0))
+                };
+                Ok(brightness.get().unwrap())
             }
             Self::Dummy(_, _) => Ok(100),
         }
@@ -158,7 +171,7 @@ impl fmt::Display for Keyboard {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             #[cfg(target_os = "linux")]
-            Self::S76Power => write!(f, "system76-power Keyboard"),
+            Self::S76Power(_) => write!(f, "system76-power Keyboard"),
             Self::Dummy(_, _) => write!(f, "Dummy Keyboard"),
         }
     }
