@@ -5,6 +5,14 @@ use std::iter::Iterator;
 
 use crate::color::Rgb;
 
+enum KeyboardPattern {
+    Solid,
+    Breathe,
+    Wave,
+    Snake,
+    Random
+}
+
 #[derive(Clone)]
 pub enum Keyboard {
     #[cfg(target_os = "linux")]
@@ -22,6 +30,12 @@ impl Keyboard {
         Self::Dummy(Cell::new(Rgb::new(0, 0, 0)), Cell::new(0))
     }
 
+    /// Returns `true` if the keyboard has a backlight capable of setting color
+    pub fn has_color(&self) -> Result<bool> {
+        Ok(true)
+    }
+
+    /// Gets backlight color
     pub fn color(&self) -> Result<Rgb> {
         match self {
             #[cfg(target_os = "linux")]
@@ -35,6 +49,7 @@ impl Keyboard {
         }
     }
 
+    /// Sets backlight color
     pub fn set_color(&self, color: Rgb) -> Result<()> {
         match self {
             #[cfg(target_os = "linux")]
@@ -50,6 +65,12 @@ impl Keyboard {
         Ok(())
     }
 
+    /// Returns `true` if the keyboard has a backlight capable of setting brightness
+    pub fn has_brightness(&self) -> Result<bool> {
+        Ok(true)
+    }
+
+    /// Gets backlight brightness
     pub fn brightness(&self, brightness: i32) -> Result<i32> {
         match self {
             #[cfg(target_os = "linux")]
@@ -71,6 +92,7 @@ impl Keyboard {
         }
     }
 
+    /// Sets backlight brightness
     pub fn set_brightness(&self, brightness: i32) -> Result<()> {
         match self {
             #[cfg(target_os = "linux")]
@@ -92,6 +114,7 @@ impl Keyboard {
         Ok(())
     }
 
+    /// Gets maximum brightness that can be set
     pub fn max_brightness(&self) -> Result<i32> {
         match self {
             #[cfg(target_os = "linux")]
@@ -111,6 +134,23 @@ impl Keyboard {
             }
             Self::Dummy(_, _) => Ok(100),
         }
+    }
+
+    /// Returns `true` if the keyboard has a backlight capable of patterns
+    pub fn has_pattern(&self) -> Result<bool> {
+        Ok(false)
+    }
+
+    /// Gets backlight pattern
+    pub fn pattern(&self) -> Result<KeyboardPattern> {
+        // XXX
+        Ok(KeyboardPattern::Solid)
+    }
+
+    /// Sets backlight pattern
+    pub fn set_pattern(&self, _pattern: KeyboardPattern) -> Result<()> {
+        // XXX
+        Ok(())
     }
 }
 
