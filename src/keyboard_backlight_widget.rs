@@ -2,6 +2,7 @@
 
 use cascade::cascade;
 use gio::prelude::*;
+use glib::clone;
 use gtk::prelude::*;
 
 use crate::keyboard::{keyboards, Keyboard};
@@ -34,18 +35,24 @@ pub fn keyboard_backlight_widget() -> gtk::Widget {
 }
 
 fn page(keyboard: Keyboard) -> gtk::Widget {
-    let keyboard_clone = keyboard.clone();
     let max_brightness = keyboard.max_brightness().unwrap() as f64;
     let brightness_scale = cascade! {
         gtk::Scale::with_range(gtk::Orientation::Horizontal, 0., max_brightness, 1.);
         ..set_hexpand(true);
         ..set_draw_value(false);
-        ..connect_value_changed(move |scale| {
-            keyboard_clone.set_brightness(scale.get_value() as i32);
-        });
+        ..connect_change_value(clone!(@weak keyboard => @default-panic, move |scale, _, value| {
+            keyboard.set_brightness(value as i32);
+            Inhibit(false)
+        }));
     };
 
-    let button = KeyboardColorButton::new(keyboard.clone()).widget().clone();
+    keyboard.connect_brightness_changed(
+        clone!(@weak brightness_scale => @default-panic, move |_, brightness| {
+            brightness_scale.set_value(brightness as f64);
+        }),
+    );
+
+    let button = KeyboardColorButton::new(keyboard).widget().clone();
 
     let listbox = cascade! {
         gtk::ListBox::new();

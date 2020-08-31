@@ -1,15 +1,16 @@
 use anyhow::{Error, Result};
 use gio::prelude::*;
+use glib::clone;
 use glib::clone::{Downgrade, Upgrade};
 use glib::translate::{from_glib_none, ToGlibPtr};
-use std::cell::Cell;
+use std::cell::{Cell, RefCell};
 use std::fmt;
 use std::iter::Iterator;
 use std::rc::{Rc, Weak};
 
 use crate::color::Rgb;
 
-enum KeyboardPattern {
+pub enum KeyboardPattern {
     Solid,
     Breathe,
     Wave,
@@ -17,10 +18,15 @@ enum KeyboardPattern {
     Random,
 }
 
-enum KeyboardInner {
+enum KeyboardImplementation {
     #[cfg(target_os = "linux")]
     S76Power(gio::DBusProxy),
     Dummy(Cell<Rgb>, Cell<i32>),
+}
+
+struct KeyboardInner {
+    implementation: KeyboardImplementation,
+    brightness_changed_handlers: RefCell<Vec<Box<dyn Fn(&Keyboard, i32) + 'static>>>,
 }
 
 #[derive(Clone)]
@@ -45,6 +51,13 @@ impl Upgrade for KeyboardWeak {
 }
 
 impl Keyboard {
+    fn new(implementation: KeyboardImplementation) -> Self {
+        Self(Rc::new(KeyboardInner {
+            implementation,
+            brightness_changed_handlers: RefCell::new(Vec::new()),
+        }))
+    }
+
     #[cfg(target_os = "linux")]
     fn new_s76Power() -> Self {
         // XXX unwrap
@@ -58,18 +71,44 @@ impl Keyboard {
             None,
         )
         .unwrap();
-        Self(Rc::new(KeyboardInner::S76Power(proxy)))
-    }
-
-    fn brightness_changed(&self) {
-        println!("foo");
+        let keyboard = Self::new(KeyboardImplementation::S76Power(proxy));
+        keyboard.connect_signals();
+        keyboard
     }
 
     fn new_dummy() -> Self {
-        Self(Rc::new(KeyboardInner::Dummy(
+        Self::new(KeyboardImplementation::Dummy(
             Cell::new(Rgb::new(0, 0, 0)),
             Cell::new(0),
-        )))
+        ))
+    }
+
+    fn connect_signals(&self) {
+        let self_ = self;
+
+        match &self.0.implementation {
+            #[cfg(target_os = "linux")]
+            KeyboardImplementation::S76Power(proxy) => {
+                proxy
+                    .connect_local(
+                        "g-signal",
+                        true,
+                        clone!(@weak self_ => @default-panic, move |args| {
+                            let signal_name: &str = args[2].get().unwrap().unwrap();
+                            let parameters: glib::Variant = args[3].get().unwrap().unwrap();
+                            if (signal_name == "BrightnessChanged") {
+                                let brightness: glib::Variant = unsafe {
+                                    from_glib_none(glib_sys::g_variant_get_child_value(parameters.to_glib_none().0, 0))
+                                };
+                                self_.brightness_changed(brightness.get().unwrap());
+                            }
+                            None
+                        }),
+                    )
+                    .unwrap();
+            }
+            KeyboardImplementation::Dummy(_, _) => {}
+        }
     }
 
     /// Returns `true` if the keyboard has a backlight capable of setting color
@@ -79,30 +118,30 @@ impl Keyboard {
 
     /// Gets backlight color
     pub fn color(&self) -> Result<Rgb> {
-        match &*self.0 {
+        match self.0.implementation {
             #[cfg(target_os = "linux")]
-            KeyboardInner::S76Power(_) => {
+            KeyboardImplementation::S76Power(_) => {
                 use system76_power::{client::PowerClient, Power};
                 let mut client = PowerClient::new().map_err(Error::msg)?;
                 let color_str = client.get_keyboard_color().map_err(Error::msg)?;
                 Rgb::parse(&color_str).ok_or(Error::msg("Invalid color string"))
             }
-            KeyboardInner::Dummy(ref c, _) => Ok(c.get()),
+            KeyboardImplementation::Dummy(ref c, _) => Ok(c.get()),
         }
     }
 
     /// Sets backlight color
     pub fn set_color(&self, color: Rgb) -> Result<()> {
-        match &*self.0 {
+        match &self.0.implementation {
             #[cfg(target_os = "linux")]
-            KeyboardInner::S76Power(_) => {
+            KeyboardImplementation::S76Power(_) => {
                 use system76_power::{client::PowerClient, Power};
                 let mut client = PowerClient::new().map_err(Error::msg)?;
                 client
                     .set_keyboard_color(&color.to_string())
                     .map_err(Error::msg)?;
             }
-            KeyboardInner::Dummy(ref c, _) => c.set(color),
+            KeyboardImplementation::Dummy(ref c, _) => c.set(color),
         }
         Ok(())
     }
@@ -114,9 +153,9 @@ impl Keyboard {
 
     /// Gets backlight brightness
     pub fn brightness(&self, brightness: i32) -> Result<i32> {
-        match &*self.0 {
+        match &self.0.implementation {
             #[cfg(target_os = "linux")]
-            KeyboardInner::S76Power(ref proxy) => {
+            KeyboardImplementation::S76Power(ref proxy) => {
                 let ret = proxy.call_sync::<gio::Cancellable>(
                     "GetBrightness",
                     None,
@@ -129,15 +168,15 @@ impl Keyboard {
                 };
                 Ok(brightness.get().unwrap())
             }
-            KeyboardInner::Dummy(_, b) => Ok(b.get()),
+            KeyboardImplementation::Dummy(_, b) => Ok(b.get()),
         }
     }
 
     /// Sets backlight brightness
     pub fn set_brightness(&self, brightness: i32) -> Result<()> {
-        match &*self.0 {
+        match &self.0.implementation {
             #[cfg(target_os = "linux")]
-            KeyboardInner::S76Power(ref proxy) => {
+            KeyboardImplementation::S76Power(ref proxy) => {
                 let args: glib::Variant = unsafe {
                     from_glib_none(glib_sys::g_variant_new_tuple(
                         vec![brightness.to_variant()].to_glib_none().0,
@@ -152,16 +191,16 @@ impl Keyboard {
                     None,
                 )?;
             }
-            KeyboardInner::Dummy(_, b) => b.set(brightness),
+            KeyboardImplementation::Dummy(_, b) => b.set(brightness),
         }
         Ok(())
     }
 
     /// Gets maximum brightness that can be set
     pub fn max_brightness(&self) -> Result<i32> {
-        match &*self.0 {
+        match &self.0.implementation {
             #[cfg(target_os = "linux")]
-            KeyboardInner::S76Power(ref proxy) => {
+            KeyboardImplementation::S76Power(ref proxy) => {
                 let ret = proxy.call_sync::<gio::Cancellable>(
                     "GetMaxBrightness",
                     None,
@@ -174,8 +213,21 @@ impl Keyboard {
                 };
                 Ok(brightness.get().unwrap())
             }
-            KeyboardInner::Dummy(_, _) => Ok(100),
+            KeyboardImplementation::Dummy(_, _) => Ok(100),
         }
+    }
+
+    fn brightness_changed(&self, brightness: i32) {
+        for handler in self.0.brightness_changed_handlers.borrow().iter() {
+            handler(self, brightness);
+        }
+    }
+
+    pub fn connect_brightness_changed<F: Fn(&Self, i32) + 'static>(&self, f: F) {
+        self.0
+            .brightness_changed_handlers
+            .borrow_mut()
+            .push(std::boxed::Box::new(f) as Box<dyn Fn(&Self, i32)>);
     }
 
     /// Returns `true` if the keyboard has a backlight capable of patterns
@@ -198,10 +250,10 @@ impl Keyboard {
 
 impl fmt::Display for Keyboard {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match &*self.0 {
+        match &self.0.implementation {
             #[cfg(target_os = "linux")]
-            KeyboardInner::S76Power(_) => write!(f, "system76-power Keyboard"),
-            KeyboardInner::Dummy(_, _) => write!(f, "Dummy Keyboard"),
+            KeyboardImplementation::S76Power(_) => write!(f, "system76-power Keyboard"),
+            KeyboardImplementation::Dummy(_, _) => write!(f, "Dummy Keyboard"),
         }
     }
 }
