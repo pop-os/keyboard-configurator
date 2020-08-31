@@ -9,8 +9,7 @@ use std::rc::{Rc, Weak};
 use crate::choose_color::choose_color;
 use crate::color::Rgb;
 use crate::color_circle::{ColorCircle, ColorCircleSymbol};
-use crate::keyboard::{Keyboard, keyboards};
-
+use crate::keyboard::{keyboards, Keyboard};
 
 struct KeyboardColorButtonInner {
     button: ColorCircle,
@@ -77,6 +76,7 @@ impl KeyboardColorButton {
 
         let button = cascade! {
             ColorCircle::new(30);
+            ..set_rgb(keyboard.color().unwrap());
             ..connect_clicked(clone!(@weak popover => @default-panic, move |_| popover.popup()));
         };
 
@@ -164,7 +164,8 @@ impl KeyboardColorButton {
     }
 
     fn add_clicked(&self) {
-        if let Some(color) = choose_color(self.0.keyboard.clone(), self.widget(), "Add Color", None) {
+        if let Some(color) = choose_color(self.0.keyboard.clone(), self.widget(), "Add Color", None)
+        {
             self.add_color(color);
             self.0.remove_button.set_visible(true);
             self.populate_grid();
@@ -190,7 +191,12 @@ impl KeyboardColorButton {
 
     fn edit_clicked(&self) {
         if let Some(circle) = &*self.0.current_circle.borrow() {
-            if let Some(color) = choose_color(self.0.keyboard.clone(), self.widget(), "Edit Color", Some(circle.rgb())) {
+            if let Some(color) = choose_color(
+                self.0.keyboard.clone(),
+                self.widget(),
+                "Edit Color",
+                Some(circle.rgb()),
+            ) {
                 circle.set_rgb(color);
             } else {
                 self.0.keyboard.set_color(circle.rgb());

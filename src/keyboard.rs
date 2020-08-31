@@ -152,7 +152,7 @@ impl Keyboard {
     }
 
     /// Gets backlight brightness
-    pub fn brightness(&self, brightness: i32) -> Result<i32> {
+    pub fn brightness(&self) -> Result<i32> {
         match &self.0.implementation {
             #[cfg(target_os = "linux")]
             KeyboardImplementation::S76Power(ref proxy) => {

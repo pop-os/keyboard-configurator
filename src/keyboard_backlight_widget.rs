@@ -36,10 +36,12 @@ pub fn keyboard_backlight_widget() -> gtk::Widget {
 
 fn page(keyboard: Keyboard) -> gtk::Widget {
     let max_brightness = keyboard.max_brightness().unwrap() as f64;
+    let brightness = keyboard.brightness().unwrap() as f64;
     let brightness_scale = cascade! {
         gtk::Scale::with_range(gtk::Orientation::Horizontal, 0., max_brightness, 1.);
         ..set_hexpand(true);
         ..set_draw_value(false);
+        ..set_value(brightness);
         ..connect_change_value(clone!(@weak keyboard => @default-panic, move |scale, _, value| {
             keyboard.set_brightness(value as i32);
             Inhibit(false)
