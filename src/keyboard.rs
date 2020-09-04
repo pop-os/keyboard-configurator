@@ -37,6 +37,7 @@ enum KeyboardImplementation {
 struct KeyboardInner {
     implementation: KeyboardImplementation,
     brightness_changed_handlers: RefCell<Vec<Box<dyn Fn(&Keyboard, i32) + 'static>>>,
+    color_changed_handlers: RefCell<Vec<Box<dyn Fn(&Keyboard, Rgb) + 'static>>>,
 }
 
 #[derive(Clone)]
@@ -102,6 +103,7 @@ impl Keyboard {
         Self(Rc::new(KeyboardInner {
             implementation,
             brightness_changed_handlers: RefCell::new(Vec::new()),
+            color_changed_handlers: RefCell::new(Vec::new()),
         }))
     }
 
@@ -160,6 +162,11 @@ impl Keyboard {
                             if let Some(brightness) = changed.lookup_value("brightness", None) {
                                 self_.brightness_changed(brightness.get::<i32>().unwrap());
                             }
+                            if let Some(color) = changed.lookup_value("color", None) {
+                                if let Some(color) = Rgb::parse(&color.get::<String>().unwrap()) {
+                                    self_.color_changed(color);
+                                }
+                            }
                             None
                         }),
                     )
@@ -215,6 +222,12 @@ impl Keyboard {
         self.set_prop("color", color.to_string().to_variant())
     }
 
+    fn color_changed(&self, color: Rgb) {
+        for handler in self.0.color_changed_handlers.borrow().iter() {
+            handler(self, color);
+        }
+    }
+
     /// Returns `true` if the keyboard has a backlight capable of setting brightness
     pub fn has_brightness(&self) -> Result<bool> {
         Ok(true)
@@ -252,6 +265,13 @@ impl Keyboard {
             .brightness_changed_handlers
             .borrow_mut()
             .push(std::boxed::Box::new(f) as Box<dyn Fn(&Self, i32)>);
+    }
+
+    pub fn connect_color_changed<F: Fn(&Self, Rgb) + 'static>(&self, f: F) {
+        self.0
+            .color_changed_handlers
+            .borrow_mut()
+            .push(std::boxed::Box::new(f) as Box<dyn Fn(&Self, Rgb)>);
     }
 
     /// Returns `true` if the keyboard has a backlight capable of patterns

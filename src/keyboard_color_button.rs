@@ -80,6 +80,10 @@ impl KeyboardColorButton {
             ..connect_clicked(clone!(@weak popover => @default-panic, move |_| popover.popup()));
         };
 
+        keyboard.connect_color_changed(clone!(@weak button => @default-panic, move |_, color| {
+            button.set_rgb(color);
+        }));
+
         popover.set_relative_to(Some(button.widget()));
 
         let add_circle = cascade! {
