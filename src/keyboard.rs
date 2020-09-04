@@ -4,7 +4,7 @@ use glib::clone;
 use glib::clone::{Downgrade, Upgrade};
 use glib::translate::{from_glib_none, ToGlibPtr};
 use glib::variant::Variant;
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
 use std::fmt;
 use std::iter::Iterator;
@@ -38,6 +38,8 @@ struct KeyboardInner {
     implementation: KeyboardImplementation,
     brightness_changed_handlers: RefCell<Vec<Box<dyn Fn(&Keyboard, i32) + 'static>>>,
     color_changed_handlers: RefCell<Vec<Box<dyn Fn(&Keyboard, Rgb) + 'static>>>,
+    brightness_set_cancellable: Cell<gio::Cancellable>,
+    color_set_cancellable: Cell<gio::Cancellable>,
 }
 
 #[derive(Clone)]
@@ -73,6 +75,7 @@ fn set_property(
     properties_proxy: &gio::DBusProxy,
     property: &str,
     value: glib::Variant,
+    cancellable: &gio::Cancellable,
 ) -> Result<()> {
     let variant: glib::Variant =
         unsafe { from_glib_none(glib_sys::g_variant_new_variant(value.to_glib_none().0)) };
@@ -88,13 +91,14 @@ fn set_property(
             3,
         ))
     };
-    properties_proxy.call_sync::<gio::Cancellable>(
+    properties_proxy.call(
         "Set",
         Some(&args),
         gio::DBusCallFlags::NONE,
         60000,
-        None,
-    )?;
+        Some(cancellable),
+        |_| {},
+    );
     Ok(())
 }
 
@@ -104,6 +108,8 @@ impl Keyboard {
             implementation,
             brightness_changed_handlers: RefCell::new(Vec::new()),
             color_changed_handlers: RefCell::new(Vec::new()),
+            brightness_set_cancellable: Cell::new(gio::Cancellable::new()),
+            color_set_cancellable: Cell::new(gio::Cancellable::new()),
         }))
     }
 
@@ -188,13 +194,13 @@ impl Keyboard {
         }
     }
 
-    pub fn set_prop(&self, name: &'static str, value: Variant) -> Result<()> {
+    fn set_prop(&self, name: &'static str, value: Variant, cancellable: &gio::Cancellable) -> Result<()> {
         match &self.0.implementation {
             #[cfg(target_os = "linux")]
             KeyboardImplementation::S76Power {
                 properties_proxy, ..
             } => {
-                set_property(properties_proxy, name, value)?;
+                set_property(properties_proxy, name, value, cancellable)?;
             }
             KeyboardImplementation::Dummy { properties } => {
                 *properties.get(name).unwrap().borrow_mut() = value;
@@ -219,7 +225,10 @@ impl Keyboard {
 
     /// Sets backlight color
     pub fn set_color(&self, color: Rgb) -> Result<()> {
-        self.set_prop("color", color.to_string().to_variant())
+        let cancellable = gio::Cancellable::new();
+        self.set_prop("color", color.to_string().to_variant(), &cancellable)?;
+        self.0.color_set_cancellable.replace(cancellable).cancel();
+        Ok(())
     }
 
     fn color_changed(&self, color: Rgb) {
@@ -243,7 +252,10 @@ impl Keyboard {
 
     /// Sets backlight brightness
     pub fn set_brightness(&self, brightness: i32) -> Result<()> {
-        self.set_prop("brightness", brightness.to_variant())
+        let cancellable = gio::Cancellable::new();
+        self.set_prop("brightness", brightness.to_variant(), &cancellable)?;
+        self.0.brightness_set_cancellable.replace(cancellable).cancel();
+        Ok(())
     }
 
     /// Gets maximum brightness that can be set
