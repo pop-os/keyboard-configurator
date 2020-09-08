@@ -35,16 +35,11 @@ jobs:
     - run: npm install -g appdmg
     - uses: actions/checkout@v2
     - run: cargo build --examples
-    - name: Copy executables and libraries
-      run: |
-        mkdir out
-        cp target/debug/examples/keyboard_color out/
-        for i in $(otool -L target/debug/examples/keyboard_color | grep '/usr/local/opt/' | awk '{print $1}')
-        do
-          cp $i out/
-        done
+    - run: cd macos && ./package.sh
     - uses: actions/upload-artifact@v2
       with:
         if-no-files-found: error
         name: keyboard-configurator-macos-${{ github.sha }}
-        path: out/
+        path: |
+          macos/keyboard-configurator.dmg
+          macos/System76KeyboardConfigurator.app
