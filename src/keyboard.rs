@@ -315,8 +315,7 @@ impl fmt::Display for Keyboard {
 }
 
 #[cfg(target_os = "linux")]
-pub fn keyboards() -> impl Iterator<Item = Keyboard> {
-    // XXX unwrap
+fn add_s76power_keyboards(keyboards: &mut Vec<Keyboard>) -> Result<()> {
     let proxy = gio::DBusProxy::new_for_bus_sync::<gio::Cancellable>(
         gio::BusType::System,
         gio::DBusProxyFlags::NONE,
@@ -325,8 +324,7 @@ pub fn keyboards() -> impl Iterator<Item = Keyboard> {
         "/com/system76/PowerDaemon",
         "org.freedesktop.DBus.ObjectManager",
         None,
-    )
-    .unwrap();
+    )?;
     let ret = proxy
         .call_sync::<gio::Cancellable>(
             "GetManagedObjects",
@@ -334,8 +332,7 @@ pub fn keyboards() -> impl Iterator<Item = Keyboard> {
             gio::DBusCallFlags::NONE,
             60000,
             None,
-        )
-        .unwrap();
+        )?;
 
     let mut keyboards = Vec::new();
 
@@ -355,7 +352,15 @@ pub fn keyboards() -> impl Iterator<Item = Keyboard> {
         }
     }
     unsafe { glib_sys::g_variant_iter_free(iter) };
+    
+    Ok(())
+}
 
+#[cfg(target_os = "linux")]
+pub fn keyboards() -> impl Iterator<Item = Keyboard> {
+    let mut keyboards = Vec::new();
+
+    add_s76power_keyboards(&mut keyboards);
     keyboards.push(Keyboard::new_dummy());
 
     keyboards.into_iter()
