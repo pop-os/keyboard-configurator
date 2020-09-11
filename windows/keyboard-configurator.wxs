@@ -24,15 +24,17 @@
 
         <Media Id='1' Cabinet='KeyboardConfigurator.cab' EmbedCab='yes' />
 
+        <Icon Id="keyboard_configurator.ico" SourceFile="out/keyboard-configurator.ico"/>
+        <Property Id="ARPPRODUCTICON" Value="keyboard_configurator.ico" />
+
         <Directory Id='TARGETDIR' Name='SourceDir'>
             <Directory Id='ProgramFilesFolder' Name='PFiles'>
                 <Directory Id='System76' Name='System76'>
                     <Directory Id='INSTALLDIR' Name='Keyboard Backlight'>
                         <Component Id='MainExecutable' Guid='2860bcd8-dbc0-4c00-a0ff-9f24c6d76f5b'>
                             <File Name='keyboard_color.exe' DiskId='1' Source='out/keyboard_color.exe' KeyPath='yes'>
-                                <!-- TODO: Icon -->
                                 <Shortcut Id="startmenuKeyboardColor" Directory="ProgramMenuDir" Name="Keyboard Color"
-                                    WorkingDirectory='INSTALLDIR' Advertise="yes" />
+                                    WorkingDirectory='INSTALLDIR' Advertise="yes" Icon='keyboard_configurator.ico' />
                             </File>
                             <?include libraries.wxi ?>
                         </Component>

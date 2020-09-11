@@ -9,7 +9,7 @@ jobs:
     - uses: msys2/setup-msys2@v2
       with:
         msystem: MINGW32
-        install: mingw-w64-i686-gtk3 mingw-w64-i686-toolchain mingw-w64-i686-ntldd
+        install: mingw-w64-i686-gtk3 mingw-w64-i686-toolchain mingw-w64-i686-ntldd mingw-w64-i686-imagemagick
     - uses: actions-rs/toolchain@v1
       with:
         toolchain: stable-i686-pc-windows-gnu

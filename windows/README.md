@@ -9,7 +9,7 @@
 - [MSYS2](https://www.msys2.org/)
 - [WiX Toolset](https://wixtoolset.org/)
 
-In msys2, run `pacman -S mingw-w64-i686-gtk3 mingw-w64-i686-toolchain mingw-w64-i686-ntldd`.
+In msys2, run `pacman -S mingw-w64-i686-gtk3 mingw-w64-i686-toolchain mingw-w64-i686-ntldd mingw-w64-i686-imagemagick`.
 
 Run `rustup toolchain add stable-i686-pc-windows-gnu`.
 
