@@ -31,11 +31,12 @@ jobs:
   macos:
     runs-on: macos-latest
     steps:
-    - run: brew install gtk+3
+    - run: brew install gtk+3 makeicns imagemagick
     - run: npm install -g appdmg
     - uses: actions/checkout@v2
     - run: cargo build --examples
     - run: cd macos && ./package.sh
+    - run: plutil macos/Info.plist
     - uses: actions/upload-artifact@v2
       with:
         if-no-files-found: error
