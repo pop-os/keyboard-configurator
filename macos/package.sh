@@ -16,6 +16,7 @@ do
 done
 
 convert -background '#564e48' -fill white -size 256x256 -gravity center 'label:Keyboard\nConfigurator' keyboard-configurator.png
-makeicns -256 keyboard-configurator.png -out $APP/Contents/Resources/keyboard-configurator.icns
+makeicns -256 keyboard-configurator.png -out keyboard-configurator.icns
+cp keyboard-configurator.icns $APP/Contents/Resources/
 
 appdmg appdmg.json keyboard-configurator.dmg
