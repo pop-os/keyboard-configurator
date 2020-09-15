@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<app-bundle>
+  <meta>
+    <prefix>/usr/local/opt</prefix>
+    <prefix>/usr/local/Cellar</prefix>
+    <prefix>/usr/local</prefix>
+    <gtk>gtk+-3.0</gtk>
+  </meta>
+  <plist>Info.plist</plist>
+  <main-binary dest="${bundle}/Contents/MacOS">${project}/keyboard-configurator</main-binary>
+</app-bundle>

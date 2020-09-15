@@ -33,7 +33,13 @@ jobs:
     steps:
     - run: brew install gtk+3 makeicns imagemagick
     - run: npm install -g appdmg
-    - run: git clone https://gitlab.gnome.org/GNOME/gtk-mac-bundler && make -C gtk-mac-bundler install
+    #- run: echo "::add-path::$HOME/.new_local/bin"
+    #- run: |
+    #    curl https://gitlab.gnome.org/GNOME/gtk-osx/raw/master/gtk-osx-setup.sh | sh
+    #    jhbuild bootstrap-gtk-osx
+    #    jhbuild build meta-gtk-osx-bootstrap meta-gtk-osx-gtk3
+    - run: cd && git clone https://gitlab.gnome.org/GNOME/gtk-mac-bundler && make -C gtk-mac-bundler install
+    - run: echo "::add-path::$HOME/.local/bin"
     - uses: actions/checkout@v2
     - run: cargo build --examples
     - run: cd macos && ./package.sh

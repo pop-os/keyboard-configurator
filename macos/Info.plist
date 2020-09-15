@@ -12,6 +12,8 @@
   <string>keyboard-configurator</string>
   <key>CFBundleIdentifier</key>
   <string>com.system76.keyboard-configurator-0.1.0:</string>
+  <key>CFBundleSignature</key>
+  <string>????</string>
   <key>CFBundleDisplayName</key>
   <string>System76 Keyboard Configurator</string>
   <key>CFBundleName</key>
