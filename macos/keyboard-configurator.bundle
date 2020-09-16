@@ -6,4 +6,5 @@
   </meta>
   <plist>Info.plist</plist>
   <main-binary dest="${bundle}/Contents/MacOS">${project}/keyboard-configurator</main-binary>
+  <data dest="${bundle}/Contents/Resources">${project}/keyboard-configurator.icns</data>
 </app-bundle>
