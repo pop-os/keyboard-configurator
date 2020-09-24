@@ -1,5 +1,5 @@
 [package]
-name = "pop-keyboard-backlight"
+name = "system76-keyboard-configurator"
 version = "0.1.0"
 authors = ["Ian Douglas Scott <idscott@system76.com>"]
 edition = "2018"

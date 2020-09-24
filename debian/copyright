@@ -1,6 +1,6 @@
 Format: http://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
-Upstream-Name: pop-keyboard-backlight
-Source: https://github.com/pop-os/keyboard-backlight
+Upstream-Name: system76-keyboard-configurator
+Source: https://github.com/pop-os/keyboard-configurator
 
 Files: *
 Copyright: Copyright 2020 System76

@@ -1,5 +1,5 @@
 use glib::object::ObjectType;
-use pop_keyboard_backlight::keyboard_backlight_widget;
+use system76_keyboard_configurator::keyboard_backlight_widget;
 use std::mem;
 
 #[no_mangle]

@@ -6,7 +6,7 @@ use gtk::prelude::*;
 use std::env;
 use std::process;
 
-use pop_keyboard_backlight::keyboard_backlight_widget;
+use system76_keyboard_configurator::keyboard_backlight_widget;
 
 fn main() {
     gtk::init().unwrap();

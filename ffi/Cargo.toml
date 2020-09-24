@@ -5,11 +5,11 @@ authors = ["Ian Douglas Scott <idscott@system76.com>"]
 edition = "2018"
 
 [lib]
-name = "pop_keyboard_backlight"
+name = "system76_keyboard_configurator"
 crate-type = [ "cdylib" ]
 
 [dependencies]
 glib = "0.10"
 gtk-sys = "0.10"
 gtk = "0.9"
-pop-keyboard-backlight = { path = "../" }
+system76-keyboard-configurator = { path = "../" }

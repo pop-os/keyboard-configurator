@@ -14,7 +14,7 @@ ifneq ($(VENDOR),0)
 	ARGS += --frozen
 endif
 
-PACKAGE = pop_keyboard_backlight
+PACKAGE = system76_keyboard_configurator
 PKGCONFIG = target/$(PACKAGE).pc
 FFI = target/$(TARGET)/lib$(PACKAGE).so
 
