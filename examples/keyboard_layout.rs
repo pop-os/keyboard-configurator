@@ -353,6 +353,8 @@ button {
         let mut hbox_opt: Option<gtk::Box> = None;
         let mut col = 0;
         let mut cols = DEFAULT_COLS;
+        let mut width = 0;
+
         let picker_csv = include_str!("../layouts/picker.csv");
         let mut reader = csv::ReaderBuilder::new()
             .has_headers(false)
@@ -371,7 +373,7 @@ button {
 
                 let button = gtk::Button::new();
                 button.set_hexpand(false);
-                button.set_size_request(48, 48);
+                button.set_size_request(48 * width, 48);
                 button.set_label(&if bottom.is_empty() {
                     format!("{}", top)
                 } else {
@@ -408,6 +410,17 @@ button {
                     Err(err) => {
                         eprintln!("failed to parse column count '{}': {}", cols_str, err);
                         cols = DEFAULT_COLS;
+                    }
+                }
+
+                let width_str = record.get(2).unwrap_or("");
+                match width_str.parse::<i32>() {
+                    Ok(ok) => {
+                        width = ok;
+                    },
+                    Err(err) => {
+                        eprintln!("failed to parse width '{}': {}", width_str, err);
+                        width = 1;
                     }
                 }
 
