@@ -332,14 +332,15 @@ impl Keyboard {
         })
     }
 
-    fn picker(self: Rc<Self>) -> gtk::FlowBox {
+    fn picker(self: Rc<Self>) -> gtk::Grid {
         const DEFAULT_COLS: i32 = 4;
 
-        let fbox = gtk::FlowBox::new();
-        fbox.set_column_spacing(2);
-        fbox.set_row_spacing(2);
-        fbox.set_min_children_per_line(3);
-        fbox.set_max_children_per_line(3);
+        let picker_grid = gtk::Grid::new();
+        picker_grid.set_column_spacing(8);
+        picker_grid.set_row_spacing(8);
+        let mut picker_row = 0;
+        let mut picker_col = 0;
+        let mut picker_cols = 3;
 
         let mut grid_opt: Option<gtk::Grid> = None;
         let mut row = 0;
@@ -392,7 +393,13 @@ impl Keyboard {
                 let grid = gtk::Grid::new();
                 grid.set_column_spacing(2);
                 grid.set_row_spacing(2);
-                fbox.add(&grid);
+                picker_grid.attach(&grid, picker_col, picker_row, 1, 1);
+
+                picker_col += 1;
+                if picker_col >= picker_cols {
+                    picker_row += 1;
+                    picker_col = 0;
+                }
 
                 let label = gtk::Label::new(Some(name));
                 label.set_halign(gtk::Align::Start);
@@ -403,7 +410,7 @@ impl Keyboard {
             }
         }
 
-        fbox
+        picker_grid
     }
 
     fn gtk(self: Rc<Self>) -> gtk::Box {
