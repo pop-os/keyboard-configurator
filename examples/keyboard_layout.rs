@@ -337,7 +337,7 @@ impl Keyboard {
 r#"
 button {
     margin: 0;
-    padding: 4px;
+    padding: 0;
 }
 "#;
 
@@ -788,7 +788,7 @@ fn main() {
         Some(some) => some,
         None => {
             eprintln!("failed to locate layout, showing demo");
-            Keyboard::new_board("system76/darp6", None).expect("failed to load demo layout")
+            Keyboard::new_board("system76/launch_1", None).expect("failed to load demo layout")
         }
     };
 
