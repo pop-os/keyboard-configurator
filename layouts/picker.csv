@@ -1,4 +1,4 @@
-Alphabet keys,9,
+Alphabet keys,9,1
 A,A,
 B,B,
 C,C,
@@ -26,7 +26,7 @@ X,X,
 Y,Y,
 Z,Z,
 ,,
-Number keys,4,
+Number keys,4,1
 1,!,1
 2,@,2
 3,#,3
@@ -38,7 +38,7 @@ Number keys,4,
 9,(,9
 0,),0
 ,,
-Modifier keys,2,
+Modifier keys,2,2
 LEFT_ALT,Left Alt,
 RIGHT_ALT,Right Alt,
 LEFT_CTRL,Left Ctrl,
@@ -48,7 +48,7 @@ RIGHT_SHIFT,Right Shift,
 LEFT_SUPER,Left Super,
 RIGHT_SUPER,Right Super,
 ,,
-Actions,4,
+Actions,4,2
 ENTER,Enter,
 BKSP,Backspace,
 DEL,Delete,
@@ -56,11 +56,11 @@ TAB,Tab,
 SPACE,Space,
 CAPS,Caps Lock,
 APP,Menu,
-ESC,Esc,
+ESC,Escape,
 PRINT_SCREEN,Print,Screen
 INSERT,Insert,
 ,,
-Function keys,4,
+Function keys,4,1
 F1,F1,
 F2,F2,
 F3,F3,
@@ -74,7 +74,7 @@ F10,F10,
 F11,F11,
 F12,F12,
 ,,
-Numpad,6,
+Numpad,6,1
 NUM_LOCK,Num,Lock
 NUM_7,7,
 NUM_8,8,
@@ -93,20 +93,20 @@ NUM_2,2,
 NUM_3,3,
 NUM_PERIOD,.,
 ,,
-Symbols,6,
-TICK,`,~
-QUOTE,',""""
-SEMICOLON,;,:
-MINUS,-,_
-EQUALS,=,+
-SLASH,/,?
-COMMA,",",<
-PERIOD,.,>
-BACKSLASH,\,|
-BRACE_OPEN,[,{
-BRACE_CLOSE,],}
+Symbols,6,1
+TICK,~,`
+QUOTE,"""",'
+SEMICOLON,:,;
+MINUS,_,-
+EQUALS,+,=
+SLASH,?,/
+COMMA,<,","
+PERIOD,>,.
+BACKSLASH,|,\
+BRACE_OPEN,{,[
+BRACE_CLOSE,},]
 ,,
-Navigation,4,
+Navigation,4,1
 HOME,Home,
 END,End,
 PGUP,PgUp,
@@ -116,7 +116,7 @@ UP,Up,
 DOWN,Down,
 RIGHT,Right,
 ,,
-Media,4,
+Media,4,2
 PLAY_PAUSE,Play/Pause,
 VOLUME_UP,Volume,Up
 VOLUME_DOWN,Volume,Down
@@ -124,22 +124,25 @@ MUTE,Mute,
 MEDIA_NEXT,Next,Track
 MEDIA_PREV,Prev,Track
 ,,
-Controls,4,
+Controls,4,2
 BRIGHTNESS_UP,Brightness,Up
 BRIGHTNESS_DOWN,Brightness,Down
 CAMERA_TOGGLE,Camera,On/Off
-SUSPEND,Sleep,
+SUSPEND,Suspend,
 DISPLAY_TOGGLE,Display,On/Off
 DISPLAY_MODE,Display,Mode
 AIRPLANE_MODE,Airplane,Mode
 TOUCHPAD,Touchpad,On/Off
 ,,
-LED controls,4,
+LED controls,4,2
 KBD_TOGGLE,LED On/Off,
 KBD_COLOR,LED Color,
 KBD_UP,LED,Brighten
 KBD_DOWN,LED,Darken
 KBD_BKL,LED Cycle,
 ,,
-Layer keys,2,
+Layer keys,2,2
+FN_1,Layer 1,
 FN,Layer 2,
+FN_2,Layer 3,
+FN_4,Layer 4,
