@@ -128,6 +128,28 @@ impl Keyboard {
         Self::new_data(&keymap_csv, &layout_csv, &physical_json, ec_opt)
     }
 
+    fn new_board(board: &str, ec_opt: Option<Ec<AccessDriver>>) -> Option<Rc<Self>> {
+        macro_rules! keyboard {
+            ($board:expr) => (if board == $board {
+                let keymap_csv = include_str!(concat!("../layouts/", $board, "/keymap.csv"));
+                let layout_csv = include_str!(concat!("../layouts/", $board, "/layout.csv"));
+                let physical_json = include_str!(concat!("../layouts/", $board, "/physical.json"));
+                return Some(Keyboard::new_data(keymap_csv, layout_csv, physical_json, ec_opt));
+            });
+        }
+
+        keyboard!("system76/addw2");
+        keyboard!("system76/bonw14");
+        keyboard!("system76/darp5");
+        keyboard!("system76/darp6");
+        keyboard!("system76/gaze15");
+        keyboard!("system76/launch_1");
+        keyboard!("system76/lemp9");
+        keyboard!("system76/oryp5");
+        keyboard!("system76/oryp6");
+        None
+    }
+
     fn new_data(keymap_csv: &str, layout_csv: &str, physical_json: &str, mut ec_opt: Option<Ec<AccessDriver>>) -> Rc<Self> {
         let mut keymap = Vec::new();
         let mut scancode_names = HashMap::new();
@@ -619,10 +641,7 @@ fn main() {
         }
     };
 
-    let keymap_csv = include_str!("../layouts/system76/darp6/keymap.csv");
-    let layout_csv = include_str!("../layouts/system76/darp6/layout.csv");
-    let physical_csv = include_str!("../layouts/system76/darp6/physical.json");
-    let keyboard = Keyboard::new_data(keymap_csv, layout_csv, physical_csv, ec_opt);
+    let keyboard = Keyboard::new_board("system76/darp6", ec_opt).expect("failed to find layout");
 
     //let ansi_104 = Keyboard::new("layouts/ansi-104", None);
 
