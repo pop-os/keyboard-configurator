@@ -1,7 +1,7 @@
 [package]
 name = "system76-keyboard-configurator"
 version = "0.1.0"
-authors = ["Ian Douglas Scott <idscott@system76.com>"]
+authors = ["Ian Douglas Scott <idscott@system76.com>", "Jeremy Soller <jeremy@system76.com>"]
 edition = "2018"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -13,6 +13,7 @@ members = [ "tools", "ffi" ]
 anyhow = "1"
 cascade = "0.1"
 cairo-rs = "0.9"
+csv = "1.1"
 derive_more = "0.99"
 gdk = "0.13"
 gio = "0.9"

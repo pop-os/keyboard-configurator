@@ -11,7 +11,10 @@ use std::{
     io,
     path::Path,
     rc::Rc,
-    str::FromStr,
+    str::{
+        self,
+        FromStr
+    },
     time::Duration,
 };
 
@@ -329,6 +332,80 @@ impl Keyboard {
         })
     }
 
+    fn picker(self: Rc<Self>) -> gtk::FlowBox {
+        const DEFAULT_COLS: i32 = 4;
+
+        let fbox = gtk::FlowBox::new();
+        fbox.set_column_spacing(2);
+        fbox.set_row_spacing(2);
+        fbox.set_min_children_per_line(3);
+        fbox.set_max_children_per_line(3);
+
+        let mut grid_opt: Option<gtk::Grid> = None;
+        let mut row = 0;
+        let mut col = 0;
+        let mut cols = DEFAULT_COLS;
+        let picker_csv = include_str!("../layouts/picker.csv");
+        let mut reader = csv::ReaderBuilder::new()
+            .has_headers(false)
+            .from_reader(picker_csv.as_bytes());
+        for record_res in reader.records() {
+            let record = record_res.expect("failed to parse picker.csv");
+
+            let name = record.get(0).unwrap_or("");
+            if name.is_empty() {
+                grid_opt = None;
+                row = 0;
+                col = 0;
+            } else if let Some(grid) = &grid_opt {
+                let top = record.get(1).unwrap_or("");
+                let bottom = record.get(2).unwrap_or("");
+
+                let button = gtk::Button::new();
+                button.set_hexpand(false);
+                button.set_size_request(48, 48);
+                button.set_label(&if bottom.is_empty() {
+                    format!("{}", top)
+                } else {
+                    format!("{}\n{}", top, bottom)
+                });
+                grid.attach(&button, col, row, 1, 1);
+
+                col += 1;
+                if col >= cols {
+                    row += 1;
+                    col = 0;
+                }
+            } else {
+                let cols_str = record.get(1).unwrap_or("");
+                match cols_str.parse::<i32>() {
+                    Ok(ok) => {
+                        cols = ok;
+                    },
+                    Err(err) => {
+                        eprintln!("failed to parse column count '{}': {}", cols_str, err);
+                        cols = DEFAULT_COLS;
+                    }
+                }
+
+
+                let grid = gtk::Grid::new();
+                grid.set_column_spacing(2);
+                grid.set_row_spacing(2);
+                fbox.add(&grid);
+
+                let label = gtk::Label::new(Some(name));
+                label.set_halign(gtk::Align::Start);
+                grid.attach(&label, col, row, cols, 1);
+
+                grid_opt = Some(grid);
+                row += 1;
+            }
+        }
+
+        fbox
+    }
+
     fn gtk(self: Rc<Self>) -> gtk::Box {
         const NONE_CSS: &'static str =
 r#"
@@ -350,7 +427,7 @@ button {
         hbox.add(&notebook);
 
         let vbox = gtk::Box::new(gtk::Orientation::Vertical, 8);
-        hbox.add(&vbox);
+        //hbox.add(&vbox);
 
         let (selected_label, selected_style_provider) = {
             let label = gtk::Label::new(Some("Selected:"));
@@ -627,21 +704,42 @@ fn main() {
     let keyboard = Keyboard::new(dir, ec_opt);
     */
 
-    let ec_opt = match AccessDriver::new() {
+    let mut keyboard_opt = None;
+    match AccessDriver::new() {
         Ok(access) => match unsafe { Ec::new(access) } {
-            Ok(ec) => Some(ec),
+            Ok(mut ec) => {
+                let mut data = [0; 256 - 2];
+                match unsafe { ec.board(&mut data) } {
+                    Ok(len) => match str::from_utf8(&data[..len]) {
+                        Ok(board) => {
+                            eprintln!("detected EC board '{}'", board);
+                            keyboard_opt = Keyboard::new_board(board, Some(ec));
+                        },
+                        Err(err) => {
+                            eprintln!("failed to parse EC board: {:?}", err);
+                        }
+                    },
+                    Err(err) => {
+                        eprintln!("Failed to run EC board command: {:?}", err);
+                    }
+                }
+            },
             Err(err) => {
                 eprintln!("failed to probe EC: {:?}", err);
-                None
             }
         },
         Err(err) => {
             eprintln!("failed to access EC: {:?}", err);
-            None
         }
     };
 
-    let keyboard = Keyboard::new_board("system76/darp6", ec_opt).expect("failed to find layout");
+    let keyboard = match keyboard_opt {
+        Some(some) => some,
+        None => {
+            eprintln!("failed to locate layout, showing demo");
+            Keyboard::new_board("system76/darp6", None).expect("failed to load demo layout")
+        }
+    };
 
     //let ansi_104 = Keyboard::new("layouts/ansi-104", None);
 
@@ -662,6 +760,7 @@ fn main() {
 
         let vbox = gtk::Box::new(gtk::Orientation::Vertical, 8);
         vbox.add(&keyboard.clone().gtk());
+        vbox.add(&keyboard.clone().picker());
         //&ansi_104.clone().gtk(&vbox);
         window.get_content_area().add(&vbox);
 
