@@ -110,7 +110,6 @@ button {{
     }
 }
 
-
 pub struct Keyboard {
     ec_opt: RefCell<Option<Ec<AccessDriver>>>,
     keymap: Vec<(String, u16)>,
@@ -332,18 +331,26 @@ impl Keyboard {
         })
     }
 
-    fn picker(self: Rc<Self>) -> gtk::Grid {
-        const DEFAULT_COLS: i32 = 4;
+    fn picker(self: Rc<Self>) -> gtk::Box {
+        const DEFAULT_COLS: i32 = 3;
+        const PICKER_CSS: &'static str =
+r#"
+button {
+    margin: 0;
+    padding: 4px;
+}
+"#;
 
-        let picker_grid = gtk::Grid::new();
-        picker_grid.set_column_spacing(8);
-        picker_grid.set_row_spacing(8);
-        let mut picker_row = 0;
+        let style_provider = gtk::CssProvider::new();
+        style_provider.load_from_data(&PICKER_CSS.as_bytes()).expect("failed to parse css");
+
+        let picker_vbox = gtk::Box::new(gtk::Orientation::Vertical, 32);
+        let mut picker_hbox_opt: Option<gtk::Box> = None;
         let mut picker_col = 0;
-        let mut picker_cols = 3;
+        let picker_cols = DEFAULT_COLS;
 
-        let mut grid_opt: Option<gtk::Grid> = None;
-        let mut row = 0;
+        let mut vbox_opt: Option<gtk::Box> = None;
+        let mut hbox_opt: Option<gtk::Box> = None;
         let mut col = 0;
         let mut cols = DEFAULT_COLS;
         let picker_csv = include_str!("../layouts/picker.csv");
@@ -355,10 +362,10 @@ impl Keyboard {
 
             let name = record.get(0).unwrap_or("");
             if name.is_empty() {
-                grid_opt = None;
-                row = 0;
+                vbox_opt = None;
+                hbox_opt = None;
                 col = 0;
-            } else if let Some(grid) = &grid_opt {
+            } else if let Some(vbox) = &vbox_opt {
                 let top = record.get(1).unwrap_or("");
                 let bottom = record.get(2).unwrap_or("");
 
@@ -370,12 +377,27 @@ impl Keyboard {
                 } else {
                     format!("{}\n{}", top, bottom)
                 });
-                grid.attach(&button, col, row, 1, 1);
+                {
+                    let style_context = button.get_style_context();
+                    style_context.add_provider(&style_provider, gtk::STYLE_PROVIDER_PRIORITY_USER);
+                }
+
+                let hbox = match hbox_opt.take() {
+                    Some(some) => some,
+                    None => {
+                        let hbox = gtk::Box::new(gtk::Orientation::Horizontal, 4);
+                        vbox.add(&hbox);
+                        hbox
+                    }
+                };
+
+                hbox.add(&button);
 
                 col += 1;
                 if col >= cols {
-                    row += 1;
                     col = 0;
+                } else {
+                    hbox_opt = Some(hbox);
                 }
             } else {
                 let cols_str = record.get(1).unwrap_or("");
@@ -389,32 +411,41 @@ impl Keyboard {
                     }
                 }
 
-
-                let grid = gtk::Grid::new();
-                grid.set_column_spacing(2);
-                grid.set_row_spacing(2);
-                picker_grid.attach(&grid, picker_col, picker_row, 1, 1);
-
-                picker_col += 1;
-                if picker_col >= picker_cols {
-                    picker_row += 1;
-                    picker_col = 0;
-                }
+                let vbox = gtk::Box::new(gtk::Orientation::Vertical, 4);
 
                 let label = gtk::Label::new(Some(name));
                 label.set_halign(gtk::Align::Start);
-                grid.attach(&label, col, row, cols, 1);
+                vbox.add(&label);
 
-                grid_opt = Some(grid);
-                row += 1;
+                let picker_hbox = match picker_hbox_opt.take() {
+                    Some(some) => some,
+                    None => {
+                        let picker_hbox = gtk::Box::new(gtk::Orientation::Horizontal, 64);
+                        picker_vbox.add(&picker_hbox);
+                        picker_hbox
+                    }
+                };
+
+                picker_hbox.add(&vbox);
+
+                picker_col += 1;
+                if picker_col >= picker_cols {
+                    picker_col = 0;
+                } else {
+                    picker_hbox_opt = Some(picker_hbox);
+                }
+
+                vbox_opt = Some(vbox);
+                hbox_opt = None;
+                col = 0;
             }
         }
 
-        picker_grid
+        picker_vbox
     }
 
     fn gtk(self: Rc<Self>) -> gtk::Box {
-        const NONE_CSS: &'static str =
+    const NONE_CSS: &'static str =
 r#"
 button {
     background-image: none;
@@ -765,7 +796,7 @@ fn main() {
         window.set_modal(true);
         window.set_resizable(false);
 
-        let vbox = gtk::Box::new(gtk::Orientation::Vertical, 8);
+        let vbox = gtk::Box::new(gtk::Orientation::Vertical, 32);
         vbox.add(&keyboard.clone().gtk());
         vbox.add(&keyboard.clone().picker());
         //&ansi_104.clone().gtk(&vbox);
