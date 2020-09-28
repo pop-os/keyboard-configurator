@@ -95,7 +95,7 @@ NUM_PERIOD,.,
 ,,
 Symbols,6,
 TICK,`,~
-QUOTE,',“
+QUOTE,',""""
 SEMICOLON,;,:
 MINUS,-,_
 EQUALS,=,+
