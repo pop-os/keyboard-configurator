@@ -501,6 +501,16 @@ button {
                     let style_context = button.get_style_context();
                     style_context.add_provider(&style_provider, gtk::STYLE_PROVIDER_PRIORITY_USER);
                 }
+                {
+                    // Check that scancode is available for the keyboard
+                    button.set_sensitive(false);
+                    for (scancode_name, scancode) in self.keymap.iter() {
+                        if name == scancode_name {
+                            button.set_sensitive(true);
+                            break;
+                        }
+                    }
+                }
 
                 let hbox = match hbox_opt.take() {
                     Some(some) => some,
