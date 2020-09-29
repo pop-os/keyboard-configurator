@@ -1,4 +1,5 @@
-use ectool::{AccessDriver, Ec};
+use ectool::{Access, AccessDriver, Ec};
+use hidapi::{HidApi, HidDevice, HidResult};
 use gio::prelude::*;
 use gtk::prelude::*;
 use serde_json::Value;
@@ -17,6 +18,95 @@ use std::{
     },
     time::Duration,
 };
+
+struct AccessHid {
+    device: HidDevice,
+}
+
+impl AccessHid {
+    pub fn new(device: HidDevice) -> Result<Self, ectool::Error> {
+        //TODO: probe?
+        Ok(Self {
+            device
+        })
+    }
+
+    pub fn all() -> Result<Vec<Self>, ectool::Error> {
+        //TODO: bubble errors
+        let mut ret = Vec::new();
+        match HidApi::new() {
+            Ok(api) => {
+                for info in api.device_list() {
+                    match (info.vendor_id(), info.product_id()) {
+                        (0x1776, 0x1776) => match info.interface_number() {
+                            //TODO: better way to determine this
+                            1 => match info.open_device(&api) {
+                                Ok(device) => {
+                                    match AccessHid::new(device) {
+                                        Ok(access) => {
+                                            eprintln!("Adding device at {:?}", info.path());
+                                            ret.push(access);
+                                        },
+                                        Err(err) => {
+                                            eprintln!("Failed to probe device at {:?}: {:?}", info.path(), err);
+                                        },
+                                    }
+                                },
+                                Err(err) => {
+                                    eprintln!("Failed to open device at {:?}: {}", info.path(), err);
+                                },
+                            },
+                            iface => {
+                                eprintln!("Unsupported interface: {}", iface);
+                            },
+                        },
+                        (vendor, product) => {
+                            eprintln!("Unsupported ID {:04X}:{:04X}", vendor, product);
+                        },
+                    }
+                }
+            },
+            Err(e) => {
+                eprintln!("Failed to list HID devices: {}", e);
+            },
+        }
+        Ok(ret)
+    }
+}
+
+impl Access for AccessHid {
+    unsafe fn command(&mut self, cmd: u8, data: &mut [u8]) -> Result<u8, ectool::Error> {
+        const HID_CMD: usize = 1;
+        const HID_RES: usize = 2;
+        const HID_DATA: usize = 3;
+
+        let mut hid_data = [0; 33];
+        if data.len() + HID_DATA > hid_data.len() {
+            unimplemented!("data too large");
+        }
+
+        hid_data[HID_CMD] = cmd;
+        for i in 0..data.len() {
+            hid_data[HID_DATA + i] = data[i];
+        }
+
+        let mut count = self.device.write(&hid_data).expect("HID ERROR NOT MAPPED TO ECTOOL ERROR");
+        if count != hid_data.len() {
+            unimplemented!("write truncated: {}", count);
+        }
+
+        let count = self.device.read_timeout(&mut hid_data[1..], 1000).expect("HID ERROR NOT MAPPED TO ECTOOL ERROR");
+        if count != hid_data.len() - 1 {
+            unimplemented!("read truncated: {}", count);
+        }
+
+        for i in 0..data.len() {
+            data[i] = hid_data[HID_DATA + i];
+        }
+
+        Ok(hid_data[HID_RES])
+    }
+}
 
 #[derive(Clone, Debug)]
 struct Rect {
@@ -110,15 +200,15 @@ button {{
     }
 }
 
-pub struct Keyboard {
-    ec_opt: RefCell<Option<Ec<AccessDriver>>>,
+pub struct Keyboard<A: Access + 'static> {
+    ec_opt: RefCell<Option<Ec<A>>>,
     keymap: Vec<(String, u16)>,
     keys: RefCell<Vec<Key>>,
     selected: RefCell<Option<usize>>,
 }
 
-impl Keyboard {
-    fn new<P: AsRef<Path>>(dir: P, ec_opt: Option<Ec<AccessDriver>>) -> Rc<Self> {
+impl<A: Access> Keyboard<A> {
+    fn new<P: AsRef<Path>>(dir: P, ec_opt: Option<Ec<A>>) -> Rc<Self> {
         let dir = dir.as_ref();
 
         let keymap_csv = fs::read_to_string(dir.join("keymap.csv"))
@@ -130,7 +220,7 @@ impl Keyboard {
         Self::new_data(&keymap_csv, &layout_csv, &physical_json, ec_opt)
     }
 
-    fn new_board(board: &str, ec_opt: Option<Ec<AccessDriver>>) -> Option<Rc<Self>> {
+    fn new_board(board: &str, ec_opt: Option<Ec<A>>) -> Option<Rc<Self>> {
         macro_rules! keyboard {
             ($board:expr) => (if board == $board {
                 let keymap_csv = include_str!(concat!("../layouts/", $board, "/keymap.csv"));
@@ -152,7 +242,7 @@ impl Keyboard {
         None
     }
 
-    fn new_data(keymap_csv: &str, layout_csv: &str, physical_json: &str, mut ec_opt: Option<Ec<AccessDriver>>) -> Rc<Self> {
+    fn new_data(keymap_csv: &str, layout_csv: &str, physical_json: &str, mut ec_opt: Option<Ec<A>>) -> Rc<Self> {
         let mut keymap = Vec::new();
         let mut scancode_names = HashMap::new();
         scancode_names.insert(0, "NONE");
@@ -756,6 +846,7 @@ fn main() {
     */
 
     let mut keyboard_opt = None;
+    /*
     match AccessDriver::new() {
         Ok(access) => match unsafe { Ec::new(access) } {
             Ok(mut ec) => {
@@ -782,7 +873,28 @@ fn main() {
         Err(err) => {
             eprintln!("failed to access EC: {:?}", err);
         }
-    };
+    }
+    */
+
+    match AccessHid::all() {
+        Ok(mut accesses) => match accesses.pop() {
+            Some(access) => match unsafe { Ec::new(access) } {
+                Ok(mut ec) => {
+                    keyboard_opt = Keyboard::new_board("system76/launch_1", Some(ec));
+                },
+                Err(err) => {
+                    eprintln!("failed to probe EC: {:?}", err);
+                }
+            },
+            None => {
+                eprintln!("no ECs located");
+            }
+        },
+        Err(err) => {
+            eprintln!("failed to access EC: {:?}", err);
+        },
+    }
+
 
     let keyboard = match keyboard_opt {
         Some(some) => some,
