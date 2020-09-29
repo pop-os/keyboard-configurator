@@ -33,9 +33,9 @@ fn command(device: &HidDevice, cmd: u8, data: &mut [u8]) -> HidResult<u8> {
 }
 
 fn launch_hid(device: HidDevice) -> HidResult<()> {
-    const LAYERS: u8 = 1;
-    const ROWS: u8 = 2;
-    const COLS: u8 = 11;
+    const LAYERS: u8 = 2;
+    const ROWS: u8 = 6;
+    const COLS: u8 = 15;
 
     for layer in 0..LAYERS {
         println!("# Layer {}", layer);
