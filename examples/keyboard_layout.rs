@@ -21,13 +21,15 @@ use std::{
 
 struct AccessHid {
     device: HidDevice,
+    retries: usize,
 }
 
 impl AccessHid {
     pub fn new(device: HidDevice) -> Result<Self, ectool::Error> {
         //TODO: probe?
         Ok(Self {
-            device
+            device,
+            retries: 8,
         })
     }
 
@@ -72,10 +74,8 @@ impl AccessHid {
         }
         Ok(ret)
     }
-}
 
-impl Access for AccessHid {
-    unsafe fn command(&mut self, cmd: u8, data: &mut [u8]) -> Result<u8, ectool::Error> {
+    unsafe fn command_hid(&mut self, cmd: u8, data: &mut [u8]) -> HidResult<Option<u8>> {
         const HID_CMD: usize = 1;
         const HID_RES: usize = 2;
         const HID_DATA: usize = 3;
@@ -90,21 +90,49 @@ impl Access for AccessHid {
             hid_data[HID_DATA + i] = data[i];
         }
 
-        let mut count = self.device.write(&hid_data).expect("HID ERROR NOT MAPPED TO ECTOOL ERROR");
+        let count = self.device.write(&hid_data)?;
         if count != hid_data.len() {
             unimplemented!("write truncated: {}", count);
         }
 
-        let count = self.device.read_timeout(&mut hid_data[1..], 1000).expect("HID ERROR NOT MAPPED TO ECTOOL ERROR");
-        if count != hid_data.len() - 1 {
+        let count = self.device.read_timeout(&mut hid_data[1..], 100)?;
+        if count == hid_data.len() - 1 {
+            for i in 0..data.len() {
+                data[i] = hid_data[HID_DATA + i];
+            }
+
+            Ok(Some(hid_data[HID_RES]))
+        } else if count == 0 {
+            Ok(None)
+        } else {
             unimplemented!("read truncated: {}", count);
         }
+    }
+}
 
-        for i in 0..data.len() {
-            data[i] = hid_data[HID_DATA + i];
+impl Access for AccessHid {
+    unsafe fn command(&mut self, cmd: u8, data: &mut [u8]) -> Result<u8, ectool::Error> {
+        for _ in 0..self.retries {
+            match self.command_hid(cmd, data) {
+                Ok(ok) => match ok {
+                    Some(some) => return Ok(some),
+                    None => continue,
+                },
+                Err(err) => {
+                    eprintln!("HID error: {}", err);
+                    return Err(
+                        ectool::Error::Io(
+                            io::Error::new(
+                                io::ErrorKind::Other,
+                                err,
+                            )
+                        )
+                    );
+                }
+            }
         }
 
-        Ok(hid_data[HID_RES])
+        Err(ectool::Error::Timeout)
     }
 }
 
@@ -573,7 +601,7 @@ button {
         hbox.add(&notebook);
 
         let vbox = gtk::Box::new(gtk::Orientation::Vertical, 8);
-        //hbox.add(&vbox);
+        hbox.add(&vbox);
 
         let (selected_label, selected_style_provider) = {
             let label = gtk::Label::new(Some("Selected:"));
