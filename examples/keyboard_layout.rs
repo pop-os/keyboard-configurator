@@ -376,6 +376,11 @@ impl<A: Access> Keyboard<A> {
                                         println!("    Scancode Name: {}", scancode_name);
 
                                         scancodes.push((scancode, scancode_name));
+
+                                        //TODO: remove this hack!
+                                        if layer > 0 && scancodes[layer as usize].1 == "ROLL_OVER" {
+                                            scancodes[layer as usize].1 = scancodes[layer as usize - 1].1.clone();
+                                        }
                                     }
 
                                     keys.push(Key {
