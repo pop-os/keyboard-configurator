@@ -10,6 +10,7 @@ use std::{
     fs,
     io,
     path::Path,
+    process,
     rc::Rc,
     str::{
         self,
@@ -937,6 +938,7 @@ fn main_keyboard<A: Access>(keyboard: Rc<Keyboard<A>>) {
     });
 
     application.run(&[]);
+    process::exit(0);
 }
 
 //TODO: allow multiple keyboards
