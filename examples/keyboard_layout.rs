@@ -202,24 +202,52 @@ button {{
         )
     }
 
-    fn select(&self) {
+    fn select(&self, picker: &Picker, layer: usize) {
         for (_page, button) in self.gtk.iter() {
             button.get_style_context().add_class("selected");
         }
-    }
-
-    fn deselect(&self) {
-        for (_page, button) in self.gtk.iter() {
-            button.get_style_context().remove_class("selected");
+        if let Some((_scancode, scancode_name)) = self.scancodes.get(layer) {
+            if let Some(picker_key) = picker.keys.get(scancode_name) {
+                if let Some(button) = &*picker_key.gtk.borrow() {
+                    button.get_style_context().add_class("selected");
+                }
+            }
         }
     }
 
-    fn refresh(&self) {
+    fn deselect(&self, picker: &Picker, layer: usize) {
+        for (_page, button) in self.gtk.iter() {
+            button.get_style_context().remove_class("selected");
+        }
+        if let Some((_scancode, scancode_name)) = self.scancodes.get(layer) {
+            if let Some(picker_key) = picker.keys.get(scancode_name) {
+                if let Some(ref button) = &*picker_key.gtk.borrow() {
+                    button.get_style_context().remove_class("selected");
+                }
+            }
+        }
+    }
+
+    fn refresh(&self, picker: &Picker) {
         for (page, button) in self.gtk.iter() {
             button.set_label(match page.as_str() {
+                "Layer 0" => {
+                    let scancode_name = &self.scancodes[0].1;
+                    if let Some(picker_key) = picker.keys.get(scancode_name) {
+                        &picker_key.text
+                    } else {
+                        scancode_name
+                    }
+                },
+                "Layer 1" => {
+                    let scancode_name = &self.scancodes[1].1;
+                    if let Some(picker_key) = picker.keys.get(scancode_name) {
+                        &picker_key.text
+                    } else {
+                        scancode_name
+                    }
+                },
                 "Keycaps" => &self.physical_name,
-                "Layer 0" => &self.scancodes[0].1,
-                "Layer 1" => &self.scancodes[1].1,
                 "Logical" => &self.logical_name,
                 "Electrical" => &self.electrical_name,
                 _ => "",
@@ -228,10 +256,111 @@ button {{
     }
 }
 
+pub struct PickerKey {
+    /// Symbolic name of the key
+    name: String,
+    /// Text on key
+    text: String,
+    // GTK button
+    //TODO: clean up this crap
+    gtk: RefCell<Option<gtk::Button>>,
+}
+
+pub struct PickerGroup {
+    /// Name of the group
+    name: String,
+    /// Number of keys to show in each row
+    cols: i32,
+    /// Width of each key in this group
+    width: i32,
+    /// Name of keys in this group
+    keys: Vec<Rc<PickerKey>>,
+}
+
+pub struct Picker {
+    groups: Vec<PickerGroup>,
+    keys: HashMap<String, Rc<PickerKey>>,
+}
+
+impl Picker {
+    fn new() -> Self {
+        const DEFAULT_COLS: i32 = 3;
+
+        let mut groups = Vec::new();
+        let mut keys = HashMap::new();
+
+        let mut is_group = true;
+        let picker_csv = include_str!("../layouts/picker.csv");
+        let mut reader = csv::ReaderBuilder::new()
+            .has_headers(false)
+            .from_reader(picker_csv.as_bytes());
+        for record_res in reader.records() {
+            let record = record_res.expect("failed to parse picker.csv");
+
+            let name = record.get(0).unwrap_or("");
+            if name.is_empty() {
+                is_group = true;
+            } else if is_group {
+                is_group = false;
+
+                let cols_str = record.get(1).unwrap_or("");
+                let cols = match cols_str.parse::<i32>() {
+                    Ok(ok) => ok,
+                    Err(err) => {
+                        eprintln!("failed to parse column count '{}': {}", cols_str, err);
+                        DEFAULT_COLS
+                    }
+                };
+
+                let width_str = record.get(2).unwrap_or("");
+                let width = match width_str.parse::<i32>() {
+                    Ok(ok) => ok,
+                    Err(err) => {
+                        eprintln!("failed to parse width '{}': {}", width_str, err);
+                        1
+                    }
+                };
+
+                let group = PickerGroup {
+                    name: name.to_string(),
+                    cols,
+                    width,
+                    keys: Vec::new(),
+                };
+
+                groups.push(group);
+            } else {
+                let top = record.get(1).unwrap_or("");
+                let bottom = record.get(2).unwrap_or("");
+
+                let key = Rc::new(PickerKey {
+                    name: name.to_string(),
+                    text: if bottom.is_empty() {
+                        top.to_string()
+                    } else {
+                        format!("{}\n{}", top, bottom)
+                    },
+                    gtk: RefCell::new(None),
+                });
+
+                groups.last_mut().map(|group| {
+                    group.keys.push(key.clone());
+                });
+
+                keys.insert(name.to_string(), key);
+            }
+        }
+
+        Self { groups, keys }
+    }
+}
+
 pub struct Keyboard<A: Access + 'static> {
     ec_opt: RefCell<Option<Ec<A>>>,
     keymap: Vec<(String, u16)>,
     keys: RefCell<Vec<Key>>,
+    page: RefCell<u32>,
+    picker: Picker,
     selected: RefCell<Option<usize>>,
 }
 
@@ -445,8 +574,19 @@ impl<A: Access> Keyboard<A> {
             ec_opt: RefCell::new(ec_opt),
             keymap,
             keys: RefCell::new(keys),
+            page: RefCell::new(0),
+            picker: Picker::new(),
             selected: RefCell::new(None),
         })
+    }
+
+    fn layer(&self) -> usize {
+        //TODO: make this more robust
+        match *self.page.borrow() {
+            0 => 0, // Layer 0
+            1 => 1, // Layer 1
+            _ => 0, // Any other page selects layer 0
+        }
     }
 
     fn picker(self: Rc<Self>) -> gtk::Box {
@@ -456,6 +596,11 @@ r#"
 button {
     margin: 0;
     padding: 0;
+}
+
+.selected {
+    border-color: #fbb86c;
+    border-width: 4px;
 }
 "#;
 
@@ -467,50 +612,84 @@ button {
         let mut picker_col = 0;
         let picker_cols = DEFAULT_COLS;
 
-        let mut vbox_opt: Option<gtk::Box> = None;
-        let mut hbox_opt: Option<gtk::Box> = None;
-        let mut col = 0;
-        let mut cols = DEFAULT_COLS;
-        let mut width = 0;
+        for group in self.picker.groups.iter() {
+            let vbox = gtk::Box::new(gtk::Orientation::Vertical, 4);
+            let mut hbox_opt: Option<gtk::Box> = None;
+            let mut col = 0;
 
-        let picker_csv = include_str!("../layouts/picker.csv");
-        let mut reader = csv::ReaderBuilder::new()
-            .has_headers(false)
-            .from_reader(picker_csv.as_bytes());
-        for record_res in reader.records() {
-            let record = record_res.expect("failed to parse picker.csv");
+            let label = gtk::Label::new(Some(&group.name));
+            label.set_halign(gtk::Align::Start);
+            vbox.add(&label);
 
-            let name = record.get(0).unwrap_or("");
-            if name.is_empty() {
-                vbox_opt = None;
-                hbox_opt = None;
-                col = 0;
-            } else if let Some(vbox) = &vbox_opt {
-                let top = record.get(1).unwrap_or("");
-                let bottom = record.get(2).unwrap_or("");
+            let picker_hbox = match picker_hbox_opt.take() {
+                Some(some) => some,
+                None => {
+                    let picker_hbox = gtk::Box::new(gtk::Orientation::Horizontal, 64);
+                    picker_vbox.add(&picker_hbox);
+                    picker_hbox
+                }
+            };
 
+            picker_hbox.add(&vbox);
+
+            picker_col += 1;
+            if picker_col >= picker_cols {
+                picker_col = 0;
+            } else {
+                picker_hbox_opt = Some(picker_hbox);
+            }
+
+            for key in group.keys.iter() {
                 let button = gtk::Button::new();
                 button.set_hexpand(false);
-                button.set_size_request(48 * width, 48);
-                button.set_label(&if bottom.is_empty() {
-                    format!("{}", top)
-                } else {
-                    format!("{}\n{}", top, bottom)
-                });
-                {
-                    let style_context = button.get_style_context();
-                    style_context.add_provider(&style_provider, gtk::STYLE_PROVIDER_PRIORITY_USER);
-                }
-                {
-                    // Check that scancode is available for the keyboard
-                    button.set_sensitive(false);
-                    for (scancode_name, scancode) in self.keymap.iter() {
-                        if name == scancode_name {
-                            button.set_sensitive(true);
-                            break;
-                        }
+                button.set_size_request(48 * group.width, 48);
+                button.set_label(&key.text);
+
+                let style_context = button.get_style_context();
+                style_context.add_provider(&style_provider, gtk::STYLE_PROVIDER_PRIORITY_USER);
+
+                // Check that scancode is available for the keyboard
+                button.set_sensitive(false);
+                for (scancode_name, scancode) in self.keymap.iter() {
+                    if key.name.as_str() == scancode_name {
+                        button.set_sensitive(true);
+                        break;
                     }
                 }
+
+                let kb = self.clone();
+                let name = key.name.to_string();
+                button.connect_clicked(move |_| {
+                    let layer = kb.layer();
+
+                    println!("Clicked {} layer {}", name, layer);
+                    if let Some(i) = *kb.selected.borrow() {
+                        let mut keys = kb.keys.borrow_mut();
+                        let k = &mut keys[i];
+                        let mut found = false;
+                        for (scancode_name, scancode) in kb.keymap.iter() {
+                            if name.as_str() == scancode_name {
+                                k.deselect(&kb.picker, layer);
+                                k.scancodes[layer] = (*scancode, scancode_name.clone());
+                                k.refresh(&kb.picker);
+                                k.select(&kb.picker, layer);
+                                found = true;
+                                break;
+                            }
+                        }
+                        if ! found {
+                            return;
+                        }
+                        println!("  set {}, {}, {} to {:04X}", layer, k.electrical.0, k.electrical.1, k.scancodes[layer].0);
+                        if let Some(ref mut ec) = *kb.ec_opt.borrow_mut() {
+                            unsafe {
+                                if let Err(err) = ec.keymap_set(layer as u8, k.electrical.0, k.electrical.1, k.scancodes[layer].0) {
+                                    eprintln!("failed to set keymap: {:?}", err);
+                                }
+                            }
+                        }
+                    }
+                });
 
                 let hbox = match hbox_opt.take() {
                     Some(some) => some,
@@ -523,62 +702,14 @@ button {
 
                 hbox.add(&button);
 
+                *key.gtk.borrow_mut() = Some(button);
+
                 col += 1;
-                if col >= cols {
+                if col >= group.cols {
                     col = 0;
                 } else {
                     hbox_opt = Some(hbox);
                 }
-            } else {
-                let cols_str = record.get(1).unwrap_or("");
-                match cols_str.parse::<i32>() {
-                    Ok(ok) => {
-                        cols = ok;
-                    },
-                    Err(err) => {
-                        eprintln!("failed to parse column count '{}': {}", cols_str, err);
-                        cols = DEFAULT_COLS;
-                    }
-                }
-
-                let width_str = record.get(2).unwrap_or("");
-                match width_str.parse::<i32>() {
-                    Ok(ok) => {
-                        width = ok;
-                    },
-                    Err(err) => {
-                        eprintln!("failed to parse width '{}': {}", width_str, err);
-                        width = 1;
-                    }
-                }
-
-                let vbox = gtk::Box::new(gtk::Orientation::Vertical, 4);
-
-                let label = gtk::Label::new(Some(name));
-                label.set_halign(gtk::Align::Start);
-                vbox.add(&label);
-
-                let picker_hbox = match picker_hbox_opt.take() {
-                    Some(some) => some,
-                    None => {
-                        let picker_hbox = gtk::Box::new(gtk::Orientation::Horizontal, 64);
-                        picker_vbox.add(&picker_hbox);
-                        picker_hbox
-                    }
-                };
-
-                picker_hbox.add(&vbox);
-
-                picker_col += 1;
-                if picker_col >= picker_cols {
-                    picker_col = 0;
-                } else {
-                    picker_hbox_opt = Some(picker_hbox);
-                }
-
-                vbox_opt = Some(vbox);
-                hbox_opt = None;
-                col = 0;
             }
         }
 
@@ -586,107 +717,35 @@ button {
     }
 
     fn gtk(self: Rc<Self>) -> gtk::Box {
-    const NONE_CSS: &'static str =
-r#"
-button {
-    background-image: none;
-    border-image: none;
-    box-shadow: none;
-    margin: 0;
-    padding: 0;
-    text-shadow: none;
-    -gtk-icon-effect: none;
-    -gtk-icon-shadow: none;
-}
-"#;
+        let vbox = gtk::Box::new(gtk::Orientation::Vertical, 8);
 
         let hbox = gtk::Box::new(gtk::Orientation::Horizontal, 8);
+        vbox.add(&hbox);
 
         let notebook = gtk::Notebook::new();
-        hbox.add(&notebook);
-
-        let vbox = gtk::Box::new(gtk::Orientation::Vertical, 8);
-        hbox.add(&vbox);
-
-        let (selected_label, selected_style_provider) = {
-            let label = gtk::Label::new(Some("Selected:"));
-            label.set_halign(gtk::Align::Start);
-            vbox.add(&label);
-
-            let button = gtk::Button::new();
-            button.set_label("None");
-            button.set_focus_on_click(false);
-            button.set_halign(gtk::Align::Start);
-            button.set_sensitive(false);
-            button.set_size_request(60, 60);
-            vbox.add(&button);
-
-            let style_provider = gtk::CssProvider::new();
-            style_provider.load_from_data(&NONE_CSS.as_bytes()).expect("failed to parse css");
-
-            let style_context = button.get_style_context();
-            style_context.add_provider(&style_provider, gtk::STYLE_PROVIDER_PRIORITY_USER);
-
-            (Rc::new(button), Rc::new(style_provider))
-        };
-
-        let mut layer_boxes = Vec::new();
-        for layer in 0..2 {
-            {
-                let label = gtk::Label::new(Some(&format!("Layer {}: ", layer)));
-                label.set_halign(gtk::Align::Start);
-                vbox.add(&label);
-            }
-
-            let layer_box = gtk::ComboBoxText::new();
-            layer_box.set_halign(gtk::Align::Fill);
-            layer_box.set_sensitive(false);
-            vbox.add(&layer_box);
-
-            layer_box.append(Some("NONE"), "NONE");
-            for (scancode_name, _scancode) in self.keymap.iter() {
-                layer_box.append(Some(&scancode_name), &scancode_name);
-            }
-            {
-                let kb = self.clone();
-                layer_box.connect_changed(move |lb| {
-                    if let Some(active_id) = lb.get_active_id() {
-                        println!("layer {}: {}", layer, active_id);
-                        if let Some(i) = *kb.selected.borrow() {
-                            let mut keys = kb.keys.borrow_mut();
-                            let k = &mut keys[i];
-                            let mut found = false;
-                            for (scancode_name, scancode) in kb.keymap.iter() {
-                                if active_id.as_str() == scancode_name {
-                                    k.scancodes[layer] = (*scancode, scancode_name.clone());
-                                    k.refresh();
-                                    found = true;
-                                    break;
-                                }
-                            }
-                            if ! found {
-                                return;
-                            }
-                            println!("  set {}, {}, {} to {:04X}", layer, k.electrical.0, k.electrical.1, k.scancodes[layer].0);
-                            if let Some(ref mut ec) = *kb.ec_opt.borrow_mut() {
-                                unsafe {
-                                    if let Err(err) = ec.keymap_set(layer as u8, k.electrical.0, k.electrical.1, k.scancodes[layer].0) {
-                                        eprintln!("failed to set keymap: {:?}", err);
-                                    }
-                                }
-                            }
-                        }
+        {
+            let kb = self.clone();
+            notebook.connect_switch_page(move |_, _, page| {
+                println!("{}", page);
+                let last_layer = kb.layer();
+                *kb.page.borrow_mut() = page;
+                let layer = kb.layer();
+                if layer != last_layer {
+                    if let Some(i) = *kb.selected.borrow() {
+                        let keys = kb.keys.borrow();
+                        let k = &keys[i];
+                        k.deselect(&kb.picker, last_layer);
+                        k.select(&kb.picker, layer);
                     }
-                });
-            }
-            layer_boxes.push(layer_box);
+                }
+            });
         }
-        let layer_boxes = Rc::new(layer_boxes);
+        vbox.add(&notebook);
 
         {
             let label = gtk::Label::new(Some("Brightness:"));
             label.set_halign(gtk::Align::Start);
-            vbox.add(&label);
+            hbox.add(&label);
         }
 
         let max_brightness = {
@@ -711,6 +770,7 @@ button {
 
         let brightness_scale = gtk::Scale::with_range(gtk::Orientation::Horizontal, 0.0, max_brightness, 1.0);
         brightness_scale.set_halign(gtk::Align::Fill);
+        brightness_scale.set_size_request(200, 0);
         brightness_scale.connect_value_changed(|this| {
             let value = this.get_value();
             let string = format!("{}", value);
@@ -724,12 +784,12 @@ button {
                 }
             }
         });
-        vbox.add(&brightness_scale);
+        hbox.add(&brightness_scale);
 
         {
             let label = gtk::Label::new(Some("Color:"));
             label.set_halign(gtk::Align::Start);
-            vbox.add(&label);
+            hbox.add(&label);
         }
 
         let color_rgba = {
@@ -771,12 +831,12 @@ button {
                 }
             }
         });
-        vbox.add(&color_button);
+        hbox.add(&color_button);
 
         for page in &[
-            "Keycaps",
             "Layer 0",
             "Layer 1",
+            "Keycaps",
             "Logical",
             "Electrical"
         ] {
@@ -814,26 +874,13 @@ button {
 
                 {
                     let kb = self.clone();
-                    let selected_label = selected_label.clone();
-                    let selected_style_provider = selected_style_provider.clone();
-                    let layer_boxes = layer_boxes.clone();
                     button.connect_clicked(move |_| {
                         let keys = kb.keys.borrow();
 
                         if let Some(selected) = kb.selected.borrow_mut().take() {
-                            keys[selected].deselect();
-                            // Implements deselect by clicking again
-                            if selected == i {
-                                selected_label.set_label("None");
-                                selected_label.set_sensitive(false);
-                                selected_style_provider.load_from_data(&NONE_CSS.as_bytes()).expect("failed to parse css");
-
-                                //TODO: reliable array indexing
-                                for layer in 0..2 {
-                                    layer_boxes[layer].set_sensitive(false);
-                                    layer_boxes[layer].set_active_id(None);
-                                }
-
+                            keys[selected].deselect(&kb.picker, kb.layer());
+                            if i == selected {
+                                // Allow deselect
                                 return;
                             }
                         }
@@ -841,23 +888,7 @@ button {
                         {
                             let k = &keys[i];
                             println!("{:#?}", k);
-                            k.select();
-
-                            selected_label.set_label(&k.physical_name);
-                            selected_label.set_sensitive(true);
-                            let css = k.css();
-                            selected_style_provider.load_from_data(css.as_bytes()).expect("failed to parse css");
-
-                            //TODO: reliable array indexing
-                            for layer in 0..2 {
-                                let (_scancode, scancode_name) = &k.scancodes[layer];
-                                layer_boxes[layer].set_sensitive(true);
-                                if layer_boxes[layer].set_active_id(Some(scancode_name)) {
-                                    println!("set active item {}", scancode_name);
-                                } else {
-                                    println!("failed to set active item {}", scancode_name);
-                                }
-                            }
+                            k.select(&kb.picker, kb.layer());
                         }
 
                         *kb.selected.borrow_mut() = Some(i);
@@ -867,11 +898,11 @@ button {
                 let mut keys = self.keys.borrow_mut();
                 let k = &mut keys[i];
                 k.gtk.insert(page.to_string(), button);
-                k.refresh();
+                k.refresh(&self.picker);
             }
         }
 
-        hbox
+        vbox
     }
 }
 
