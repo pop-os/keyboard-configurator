@@ -1,4 +1,4 @@
-use ectool::{Access, AccessDriver, Ec};
+use ectool::{Access, AccessLpcLinux, Ec};
 use hidapi::{HidApi, HidDevice, HidResult};
 use gio::prelude::*;
 use gtk::prelude::*;
@@ -7,7 +7,6 @@ use std::{
     cell::RefCell,
     char,
     collections::HashMap,
-    env,
     fs,
     io,
     path::Path,
@@ -133,6 +132,10 @@ impl Access for AccessHid {
         }
 
         Err(ectool::Error::Timeout)
+    }
+
+    fn data_size(&self) -> usize {
+        32 - 2
     }
 }
 
@@ -651,7 +654,7 @@ button {
 
                 // Check that scancode is available for the keyboard
                 button.set_sensitive(false);
-                for (scancode_name, scancode) in self.keymap.iter() {
+                for (scancode_name, _scancode) in self.keymap.iter() {
                     if key.name.as_str() == scancode_name {
                         button.set_sensitive(true);
                         break;
@@ -907,87 +910,7 @@ button {
     }
 }
 
-fn main() {
-    /*
-    let dir = env::args().nth(1).expect("no directory provided");
-
-
-    let keyboard = Keyboard::new(dir, ec_opt);
-    */
-
-    let mut keyboard_opt = None;
-    /*
-    match AccessDriver::new() {
-        Ok(access) => match unsafe { Ec::new(access) } {
-            Ok(mut ec) => {
-                let mut data = [0; 256 - 2];
-                match unsafe { ec.board(&mut data) } {
-                    Ok(len) => match str::from_utf8(&data[..len]) {
-                        Ok(board) => {
-                            eprintln!("detected EC board '{}'", board);
-                            keyboard_opt = Keyboard::new_board(board, Some(ec));
-                        },
-                        Err(err) => {
-                            eprintln!("failed to parse EC board: {:?}", err);
-                        }
-                    },
-                    Err(err) => {
-                        eprintln!("Failed to run EC board command: {:?}", err);
-                    }
-                }
-            },
-            Err(err) => {
-                eprintln!("failed to probe EC: {:?}", err);
-            }
-        },
-        Err(err) => {
-            eprintln!("failed to access EC: {:?}", err);
-        }
-    }
-    */
-
-    match AccessHid::all() {
-        Ok(mut accesses) => match accesses.pop() {
-            Some(access) => match unsafe { Ec::new(access) } {
-                Ok(mut ec) => {
-                    let mut data = [0; 32 - 2];
-                    match unsafe { ec.board(&mut data) } {
-                        Ok(len) => match str::from_utf8(&data[..len]) {
-                            Ok(board) => {
-                                eprintln!("detected EC board '{}'", board);
-                                keyboard_opt = Keyboard::new_board(board, Some(ec));
-                            },
-                            Err(err) => {
-                                eprintln!("failed to parse EC board: {:?}", err);
-                            }
-                        },
-                        Err(err) => {
-                            eprintln!("Failed to run EC board command: {:?}", err);
-                        }
-                    }
-                },
-                Err(err) => {
-                    eprintln!("failed to probe EC: {:?}", err);
-                }
-            },
-            None => {
-                eprintln!("no ECs located");
-            }
-        },
-        Err(err) => {
-            eprintln!("failed to access EC: {:?}", err);
-        },
-    }
-
-
-    let keyboard = match keyboard_opt {
-        Some(some) => some,
-        None => {
-            eprintln!("failed to locate layout, showing demo");
-            Keyboard::new_board("system76/launch_alpha_2", None).expect("failed to load demo layout")
-        }
-    };
-
+fn main_keyboard<A: Access>(keyboard: Rc<Keyboard<A>>) {
     let application =
         gtk::Application::new(Some("com.system76.keyboard-layout"), Default::default())
             .expect("Initialization failed...");
@@ -1012,4 +935,64 @@ fn main() {
         window.show_all();
     });
 
-    application.run(&[]);}
+    application.run(&[]);
+}
+
+//TODO: allow multiple keyboards
+fn main_access<A: Access + 'static>(access: A) {
+    match unsafe { Ec::new(access) } {
+        Ok(mut ec) => {
+            let data_size = unsafe { ec.access().data_size() };
+            let mut data = vec![0; data_size];
+            match unsafe { ec.board(&mut data) } {
+                Ok(len) => match str::from_utf8(&data[..len]) {
+                    Ok(board) => {
+                        eprintln!("detected EC board '{}'", board);
+                        match Keyboard::new_board(board, Some(ec)) {
+                            Some(keyboard) => {
+                                main_keyboard(keyboard);
+                            },
+                            None => {
+                                eprintln!("failed to load keyboard");
+                            },
+                        }
+                    },
+                    Err(err) => {
+                        eprintln!("failed to parse EC board: {:?}", err);
+                    },
+                },
+                Err(err) => {
+                    eprintln!("Failed to run EC board command: {:?}", err);
+                },
+            }
+        },
+        Err(err) => {
+            eprintln!("failed to probe EC: {:?}", err);
+        },
+    }
+}
+
+fn main() {
+    match unsafe { AccessLpcLinux::new(Duration::new(1, 0)) } {
+        Ok(access) => {
+            main_access(access);
+        },
+        Err(err) => {
+            eprintln!("failed to access LPC EC: {:?}", err);
+        },
+    }
+
+    match AccessHid::all() {
+        Ok(accesses) => for access in accesses {
+            main_access(access);
+        },
+        Err(err) => {
+            eprintln!("failed to access HID EC: {:?}", err);
+        },
+    }
+
+
+    eprintln!("failed to locate layout, showing demo");
+    let keyboard = Keyboard::<AccessHid>::new_board("system76/launch_alpha_2", None).expect("failed to load demo layout");
+    main_keyboard(keyboard);
+}
