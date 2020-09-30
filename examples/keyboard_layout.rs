@@ -949,7 +949,21 @@ fn main() {
         Ok(mut accesses) => match accesses.pop() {
             Some(access) => match unsafe { Ec::new(access) } {
                 Ok(mut ec) => {
-                    keyboard_opt = Keyboard::new_board("system76/launch_1", Some(ec));
+                    let mut data = [0; 32 - 2];
+                    match unsafe { ec.board(&mut data) } {
+                        Ok(len) => match str::from_utf8(&data[..len]) {
+                            Ok(board) => {
+                                eprintln!("detected EC board '{}'", board);
+                                keyboard_opt = Keyboard::new_board(board, Some(ec));
+                            },
+                            Err(err) => {
+                                eprintln!("failed to parse EC board: {:?}", err);
+                            }
+                        },
+                        Err(err) => {
+                            eprintln!("Failed to run EC board command: {:?}", err);
+                        }
+                    }
                 },
                 Err(err) => {
                     eprintln!("failed to probe EC: {:?}", err);
