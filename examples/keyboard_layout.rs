@@ -988,32 +988,28 @@ fn main() {
         }
     };
 
-    //let ansi_104 = Keyboard::new("layouts/ansi-104", None);
-
     let application =
         gtk::Application::new(Some("com.system76.keyboard-layout"), Default::default())
             .expect("Initialization failed...");
 
-    application.connect_activate(move |_app| {
-        // Dialog is used instead of ApplicationWindow to make it float
-        let window = gtk::Dialog::new();
+    application.connect_activate(move |app| {
+        let window = gtk::ApplicationWindow::new(app);
 
         window.set_title("Keyboard Layout");
         window.set_border_width(10);
         window.set_position(gtk::WindowPosition::Center);
-        window.set_default_size(0, 0);
-        window.set_modal(true);
-        window.set_resizable(false);
+        window.set_default_size(1024, 768);
 
         let vbox = gtk::Box::new(gtk::Orientation::Vertical, 32);
         vbox.add(&keyboard.clone().gtk());
         vbox.add(&keyboard.clone().picker());
-        //&ansi_104.clone().gtk(&vbox);
-        window.get_content_area().add(&vbox);
+
+        let scrolled_window = gtk::ScrolledWindow::new::<gtk::Adjustment, gtk::Adjustment>(None, None);
+        scrolled_window.add(&vbox);
+        window.add(&scrolled_window);
 
         window.set_focus::<gtk::Widget>(None);
         window.show_all();
-        window.run();
     });
 
     application.run(&[]);}
