@@ -144,7 +144,7 @@ KBD_DOWN,LED,Darken
 KBD_BKL,LED Cycle,
 ,,
 Layer keys,2,2
-FN_1,Layer 1,
-FN,Layer 2,
-FN_2,Layer 3,
-FN_4,Layer 4,
+FN_1,Access,Layer 1
+FN,Access,Layer 2
+FN_2,Access,Layer 3
+FN_4,Access,Layer 4
