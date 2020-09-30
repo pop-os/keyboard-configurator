@@ -390,6 +390,7 @@ impl<A: Access> Keyboard<A> {
             });
         }
 
+        keyboard!("system76/addw1");
         keyboard!("system76/addw2");
         keyboard!("system76/bonw14");
         keyboard!("system76/darp5");
