@@ -234,7 +234,7 @@ button {{
     fn refresh(&self, picker: &Picker) {
         for (page, button) in self.gtk.iter() {
             button.set_label(match page.as_str() {
-                "Layer 0" => {
+                "Layer 1" => {
                     let scancode_name = &self.scancodes[0].1;
                     if let Some(picker_key) = picker.keys.get(scancode_name) {
                         &picker_key.text
@@ -242,7 +242,7 @@ button {{
                         scancode_name
                     }
                 },
-                "Layer 1" => {
+                "Layer 2" => {
                     let scancode_name = &self.scancodes[1].1;
                     if let Some(picker_key) = picker.keys.get(scancode_name) {
                         &picker_key.text
@@ -588,9 +588,9 @@ impl<A: Access> Keyboard<A> {
     fn layer(&self) -> usize {
         //TODO: make this more robust
         match *self.page.borrow() {
-            0 => 0, // Layer 0
-            1 => 1, // Layer 1
-            _ => 0, // Any other page selects layer 0
+            0 => 0, // Layer 1
+            1 => 1, // Layer 2
+            _ => 0, // Any other page selects Layer 1
         }
     }
 
@@ -839,8 +839,8 @@ button {
         hbox.add(&color_button);
 
         for page in &[
-            "Layer 0",
             "Layer 1",
+            "Layer 2",
             "Keycaps",
             "Logical",
             "Electrical"
