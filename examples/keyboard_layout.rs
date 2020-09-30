@@ -392,7 +392,8 @@ impl<A: Access> Keyboard<A> {
         keyboard!("system76/darp5");
         keyboard!("system76/darp6");
         keyboard!("system76/gaze15");
-        keyboard!("system76/launch_1");
+        keyboard!("system76/launch_alpha_1");
+        keyboard!("system76/launch_alpha_2");
         keyboard!("system76/lemp9");
         keyboard!("system76/oryp5");
         keyboard!("system76/oryp6");
@@ -983,7 +984,7 @@ fn main() {
         Some(some) => some,
         None => {
             eprintln!("failed to locate layout, showing demo");
-            Keyboard::new_board("system76/launch_1", None).expect("failed to load demo layout")
+            Keyboard::new_board("system76/launch_alpha_2", None).expect("failed to load demo layout")
         }
     };
 
