@@ -59,6 +59,7 @@ APP,Menu,
 ESC,Escape,
 PRINT_SCREEN,Print,Screen
 INSERT,Insert,
+RESET,Reset,
 ROLL_OVER,Reuse,
 ,,
 Function keys,4,1
