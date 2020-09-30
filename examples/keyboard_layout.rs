@@ -10,7 +10,6 @@ use std::{
     fs,
     io,
     path::Path,
-    process,
     rc::Rc,
     str::{
         self,
@@ -912,37 +911,28 @@ button {
     }
 }
 
-fn main_keyboard<A: Access>(keyboard: Rc<Keyboard<A>>) {
-    let application =
-        gtk::Application::new(Some("com.system76.keyboard-layout"), Default::default())
-            .expect("Initialization failed...");
+//TODO: allow multiple keyboards
+fn main_keyboard<A: Access>(app: &gtk::Application, keyboard: Rc<Keyboard<A>>) {
+    let window = gtk::ApplicationWindow::new(app);
 
-    application.connect_activate(move |app| {
-        let window = gtk::ApplicationWindow::new(app);
+    window.set_title("Keyboard Layout");
+    window.set_border_width(10);
+    window.set_position(gtk::WindowPosition::Center);
+    window.set_default_size(1024, 768);
 
-        window.set_title("Keyboard Layout");
-        window.set_border_width(10);
-        window.set_position(gtk::WindowPosition::Center);
-        window.set_default_size(1024, 768);
+    let vbox = gtk::Box::new(gtk::Orientation::Vertical, 32);
+    vbox.add(&keyboard.clone().gtk());
+    vbox.add(&keyboard.clone().picker());
 
-        let vbox = gtk::Box::new(gtk::Orientation::Vertical, 32);
-        vbox.add(&keyboard.clone().gtk());
-        vbox.add(&keyboard.clone().picker());
+    let scrolled_window = gtk::ScrolledWindow::new::<gtk::Adjustment, gtk::Adjustment>(None, None);
+    scrolled_window.add(&vbox);
+    window.add(&scrolled_window);
 
-        let scrolled_window = gtk::ScrolledWindow::new::<gtk::Adjustment, gtk::Adjustment>(None, None);
-        scrolled_window.add(&vbox);
-        window.add(&scrolled_window);
-
-        window.set_focus::<gtk::Widget>(None);
-        window.show_all();
-    });
-
-    application.run(&[]);
-    process::exit(0);
+    window.set_focus::<gtk::Widget>(None);
+    window.show_all();
 }
 
-//TODO: allow multiple keyboards
-fn main_access<A: Access + 'static>(access: A) {
+fn main_access<A: Access + 'static>(app: &gtk::Application, access: A) -> bool {
     match unsafe { Ec::new(access) } {
         Ok(mut ec) => {
             let data_size = unsafe { ec.access().data_size() };
@@ -953,7 +943,8 @@ fn main_access<A: Access + 'static>(access: A) {
                         eprintln!("detected EC board '{}'", board);
                         match Keyboard::new_board(board, Some(ec)) {
                             Some(keyboard) => {
-                                main_keyboard(keyboard);
+                                main_keyboard(app, keyboard);
+                                return true;
                             },
                             None => {
                                 eprintln!("failed to load keyboard");
@@ -973,12 +964,15 @@ fn main_access<A: Access + 'static>(access: A) {
             eprintln!("failed to probe EC: {:?}", err);
         },
     }
+    false
 }
 
-fn main() {
+fn main_app(app: &gtk::Application) {
     match unsafe { AccessLpcLinux::new(Duration::new(1, 0)) } {
         Ok(access) => {
-            main_access(access);
+            if main_access(app, access) {
+                return;
+            }
         },
         Err(err) => {
             eprintln!("failed to access LPC EC: {:?}", err);
@@ -987,7 +981,9 @@ fn main() {
 
     match AccessHid::all() {
         Ok(accesses) => for access in accesses {
-            main_access(access);
+            if main_access(app, access) {
+                return;
+            }
         },
         Err(err) => {
             eprintln!("failed to access HID EC: {:?}", err);
@@ -997,5 +993,23 @@ fn main() {
 
     eprintln!("failed to locate layout, showing demo");
     let keyboard = Keyboard::<AccessHid>::new_board("system76/launch_alpha_2", None).expect("failed to load demo layout");
-    main_keyboard(keyboard);
+    main_keyboard(app, keyboard);
+}
+
+fn main() {
+    let application =
+        gtk::Application::new(Some("com.system76.keyboard-layout"), Default::default())
+            .expect("failed to create gtk::Application");
+
+    application.connect_activate(move |app| {
+        if let Some(window) = app.get_active_window() {
+            //TODO
+            println!("Focusing current window");
+            window.present();
+        } else {
+            main_app(app);
+        }
+    });
+
+    application.run(&[]);
 }
