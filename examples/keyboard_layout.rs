@@ -1,4 +1,6 @@
-use ectool::{Access, AccessLpcLinux, Ec};
+use ectool::{Access, Ec};
+#[cfg(target_os = "linux")]
+use ectool::AccessLpcLinux;
 use hidapi::{HidApi, HidDevice, HidResult};
 use gio::prelude::*;
 use gtk::prelude::*;
@@ -968,6 +970,7 @@ fn main_access<A: Access + 'static>(app: &gtk::Application, access: A) -> bool {
 }
 
 fn main_app(app: &gtk::Application) {
+    #[cfg(target_os = "linux")]
     match unsafe { AccessLpcLinux::new(Duration::new(1, 0)) } {
         Ok(access) => {
             if main_access(app, access) {

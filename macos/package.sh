@@ -6,7 +6,7 @@ convert -background '#564e48' -fill white -size 256x256 -gravity center 'label:K
 makeicns -256 keyboard-configurator.png -out keyboard-configurator.icns
 
 # TODO: Release
-cp ../target/debug/examples/keyboard_color keyboard-configurator
+cp ../target/debug/examples/keyboard_layout keyboard-configurator
 
 gtk-mac-bundler keyboard-configurator.bundle
 jdupes -R -l System76KeyboardConfigurator.app

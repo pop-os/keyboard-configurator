@@ -15,7 +15,7 @@ CARGO = [RUSTUP, "run", RUST_TOOLCHAIN, "cargo"]
 DEBUG = '--debug' in sys.argv
 TARGET_DIR = f"../target/{'debug' if DEBUG else 'release'}"
 EXES = {
-    f"{TARGET_DIR}/examples/keyboard_color.exe",
+    f"{TARGET_DIR}/examples/keyboard_layout.exe",
 }
 
 DLL_RE = r"(?<==> ).*\\mingw32\\bin\\(\S+.dll)"

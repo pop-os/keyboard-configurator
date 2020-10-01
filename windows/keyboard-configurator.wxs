@@ -33,7 +33,7 @@
                 <Directory Id='System76' Name='System76'>
                     <Directory Id='INSTALLDIR' Name='Keyboard Backlight'>
                         <Component Id='MainExecutable' Feature='Complete' Guid='*'>
-                            <File Name='keyboard_color.exe' Source='out/keyboard_color.exe' KeyPath='yes'>
+                            <File Name='keyboard_layout.exe' Source='out/keyboard_layout.exe' KeyPath='yes'>
                                 <Shortcut Id="startmenuKeyboardColor" Directory="ProgramMenuDir" Name="Keyboard Color"
                                     WorkingDirectory='INSTALLDIR' Advertise="yes" Icon='keyboard_configurator.ico' />
                             </File>
