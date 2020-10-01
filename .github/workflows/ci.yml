@@ -35,7 +35,7 @@ jobs:
     - uses: actions/download-artifact@v2
       with:
         name: keyboard-configurator-mingw32-${{ github.sha }}
-    - run: .\out\keyboard_color.exe --help-gtk
+    - run: .\out\keyboard_layout.exe --help-gtk
 
   macos:
     runs-on: macos-latest
