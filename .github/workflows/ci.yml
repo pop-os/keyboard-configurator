@@ -28,6 +28,15 @@ jobs:
           windows/keyboard-configurator.msi
           windows/out/
 
+  windows-mingw32-test:
+    runs-on: windows-latest
+    needs: windows-mingw32
+    steps:
+    - uses: actions/download-artifact@v2
+      with:
+        name: keyboard-configurator-mingw32-${{ github.sha }}
+    - run: .\out\keyboard_color.exe --help-gtk
+
   macos:
     runs-on: macos-latest
     steps:
@@ -42,6 +51,15 @@ jobs:
       with:
         if-no-files-found: error
         name: keyboard-configurator-macos-${{ github.sha }}
-        path: |
-          macos/keyboard-configurator.dmg
-          macos/System76KeyboardConfigurator.app
+        path: macos/keyboard-configurator.dmg
+
+  macos-test:
+    runs-on: macos-latest
+    needs: macos
+    steps:
+    - uses: actions/download-artifact@v2
+      with:
+        name: keyboard-configurator-macos-${{ github.sha }}
+    - run: mkdir mnt && hdiutil attach keyboard-configurator.dmg -mountpoint $PWD/mnt
+    - run: ./mnt/System76KeyboardConfigurator.app/Contents/MacOS/keyboard-configurator --help-gtk
+    - run: open mnt/System76KeyboardConfigurator.app --args --help-gtk
