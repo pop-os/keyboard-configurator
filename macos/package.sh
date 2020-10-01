@@ -9,5 +9,6 @@ makeicns -256 keyboard-configurator.png -out keyboard-configurator.icns
 cp ../target/debug/examples/keyboard_color keyboard-configurator
 
 gtk-mac-bundler keyboard-configurator.bundle
+jdupes -R -l System76KeyboardConfigurator.app
 
 appdmg appdmg.json keyboard-configurator.dmg

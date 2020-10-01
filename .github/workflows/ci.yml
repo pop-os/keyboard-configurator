@@ -31,7 +31,7 @@ jobs:
   macos:
     runs-on: macos-latest
     steps:
-    - run: brew install gtk+3 makeicns imagemagick
+    - run: brew install gtk+3 makeicns imagemagick jdupes
     - run: npm install -g appdmg
     #- run: echo "::add-path::$HOME/.new_local/bin"
     #- run: |

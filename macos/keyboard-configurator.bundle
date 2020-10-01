@@ -4,6 +4,7 @@
     <prefix>/usr/local</prefix>
     <gtk>gtk+-3.0</gtk>
     <run-install-name-tool/>
+    <launcher-script/>
   </meta>
   <plist>Info.plist</plist>
   <main-binary dest="${bundle}/Contents/MacOS">${project}/keyboard-configurator</main-binary>
