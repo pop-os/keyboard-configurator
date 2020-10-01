@@ -1,6 +1,10 @@
 /target
+/linux/keyboard-configurator
+/linux/linuxdeploy-*
 /windows/out
 /windows/libraries.wxi
+*.AppDir
+*.AppImage
 *.msi
 *.wixobj
 *.wixpdb
