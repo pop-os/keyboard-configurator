@@ -11,9 +11,11 @@ use std::{
     cell::RefCell,
     char,
     collections::HashMap,
+    env,
     fs,
     io,
     path::Path,
+    process,
     rc::Rc,
     str::{
         self,
@@ -1016,5 +1018,5 @@ fn main() {
         }
     });
 
-    application.run(&[]);
+    process::exit(application.run(&env::args().collect::<Vec<_>>()));
 }
