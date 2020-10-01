@@ -1,3 +1,5 @@
+#![windows_subsystem = "windows"]
+
 use ectool::{Access, Ec};
 #[cfg(target_os = "linux")]
 use ectool::AccessLpcLinux;
