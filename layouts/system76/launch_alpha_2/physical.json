@@ -1,7 +1,7 @@
 [
   {
-    "name": "System76 Launch Configurable Keyboard Lightened 1.0",
-    "author": "Jeremy",
+    "name": "System76 Launch Configurable Keyboard Alpha 2",
+    "author": "Jeremy Soller",
     "switchMount": "cherry",
     "switchBrand": "kailh",
     "plate": true
@@ -138,8 +138,8 @@
   ],
   [
     {
-      "x": 0.25,
-      "w": 2
+      "x": 0.75,
+      "w": 1.5
     },
     "Shift",
     {
