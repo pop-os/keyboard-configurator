@@ -1,0 +1,6 @@
+[Desktop Entry]
+Name=keyboard-configurator
+Exec=keyboard-configurator
+Icon=keyboard-configurator
+Type=Application
+Categories=Utility;
