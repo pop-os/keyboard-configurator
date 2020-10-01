@@ -304,7 +304,7 @@ impl Picker {
             .has_headers(false)
             .from_reader(picker_csv.as_bytes());
         for record_res in reader.records() {
-            let record = record_res.expect("failed to parse picker.csv");
+            let record = record_res.expect("Failed to parse picker.csv");
 
             let name = record.get(0).unwrap_or("");
             if name.is_empty() {
@@ -316,7 +316,7 @@ impl Picker {
                 let cols = match cols_str.parse::<i32>() {
                     Ok(ok) => ok,
                     Err(err) => {
-                        eprintln!("failed to parse column count '{}': {}", cols_str, err);
+                        eprintln!("Failed to parse column count '{}': {}", cols_str, err);
                         DEFAULT_COLS
                     }
                 };
@@ -325,7 +325,7 @@ impl Picker {
                 let width = match width_str.parse::<i32>() {
                     Ok(ok) => ok,
                     Err(err) => {
-                        eprintln!("failed to parse width '{}': {}", width_str, err);
+                        eprintln!("Failed to parse width '{}': {}", width_str, err);
                         1
                     }
                 };
@@ -378,11 +378,11 @@ impl<A: Access> Keyboard<A> {
         let dir = dir.as_ref();
 
         let keymap_csv = fs::read_to_string(dir.join("keymap.csv"))
-            .expect("failed to load keymap.csv");
+            .expect("Failed to load keymap.csv");
         let layout_csv = fs::read_to_string(dir.join("layout.csv"))
-            .expect("failed to load layout.csv");
+            .expect("Failed to load layout.csv");
         let physical_json = fs::read_to_string(dir.join("physical.json"))
-            .expect("failed to load physical.json");
+            .expect("Failed to load physical.json");
         Self::new_data(&keymap_csv, &layout_csv, &physical_json, ec_opt)
     }
 
@@ -416,10 +416,10 @@ impl<A: Access> Keyboard<A> {
         scancode_names.insert(0, "NONE");
         for line in keymap_csv.lines() {
             let mut parts = line.split(',');
-            let scancode_name = parts.next().expect("failed to read scancode name");
-            let scancode_str = parts.next().expect("failed to read scancode");
+            let scancode_name = parts.next().expect("Failed to read scancode name");
+            let scancode_str = parts.next().expect("Failed to read scancode");
             let scancode_trim = scancode_str.trim_start_matches("0x");
-            let scancode = u16::from_str_radix(scancode_trim, 16).expect("failed to parse scancode");
+            let scancode = u16::from_str_radix(scancode_trim, 16).expect("Failed to parse scancode");
             keymap.push((scancode_name.to_string(), scancode));
             scancode_names.insert(scancode, scancode_name);
         }
@@ -427,11 +427,11 @@ impl<A: Access> Keyboard<A> {
         let mut layout = HashMap::new();
         for line in layout_csv.lines() {
             let mut parts = line.split(',');
-            let logical_name = parts.next().expect("failed to read logical name");
-            let output_str = parts.next().expect("failed to read electrical output");
-            let output = output_str.parse().expect("failed to parse electrical output");
-            let input_str = parts.next().expect("failed to read electrical input");
-            let input = input_str.parse().expect("failed to parse electrical input");
+            let logical_name = parts.next().expect("Failed to read logical name");
+            let output_str = parts.next().expect("Failed to read electrical output");
+            let output = output_str.parse().expect("Failed to parse electrical output");
+            let input_str = parts.next().expect("Failed to read electrical input");
+            let input = input_str.parse().expect("Failed to parse electrical input");
             layout.insert(logical_name, (output, input));
         }
 
@@ -507,14 +507,14 @@ impl<A: Access> Keyboard<A> {
                                     println!("  Logical: {:?}", logical);
 
                                     let row_char = char::from_digit(logical.0 as u32, 36)
-                                        .expect("failed to convert row to char");
+                                        .expect("Failed to convert row to char");
                                     let col_char = char::from_digit(logical.1 as u32, 36)
-                                        .expect("failed to convert col to char");
+                                        .expect("Failed to convert col to char");
                                     let logical_name = format!("K{}{}", row_char, col_char).to_uppercase();
                                     println!("  Logical Name: {}", logical_name);
 
                                     let electrical = layout.get(logical_name.as_str())
-                                        //.expect("failed to find electrical mapping");
+                                        //.expect("Failed to find electrical mapping");
                                         .unwrap_or(&(0, 0));
                                     println!("  Electrical: {:?}", electrical);
 
@@ -528,7 +528,7 @@ impl<A: Access> Keyboard<A> {
                                             match value_res {
                                                 Ok(value) => value,
                                                 Err(err) => {
-                                                    eprintln!("failed to read scancode: {:?}", err);
+                                                    eprintln!("Failed to read scancode: {:?}", err);
                                                     0
                                                 }
                                             }
@@ -616,7 +616,7 @@ button {
 "#;
 
         let style_provider = gtk::CssProvider::new();
-        style_provider.load_from_data(&PICKER_CSS.as_bytes()).expect("failed to parse css");
+        style_provider.load_from_data(&PICKER_CSS.as_bytes()).expect("Failed to parse css");
 
         let picker_vbox = gtk::Box::new(gtk::Orientation::Vertical, 32);
         let mut picker_hbox_opt: Option<gtk::Box> = None;
@@ -695,7 +695,7 @@ button {
                         if let Some(ref mut ec) = *kb.ec_opt.borrow_mut() {
                             unsafe {
                                 if let Err(err) = ec.keymap_set(layer as u8, k.electrical.0, k.electrical.1, k.scancodes[layer].0) {
-                                    eprintln!("failed to set keymap: {:?}", err);
+                                    eprintln!("Failed to set keymap: {:?}", err);
                                 }
                             }
                         }
@@ -874,7 +874,7 @@ button {
                     {
                         let css = k.css();
                         let style_provider = gtk::CssProvider::new();
-                        style_provider.load_from_data(css.as_bytes()).expect("failed to parse css");
+                        style_provider.load_from_data(css.as_bytes()).expect("Failed to parse css");
 
                         let style_context = button.get_style_context();
                         style_context.add_provider(&style_provider, gtk::STYLE_PROVIDER_PRIORITY_USER);
@@ -917,6 +917,70 @@ button {
     }
 }
 
+#[cfg(target_os = "linux")]
+fn udev(install: bool) {
+    let udev_path = Path::new("/etc/udev/rules.d/99-system76-keyboard-configurator.rules");
+    let udev_data =
+r#"# Rules automatically generated by System76 Keyboard Configurator
+
+SUBSYSTEM=="usb", ATTRS{idVendor}=="1776", ATTRS{idProduct}=="1776", MODE="0666"
+"#;
+
+    if install {
+        eprintln!("Installing udev rules to '{}'", udev_path.display());
+        fs::write(&udev_path, &udev_data).expect("Failed to install udev rules");
+
+        let status = process::Command::new("udevadm").arg("control").arg("--reload")
+            .status().expect("Failed to run udevadm control --reload");
+        if ! status.success() {
+            panic!("Failed to run udevadm control --reload with exit status: {}", status);
+        }
+
+        //TODO: is there a way to trigger only the one rule?
+        let status = process::Command::new("udevadm").arg("trigger")
+            .status().expect("Failed to run udevadm trigger");
+        if ! status.success() {
+            panic!("Failed to run udevadm trigger with exit status: {}", status);
+        }
+    } else {
+        let data = fs::read_to_string(&udev_path).unwrap_or(String::new());
+        if data != udev_data {
+            let dialog = gtk::MessageDialog::new::<gtk::Window>(
+                None,
+                gtk::DialogFlags::empty(),
+                gtk::MessageType::Question,
+                gtk::ButtonsType::YesNo,
+                "Would you like to update udev rules to allow System76 Keyboard Configurator to access USB keyboards?"
+            );
+            let response = dialog.run();
+            dialog.close();
+            match response {
+                gtk::ResponseType::Yes => {
+                    //TODO: what do we do if pkexec isn't there or doesn't work?
+                    let status = process::Command::new("pkexec")
+                        .arg(env::current_exe().expect("Failed to get current executable"))
+                        .arg("--udev")
+                        .status()
+                        .expect("Failed to run pkexec");
+                    if ! status.success() {
+                        panic!("Failed to install udev rules with exit status: {}", status);
+                    }
+                },
+                _ => {
+                    eprintln!("Declined installation of udev rules: {:?}", response);
+                }
+            }
+        }
+    }
+}
+
+#[cfg(not(target_os = "linux"))]
+fn udev(install: bool) {
+    if install {
+        eprintln!("Installing udev rules is only required on Linux");
+    }
+}
+
 //TODO: allow multiple keyboards
 fn main_keyboard<A: Access>(app: &gtk::Application, keyboard: Rc<Keyboard<A>>) {
     let window = gtk::ApplicationWindow::new(app);
@@ -953,12 +1017,12 @@ fn main_access<A: Access + 'static>(app: &gtk::Application, access: A) -> bool {
                                 return true;
                             },
                             None => {
-                                eprintln!("failed to load keyboard");
+                                eprintln!("Failed to load keyboard");
                             },
                         }
                     },
                     Err(err) => {
-                        eprintln!("failed to parse EC board: {:?}", err);
+                        eprintln!("Failed to parse EC board: {:?}", err);
                     },
                 },
                 Err(err) => {
@@ -967,13 +1031,15 @@ fn main_access<A: Access + 'static>(app: &gtk::Application, access: A) -> bool {
             }
         },
         Err(err) => {
-            eprintln!("failed to probe EC: {:?}", err);
+            eprintln!("Failed to probe EC: {:?}", err);
         },
     }
     false
 }
 
 fn main_app(app: &gtk::Application) {
+    udev(false);
+
     #[cfg(target_os = "linux")]
     match unsafe { AccessLpcLinux::new(Duration::new(1, 0)) } {
         Ok(access) => {
@@ -982,7 +1048,7 @@ fn main_app(app: &gtk::Application) {
             }
         },
         Err(err) => {
-            eprintln!("failed to access LPC EC: {:?}", err);
+            eprintln!("Failed to access LPC EC: {:?}", err);
         },
     }
 
@@ -993,20 +1059,28 @@ fn main_app(app: &gtk::Application) {
             }
         },
         Err(err) => {
-            eprintln!("failed to access HID EC: {:?}", err);
+            eprintln!("Failed to access HID EC: {:?}", err);
         },
     }
 
 
-    eprintln!("failed to locate layout, showing demo");
-    let keyboard = Keyboard::<AccessHid>::new_board("system76/launch_alpha_2", None).expect("failed to load demo layout");
+    eprintln!("Failed to locate layout, showing demo");
+    let keyboard = Keyboard::<AccessHid>::new_board("system76/launch_alpha_2", None)
+        .expect("Failed to load demo layout");
     main_keyboard(app, keyboard);
 }
 
+
 fn main() {
+    let args = env::args().collect::<Vec<_>>();
+    if args.contains(&"--udev".to_string()) {
+        udev(true);
+        process::exit(0);
+    }
+
     let application =
         gtk::Application::new(Some("com.system76.keyboard-layout"), Default::default())
-            .expect("failed to create gtk::Application");
+            .expect("Failed to create gtk::Application");
 
     application.connect_activate(move |app| {
         if let Some(window) = app.get_active_window() {
@@ -1018,5 +1092,5 @@ fn main() {
         }
     });
 
-    process::exit(application.run(&env::args().collect::<Vec<_>>()));
+    process::exit(application.run(&args));
 }
