@@ -14,7 +14,10 @@ use std::{
     env,
     fs,
     io,
-    path::Path,
+    path::{
+        Path,
+        PathBuf,
+    },
     process,
     rc::Rc,
     str::{
@@ -930,6 +933,7 @@ SUBSYSTEM=="usb", ATTRS{idVendor}=="1776", ATTRS{idProduct}=="1776", MODE="0666"
         eprintln!("Installing udev rules to '{}'", udev_path.display());
         fs::write(&udev_path, &udev_data).expect("Failed to install udev rules");
 
+        eprintln!("Running udevadm control --reload");
         let status = process::Command::new("udevadm").arg("control").arg("--reload")
             .status().expect("Failed to run udevadm control --reload");
         if ! status.success() {
@@ -937,6 +941,7 @@ SUBSYSTEM=="usb", ATTRS{idVendor}=="1776", ATTRS{idProduct}=="1776", MODE="0666"
         }
 
         //TODO: is there a way to trigger only the one rule?
+        eprintln!("Running udevadm trigger");
         let status = process::Command::new("udevadm").arg("trigger")
             .status().expect("Failed to run udevadm trigger");
         if ! status.success() {
@@ -953,12 +958,19 @@ SUBSYSTEM=="usb", ATTRS{idVendor}=="1776", ATTRS{idProduct}=="1776", MODE="0666"
                 "Would you like to update udev rules to allow System76 Keyboard Configurator to access USB keyboards?"
             );
             let response = dialog.run();
-            dialog.close();
             match response {
                 gtk::ResponseType::Yes => {
                     //TODO: what do we do if pkexec isn't there or doesn't work?
+                    let command = match env::var("APPIMAGE") {
+                        Ok(ok) => {
+                            PathBuf::from(ok)
+                        },
+                        Err(_) => {
+                            env::current_exe().expect("Failed to determine current exe")
+                        }
+                    };
                     let status = process::Command::new("pkexec")
-                        .arg(env::current_exe().expect("Failed to get current executable"))
+                        .arg(&command)
                         .arg("--udev")
                         .status()
                         .expect("Failed to run pkexec");
@@ -970,6 +982,7 @@ SUBSYSTEM=="usb", ATTRS{idVendor}=="1776", ATTRS{idProduct}=="1776", MODE="0666"
                     eprintln!("Declined installation of udev rules: {:?}", response);
                 }
             }
+            dialog.close();
         }
     }
 }
