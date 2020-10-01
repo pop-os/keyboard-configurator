@@ -20,6 +20,7 @@
             Languages='1033'
             Compressed='yes'
             SummaryCodepage='1252'
+            InstallScope='perMachine'
             />
 
         <Media Id='1' Cabinet='KeyboardConfigurator.cab' EmbedCab='yes' />
@@ -59,9 +60,7 @@
             <ComponentRef Id='ProgramMenuDir' />
         </Feature>
 
-        <WixVariable Id="WixUILicenseRtf" Value="gpl.rtf" />
-        <WixVariable Id="WixUIBannerBmp" Value="banner.bmp" />
-        <UIRef Id="WixUI_Minimal" />
-        <UIRef Id="WixUI_ErrorProgressText" />
+        <Upgrade Id="53c62bf5-0592-4202-8f27-66877dc92ecf">
+        </Upgrade>
     </Product>
 </Wix>

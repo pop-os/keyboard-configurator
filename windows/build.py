@@ -68,6 +68,10 @@ for src, filename in dlls:
 # TODO: Replace with final version
 subprocess.check_call(["convert", "-background", "#564e48", "-fill", "white", "-size", "256x256", "-gravity", "center", "label:Keyboard\nConfigurator", "out/keyboard-configurator.ico"])
 
-# Build .msi
-subprocess.check_call([f"{WIX}/bin/candle.exe", ".\keyboard-configurator.wxs"])
-subprocess.check_call([f"{WIX}/bin/light.exe", "-ext", "WixUIExtension", ".\keyboard-configurator.wixobj"])
+# Build keyboard-configurator.msi
+subprocess.check_call([f"{WIX}/bin/candle.exe", "-arch", "x86", ".\keyboard-configurator.wxs"])
+subprocess.check_call([f"{WIX}/bin/light.exe", ".\keyboard-configurator.wixobj"])
+
+# Build setup-keyboard-configurator.exe
+subprocess.check_call([f"{WIX}/bin/candle.exe", "-arch", "x86",  "-ext", "WixBalExtension", ".\setup-keyboard-configurator.wxs"])
+subprocess.check_call([f"{WIX}/bin/light.exe", "-ext", "WixBalExtension", ".\setup-keyboard-configurator.wixobj"])

@@ -1,0 +1,19 @@
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi"
+     xmlns:bal="http://schemas.microsoft.com/wix/BalExtension">
+  <Bundle Name="System76 Keyboard Configurator"
+          Version="0.0.1"
+          Manufacturer='System76, Inc.'
+          UpgradeCode="8558714f-0f26-47f0-be38-2102300b2272"
+          IconSourceFile="out/keyboard-configurator.ico">
+    <BootstrapperApplicationRef Id="WixStandardBootstrapperApplication.RtfLicense">
+    <bal:WixStandardBootstrapperApplication
+      LicenseFile="gpl.rtf"
+      ShowVersion="yes"
+    />
+    </BootstrapperApplicationRef>
+    <Chain>
+      <RollbackBoundary Id="rollback_boundry"/>
+      <MsiPackage Id="MainPackage" SourceFile="keyboard-configurator.msi" Vital="yes" />
+    </Chain>
+  </Bundle>
+</Wix>
