@@ -3,7 +3,7 @@
     <Product
         Name='System76 Keyboard Configurator'
         Manufacturer='System76, Inc.'
-        Id='0a2ab015-8952-4130-aeb7-f0409eb86202' 
+        Id='*'
         UpgradeCode='548e3064-0ff9-421a-91dc-1f1bd0afe9b6'
         Language='1033'
         Codepage='1252'
@@ -32,22 +32,20 @@
             <Directory Id='ProgramFilesFolder' Name='PFiles'>
                 <Directory Id='System76' Name='System76'>
                     <Directory Id='INSTALLDIR' Name='Keyboard Backlight'>
-                        <Component Id='MainExecutable' Guid='2860bcd8-dbc0-4c00-a0ff-9f24c6d76f5b'>
-                            <File Name='keyboard_color.exe' DiskId='1' Source='out/keyboard_color.exe' KeyPath='yes'>
+                        <Component Id='MainExecutable' Feature='Complete' Guid='*'>
+                            <File Name='keyboard_color.exe' Source='out/keyboard_color.exe' KeyPath='yes'>
                                 <Shortcut Id="startmenuKeyboardColor" Directory="ProgramMenuDir" Name="Keyboard Color"
                                     WorkingDirectory='INSTALLDIR' Advertise="yes" Icon='keyboard_configurator.ico' />
                             </File>
-                            <?include libraries.wxi ?>
                         </Component>
+                        <?include libraries.wxi ?>
                     </Directory>
                 </Directory>
             </Directory>
 
-            <!-- Probably put dll dependencies in at least one component: https://www.firegiant.com/wix/tutorial/getting-started/the-files-inside/ -->
-
             <Directory Id="ProgramMenuFolder" Name="Programs">
                 <Directory Id="ProgramMenuDir" Name="System76 Keyboard Configurator">
-                    <Component Id="ProgramMenuDir" Guid="47cf0b1d-bbc4-45c1-92de-c5e0a2d7ac20">
+                    <Component Id="ProgramMenuDir" Feature="Complete" Guid="*">
                         <RemoveFolder Id='ProgramMenuDir' On='uninstall' />
                         <RegistryValue Root='HKCU' Key='Software\[Manufacturer]\[ProductName]' Type='string' Value='' KeyPath='yes' />
                     </Component>
@@ -55,16 +53,14 @@
             </Directory>
         </Directory>
 
-        <Feature Id='Complete' Level='1'>
-            <ComponentRef Id='MainExecutable' />
-            <ComponentRef Id='ProgramMenuDir' />
-        </Feature>
+        <Feature Id='Complete' Level='1' />
 
         <WixVariable Id="WixUILicenseRtf" Value="gpl.rtf" />
         <WixVariable Id="WixUIBannerBmp" Value="banner.bmp" />
         <UIRef Id="WixUI_Minimal" />
         <UIRef Id="WixUI_ErrorProgressText" />
 
-        <MajorUpgrade DowngradeErrorMessage="A later version of [ProductName] is already installed. Setup will now exit." />
+        <MajorUpgrade DowngradeErrorMessage="A later version of [ProductName] is already installed. Setup will now exit."
+                      AllowSameVersionUpgrades="yes" />
     </Product>
 </Wix>

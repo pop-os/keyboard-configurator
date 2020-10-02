@@ -48,7 +48,9 @@ with open('libraries.wxi', 'w') as f:
 
     for _, i in dlls:
         id_ = i.replace('.dll', '').replace('-', '_').replace('+', '')
-        f.write(f"    <File Name='{i}' DiskId='1' Source='out/{i}' />\n")
+        f.write(f"    <Component Id='{id_}' Feature='Complete' Guid='*'>\n")
+        f.write(f"        <File Name='{i}' Source='out/{i}' />\n")
+        f.write(f"    </Component>\n")
 
     f.write('</Include>\n')
 
