@@ -1,9 +1,9 @@
 #![windows_subsystem = "windows"]
 
-use ectool::{Access, Ec};
+use ectool::{Access, AccessHid, Ec};
 #[cfg(target_os = "linux")]
 use ectool::AccessLpcLinux;
-use hidapi::{HidApi, HidDevice, HidResult};
+use hidapi::HidApi;
 use gio::prelude::*;
 use gtk::prelude::*;
 use serde_json::Value;
@@ -27,125 +27,46 @@ use std::{
     time::Duration,
 };
 
-struct AccessHid {
-    device: HidDevice,
-    retries: usize,
-}
-
-impl AccessHid {
-    pub fn new(device: HidDevice) -> Result<Self, ectool::Error> {
-        //TODO: probe?
-        Ok(Self {
-            device,
-            retries: 8,
-        })
-    }
-
-    pub fn all() -> Result<Vec<Self>, ectool::Error> {
-        //TODO: bubble errors
-        let mut ret = Vec::new();
-        match HidApi::new() {
-            Ok(api) => {
-                for info in api.device_list() {
-                    match (info.vendor_id(), info.product_id()) {
-                        (0x1776, 0x1776) => match info.interface_number() {
-                            //TODO: better way to determine this
-                            1 => match info.open_device(&api) {
-                                Ok(device) => {
-                                    match AccessHid::new(device) {
-                                        Ok(access) => {
-                                            eprintln!("Adding device at {:?}", info.path());
-                                            ret.push(access);
-                                        },
-                                        Err(err) => {
-                                            eprintln!("Failed to probe device at {:?}: {:?}", info.path(), err);
-                                        },
-                                    }
-                                },
-                                Err(err) => {
-                                    eprintln!("Failed to open device at {:?}: {}", info.path(), err);
-                                },
+fn access_hid_all() -> Vec<AccessHid> {
+    //TODO: bubble errors
+    let mut ret = Vec::new();
+    match HidApi::new() {
+        Ok(api) => {
+            for info in api.device_list() {
+                match (info.vendor_id(), info.product_id()) {
+                    (0x1776, 0x1776) => match info.interface_number() {
+                        //TODO: better way to determine this
+                        1 => match info.open_device(&api) {
+                            Ok(device) => {
+                                match AccessHid::new(device, 10, 100) {
+                                    Ok(access) => {
+                                        eprintln!("Adding device at {:?}", info.path());
+                                        ret.push(access);
+                                    },
+                                    Err(err) => {
+                                        eprintln!("Failed to probe device at {:?}: {:?}", info.path(), err);
+                                    },
+                                }
                             },
-                            iface => {
-                                eprintln!("Unsupported interface: {}", iface);
+                            Err(err) => {
+                                eprintln!("Failed to open device at {:?}: {}", info.path(), err);
                             },
                         },
-                        (vendor, product) => {
-                            eprintln!("Unsupported ID {:04X}:{:04X}", vendor, product);
+                        iface => {
+                            eprintln!("Unsupported interface: {}", iface);
                         },
-                    }
-                }
-            },
-            Err(e) => {
-                eprintln!("Failed to list HID devices: {}", e);
-            },
-        }
-        Ok(ret)
-    }
-
-    unsafe fn command_hid(&mut self, cmd: u8, data: &mut [u8]) -> HidResult<Option<u8>> {
-        const HID_CMD: usize = 1;
-        const HID_RES: usize = 2;
-        const HID_DATA: usize = 3;
-
-        let mut hid_data = [0; 33];
-        if data.len() + HID_DATA > hid_data.len() {
-            unimplemented!("data too large");
-        }
-
-        hid_data[HID_CMD] = cmd;
-        for i in 0..data.len() {
-            hid_data[HID_DATA + i] = data[i];
-        }
-
-        let count = self.device.write(&hid_data)?;
-        if count != hid_data.len() {
-            unimplemented!("write truncated: {}", count);
-        }
-
-        let count = self.device.read_timeout(&mut hid_data[1..], 100)?;
-        if count == hid_data.len() - 1 {
-            for i in 0..data.len() {
-                data[i] = hid_data[HID_DATA + i];
-            }
-
-            Ok(Some(hid_data[HID_RES]))
-        } else if count == 0 {
-            Ok(None)
-        } else {
-            unimplemented!("read truncated: {}", count);
-        }
-    }
-}
-
-impl Access for AccessHid {
-    unsafe fn command(&mut self, cmd: u8, data: &mut [u8]) -> Result<u8, ectool::Error> {
-        for _ in 0..self.retries {
-            match self.command_hid(cmd, data) {
-                Ok(ok) => match ok {
-                    Some(some) => return Ok(some),
-                    None => continue,
-                },
-                Err(err) => {
-                    eprintln!("HID error: {}", err);
-                    return Err(
-                        ectool::Error::Io(
-                            io::Error::new(
-                                io::ErrorKind::Other,
-                                err,
-                            )
-                        )
-                    );
+                    },
+                    (vendor, product) => {
+                        eprintln!("Unsupported ID {:04X}:{:04X}", vendor, product);
+                    },
                 }
             }
-        }
-
-        Err(ectool::Error::Timeout)
+        },
+        Err(e) => {
+            eprintln!("Failed to list HID devices: {}", e);
+        },
     }
-
-    fn data_size(&self) -> usize {
-        32 - 2
-    }
+    ret
 }
 
 #[derive(Clone, Debug)]
@@ -1066,15 +987,10 @@ fn main_app(app: &gtk::Application) {
         },
     }
 
-    match AccessHid::all() {
-        Ok(accesses) => for access in accesses {
-            if main_access(app, access) {
-                return;
-            }
-        },
-        Err(err) => {
-            eprintln!("Failed to access HID EC: {:?}", err);
-        },
+    for access in access_hid_all() {
+        if main_access(app, access) {
+            return;
+        }
     }
 
 
