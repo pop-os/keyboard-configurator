@@ -633,6 +633,7 @@ button {
 
             let label = gtk::Label::new(Some(&group.name));
             label.set_halign(gtk::Align::Start);
+            label.set_margin_bottom(8);
             vbox.add(&label);
 
             let picker_hbox = match picker_hbox_opt.take() {
