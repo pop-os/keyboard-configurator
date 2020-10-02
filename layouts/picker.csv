@@ -48,17 +48,17 @@ RIGHT_SHIFT,Right,Shift
 LEFT_SUPER,Left,Super
 RIGHT_SUPER,Right,Super
 ,,
-Actions,4,2
+Actions,4,1
 ENTER,Enter,
-BKSP,Backspace,
-DEL,Delete,
+BKSP,Bksp,
+DEL,Del,
 TAB,Tab,
 SPACE,Space,
-CAPS,Caps Lock,
+CAPS,Caps,
 APP,Menu,
-ESC,Escape,
-PRINT_SCREEN,Print,Screen
-INSERT,Insert,
+ESC,Esc,
+PRINT_SCREEN,PrtSc,
+INSERT,Ins,
 RESET,Reset,
 ROLL_OVER,Reuse,
 ,,
@@ -109,42 +109,46 @@ BRACE_OPEN,{,[
 BRACE_CLOSE,},]
 ,,
 Navigation,4,1
-HOME,Home,
-END,End,
-PGUP,PgUp,
-PGDN,PgDn,
 LEFT,Left,
 UP,Up,
 DOWN,Down,
 RIGHT,Right,
+HOME,Home,
+PGUP,PgUp,
+PGDN,PgDn,
+END,End,
 ,,
-Media,4,2
-PLAY_PAUSE,Play/Pause,
-VOLUME_UP,Volume,Up
-VOLUME_DOWN,Volume,Down
+Media,3,1
 MUTE,Mute,
+VOLUME_UP,Vol,Up
+VOLUME_DOWN,Vol,Down
+PLAY_PAUSE,Play,Pause
 MEDIA_NEXT,Next,Track
 MEDIA_PREV,Prev,Track
 ,,
 Controls,4,2
-BRIGHTNESS_UP,Brightness,Up
-BRIGHTNESS_DOWN,Brightness,Down
-CAMERA_TOGGLE,Camera,On/Off
+DISPLAY_TOGGLE,Screen,Toggle
+BRIGHTNESS_UP,Screen,Up
+BRIGHTNESS_DOWN,Screen,Down
+DISPLAY_MODE,Screen,Mode
 SUSPEND,Suspend,
-DISPLAY_TOGGLE,Display,On/Off
-DISPLAY_MODE,Display,Mode
+CAMERA_TOGGLE,Camera,Toggle
 AIRPLANE_MODE,Airplane,Mode
-TOUCHPAD,Touchpad,On/Off
+TOUCHPAD,Touchpad,Toggle
 ,,
-LED controls,4,2
-KBD_TOGGLE,LED On/Off,
-KBD_COLOR,LED Color,
-KBD_UP,LED,Brighten
-KBD_DOWN,LED,Darken
-KBD_BKL,LED Cycle,
+LED controls,4,1
+KBD_TOGGLE,LED,Toggle
+KBD_UP,LED,Up
+KBD_DOWN,LED,Down
+KBD_BKL,LED,Cycle
+KBD_COLOR,LED,Color
 ,,
-Layer keys,2,2
-FN_1,Access,Layer 1
+Layer keys,4,1
+LAYER_ACCESS_1,Access,Layer 1
 FN,Access,Layer 2
-FN_2,Access,Layer 3
-FN_4,Access,Layer 4
+LAYER_ACCESS_3,Access,Layer 3
+LAYER_ACCESS_4,Access,Layer 4
+LAYER_TOGGLE_1,Toggle,Layer 1
+LAYER_TOGGLE_2,Toggle,Layer 2
+LAYER_TOGGLE_3,Toggle,Layer 3
+LAYER_TOGGLE_4,Toggle,Layer 4
