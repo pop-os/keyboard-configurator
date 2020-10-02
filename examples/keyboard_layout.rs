@@ -1,9 +1,5 @@
 #![windows_subsystem = "windows"]
 
-use ectool::{Access, AccessHid, Ec};
-#[cfg(target_os = "linux")]
-use ectool::AccessLpcLinux;
-use hidapi::HidApi;
 use gio::prelude::*;
 use gtk::prelude::*;
 use serde_json::Value;
@@ -16,7 +12,6 @@ use std::{
     io,
     path::{
         Path,
-        PathBuf,
     },
     process,
     rc::Rc,
@@ -24,50 +19,14 @@ use std::{
         self,
         FromStr
     },
-    time::Duration,
 };
-
-fn access_hid_all() -> Vec<AccessHid> {
-    //TODO: bubble errors
-    let mut ret = Vec::new();
-    match HidApi::new() {
-        Ok(api) => {
-            for info in api.device_list() {
-                match (info.vendor_id(), info.product_id()) {
-                    (0x1776, 0x1776) => match info.interface_number() {
-                        //TODO: better way to determine this
-                        1 => match info.open_device(&api) {
-                            Ok(device) => {
-                                match AccessHid::new(device, 10, 100) {
-                                    Ok(access) => {
-                                        eprintln!("Adding device at {:?}", info.path());
-                                        ret.push(access);
-                                    },
-                                    Err(err) => {
-                                        eprintln!("Failed to access device at {:?}: {:?}", info.path(), err);
-                                    },
-                                }
-                            },
-                            Err(err) => {
-                                eprintln!("Failed to open device at {:?}: {}", info.path(), err);
-                            },
-                        },
-                        iface => {
-                            eprintln!("Unsupported interface: {}", iface);
-                        },
-                    },
-                    (vendor, product) => {
-                        eprintln!("Unsupported ID {:04X}:{:04X}", vendor, product);
-                    },
-                }
-            }
-        },
-        Err(e) => {
-            eprintln!("Failed to list HID devices: {}", e);
-        },
-    }
-    ret
-}
+use system76_keyboard_configurator::{
+    daemon::{
+        Daemon,
+        DaemonClient,
+        DaemonServer,
+    },
+};
 
 #[derive(Clone, Debug)]
 struct Rect {
@@ -288,8 +247,9 @@ impl Picker {
     }
 }
 
-pub struct Keyboard<A: Access + 'static> {
-    ec_opt: RefCell<Option<Ec<A>>>,
+pub struct Keyboard {
+    daemon_opt: RefCell<Option<Box<dyn Daemon>>>,
+    daemon_board: usize,
     keymap: Vec<(String, u16)>,
     keys: RefCell<Vec<Key>>,
     page: RefCell<u32>,
@@ -297,8 +257,8 @@ pub struct Keyboard<A: Access + 'static> {
     selected: RefCell<Option<usize>>,
 }
 
-impl<A: Access> Keyboard<A> {
-    fn new<P: AsRef<Path>>(dir: P, ec_opt: Option<Ec<A>>) -> Rc<Self> {
+impl Keyboard {
+    fn new<P: AsRef<Path>>(dir: P, daemon_opt: Option<Box<dyn Daemon>>, daemon_board: usize) -> Rc<Self> {
         let dir = dir.as_ref();
 
         let keymap_csv = fs::read_to_string(dir.join("keymap.csv"))
@@ -307,16 +267,16 @@ impl<A: Access> Keyboard<A> {
             .expect("Failed to load layout.csv");
         let physical_json = fs::read_to_string(dir.join("physical.json"))
             .expect("Failed to load physical.json");
-        Self::new_data(&keymap_csv, &layout_csv, &physical_json, ec_opt)
+        Self::new_data(&keymap_csv, &layout_csv, &physical_json, daemon_opt, daemon_board)
     }
 
-    fn new_board(board: &str, ec_opt: Option<Ec<A>>) -> Option<Rc<Self>> {
+    fn new_board(board: &str, daemon_opt: Option<Box<dyn Daemon>>, daemon_board: usize) -> Option<Rc<Self>> {
         macro_rules! keyboard {
             ($board:expr) => (if board == $board {
                 let keymap_csv = include_str!(concat!("../layouts/", $board, "/keymap.csv"));
                 let layout_csv = include_str!(concat!("../layouts/", $board, "/layout.csv"));
                 let physical_json = include_str!(concat!("../layouts/", $board, "/physical.json"));
-                return Some(Keyboard::new_data(keymap_csv, layout_csv, physical_json, ec_opt));
+                return Some(Keyboard::new_data(keymap_csv, layout_csv, physical_json, daemon_opt, daemon_board));
             });
         }
 
@@ -334,7 +294,7 @@ impl<A: Access> Keyboard<A> {
         None
     }
 
-    fn new_data(keymap_csv: &str, layout_csv: &str, physical_json: &str, mut ec_opt: Option<Ec<A>>) -> Rc<Self> {
+    fn new_data(keymap_csv: &str, layout_csv: &str, physical_json: &str, mut daemon_opt: Option<Box<dyn Daemon>>, daemon_board: usize) -> Rc<Self> {
         let mut keymap = Vec::new();
         let mut scancode_names = HashMap::new();
         scancode_names.insert(0, "NONE");
@@ -445,11 +405,8 @@ impl<A: Access> Keyboard<A> {
                                     let mut scancodes = Vec::new();
                                     for layer in 0..2 {
                                         println!("  Layer {}", layer);
-                                        let scancode = if let Some(ref mut ec) = ec_opt {
-                                            let value_res = unsafe {
-                                                ec.keymap_get(layer, electrical.0, electrical.1)
-                                            };
-                                            match value_res {
+                                        let scancode = if let Some(ref mut daemon) = daemon_opt {
+                                            match daemon.keymap_get(daemon_board, layer, electrical.0, electrical.1) {
                                                 Ok(value) => value,
                                                 Err(err) => {
                                                     eprintln!("Failed to read scancode: {:?}", err);
@@ -506,7 +463,8 @@ impl<A: Access> Keyboard<A> {
         }
 
         Rc::new(Self {
-            ec_opt: RefCell::new(ec_opt),
+            daemon_opt: RefCell::new(daemon_opt),
+            daemon_board,
             keymap,
             keys: RefCell::new(keys),
             page: RefCell::new(0),
@@ -617,11 +575,9 @@ button {
                             return;
                         }
                         println!("  set {}, {}, {} to {:04X}", layer, k.electrical.0, k.electrical.1, k.scancodes[layer].0);
-                        if let Some(ref mut ec) = *kb.ec_opt.borrow_mut() {
-                            unsafe {
-                                if let Err(err) = ec.keymap_set(layer as u8, k.electrical.0, k.electrical.1, k.scancodes[layer].0) {
-                                    eprintln!("Failed to set keymap: {:?}", err);
-                                }
+                        if let Some(ref mut daemon) = *kb.daemon_opt.borrow_mut() {
+                            if let Err(err) = daemon.keymap_set(kb.daemon_board, layer as u8, k.electrical.0, k.electrical.1, k.scancodes[layer].0) {
+                                eprintln!("Failed to set keymap: {:?}", err);
                             }
                         }
                     }
@@ -842,82 +798,8 @@ button {
     }
 }
 
-#[cfg(target_os = "linux")]
-fn udev(install: bool) {
-    let udev_path = Path::new("/etc/udev/rules.d/99-system76-keyboard-configurator.rules");
-    let udev_data =
-r#"# Rules automatically generated by System76 Keyboard Configurator
-
-SUBSYSTEM=="usb", ATTRS{idVendor}=="1776", ATTRS{idProduct}=="1776", MODE="0666"
-"#;
-
-    if install {
-        eprintln!("Installing udev rules to '{}'", udev_path.display());
-        fs::write(&udev_path, &udev_data).expect("Failed to install udev rules");
-
-        eprintln!("Running udevadm control --reload");
-        let status = process::Command::new("udevadm").arg("control").arg("--reload")
-            .status().expect("Failed to run udevadm control --reload");
-        if ! status.success() {
-            panic!("Failed to run udevadm control --reload with exit status: {}", status);
-        }
-
-        //TODO: is there a way to trigger only the one rule?
-        eprintln!("Running udevadm trigger");
-        let status = process::Command::new("udevadm").arg("trigger")
-            .status().expect("Failed to run udevadm trigger");
-        if ! status.success() {
-            panic!("Failed to run udevadm trigger with exit status: {}", status);
-        }
-    } else {
-        let data = fs::read_to_string(&udev_path).unwrap_or(String::new());
-        if data != udev_data {
-            let dialog = gtk::MessageDialog::new::<gtk::Window>(
-                None,
-                gtk::DialogFlags::empty(),
-                gtk::MessageType::Question,
-                gtk::ButtonsType::YesNo,
-                "Would you like to update udev rules to allow System76 Keyboard Configurator to access USB keyboards?"
-            );
-            let response = dialog.run();
-            match response {
-                gtk::ResponseType::Yes => {
-                    //TODO: what do we do if pkexec isn't there or doesn't work?
-                    let command = match env::var("APPIMAGE") {
-                        Ok(ok) => {
-                            PathBuf::from(ok)
-                        },
-                        Err(_) => {
-                            env::current_exe().expect("Failed to determine current exe")
-                        }
-                    };
-                    let status = process::Command::new("pkexec")
-                        .arg(&command)
-                        .arg("--udev")
-                        .status()
-                        .expect("Failed to run pkexec");
-                    if ! status.success() {
-                        panic!("Failed to install udev rules with exit status: {}", status);
-                    }
-                },
-                _ => {
-                    eprintln!("Declined installation of udev rules: {:?}", response);
-                }
-            }
-            dialog.close();
-        }
-    }
-}
-
-#[cfg(not(target_os = "linux"))]
-fn udev(install: bool) {
-    if install {
-        eprintln!("Installing udev rules is only required on Linux");
-    }
-}
-
 //TODO: allow multiple keyboards
-fn main_keyboard<A: Access>(app: &gtk::Application, keyboard: Rc<Keyboard<A>>) {
+fn main_keyboard(app: &gtk::Application, keyboard: Rc<Keyboard>) {
     let window = gtk::ApplicationWindow::new(app);
 
     window.set_title("Keyboard Layout");
@@ -935,77 +817,92 @@ fn main_keyboard<A: Access>(app: &gtk::Application, keyboard: Rc<Keyboard<A>>) {
 
     window.set_focus::<gtk::Widget>(None);
     window.show_all();
+
+    window.connect_destroy(|_| {
+        eprintln!("Window close");
+        gtk::main_quit();
+    });
 }
 
-fn main_access<A: Access + 'static>(app: &gtk::Application, access: A) -> bool {
-    match unsafe { Ec::new(access) } {
-        Ok(mut ec) => {
-            let data_size = unsafe { ec.access().data_size() };
-            let mut data = vec![0; data_size];
-            match unsafe { ec.board(&mut data) } {
-                Ok(len) => match str::from_utf8(&data[..len]) {
-                    Ok(board) => {
-                        eprintln!("detected EC board '{}'", board);
-                        match Keyboard::new_board(board, Some(ec)) {
-                            Some(keyboard) => {
-                                main_keyboard(app, keyboard);
-                                return true;
-                            },
-                            None => {
-                                eprintln!("Failed to load keyboard");
-                            },
-                        }
-                    },
-                    Err(err) => {
-                        eprintln!("Failed to parse EC board: {:?}", err);
-                    },
-                },
-                Err(err) => {
-                    eprintln!("Failed to run EC board command: {:?}", err);
-                },
-            }
-        },
-        Err(err) => {
-            eprintln!("Failed to probe EC: {:?}", err);
-        },
-    }
-    false
-}
-
-fn main_app(app: &gtk::Application) {
-    udev(false);
-
-    #[cfg(target_os = "linux")]
-    match unsafe { AccessLpcLinux::new(Duration::new(1, 0)) } {
-        Ok(access) => {
-            if main_access(app, access) {
-                return;
-            }
-        },
-        Err(err) => {
-            eprintln!("Failed to access LPC EC: {:?}", err);
-        },
-    }
-
-    for access in access_hid_all() {
-        if main_access(app, access) {
+fn main_app(app: &gtk::Application, mut daemon: Box<dyn Daemon>) {
+    let boards = daemon.boards().expect("Failed to load boards");
+    let i = 0;
+    if let Some(board) = boards.get(i) {
+        if let Some(keyboard) = Keyboard::new_board(board, Some(daemon), i) {
+            main_keyboard(app, keyboard);
             return;
+        } else {
+            eprintln!("Failed to locate layout for '{}'", board);
         }
     }
 
-
-    eprintln!("Failed to locate layout, showing demo");
-    let keyboard = Keyboard::<AccessHid>::new_board("system76/launch_alpha_2", None)
+    eprintln!("Failed to locate any keyboards, showing demo");
+    let keyboard = Keyboard::new_board("system76/launch_alpha_2", None, 0)
         .expect("Failed to load demo layout");
     main_keyboard(app, keyboard);
 }
 
+fn daemon_server() -> Result<DaemonServer<io::Stdin, io::Stdout>, String> {
+    DaemonServer::new(io::stdin(), io::stdout())
+}
+
+#[cfg(target_os = "linux")]
+fn with_daemon<F: Fn(Box<dyn Daemon>)>(f: F) {
+    use std::{
+        process::{
+            Command,
+            Stdio,
+        },
+    };
+
+    if unsafe { libc::geteuid() == 0 } {
+        eprintln!("Already running as root");
+        let server = daemon_server().expect("Failed to create server");
+        f(Box::new(server));
+        return;
+    }
+
+    // Use pkexec to spawn daemon as superuser
+    eprintln!("Not running as root, spawning daemon with pkexec");
+    let mut command = Command::new("pkexec");
+
+    // Use canonicalized command name
+    let command_name = env::args().nth(0).expect("Failed to get command name");
+    let command_path = fs::canonicalize(command_name).expect("Failed to canonicalize command");
+    command.arg(command_path);
+    command.arg("--daemon");
+
+    // Pipe stdin and stdout
+    command.stdin(Stdio::piped());
+    command.stdout(Stdio::piped());
+
+    let mut child = command.spawn().expect("Failed to spawn daemon");
+
+    let stdin = child.stdin.take().expect("Failed to get stdin of daemon");
+    let stdout = child.stdout.take().expect("Failed to get stdout of daemon");
+
+    f(Box::new(DaemonClient::new(stdout, stdin)));
+
+    let status = child.wait().expect("Failed to wait for daemon");
+    if ! status.success() {
+        panic!("Failed to run daemon with exit status {:?}", status);
+    }
+}
+
+#[cfg(not(target_os = "linux"))]
+fn with_daemon<F: Fn(Box<dyn Daemon>)>(f: F) {
+    let server = daemon_server().expect("Failed to create server");
+    f(Box::new(server));
+}
 
 fn main() {
     let args = env::args().collect::<Vec<_>>();
-    if args.contains(&"--udev".to_string()) {
-        udev(true);
-        process::exit(0);
+    for arg in args.iter().skip(1) {
+        if arg.as_str() == "--daemon" {
+            let server = daemon_server().expect("Failed to create server");
+            server.run().expect("Failed to run server");
+            return;
+        }
     }
 
     let application =
@@ -1015,10 +912,14 @@ fn main() {
     application.connect_activate(move |app| {
         if let Some(window) = app.get_active_window() {
             //TODO
-            println!("Focusing current window");
+            eprintln!("Focusing current window");
             window.present();
         } else {
-            main_app(app);
+            with_daemon(|daemon| {
+                main_app(app, daemon);
+                //TODO: is this the best way to keep the daemon running?
+                gtk::main();
+            });
         }
     });
 

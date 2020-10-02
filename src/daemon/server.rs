@@ -109,6 +109,12 @@ impl<R: Read, W: Write> DaemonServer<R, W> {
             DaemonCommand::Boards => {
                 json(self.boards()?)
             },
+            DaemonCommand::KeymapGet { board, layer, output, input } => {
+                json(self.keymap_get(board, layer, output, input)?)
+            },
+            DaemonCommand::KeymapSet { board, layer, output, input, value } => {
+                json(self.keymap_set(board, layer, output, input, value)?)
+            },
             DaemonCommand::Exit => {
                 self.running = false;
                 json(())
@@ -158,5 +164,45 @@ impl<R: Read, W: Write> Daemon for DaemonServer<R, W> {
         }
 
         Ok(boards)
+    }
+
+    fn keymap_get(&mut self, mut board: usize, layer: u8, output: u8, input: u8) -> Result<u16, String> {
+        #[cfg(target_os = "linux")]
+        {
+            if board < self.lpc.len() {
+                return unsafe {
+                    self.lpc[board].keymap_get(layer, output, input).map_err(err_str)
+                };
+            }
+            board -= self.lpc.len();
+        }
+
+        if let Some(ref mut ec) = self.hid.get_mut(board) {
+            unsafe {
+                ec.keymap_get(layer, output, input).map_err(err_str)
+            }
+        } else {
+            Err("failed to find board".to_string())
+        }
+    }
+
+    fn keymap_set(&mut self, mut board: usize, layer: u8, output: u8, input: u8, value: u16) -> Result<(), String> {
+        #[cfg(target_os = "linux")]
+        {
+            if board < self.lpc.len() {
+                return unsafe {
+                    self.lpc[board].keymap_set(layer, output, input, value).map_err(err_str)
+                };
+            }
+            board -= self.lpc.len();
+        }
+
+        if let Some(ref mut ec) = self.hid.get_mut(board) {
+            unsafe {
+                ec.keymap_set(layer, output, input, value).map_err(err_str)
+            }
+        } else {
+            Err("failed to find board".to_string())
+        }
     }
 }

@@ -8,6 +8,8 @@ mod server;
 
 pub trait Daemon {
     fn boards(&mut self) -> Result<Vec<String>, String>;
+    fn keymap_get(&mut self, board: usize, layer: u8, output: u8, input: u8) -> Result<u16, String>;
+    fn keymap_set(&mut self, board: usize, layer: u8, output: u8, input: u8, value: u16) -> Result<(), String>;
 }
 
 fn err_str<E: std::fmt::Debug>(err: E) -> String {
@@ -18,6 +20,8 @@ fn err_str<E: std::fmt::Debug>(err: E) -> String {
 #[serde(tag = "kind")]
 enum DaemonCommand {
     Boards,
+    KeymapGet { board: usize, layer: u8, output: u8, input: u8 },
+    KeymapSet { board: usize, layer: u8, output: u8, input: u8, value: u16 },
     Exit,
 }
 

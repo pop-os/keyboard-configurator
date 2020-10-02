@@ -49,6 +49,14 @@ impl<R: Read, W: Write> Daemon for DaemonClient<R, W> {
     fn boards(&mut self) -> Result<Vec<String>, String> {
         self.command(DaemonCommand::Boards)
     }
+
+    fn keymap_get(&mut self, board: usize, layer: u8, output: u8, input: u8) -> Result<u16, String> {
+        self.command(DaemonCommand::KeymapGet { board, layer, output, input })
+    }
+
+    fn keymap_set(&mut self, board: usize, layer: u8, output: u8, input: u8, value: u16) -> Result<(), String> {
+        self.command(DaemonCommand::KeymapSet { board, layer, output, input, value })
+    }
 }
 
 impl<R: Read, W: Write> Drop for DaemonClient<R, W> {
