@@ -67,8 +67,7 @@ jobs:
     - run: cd && git clone https://gitlab.gnome.org/GNOME/gtk-mac-bundler && make -C gtk-mac-bundler install
     - run: echo "::add-path::$HOME/.local/bin"
     - uses: actions/checkout@v2
-    - run: cargo build --examples
-    - run: cd macos && ./package.sh
+    - run: cd macos && ./build.py --debug
     - uses: actions/upload-artifact@v2
       with:
         if-no-files-found: error
