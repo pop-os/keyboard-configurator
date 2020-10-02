@@ -26,6 +26,5 @@ palette = "0.5"
 serde_json = "1.0"
 
 [dependencies.system76_ectool]
-git = "https://github.com/system76/ec"
-branch = "driver"
+version = "0.2.0"
 features = ["stable", "std"]
