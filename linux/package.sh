@@ -21,11 +21,6 @@ then
     wget -c "https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/${LINUXDEPLOY}"
     chmod +x "${LINUXDEPLOY}"
 fi
-if [ ! -x "linuxdeploy-plugin-gtk.sh" ]
-then
-	wget -c "https://raw.githubusercontent.com/linuxdeploy/linuxdeploy-plugin-gtk/master/linuxdeploy-plugin-gtk.sh"
-	chmod +x "linuxdeploy-plugin-gtk.sh"
-fi
 "./${LINUXDEPLOY}" \
     --appdir="${PKG}.AppDir" \
     --executable="${PKG}" \
