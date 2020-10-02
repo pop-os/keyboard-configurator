@@ -7,14 +7,14 @@
         UpgradeCode='548e3064-0ff9-421a-91dc-1f1bd0afe9b6'
         Language='1033'
         Codepage='1252'
-        Version='0.0.1'
+        Version='$(var.crate_version)'
             >
 
         <!-- Comments='' -->
         <Package
             Id='*'
             Keywords='Installer'
-            Description="System76 Keyboard Configurator 0.0.1 Installer"
+            Description="System76 Keyboard Configurator $(var.crate_version) Installer"
             Manufacturer='System76, Inc.'
             InstallerVersion='100'
             Languages='1033'

@@ -3,12 +3,14 @@ import re
 import shutil
 import subprocess
 import sys
+import json
 
 # Paths to find executables and libraries
 RUSTUP = f"{os.environ['HOMEPATH']}/.cargo/bin/rustup.exe"
 WIX = "C:/Program Files (x86)/WiX Toolset v3.11"
 # Rust toolchain version to use
 RUST_TOOLCHAIN = 'stable-i686-pc-windows-gnu'
+CARGO = [RUSTUP, "run", RUST_TOOLCHAIN, "cargo"]
 # Executables to install
 DEBUG = '--debug' in sys.argv
 TARGET_DIR = f"../target/{'debug' if DEBUG else 'release'}"
@@ -31,7 +33,7 @@ def find_depends(exe):
 
 
 # Build application with rustup
-cmd = [RUSTUP, 'run', RUST_TOOLCHAIN, 'cargo', 'build', '--examples']
+cmd = CARGO + ['build', '--examples']
 if not DEBUG:
     cmd.append('--release')
 subprocess.check_call(cmd)
@@ -66,10 +68,16 @@ for src, filename in dlls:
     print(f"Copy {src} -> out/{filename}")
     shutil.copy(f"{src}", 'out')
 
+# Extract crate version from cargo
+meta_str = subprocess.check_output(CARGO + ["metadata", "--format-version", "1", "--no-deps"])
+meta = json.loads(meta_str)
+package = next(i for i in meta['packages'] if i['name'] == 'system76-keyboard-configurator')
+crate_version = package['version']
+
 # Generate Icon
 # TODO: Replace with final version
 subprocess.check_call(["convert", "-background", "#564e48", "-fill", "white", "-size", "256x256", "-gravity", "center", "label:Keyboard\nConfigurator", "out/keyboard-configurator.ico"])
 
 # Build .msi
-subprocess.check_call([f"{WIX}/bin/candle.exe", ".\keyboard-configurator.wxs"])
+subprocess.check_call([f"{WIX}/bin/candle.exe", ".\keyboard-configurator.wxs", f"-dcrate_version={crate_version}"])
 subprocess.check_call([f"{WIX}/bin/light.exe", "-ext", "WixUIExtension", ".\keyboard-configurator.wixobj"])
