@@ -20,6 +20,7 @@
             Languages='1033'
             Compressed='yes'
             SummaryCodepage='1252'
+            InstallScope='perMachine'
             />
 
         <Media Id='1' Cabinet='KeyboardConfigurator.cab' EmbedCab='yes' />
@@ -63,5 +64,7 @@
         <WixVariable Id="WixUIBannerBmp" Value="banner.bmp" />
         <UIRef Id="WixUI_Minimal" />
         <UIRef Id="WixUI_ErrorProgressText" />
+
+        <MajorUpgrade DowngradeErrorMessage="A later version of [ProductName] is already installed. Setup will now exit." />
     </Product>
 </Wix>
