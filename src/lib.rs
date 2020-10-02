@@ -1,3 +1,5 @@
+pub mod daemon;
+
 mod choose_color;
 mod color;
 mod color_circle;

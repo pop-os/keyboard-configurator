@@ -44,7 +44,7 @@ fn access_hid_all() -> Vec<AccessHid> {
                                         ret.push(access);
                                     },
                                     Err(err) => {
-                                        eprintln!("Failed to probe device at {:?}: {:?}", info.path(), err);
+                                        eprintln!("Failed to access device at {:?}: {:?}", info.path(), err);
                                     },
                                 }
                             },
