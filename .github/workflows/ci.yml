@@ -41,7 +41,7 @@ jobs:
       run: |
         cd windows
         sed -i 's|RUSTUP =.*$|RUSTUP = \"C:/Rust/.cargo/bin/rustup.exe\"|' build.py
-        python build.py --debug
+        python build.py
     - uses: actions/upload-artifact@v2
       with:
         if-no-files-found: error
@@ -67,7 +67,7 @@ jobs:
     - run: cd && git clone https://gitlab.gnome.org/GNOME/gtk-mac-bundler && make -C gtk-mac-bundler install
     - run: echo "::add-path::$HOME/.local/bin"
     - uses: actions/checkout@v2
-    - run: cd macos && ./build.py --debug
+    - run: cd macos && ./build.py
     - uses: actions/upload-artifact@v2
       with:
         if-no-files-found: error

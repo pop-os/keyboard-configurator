@@ -5,12 +5,12 @@ import subprocess
 import sys
 
 # Executables to install
-DEBUG = '--debug' in sys.argv
-TARGET_DIR = f"../target/{'debug' if DEBUG else 'release'}"
+RELEASE = '--release' in sys.argv
+TARGET_DIR = f"../target/{'release' if RELEASE else 'debug'}"
 
 # Build the application
 cmd = ["cargo", "build", "--examples"]
-if not DEBUG:
+if RELEASE:
     cmd.append('--release')
 subprocess.check_call(cmd)
 

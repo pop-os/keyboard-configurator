@@ -12,8 +12,8 @@ WIX = "C:/Program Files (x86)/WiX Toolset v3.11"
 RUST_TOOLCHAIN = 'stable-i686-pc-windows-gnu'
 CARGO = [RUSTUP, "run", RUST_TOOLCHAIN, "cargo"]
 # Executables to install
-DEBUG = '--debug' in sys.argv
-TARGET_DIR = f"../target/{'debug' if DEBUG else 'release'}"
+RELEASE = '--release' in sys.argv
+TARGET_DIR = f"../target/{'release' if RELEASE else 'debug'}"
 EXES = {
     f"{TARGET_DIR}/examples/keyboard_layout.exe",
 }
@@ -34,7 +34,7 @@ def find_depends(exe):
 
 # Build application with rustup
 cmd = CARGO + ['build', '--examples']
-if not DEBUG:
+if RELEASE:
     cmd.append('--release')
 subprocess.check_call(cmd)
 
