@@ -898,6 +898,37 @@ fn with_daemon<F: Fn(Box<dyn Daemon>)>(f: F) {
     f(Box::new(server));
 }
 
+#[cfg(target_os = "macos")]
+fn macos_init() {
+    // This command returns Dark if we should use the dark theme
+    // defaults read -g AppleInterfaceStyle
+    if let Ok(output) = process::Command::new("defaults")
+        .arg("read")
+        .arg("-g")
+        .arg("AppleInterfaceStyle")
+        .output()
+    {
+        if output.stdout.starts_with(b"Dark") {
+            let _ = env::set_var("GTK_THEME", "Adwaita:dark");
+        }
+    }
+}
+
+#[cfg(target_os = "windows")]
+fn windows_init() {
+    // This is a dword with a value of 0 if we should use the dark theme:
+    // HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize\AppsUseLightTheme
+    use winreg::RegKey;
+    let hkcu = RegKey::predef(winreg::enums::HKEY_CURRENT_USER);
+    if let Ok(subkey) = hkcu.open_subkey("Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize") {
+        if let Ok(dword) = subkey.get_value::<u32, _>("AppsUseLightTheme") {
+            if dword == 0 {
+                let _ = env::set_var("GTK_THEME", "Adwaita:dark");
+            }
+        }
+    }
+}
+
 fn main() {
     let args = env::args().collect::<Vec<_>>();
     for arg in args.iter().skip(1) {
@@ -907,6 +938,12 @@ fn main() {
             return;
         }
     }
+
+    #[cfg(target_os = "macos")]
+    macos_init();
+
+    #[cfg(target_os = "windows")]
+    windows_init();
 
     let application =
         gtk::Application::new(Some("com.system76.keyboard-layout"), Default::default())
