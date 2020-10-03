@@ -30,3 +30,6 @@ serde_json = "1.0"
 [dependencies.system76_ectool]
 version = "0.2.1"
 features = ["hidapi", "std"]
+
+[target.'cfg(target_os = "windows")'.dependencies]
+winreg = "0.7"
