@@ -10,7 +10,7 @@ RELEASE = '--release' in sys.argv
 TARGET_DIR = f"../target/{'release' if RELEASE else 'debug'}"
 
 # Build the application
-cmd = ["cargo", "build", "--examples"]
+cmd = ["cargo", "build"]
 if RELEASE:
     cmd.append('--release')
 subprocess.check_call(cmd)
@@ -32,7 +32,7 @@ subprocess.check_call(["convert", "-background", "#564e48", "-fill", "white", "-
 subprocess.check_call(["makeicns", "-256", "keyboard-configurator.png", "-out", "keyboard-configurator.icns"])
 
 # Copy executable
-subprocess.check_call([f"strip", '-o', f"keyboard-configurator", f"{TARGET_DIR}/examples/keyboard_layout"])
+subprocess.check_call([f"strip", '-o', f"keyboard-configurator", f"{TARGET_DIR}/system76-keyboard-configurator"])
 
 # Build .app bundle
 subprocess.check_call(["gtk-mac-bundler", "keyboard-configurator.bundle"])

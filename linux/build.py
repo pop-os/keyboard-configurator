@@ -24,13 +24,13 @@ if os.path.exists(PKG):
     os.remove(PKG)
 
 # Build the application
-cmd = ["cargo", "build", "--examples"]
+cmd = ["cargo", "build"]
 if RELEASE:
     cmd.append('--release')
 subprocess.check_call(cmd)
 
 # Copy executable
-subprocess.check_call([f"strip", '-o', PKG, f"{TARGET_DIR}/examples/keyboard_layout"])
+subprocess.check_call([f"strip", '-o', PKG, f"{TARGET_DIR}/system76-keyboard-configurator"])
 
 # Download linuxdeploy
 LINUXDEPLOY = f"linuxdeploy-{ARCH}.AppImage"
