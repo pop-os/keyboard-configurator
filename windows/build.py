@@ -15,7 +15,7 @@ CARGO = [RUSTUP, "run", RUST_TOOLCHAIN, "cargo"]
 RELEASE = '--release' in sys.argv
 TARGET_DIR = f"../target/{'release' if RELEASE else 'debug'}"
 EXES = {
-    f"{TARGET_DIR}/examples/keyboard_layout.exe",
+    f"{TARGET_DIR}/system76-keyboard-configurator.exe",
 }
 
 DLL_RE = r"(?<==> ).*\\mingw32\\bin\\(\S+.dll)"
@@ -33,7 +33,7 @@ def find_depends(exe):
 
 
 # Build application with rustup
-cmd = CARGO + ['build', '--examples']
+cmd = CARGO + ['build']
 if RELEASE:
     cmd.append('--release')
 subprocess.check_call(cmd)
