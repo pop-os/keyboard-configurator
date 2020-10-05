@@ -877,11 +877,7 @@ fn with_daemon<F: Fn(Box<dyn Daemon>)>(f: F) {
     let mut command = Command::new("pkexec");
 
     // Use canonicalized command name
-    let command_name = match env::var("APPIMAGE") {
-        Ok(ok) => ok,
-        Err(_) => env::args().nth(0).expect("Failed to get command name"),
-    };
-    let command_path = fs::canonicalize(command_name).expect("Failed to canonicalize command");
+    let command_path = std::env::current_exe().expect("Failed to get executable path");
     command.arg(command_path);
     command.arg("--daemon");
 
