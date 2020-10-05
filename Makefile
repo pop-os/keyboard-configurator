@@ -1,4 +1,5 @@
 prefix ?= /usr/local
+bindir = $(prefix)/bin
 libdir = $(prefix)/lib
 includedir = $(prefix)/include
 
@@ -16,6 +17,7 @@ endif
 
 PACKAGE = system76_keyboard_configurator
 PKGCONFIG = target/$(PACKAGE).pc
+BIN = target/$(TARGET)/system76-keyboard-configurator
 FFI = target/$(TARGET)/lib$(PACKAGE).so
 
 all: $(BIN) $(PKGCONFIG)
@@ -33,7 +35,8 @@ $(FFI): Cargo.toml Cargo.lock ffi/src/lib.rs vendor-check
 	cargo build $(ARGS) --manifest-path ffi/Cargo.toml
 
 install:
-	install -Dm0644 target/$(TARGET)/lib$(PACKAGE).so "$(DESTDIR)$(libdir)/lib$(PACKAGE).so"
+	install -Dm0755 $(BIN) $(DESTDIR)$(bindir)/system76-keyboard-configurator
+	install -Dm0644 $(FFI) "$(DESTDIR)$(libdir)/lib$(PACKAGE).so"
 	install -Dm0644 $(PKGCONFIG) "$(DESTDIR)$(libdir)/pkgconfig/$(PACKAGE).pc"
 	install -Dm0644 ffi/$(PACKAGE).h "$(DESTDIR)$(includedir)/$(PACKAGE).h"
 
