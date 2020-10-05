@@ -52,9 +52,7 @@ jobs:
       with:
         if-no-files-found: error
         name: keyboard-configurator-mingw32-${{ github.sha }}
-        path: |
-          windows/keyboard-configurator.msi
-          windows/out/
+        path: windows/keyboard-configurator.msi
 
   windows-mingw32-test:
     runs-on: windows-latest
@@ -63,7 +61,8 @@ jobs:
     - uses: actions/download-artifact@v2
       with:
         name: keyboard-configurator-mingw32-${{ github.sha }}
-    - run: .\out\keyboard_layout.exe --help-gtk
+    - run: msiexec /i keyboard-configurator.msi /qb
+    - run: '& "C:\Program Files (x86)\System76\Keyboard Backlight\keyboard_layout.exe" --help-gtk'
 
   macos:
     runs-on: macos-latest
