@@ -27,9 +27,8 @@ sudo apt-get install cargo libgtk-3-dev libhidapi-dev libusb-1.0-0-dev
 # Clone keyboard-configurator if necessary
 git clone https://github.com/pop-os/keyboard-configurator
 
-# Make sure it is up to date with my feature branch
+# Make sure it is up to date
 cd keyboard-configurator
-git checkout keyboard-layout_nobuild
 git pull
 
 # Build and run the configurator example
