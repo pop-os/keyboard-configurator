@@ -70,7 +70,7 @@ jobs:
     - run: brew install gtk+3 makeicns imagemagick jdupes
     - run: npm install -g appdmg
     - run: cd && git clone https://gitlab.gnome.org/GNOME/gtk-mac-bundler && make -C gtk-mac-bundler install
-    - run: echo "::add-path::$HOME/.local/bin"
+    - run: echo "$HOME/.local/bin" >> $GITHUB_PATH
     - uses: actions/checkout@v2
     - run: cd macos && ./build.py $RELEASE
     - uses: actions/upload-artifact@v2
