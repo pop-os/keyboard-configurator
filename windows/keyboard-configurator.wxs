@@ -31,10 +31,10 @@
         <Directory Id='TARGETDIR' Name='SourceDir'>
             <Directory Id='ProgramFilesFolder' Name='PFiles'>
                 <Directory Id='System76' Name='System76'>
-                    <Directory Id='INSTALLDIR' Name='Keyboard Backlight'>
+                    <Directory Id='INSTALLDIR' Name='Keyboard Configurator'>
                         <Component Id='MainExecutable' Feature='Complete' Guid='*'>
                             <File Name='keyboard_layout.exe' Source='out/keyboard_layout.exe' KeyPath='yes'>
-                                <Shortcut Id="startmenuKeyboardColor" Directory="ProgramMenuDir" Name="Keyboard Color"
+                                <Shortcut Id="KeyboardConfiguratorShortcut" Directory="ProgramMenuDir" Name="System76 Keyboard Configurator"
                                     WorkingDirectory='INSTALLDIR' Advertise="yes" Icon='keyboard_configurator.ico' />
                             </File>
                         </Component>
