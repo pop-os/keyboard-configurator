@@ -2,6 +2,7 @@
 /linux/keyboard-configurator
 /windows/out
 /windows/libraries.wxi
+/macos/Info.plist
 *.AppDir
 *.AppImage
 *.msi

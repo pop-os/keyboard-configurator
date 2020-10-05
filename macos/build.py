@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import json
 import shutil
 import subprocess
 import sys
@@ -13,6 +14,18 @@ cmd = ["cargo", "build", "--examples"]
 if RELEASE:
     cmd.append('--release')
 subprocess.check_call(cmd)
+
+# Extract crate version from cargo
+meta_str = subprocess.check_output(["cargo", "metadata", "--format-version", "1", "--no-deps"])
+meta = json.loads(meta_str)
+package = next(i for i in meta['packages'] if i['name'] == 'system76-keyboard-configurator')
+crate_version = package['version']
+
+# Generate Info.plist from Info.plist.in
+with open("Info.plist.in") as f:
+    plist = f.read().format(crate_version=crate_version)
+with open("Info.plist", "w") as f:
+    f.write(plist)
 
 # Generate .icns icon file
 subprocess.check_call(["convert", "-background", "#564e48", "-fill", "white", "-size", "256x256", "-gravity", "center", "label:Keyboard\nConfigurator", "keyboard-configurator.png"])

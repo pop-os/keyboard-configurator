@@ -7,11 +7,11 @@
   <key>CFBundlePackageType</key>
   <string>APPL</string>
   <key>CFBundleVersion</key>
-  <string>0.0.1</string>
+  <string>{crate_version}</string>
   <key>CFBundleIconFile</key>
   <string>keyboard-configurator</string>
   <key>CFBundleIdentifier</key>
-  <string>com.system76.keyboard-configurator-0.1.0:</string>
+  <string>com.system76.keyboard-configurator</string>
   <key>CFBundleSignature</key>
   <string>????</string>
   <key>CFBundleDisplayName</key>
