@@ -1,5 +1,6 @@
 #![windows_subsystem = "windows"]
 
+use cascade::cascade;
 use gio::prelude::*;
 use gtk::prelude::*;
 use serde_json::Value;
@@ -609,36 +610,27 @@ button {
     }
 
     fn gtk(self: Rc<Self>) -> gtk::Box {
-        let vbox = gtk::Box::new(gtk::Orientation::Vertical, 8);
-
-        let hbox = gtk::Box::new(gtk::Orientation::Horizontal, 8);
-        vbox.add(&hbox);
-
         let notebook = gtk::Notebook::new();
-        {
-            let kb = self.clone();
-            notebook.connect_switch_page(move |_, _, page| {
-                println!("{}", page);
-                let last_layer = kb.layer();
-                *kb.page.borrow_mut() = page;
-                let layer = kb.layer();
-                if layer != last_layer {
-                    if let Some(i) = *kb.selected.borrow() {
-                        let keys = kb.keys.borrow();
-                        let k = &keys[i];
-                        k.deselect(&kb.picker, last_layer);
-                        k.select(&kb.picker, layer);
-                    }
+        let kb = self.clone();
+        notebook.connect_switch_page(move |_, _, page| {
+            println!("{}", page);
+            let last_layer = kb.layer();
+            *kb.page.borrow_mut() = page;
+            let layer = kb.layer();
+            if layer != last_layer {
+                if let Some(i) = *kb.selected.borrow() {
+                    let keys = kb.keys.borrow();
+                    let k = &keys[i];
+                    k.deselect(&kb.picker, last_layer);
+                    k.select(&kb.picker, layer);
                 }
-            });
-        }
-        vbox.add(&notebook);
+            }
+        });
 
-        {
-            let label = gtk::Label::new(Some("Brightness:"));
-            label.set_halign(gtk::Align::Start);
-            hbox.add(&label);
-        }
+        let brightness_label = cascade! {
+            gtk::Label::new(Some("Brightness:"));
+            ..set_halign(gtk::Align::Start);
+        };
 
         let max_brightness = {
             let path = "/sys/class/leds/system76_acpi::kbd_backlight/max_brightness";
@@ -660,9 +652,11 @@ button {
             }
         };
 
-        let brightness_scale = gtk::Scale::with_range(gtk::Orientation::Horizontal, 0.0, max_brightness, 1.0);
-        brightness_scale.set_halign(gtk::Align::Fill);
-        brightness_scale.set_size_request(200, 0);
+        let brightness_scale = cascade! {
+            gtk::Scale::with_range(gtk::Orientation::Horizontal, 0.0, max_brightness, 1.0);
+            ..set_halign(gtk::Align::Fill);
+            ..set_size_request(200, 0);
+        };
         brightness_scale.connect_value_changed(|this| {
             let value = this.get_value();
             let string = format!("{}", value);
@@ -676,13 +670,11 @@ button {
                 }
             }
         });
-        hbox.add(&brightness_scale);
 
-        {
-            let label = gtk::Label::new(Some("Color:"));
-            label.set_halign(gtk::Align::Start);
-            hbox.add(&label);
-        }
+        let color_label = cascade! {
+            gtk::Label::new(Some("Color:"));
+            ..set_halign(gtk::Align::Start);
+        };
 
         let color_rgba = {
             let path = "/sys/class/leds/system76_acpi::kbd_backlight/color";
@@ -723,7 +715,6 @@ button {
                 }
             }
         });
-        hbox.add(&color_button);
 
         for page in &[
             "Layer 1",
@@ -794,26 +785,45 @@ button {
             }
         }
 
+        let hbox = cascade! {
+            gtk::Box::new(gtk::Orientation::Horizontal, 8);
+            ..add(&brightness_label);
+            ..add(&brightness_scale);
+            ..add(&color_label);
+            ..add(&color_button);
+        };
+
+        let vbox = cascade! {
+            gtk::Box::new(gtk::Orientation::Vertical, 8);
+            ..add(&hbox);
+            ..add(&notebook);
+        };
+
         vbox
     }
 }
 
 //TODO: allow multiple keyboards
 fn main_keyboard(app: &gtk::Application, keyboard: Rc<Keyboard>) {
-    let window = gtk::ApplicationWindow::new(app);
+    let vbox = cascade! {
+        gtk::Box::new(gtk::Orientation::Vertical, 32);
+        ..add(&keyboard.clone().gtk());
+        ..add(&keyboard.clone().picker());
+    };
 
-    window.set_title("Keyboard Layout");
-    window.set_border_width(10);
-    window.set_position(gtk::WindowPosition::Center);
-    window.set_default_size(1024, 768);
+    let scrolled_window = cascade! {
+        gtk::ScrolledWindow::new::<gtk::Adjustment, gtk::Adjustment>(None, None);
+        ..add(&vbox);
+    };
 
-    let vbox = gtk::Box::new(gtk::Orientation::Vertical, 32);
-    vbox.add(&keyboard.clone().gtk());
-    vbox.add(&keyboard.clone().picker());
-
-    let scrolled_window = gtk::ScrolledWindow::new::<gtk::Adjustment, gtk::Adjustment>(None, None);
-    scrolled_window.add(&vbox);
-    window.add(&scrolled_window);
+    let window = cascade! {
+        gtk::ApplicationWindow::new(app);
+        ..set_title("Keyboard Layout");
+        ..set_border_width(10);
+        ..set_position(gtk::WindowPosition::Center);
+        ..set_default_size(1024, 768);
+        ..add(&scrolled_window);
+    };
 
     window.set_focus::<gtk::Widget>(None);
     window.show_all();
