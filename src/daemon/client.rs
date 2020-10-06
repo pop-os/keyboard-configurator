@@ -8,6 +8,7 @@ use std::{
     },
 };
 
+use crate::color::Rgb;
 use super::{
     err_str,
     Daemon,
@@ -56,6 +57,26 @@ impl<R: Read, W: Write> Daemon for DaemonClient<R, W> {
 
     fn keymap_set(&mut self, board: usize, layer: u8, output: u8, input: u8, value: u16) -> Result<(), String> {
         self.command(DaemonCommand::KeymapSet { board, layer, output, input, value })
+    }
+
+    fn color(&mut self) -> Result<Rgb, String> {
+        self.command(DaemonCommand::Color)
+    }
+
+    fn set_color(&mut self, color: Rgb) -> Result<(), String> {
+        self.command(DaemonCommand::SetColor { color })
+    }
+
+    fn max_brightness(&mut self) -> Result<i32, String> {
+        self.command(DaemonCommand::MaxBrightness)
+    }
+
+    fn brightness(&mut self) -> Result<i32, String> {
+        self.command(DaemonCommand::Brightness)
+    }
+
+    fn set_brightness(&mut self, brightness: i32) -> Result<(), String> {
+        self.command(DaemonCommand::SetBrightness { brightness })
     }
 }
 

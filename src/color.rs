@@ -1,4 +1,5 @@
 use palette::{Component, IntoColor, RgbHue};
+use serde::{Serialize, Deserialize};
 
 #[derive(Clone, Copy, Debug)]
 pub struct Hs {
@@ -22,7 +23,7 @@ impl Hs {
     }
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 pub struct Rgb {
     /// Red
     pub r: u8,
@@ -35,6 +36,10 @@ pub struct Rgb {
 impl Rgb {
     pub fn new(r: u8, g: u8, b: u8) -> Self {
         Self { r, g, b }
+    }
+
+    pub fn from_floats(r: f64, g: f64, b: f64) -> Self {
+        Self { r: r.convert(), g: g.convert(), b: b.convert() }
     }
 
     pub fn to_floats(self) -> (f64, f64, f64) {
