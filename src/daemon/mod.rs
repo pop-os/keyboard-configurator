@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use std::io;
 
 pub use self::client::DaemonClient;
 mod client;
@@ -30,4 +31,8 @@ enum DaemonCommand {
 enum DaemonResult {
     Ok { ok: String },
     Err { err: String },
+}
+
+pub fn daemon_server() -> Result<DaemonServer<io::Stdin, io::Stdout>, String> {
+    DaemonServer::new(io::stdin(), io::stdout())
 }
