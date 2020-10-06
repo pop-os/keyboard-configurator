@@ -498,8 +498,10 @@ button {
 }
 "#;
 
-        let style_provider = gtk::CssProvider::new();
-        style_provider.load_from_data(&PICKER_CSS.as_bytes()).expect("Failed to parse css");
+        let style_provider = cascade! {
+            gtk::CssProvider::new();
+            ..load_from_data(&PICKER_CSS.as_bytes()).expect("Failed to parse css");
+        };
 
         let picker_vbox = gtk::Box::new(gtk::Orientation::Vertical, 32);
         let mut picker_hbox_opt: Option<gtk::Box> = None;
@@ -507,14 +509,19 @@ button {
         let picker_cols = DEFAULT_COLS;
 
         for group in self.picker.groups.iter() {
-            let vbox = gtk::Box::new(gtk::Orientation::Vertical, 4);
             let mut hbox_opt: Option<gtk::Box> = None;
             let mut col = 0;
 
-            let label = gtk::Label::new(Some(&group.name));
-            label.set_halign(gtk::Align::Start);
-            label.set_margin_bottom(8);
-            vbox.add(&label);
+            let label = cascade! {
+                gtk::Label::new(Some(&group.name));
+                ..set_halign(gtk::Align::Start);
+                ..set_margin_bottom(8);
+            };
+
+            let vbox = cascade! {
+                gtk::Box::new(gtk::Orientation::Vertical, 4);
+                ..add(&label);
+            };
 
             let picker_hbox = match picker_hbox_opt.take() {
                 Some(some) => some,
@@ -535,13 +542,13 @@ button {
             }
 
             for key in group.keys.iter() {
-                let button = gtk::Button::new();
-                button.set_hexpand(false);
-                button.set_size_request(48 * group.width, 48);
-                button.set_label(&key.text);
-
-                let style_context = button.get_style_context();
-                style_context.add_provider(&style_provider, gtk::STYLE_PROVIDER_PRIORITY_USER);
+                let button = cascade! {
+                    gtk::Button::new();
+                    ..set_hexpand(false);
+                    ..set_size_request(48 * group.width, 48);
+                    ..set_label(&key.text);
+                    ..get_style_context().add_provider(&style_provider, gtk::STYLE_PROVIDER_PRIORITY_USER);
+                };
 
                 // Check that scancode is available for the keyboard
                 button.set_sensitive(false);
@@ -734,17 +741,19 @@ button {
                     let w = (k.physical.w * scale) as i32 - margin * 2;
                     let h = (k.physical.h * scale) as i32 - margin * 2;
 
-                    let button = gtk::Button::new();
-                    button.set_focus_on_click(false);
-                    button.set_size_request(w, h);
-                    {
-                        let css = k.css();
-                        let style_provider = gtk::CssProvider::new();
-                        style_provider.load_from_data(css.as_bytes()).expect("Failed to parse css");
+                    let css = k.css();
+                    let style_provider = cascade! {
+                        gtk::CssProvider::new();
+                        ..load_from_data(css.as_bytes()).expect("Failed to parse css");
+                    };
 
-                        let style_context = button.get_style_context();
-                        style_context.add_provider(&style_provider, gtk::STYLE_PROVIDER_PRIORITY_USER);
-                    }
+                    let button = cascade! {
+                        gtk::Button::new();
+                        ..set_focus_on_click(false);
+                        ..set_size_request(w, h);
+                        ..get_style_context().add_provider(&style_provider, gtk::STYLE_PROVIDER_PRIORITY_USER);
+                    };
+
                     fixed.put(&button, x, y);
                     button
                 };
