@@ -22,7 +22,7 @@ use super::picker::Picker;
 use super::rect::Rect;
 
 pub struct Keyboard {
-    daemon_opt: RefCell<Option<Box<dyn Daemon>>>,
+    daemon_opt: Option<Rc<RefCell<dyn Daemon>>>,
     daemon_board: usize,
     keymap: HashMap<String, u16>,
     keys: RefCell<Vec<Key>>,
@@ -32,7 +32,7 @@ pub struct Keyboard {
 }
 
 impl Keyboard {
-    pub fn new<P: AsRef<Path>>(dir: P, daemon_opt: Option<Box<dyn Daemon>>, daemon_board: usize) -> Rc<Self> {
+    pub fn new<P: AsRef<Path>>(dir: P, daemon_opt: Option<Rc<RefCell<dyn Daemon>>>, daemon_board: usize) -> Rc<Self> {
         let dir = dir.as_ref();
 
         let keymap_csv = fs::read_to_string(dir.join("keymap.csv"))
@@ -44,7 +44,7 @@ impl Keyboard {
         Self::new_data(&keymap_csv, &layout_csv, &physical_json, daemon_opt, daemon_board)
     }
 
-    pub fn new_board(board: &str, daemon_opt: Option<Box<dyn Daemon>>, daemon_board: usize) -> Option<Rc<Self>> {
+    pub fn new_board(board: &str, daemon_opt: Option<Rc<RefCell<dyn Daemon>>>, daemon_board: usize) -> Option<Rc<Self>> {
         macro_rules! keyboard {
             ($board:expr) => (if board == $board {
                 let keymap_csv = include_str!(concat!("../../layouts/", $board, "/keymap.csv"));
@@ -68,7 +68,7 @@ impl Keyboard {
         None
     }
 
-    pub fn new_data(keymap_csv: &str, layout_csv: &str, physical_json: &str, mut daemon_opt: Option<Box<dyn Daemon>>, daemon_board: usize) -> Rc<Self> {
+    fn new_data(keymap_csv: &str, layout_csv: &str, physical_json: &str, daemon_opt: Option<Rc<RefCell<dyn Daemon>>>, daemon_board: usize) -> Rc<Self> {
         let mut keymap = HashMap::new();
         let mut scancode_names = HashMap::new();
         scancode_names.insert(0, "NONE");
@@ -179,7 +179,8 @@ impl Keyboard {
                                     let mut scancodes = Vec::new();
                                     for layer in 0..2 {
                                         println!("  Layer {}", layer);
-                                        let scancode = if let Some(ref mut daemon) = daemon_opt {
+                                        let scancode = if let Some(ref daemon) = daemon_opt {
+                                            let mut daemon = daemon.borrow_mut();
                                             match daemon.keymap_get(daemon_board, layer, electrical.0, electrical.1) {
                                                 Ok(value) => value,
                                                 Err(err) => {
@@ -237,7 +238,7 @@ impl Keyboard {
         }
 
         Rc::new(Self {
-            daemon_opt: RefCell::new(daemon_opt),
+            daemon_opt,
             daemon_board,
             keymap,
             keys: RefCell::new(keys),
@@ -350,7 +351,8 @@ button {
                             return;
                         }
                         println!("  set {}, {}, {} to {:04X}", layer, k.electrical.0, k.electrical.1, k.scancodes[layer].0);
-                        if let Some(ref mut daemon) = *kb.daemon_opt.borrow_mut() {
+                        if let Some(ref daemon) = kb.daemon_opt {
+                            let mut daemon = daemon.borrow_mut();
                             if let Err(err) = daemon.keymap_set(kb.daemon_board, layer as u8, k.electrical.0, k.electrical.1, k.scancodes[layer].0) {
                                 eprintln!("Failed to set keymap: {:?}", err);
                             }
