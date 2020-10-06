@@ -111,6 +111,7 @@ fn with_daemon<F: Fn(Box<dyn Daemon>)>(f: F) {
 
 #[cfg(target_os = "macos")]
 fn macos_init() {
+    use std::{env, process};
     // This command returns Dark if we should use the dark theme
     // defaults read -g AppleInterfaceStyle
     if let Ok(output) = process::Command::new("defaults")
@@ -127,6 +128,7 @@ fn macos_init() {
 
 #[cfg(target_os = "windows")]
 fn windows_init() {
+    use std::env;
     // This is a dword with a value of 0 if we should use the dark theme:
     // HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize\AppsUseLightTheme
     use winreg::RegKey;
