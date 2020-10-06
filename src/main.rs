@@ -251,7 +251,7 @@ impl Picker {
 pub struct Keyboard {
     daemon_opt: RefCell<Option<Box<dyn Daemon>>>,
     daemon_board: usize,
-    keymap: Vec<(String, u16)>,
+    keymap: HashMap<String, u16>,
     keys: RefCell<Vec<Key>>,
     page: RefCell<u32>,
     picker: Picker,
@@ -296,7 +296,7 @@ impl Keyboard {
     }
 
     fn new_data(keymap_csv: &str, layout_csv: &str, physical_json: &str, mut daemon_opt: Option<Box<dyn Daemon>>, daemon_board: usize) -> Rc<Self> {
-        let mut keymap = Vec::new();
+        let mut keymap = HashMap::new();
         let mut scancode_names = HashMap::new();
         scancode_names.insert(0, "NONE");
         for line in keymap_csv.lines() {
@@ -305,7 +305,7 @@ impl Keyboard {
             let scancode_str = parts.next().expect("Failed to read scancode");
             let scancode_trim = scancode_str.trim_start_matches("0x");
             let scancode = u16::from_str_radix(scancode_trim, 16).expect("Failed to parse scancode");
-            keymap.push((scancode_name.to_string(), scancode));
+            keymap.insert(scancode_name.to_string(), scancode);
             scancode_names.insert(scancode, scancode_name);
         }
 
@@ -545,11 +545,8 @@ button {
 
                 // Check that scancode is available for the keyboard
                 button.set_sensitive(false);
-                for (scancode_name, _scancode) in self.keymap.iter() {
-                    if key.name.as_str() == scancode_name {
-                        button.set_sensitive(true);
-                        break;
-                    }
+                if let Some(_scancode) = self.keymap.get(key.name.as_str()) {
+                    button.set_sensitive(true);
                 }
 
                 let kb = self.clone();
@@ -562,15 +559,12 @@ button {
                         let mut keys = kb.keys.borrow_mut();
                         let k = &mut keys[i];
                         let mut found = false;
-                        for (scancode_name, scancode) in kb.keymap.iter() {
-                            if name.as_str() == scancode_name {
-                                k.deselect(&kb.picker, layer);
-                                k.scancodes[layer] = (*scancode, scancode_name.clone());
-                                k.refresh(&kb.picker);
-                                k.select(&kb.picker, layer);
-                                found = true;
-                                break;
-                            }
+                        if let Some(scancode) = kb.keymap.get(name.as_str()) {
+                            k.deselect(&kb.picker, layer);
+                            k.scancodes[layer] = (*scancode, name.clone());
+                            k.refresh(&kb.picker);
+                            k.select(&kb.picker, layer);
+                            found = true;
                         }
                         if ! found {
                             return;
