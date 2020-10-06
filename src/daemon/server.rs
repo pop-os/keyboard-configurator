@@ -4,6 +4,7 @@ use ectool::AccessLpcLinux;
 use hidapi::HidApi;
 use serde::Serialize;
 use std::{
+    fs,
     io::{
         self,
         BufRead,
@@ -15,6 +16,7 @@ use std::{
     time::Duration,
 };
 
+use crate::color::Rgb;
 use super::{
     err_str,
     Daemon,
@@ -115,6 +117,23 @@ impl<R: Read, W: Write> DaemonServer<R, W> {
             DaemonCommand::KeymapSet { board, layer, output, input, value } => {
                 json(self.keymap_set(board, layer, output, input, value)?)
             },
+            DaemonCommand::Color => {
+                json(self.color()?)
+            }
+            DaemonCommand::SetColor { color } => {
+                self.set_color(color)?;
+                json(())
+            }
+            DaemonCommand::MaxBrightness => {
+                json(self.max_brightness()?)
+            }
+            DaemonCommand::Brightness => {
+                json(self.brightness()?)
+            }
+            DaemonCommand::SetBrightness { brightness } => {
+                self.set_brightness(brightness)?;
+                json(())
+            }
             DaemonCommand::Exit => {
                 self.running = false;
                 json(())
@@ -203,6 +222,73 @@ impl<R: Read, W: Write> Daemon for DaemonServer<R, W> {
             }
         } else {
             Err("failed to find board".to_string())
+        }
+    }
+
+    fn color(&mut self) -> Result<Rgb, String> {
+        let path = "/sys/class/leds/system76_acpi::kbd_backlight/color";
+        match fs::read_to_string(&path) {
+            Ok(string) => {
+                let trimmed = string.trim();
+                match Rgb::parse(trimmed) {
+                    Some(color) => Ok(color),
+                    None => Err(format!("Failed to parse keyboard color '{}'", trimmed))
+                }
+            },
+            Err(err) => Err(format!("Failed to read keyboard color: {}", err))
+        }
+    }
+
+    fn set_color(&mut self, color: Rgb) -> Result<(), String> {
+        let path = "/sys/class/leds/system76_acpi::kbd_backlight/color";
+        match fs::write(path, &color.to_string()) {
+            Ok(()) => Ok(()),
+            Err(err) => Err(format!("Failed to write keyboard color: {}", err))
+        }
+
+    }
+
+    fn max_brightness(&mut self) -> Result<i32, String> {
+        let path = "/sys/class/leds/system76_acpi::kbd_backlight/max_brightness";
+        match fs::read_to_string(&path) {
+            Ok(string) => {
+                let trimmed = string.trim();
+                match trimmed.parse::<i32>() {
+                    Ok(value) => Ok(value),
+                    Err(err) => {
+                        Err(format!("Failed to parse keyboard max brightness '{}': {}", trimmed, err))
+                    }
+                }
+            },
+            Err(err) => {
+                Err(format!("Failed to read keyboard max brightness: {}", err))
+            }
+        }
+    }
+
+    fn brightness(&mut self) -> Result<i32, String> {
+        let path = "/sys/class/leds/system76_acpi::kbd_backlight/brightness";
+        match fs::read_to_string(&path) {
+            Ok(string) => {
+                let trimmed = string.trim();
+                match trimmed.parse::<i32>() {
+                    Ok(value) => Ok(value),
+                    Err(err) => {
+                        Err(format!("Failed to parse keyboard brightness '{}': {}", trimmed, err))
+                    }
+                }
+            },
+            Err(err) => {
+                Err(format!("Failed to read keyboard brightness: {}", err))
+            }
+        }
+    }
+
+    fn set_brightness(&mut self, brightness: i32) -> Result<(), String> {
+        let path = "/sys/class/leds/system76_acpi::kbd_backlight/brightness";
+        match fs::write(path, &format!("{}", brightness)) {
+            Ok(()) => Ok(()),
+            Err(err) => Err(format!("Failed to write keyboard brightness: {}", err))
         }
     }
 }

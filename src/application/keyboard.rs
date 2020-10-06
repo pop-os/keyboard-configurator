@@ -16,6 +16,7 @@ use std::{
     },
 };
 
+use crate::color::Rgb;
 use crate::daemon::Daemon;
 use super::key::Key;
 use super::picker::Picker;
@@ -408,24 +409,17 @@ button {
             ..set_halign(gtk::Align::Start);
         };
 
-        let max_brightness = {
-            let path = "/sys/class/leds/system76_acpi::kbd_backlight/max_brightness";
-            match fs::read_to_string(&path) {
-                Ok(string) => {
-                    let trimmed = string.trim();
-                    match trimmed.parse::<u32>() {
-                        Ok(u32) => u32 as f64,
-                        Err(err) => {
-                            eprintln!("Failed to parse keyboard max brightness '{}': {}", trimmed, err);
-                            100.0
-                        }
-                    }
-                },
+        let max_brightness = if let Some(ref daemon) = self.daemon_opt {
+            let mut daemon = daemon.borrow_mut();
+            match daemon.max_brightness() {
+                Ok(value) => value as f64,
                 Err(err) => {
-                    eprintln!("Failed to read keyboard max brightness: {}", err);
+                    eprintln!("{}", err);
                     100.0
                 }
             }
+        } else {
+            100.0
         };
 
         let brightness_scale = cascade! {
@@ -433,18 +427,17 @@ button {
             ..set_halign(gtk::Align::Fill);
             ..set_size_request(200, 0);
         };
-        brightness_scale.connect_value_changed(|this| {
-            let value = this.get_value();
-            let string = format!("{}", value);
-            println!("{}", value);
-
-            let path = "/sys/class/leds/system76_acpi::kbd_backlight/brightness";
-            match fs::write(path, &string) {
-                Ok(()) => (),
-                Err(err) => {
-                    eprintln!("Failed to write keyboard brightness: {}", err);
+        let kb = self.clone();
+        brightness_scale.connect_value_changed(move |this| {
+            let value = this.get_value() as i32;
+            if let Some(ref daemon) = kb.daemon_opt {
+                let mut daemon = daemon.borrow_mut();
+                if let Err(err) = daemon.set_brightness(value) {
+                    eprintln!("{}", err);
                 }
             }
+            println!("{}", value);
+
         });
 
         let color_label = cascade! {
@@ -452,42 +445,32 @@ button {
             ..set_halign(gtk::Align::Start);
         };
 
-        let color_rgba = {
-            let path = "/sys/class/leds/system76_acpi::kbd_backlight/color";
-            match fs::read_to_string(&path) {
-                Ok(string) => {
-                    let trimmed = string.trim();
-                    let formatted = format!("#{}", trimmed);
-                    match gdk::RGBA::from_str(&formatted) {
-                        Ok(rgba) => rgba,
-                        Err(err) => {
-                            eprintln!("Failed to parse keyboard color '{}': {:?}", formatted, err);
-                            gdk::RGBA::black()
-                        }
-                    }
+        let color_rgba = if let Some(ref daemon) = self.daemon_opt {
+            let mut daemon = daemon.borrow_mut();
+            match daemon.color() {
+                Ok(value) => {
+                    let (red, green, blue) = value.to_floats();
+                    gdk::RGBA { red, green, blue, alpha: 1. }
                 },
                 Err(err) => {
-                    eprintln!("Failed to read keyboard color: {}", err);
+                    eprintln!("{}", err);
                     gdk::RGBA::black()
                 }
             }
+        } else {
+            gdk::RGBA::black()
         };
 
         let color_button = gtk::ColorButton::with_rgba(&color_rgba);
         color_button.set_halign(gtk::Align::Fill);
-        color_button.connect_color_set(|this| {
+        let kb = self.clone();
+        color_button.connect_color_set(move |this| {
             let rgba = this.get_rgba();
-            let r = (rgba.red * 255.0) as u8;
-            let g = (rgba.green * 255.0) as u8;
-            let b = (rgba.blue * 255.0) as u8;
-            let string = format!("{:02X}{:02X}{:02X}", r, g, b);
-            println!("{:?} => {}", rgba, string);
-
-            let path = "/sys/class/leds/system76_acpi::kbd_backlight/color";
-            match fs::write(path, &string) {
-                Ok(()) => (),
-                Err(err) => {
-                    eprintln!("Failed to write keyboard color: {}", err);
+            let color = Rgb::from_floats(rgba.red, rgba.green, rgba.blue);
+            if let Some(ref daemon) = kb.daemon_opt {
+                let mut daemon = daemon.borrow_mut();
+                if let Err(err) = daemon.set_color(color) {
+                    eprintln!("{}", err);
                 }
             }
         });
