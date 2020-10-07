@@ -10,10 +10,7 @@ use std::{
         Path,
     },
     rc::Rc,
-    str::{
-        self,
-        FromStr
-    },
+    str,
 };
 
 use crate::daemon::Daemon;
@@ -440,21 +437,6 @@ button {
         let color_label = cascade! {
             gtk::Label::new(Some("Color:"));
             ..set_halign(gtk::Align::Start);
-        };
-
-        let color_rgba = if let Some(ref daemon) = self.daemon_opt {
-            match daemon.color(self.daemon_board) {
-                Ok(value) => {
-                    let (red, green, blue) = value.to_floats();
-                    gdk::RGBA { red, green, blue, alpha: 1. }
-                },
-                Err(err) => {
-                    eprintln!("{}", err);
-                    gdk::RGBA::black()
-                }
-            }
-        } else {
-            gdk::RGBA::black()
         };
 
         let color_keyboard = if let Some(ref daemon) = self.daemon_opt {

@@ -73,7 +73,7 @@ fn main() {
         }
     }
 
-    with_daemon(|mut daemon| {
+    with_daemon(|daemon| {
         println!("boards: {:?}", daemon.boards());
     });
 }

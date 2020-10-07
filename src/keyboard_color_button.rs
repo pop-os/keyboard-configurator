@@ -9,7 +9,7 @@ use std::rc::{Rc, Weak};
 use crate::choose_color::choose_color;
 use crate::color::Rgb;
 use crate::color_circle::{ColorCircle, ColorCircleSymbol};
-use crate::keyboard::{keyboards, Keyboard};
+use crate::keyboard::Keyboard;
 
 struct KeyboardColorButtonInner {
     button: ColorCircle,

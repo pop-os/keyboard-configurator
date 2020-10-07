@@ -16,14 +16,6 @@ use crate::daemon::Daemon;
 const DBUS_NAME: &'static str = "com.system76.PowerDaemon";
 const DBUS_KEYBOARD_IFACE: &'static str = "com.system76.PowerDaemon.Keyboard";
 
-pub enum KeyboardPattern {
-    Solid,
-    Breathe,
-    Wave,
-    Snake,
-    Random,
-}
-
 enum KeyboardImplementation {
     #[cfg(target_os = "linux")]
     S76Power {
@@ -313,23 +305,6 @@ impl Keyboard {
             .color_changed_handlers
             .borrow_mut()
             .push(std::boxed::Box::new(f) as Box<dyn Fn(&Self, Rgb)>);
-    }
-
-    /// Returns `true` if the keyboard has a backlight capable of patterns
-    pub fn has_pattern(&self) -> Result<bool> {
-        Ok(false)
-    }
-
-    /// Gets backlight pattern
-    pub fn pattern(&self) -> Result<KeyboardPattern> {
-        // XXX
-        Ok(KeyboardPattern::Solid)
-    }
-
-    /// Sets backlight pattern
-    pub fn set_pattern(&self, _pattern: KeyboardPattern) -> Result<()> {
-        // XXX
-        Ok(())
     }
 }
 
