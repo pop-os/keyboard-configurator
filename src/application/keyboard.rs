@@ -411,7 +411,7 @@ button {
 
         let max_brightness = if let Some(ref daemon) = self.daemon_opt {
             let mut daemon = daemon.borrow_mut();
-            match daemon.max_brightness() {
+            match daemon.max_brightness(self.daemon_board) {
                 Ok(value) => value as f64,
                 Err(err) => {
                     eprintln!("{}", err);
@@ -432,7 +432,7 @@ button {
             let value = this.get_value() as i32;
             if let Some(ref daemon) = kb.daemon_opt {
                 let mut daemon = daemon.borrow_mut();
-                if let Err(err) = daemon.set_brightness(value) {
+                if let Err(err) = daemon.set_brightness(kb.daemon_board, value) {
                     eprintln!("{}", err);
                 }
             }
@@ -447,7 +447,7 @@ button {
 
         let color_rgba = if let Some(ref daemon) = self.daemon_opt {
             let mut daemon = daemon.borrow_mut();
-            match daemon.color() {
+            match daemon.color(self.daemon_board) {
                 Ok(value) => {
                     let (red, green, blue) = value.to_floats();
                     gdk::RGBA { red, green, blue, alpha: 1. }
@@ -469,7 +469,7 @@ button {
             let color = Rgb::from_floats(rgba.red, rgba.green, rgba.blue);
             if let Some(ref daemon) = kb.daemon_opt {
                 let mut daemon = daemon.borrow_mut();
-                if let Err(err) = daemon.set_color(color) {
+                if let Err(err) = daemon.set_color(kb.daemon_board, color) {
                     eprintln!("{}", err);
                 }
             }

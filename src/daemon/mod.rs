@@ -69,11 +69,11 @@ commands! {
     fn boards(&mut self) -> Result<Vec<String>, String>;
     fn keymap_get(&mut self, board: usize, layer: u8, output: u8, input: u8) -> Result<u16, String>;
     fn keymap_set(&mut self, board: usize, layer: u8, output: u8, input: u8, value: u16) -> Result<(), String>;
-    fn color(&mut self) -> Result<Rgb, String>;
-    fn set_color(&mut self, color: Rgb) -> Result<(), String>;
-    fn max_brightness(&mut self) -> Result<i32, String>;
-    fn brightness(&mut self) -> Result<i32, String>;
-    fn set_brightness(&mut self, brightness: i32) -> Result<(), String>;
+    fn color(&mut self, board: usize) -> Result<Rgb, String>;
+    fn set_color(&mut self, board: usize, color: Rgb) -> Result<(), String>;
+    fn max_brightness(&mut self, board: usize) -> Result<i32, String>;
+    fn brightness(&mut self, board: usize) -> Result<i32, String>;
+    fn set_brightness(&mut self, board: usize, brightness: i32) -> Result<(), String>;
     fn exit(&mut self) -> Result<(), String>;
 }
 
