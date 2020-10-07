@@ -10,18 +10,18 @@ pub use self::server::DaemonServer;
 mod server;
 
 pub trait DaemonClientTrait {
-    fn send_command(&mut self, command: DaemonCommand) -> Result<DaemonResponse, String>;
+    fn send_command(&self, command: DaemonCommand) -> Result<DaemonResponse, String>;
 }
 
 // Define Daemon trait, DaemonCommand enum, and DaemonResponse enum
 macro_rules! commands {
-    ( $( fn $func:ident(&mut self $(,)? $( $arg:ident: $type:ty ),*) -> Result<$ret:ty, String>; )* ) => {
+    ( $( fn $func:ident(&self $(,)? $( $arg:ident: $type:ty ),*) -> Result<$ret:ty, String>; )* ) => {
         pub trait Daemon {
         $(
-            fn $func(&mut self, $( $arg: $type ),*) -> Result<$ret, String>;
+            fn $func(&self, $( $arg: $type ),*) -> Result<$ret, String>;
         )*
 
-            fn dispatch_command_to_method(&mut self, command: DaemonCommand) -> Result<DaemonResponse, String> {
+            fn dispatch_command_to_method(&self, command: DaemonCommand) -> Result<DaemonResponse, String> {
                 match command {
                 $(
                     DaemonCommand::$func{$( $arg ),*} => {
@@ -52,7 +52,7 @@ macro_rules! commands {
 
         impl<T: DaemonClientTrait> Daemon for T {
         $(
-            fn $func(&mut self, $( $arg: $type ),*) -> Result<$ret, String> {
+            fn $func(&self, $( $arg: $type ),*) -> Result<$ret, String> {
                 let res = self.send_command(DaemonCommand::$func{$( $arg ),*});
                 match res {
                     Ok(DaemonResponse::$func(ret)) => Ok(ret),
@@ -66,15 +66,15 @@ macro_rules! commands {
 }
 
 commands! {
-    fn boards(&mut self) -> Result<Vec<String>, String>;
-    fn keymap_get(&mut self, board: usize, layer: u8, output: u8, input: u8) -> Result<u16, String>;
-    fn keymap_set(&mut self, board: usize, layer: u8, output: u8, input: u8, value: u16) -> Result<(), String>;
-    fn color(&mut self, board: usize) -> Result<Rgb, String>;
-    fn set_color(&mut self, board: usize, color: Rgb) -> Result<(), String>;
-    fn max_brightness(&mut self, board: usize) -> Result<i32, String>;
-    fn brightness(&mut self, board: usize) -> Result<i32, String>;
-    fn set_brightness(&mut self, board: usize, brightness: i32) -> Result<(), String>;
-    fn exit(&mut self) -> Result<(), String>;
+    fn boards(&self) -> Result<Vec<String>, String>;
+    fn keymap_get(&self, board: usize, layer: u8, output: u8, input: u8) -> Result<u16, String>;
+    fn keymap_set(&self, board: usize, layer: u8, output: u8, input: u8, value: u16) -> Result<(), String>;
+    fn color(&self, board: usize) -> Result<Rgb, String>;
+    fn set_color(&self, board: usize, color: Rgb) -> Result<(), String>;
+    fn max_brightness(&self, board: usize) -> Result<i32, String>;
+    fn brightness(&self, board: usize) -> Result<i32, String>;
+    fn set_brightness(&self, board: usize, brightness: i32) -> Result<(), String>;
+    fn exit(&self) -> Result<(), String>;
 }
 
 fn err_str<E: std::fmt::Debug>(err: E) -> String {

@@ -1,7 +1,6 @@
 use cascade::cascade;
 use gio::prelude::*;
 use gtk::prelude::*;
-use std::cell::RefCell;
 use std::rc::Rc;
 
 use crate::daemon::{Daemon, DaemonClient, daemon_server};
@@ -44,8 +43,8 @@ fn main_keyboard(app: &gtk::Application, keyboard: Rc<Keyboard>) {
     });
 }
 
-fn main_app(app: &gtk::Application, daemon: Rc<RefCell<dyn Daemon>>) {
-    let boards = daemon.borrow_mut().boards().expect("Failed to load boards");
+fn main_app(app: &gtk::Application, daemon: Rc<dyn Daemon>) {
+    let boards = daemon.boards().expect("Failed to load boards");
     let i = 0;
     if let Some(board) = boards.get(i) {
         if let Some(keyboard) = Keyboard::new_board(board, Some(daemon), i) {
@@ -63,7 +62,7 @@ fn main_app(app: &gtk::Application, daemon: Rc<RefCell<dyn Daemon>>) {
 }
 
 #[cfg(target_os = "linux")]
-fn with_daemon<F: Fn(Rc<RefCell<dyn Daemon>>)>(f: F) {
+fn with_daemon<F: Fn(Rc<dyn Daemon>)>(f: F) {
     use std::{
         process::{
             Command,
@@ -74,7 +73,7 @@ fn with_daemon<F: Fn(Rc<RefCell<dyn Daemon>>)>(f: F) {
     if unsafe { libc::geteuid() == 0 } {
         eprintln!("Already running as root");
         let server = daemon_server().expect("Failed to create server");
-        f(Rc::new(RefCell::new(server)));
+        f(Rc::new(server));
         return;
     }
 
@@ -96,7 +95,7 @@ fn with_daemon<F: Fn(Rc<RefCell<dyn Daemon>>)>(f: F) {
     let stdin = child.stdin.take().expect("Failed to get stdin of daemon");
     let stdout = child.stdout.take().expect("Failed to get stdout of daemon");
 
-    f(Rc::new(RefCell::new(DaemonClient::new(stdout, stdin))));
+    f(Rc::new(DaemonClient::new(stdout, stdin)));
 
     let status = child.wait().expect("Failed to wait for daemon");
     if ! status.success() {
