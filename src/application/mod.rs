@@ -104,9 +104,9 @@ fn with_daemon<F: Fn(Rc<dyn Daemon>)>(f: F) {
 }
 
 #[cfg(not(target_os = "linux"))]
-fn with_daemon<F: Fn(Box<dyn Daemon>)>(f: F) {
+fn with_daemon<F: Fn(Rc<dyn Daemon>)>(f: F) {
     let server = daemon_server().expect("Failed to create server");
-    f(Box::new(server));
+    f(Rc::new(server));
 }
 
 #[cfg(target_os = "macos")]
