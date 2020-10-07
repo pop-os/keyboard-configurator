@@ -2,7 +2,6 @@ use ectool::{Access, AccessHid, Ec};
 #[cfg(target_os = "linux")]
 use ectool::AccessLpcLinux;
 use hidapi::HidApi;
-use serde::Serialize;
 use std::{
     fs,
     io::{
@@ -12,6 +11,7 @@ use std::{
         Read,
         Write,
     },
+    process,
     str,
     time::Duration,
 };
@@ -21,7 +21,6 @@ use super::{
     err_str,
     Daemon,
     DaemonCommand,
-    DaemonResult,
 };
 
 pub struct DaemonServer<R: Read, W: Write> {
@@ -101,58 +100,16 @@ impl<R: Read, W: Write> DaemonServer<R, W> {
         })
     }
 
-    fn command(&mut self, command_json: &str) -> Result<String, String> {
-        fn json<T: Serialize>(value: T) -> Result<String, String> {
-            serde_json::to_string(&value).map_err(err_str)
-        }
-
-        let command = serde_json::from_str::<DaemonCommand>(&command_json).map_err(err_str)?;
-        match command {
-            DaemonCommand::Boards => {
-                json(self.boards()?)
-            },
-            DaemonCommand::KeymapGet { board, layer, output, input } => {
-                json(self.keymap_get(board, layer, output, input)?)
-            },
-            DaemonCommand::KeymapSet { board, layer, output, input, value } => {
-                json(self.keymap_set(board, layer, output, input, value)?)
-            },
-            DaemonCommand::Color => {
-                json(self.color()?)
-            }
-            DaemonCommand::SetColor { color } => {
-                self.set_color(color)?;
-                json(())
-            }
-            DaemonCommand::MaxBrightness => {
-                json(self.max_brightness()?)
-            }
-            DaemonCommand::Brightness => {
-                json(self.brightness()?)
-            }
-            DaemonCommand::SetBrightness { brightness } => {
-                self.set_brightness(brightness)?;
-                json(())
-            }
-            DaemonCommand::Exit => {
-                self.running = false;
-                json(())
-            },
-        }
-    }
-
     pub fn run(mut self) -> io::Result<()> {
         while self.running {
             let mut command_json = String::new();
             self.read.read_line(&mut command_json)?;
 
-            let result = match self.command(&command_json) {
-                Ok(ok) => DaemonResult::Ok { ok },
-                Err(err) => DaemonResult::Err { err },
-            };
+            let command = serde_json::from_str::<DaemonCommand>(&command_json).expect("failed to deserialize command");
+            let response = self.dispatch_command_to_method(command);
 
             //TODO: what to do if we fail to serialize result?
-            let mut result_json = serde_json::to_string(&result).expect("failed to serialize result");
+            let mut result_json = serde_json::to_string(&response).expect("failed to serialize result");
             result_json.push('\n');
             self.write.write_all(result_json.as_bytes())?;
         }
@@ -290,5 +247,9 @@ impl<R: Read, W: Write> Daemon for DaemonServer<R, W> {
             Ok(()) => Ok(()),
             Err(err) => Err(format!("Failed to write keyboard brightness: {}", err))
         }
+    }
+
+    fn exit(&mut self) -> Result<(), String> {
+        process::exit(0);
     }
 }
