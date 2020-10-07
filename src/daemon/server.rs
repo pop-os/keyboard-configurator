@@ -3,6 +3,10 @@ use ectool::{Access, AccessHid, Ec};
 use ectool::AccessLpcLinux;
 use hidapi::HidApi;
 use std::{
+    cell::{
+        Cell,
+        RefCell,
+    },
     fs,
     io::{
         self,
@@ -23,12 +27,12 @@ use super::{
 };
 
 pub struct DaemonServer<R: Read, W: Write> {
-    running: bool,
+    running: Cell<bool>,
     read: BufReader<R>,
     write: W,
-    hid: Vec<Ec<AccessHid>>,
+    hid: RefCell<Vec<Ec<AccessHid>>>,
     #[cfg(target_os = "linux")]
-    lpc: Vec<Ec<AccessLpcLinux>>,
+    lpc: RefCell<Vec<Ec<AccessLpcLinux>>>,
 }
 
 impl<R: Read, W: Write> DaemonServer<R, W> {
@@ -90,17 +94,17 @@ impl<R: Read, W: Write> DaemonServer<R, W> {
         }
 
         Ok(Self {
-            running: true,
+            running: Cell::new(true),
             read: BufReader::new(read),
             write,
-            hid,
+            hid: RefCell::new(hid),
             #[cfg(target_os = "linux")]
-            lpc,
+            lpc: RefCell::new(lpc),
         })
     }
 
     pub fn run(mut self) -> io::Result<()> {
-        while self.running {
+        while self.running.get() {
             let mut command_json = String::new();
             self.read.read_line(&mut command_json)?;
 
@@ -118,11 +122,11 @@ impl<R: Read, W: Write> DaemonServer<R, W> {
 }
 
 impl<R: Read, W: Write> Daemon for DaemonServer<R, W> {
-    fn boards(&mut self) -> Result<Vec<String>, String> {
+    fn boards(&self) -> Result<Vec<String>, String> {
         let mut boards = Vec::new();
 
         #[cfg(target_os = "linux")]
-        for ec in self.lpc.iter_mut() {
+        for ec in self.lpc.borrow_mut().iter_mut() {
             let data_size = unsafe { ec.access().data_size() };
             let mut data = vec![0; data_size];
             let len = unsafe { ec.board(&mut data).map_err(err_str)? };
@@ -130,7 +134,7 @@ impl<R: Read, W: Write> Daemon for DaemonServer<R, W> {
             boards.push(board.to_string());
         }
 
-        for ec in self.hid.iter_mut() {
+        for ec in self.hid.borrow_mut().iter_mut() {
             let data_size = unsafe { ec.access().data_size() };
             let mut data = vec![0; data_size];
             let len = unsafe { ec.board(&mut data).map_err(err_str)? };
@@ -141,18 +145,19 @@ impl<R: Read, W: Write> Daemon for DaemonServer<R, W> {
         Ok(boards)
     }
 
-    fn keymap_get(&mut self, mut board: usize, layer: u8, output: u8, input: u8) -> Result<u16, String> {
+    fn keymap_get(&self, mut board: usize, layer: u8, output: u8, input: u8) -> Result<u16, String> {
         #[cfg(target_os = "linux")]
         {
-            if board < self.lpc.len() {
+            let mut lpc = self.lpc.borrow_mut();
+            if board < lpc.len() {
                 return unsafe {
-                    self.lpc[board].keymap_get(layer, output, input).map_err(err_str)
+                    lpc[board].keymap_get(layer, output, input).map_err(err_str)
                 };
             }
-            board -= self.lpc.len();
+            board -= lpc.len();
         }
 
-        if let Some(ref mut ec) = self.hid.get_mut(board) {
+        if let Some(ref mut ec) = self.hid.borrow_mut().get_mut(board) {
             unsafe {
                 ec.keymap_get(layer, output, input).map_err(err_str)
             }
@@ -161,18 +166,19 @@ impl<R: Read, W: Write> Daemon for DaemonServer<R, W> {
         }
     }
 
-    fn keymap_set(&mut self, mut board: usize, layer: u8, output: u8, input: u8, value: u16) -> Result<(), String> {
+    fn keymap_set(&self, mut board: usize, layer: u8, output: u8, input: u8, value: u16) -> Result<(), String> {
         #[cfg(target_os = "linux")]
         {
-            if board < self.lpc.len() {
+            let mut lpc = self.lpc.borrow_mut();
+            if board < lpc.len() {
                 return unsafe {
-                    self.lpc[board].keymap_set(layer, output, input, value).map_err(err_str)
+                    lpc[board].keymap_set(layer, output, input, value).map_err(err_str)
                 };
             }
-            board -= self.lpc.len();
+            board -= lpc.len();
         }
 
-        if let Some(ref mut ec) = self.hid.get_mut(board) {
+        if let Some(ref mut ec) = self.hid.borrow_mut().get_mut(board) {
             unsafe {
                 ec.keymap_set(layer, output, input, value).map_err(err_str)
             }
@@ -181,7 +187,7 @@ impl<R: Read, W: Write> Daemon for DaemonServer<R, W> {
         }
     }
 
-    fn color(&mut self, board: usize) -> Result<Rgb, String> {
+    fn color(&self, board: usize) -> Result<Rgb, String> {
         let path = "/sys/class/leds/system76_acpi::kbd_backlight/color";
         match fs::read_to_string(&path) {
             Ok(string) => {
@@ -195,7 +201,7 @@ impl<R: Read, W: Write> Daemon for DaemonServer<R, W> {
         }
     }
 
-    fn set_color(&mut self, board: usize, color: Rgb) -> Result<(), String> {
+    fn set_color(&self, board: usize, color: Rgb) -> Result<(), String> {
         let path = "/sys/class/leds/system76_acpi::kbd_backlight/color";
         match fs::write(path, &color.to_string()) {
             Ok(()) => Ok(()),
@@ -204,7 +210,7 @@ impl<R: Read, W: Write> Daemon for DaemonServer<R, W> {
 
     }
 
-    fn max_brightness(&mut self, board: usize) -> Result<i32, String> {
+    fn max_brightness(&self, board: usize) -> Result<i32, String> {
         let path = "/sys/class/leds/system76_acpi::kbd_backlight/max_brightness";
         match fs::read_to_string(&path) {
             Ok(string) => {
@@ -222,7 +228,7 @@ impl<R: Read, W: Write> Daemon for DaemonServer<R, W> {
         }
     }
 
-    fn brightness(&mut self, board: usize) -> Result<i32, String> {
+    fn brightness(&self, board: usize) -> Result<i32, String> {
         let path = "/sys/class/leds/system76_acpi::kbd_backlight/brightness";
         match fs::read_to_string(&path) {
             Ok(string) => {
@@ -240,7 +246,7 @@ impl<R: Read, W: Write> Daemon for DaemonServer<R, W> {
         }
     }
 
-    fn set_brightness(&mut self, board: usize, brightness: i32) -> Result<(), String> {
+    fn set_brightness(&self, board: usize, brightness: i32) -> Result<(), String> {
         let path = "/sys/class/leds/system76_acpi::kbd_backlight/brightness";
         match fs::write(path, &format!("{}", brightness)) {
             Ok(()) => Ok(()),
@@ -248,8 +254,8 @@ impl<R: Read, W: Write> Daemon for DaemonServer<R, W> {
         }
     }
 
-    fn exit(&mut self) -> Result<(), String> {
-        self.running = false;
+    fn exit(&self) -> Result<(), String> {
+        self.running.set(false);
         Ok(())
     }
 }

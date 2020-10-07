@@ -23,7 +23,7 @@ use super::picker::Picker;
 use super::rect::Rect;
 
 pub struct Keyboard {
-    daemon_opt: Option<Rc<RefCell<dyn Daemon>>>,
+    daemon_opt: Option<Rc<dyn Daemon>>,
     daemon_board: usize,
     keymap: HashMap<String, u16>,
     keys: RefCell<Vec<Key>>,
@@ -33,7 +33,7 @@ pub struct Keyboard {
 }
 
 impl Keyboard {
-    pub fn new<P: AsRef<Path>>(dir: P, daemon_opt: Option<Rc<RefCell<dyn Daemon>>>, daemon_board: usize) -> Rc<Self> {
+    pub fn new<P: AsRef<Path>>(dir: P, daemon_opt: Option<Rc<dyn Daemon>>, daemon_board: usize) -> Rc<Self> {
         let dir = dir.as_ref();
 
         let keymap_csv = fs::read_to_string(dir.join("keymap.csv"))
@@ -45,7 +45,7 @@ impl Keyboard {
         Self::new_data(&keymap_csv, &layout_csv, &physical_json, daemon_opt, daemon_board)
     }
 
-    pub fn new_board(board: &str, daemon_opt: Option<Rc<RefCell<dyn Daemon>>>, daemon_board: usize) -> Option<Rc<Self>> {
+    pub fn new_board(board: &str, daemon_opt: Option<Rc<dyn Daemon>>, daemon_board: usize) -> Option<Rc<Self>> {
         macro_rules! keyboard {
             ($board:expr) => (if board == $board {
                 let keymap_csv = include_str!(concat!("../../layouts/", $board, "/keymap.csv"));
@@ -69,7 +69,7 @@ impl Keyboard {
         None
     }
 
-    fn new_data(keymap_csv: &str, layout_csv: &str, physical_json: &str, daemon_opt: Option<Rc<RefCell<dyn Daemon>>>, daemon_board: usize) -> Rc<Self> {
+    fn new_data(keymap_csv: &str, layout_csv: &str, physical_json: &str, daemon_opt: Option<Rc<dyn Daemon>>, daemon_board: usize) -> Rc<Self> {
         let mut keymap = HashMap::new();
         let mut scancode_names = HashMap::new();
         scancode_names.insert(0, "NONE");
@@ -181,7 +181,6 @@ impl Keyboard {
                                     for layer in 0..2 {
                                         println!("  Layer {}", layer);
                                         let scancode = if let Some(ref daemon) = daemon_opt {
-                                            let mut daemon = daemon.borrow_mut();
                                             match daemon.keymap_get(daemon_board, layer, electrical.0, electrical.1) {
                                                 Ok(value) => value,
                                                 Err(err) => {
@@ -353,7 +352,6 @@ button {
                         }
                         println!("  set {}, {}, {} to {:04X}", layer, k.electrical.0, k.electrical.1, k.scancodes[layer].0);
                         if let Some(ref daemon) = kb.daemon_opt {
-                            let mut daemon = daemon.borrow_mut();
                             if let Err(err) = daemon.keymap_set(kb.daemon_board, layer as u8, k.electrical.0, k.electrical.1, k.scancodes[layer].0) {
                                 eprintln!("Failed to set keymap: {:?}", err);
                             }
@@ -410,7 +408,6 @@ button {
         };
 
         let max_brightness = if let Some(ref daemon) = self.daemon_opt {
-            let mut daemon = daemon.borrow_mut();
             match daemon.max_brightness(self.daemon_board) {
                 Ok(value) => value as f64,
                 Err(err) => {
@@ -431,7 +428,6 @@ button {
         brightness_scale.connect_value_changed(move |this| {
             let value = this.get_value() as i32;
             if let Some(ref daemon) = kb.daemon_opt {
-                let mut daemon = daemon.borrow_mut();
                 if let Err(err) = daemon.set_brightness(kb.daemon_board, value) {
                     eprintln!("{}", err);
                 }
@@ -446,7 +442,6 @@ button {
         };
 
         let color_rgba = if let Some(ref daemon) = self.daemon_opt {
-            let mut daemon = daemon.borrow_mut();
             match daemon.color(self.daemon_board) {
                 Ok(value) => {
                     let (red, green, blue) = value.to_floats();
@@ -468,7 +463,6 @@ button {
             let rgba = this.get_rgba();
             let color = Rgb::from_floats(rgba.red, rgba.green, rgba.blue);
             if let Some(ref daemon) = kb.daemon_opt {
-                let mut daemon = daemon.borrow_mut();
                 if let Err(err) = daemon.set_color(kb.daemon_board, color) {
                     eprintln!("{}", err);
                 }
