@@ -13,6 +13,7 @@ TARGET_DIR = f"../target/{'release' if RELEASE else 'debug'}"
 
 # Appimage packaging
 PKG = "keyboard-configurator"
+APPID = "com.system76.KeyboardConfigurator"
 ARCH = "x86_64"
 
 # Remove previous build
@@ -30,7 +31,7 @@ if RELEASE:
 subprocess.check_call(cmd)
 
 # Copy executable
-subprocess.check_call([f"strip", '-o', PKG, f"{TARGET_DIR}/system76-keyboard-configurator"])
+subprocess.check_call([f"strip", '-o', "system76-keyboard-configurator", f"{TARGET_DIR}/system76-keyboard-configurator"])
 
 # Download linuxdeploy
 LINUXDEPLOY = f"linuxdeploy-{ARCH}.AppImage"
@@ -41,12 +42,17 @@ if not os.path.exists(LINUXDEPLOY):
             f.write(u.read())
     os.chmod(LINUXDEPLOY, os.stat(LINUXDEPLOY).st_mode | 0o111)
 
+# Copy appdata
+# Not working due to https://github.com/pop-os/popsicle/pull/106#issuecomment-694310715
+# os.makedirs(f"{PKG}.AppDir/usr/share/metainfo")
+# shutil.copy("com.system76.KeyboardConfigurator.appdata.xml", f"{PKG}.AppDir/usr/share/metainfo")
+
 # Build appimage
 subprocess.check_call([f"./{LINUXDEPLOY}",
                        f"--appdir={PKG}.AppDir",
-                       f"--executable={PKG}",
-                       f"--desktop-file={PKG}.desktop",
+                       f"--executable=system76-keyboard-configurator",
+                       f"--desktop-file={APPID}.desktop",
                        f"--icon-file={PKG}.png",
                         "--plugin", "gtk",
                         "--output", "appimage"])
-shutil.move(glob.glob(f"{PKG}-*-{ARCH}.AppImage")[0], f"{PKG}-{ARCH}.AppImage")
+shutil.move(glob.glob(f"System76_Keyboard_Configurator-*-{ARCH}.AppImage")[0], f"{PKG}-{ARCH}.AppImage")

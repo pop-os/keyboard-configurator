@@ -1,6 +1,6 @@
 [Desktop Entry]
-Name=keyboard-configurator
-Exec=keyboard-configurator
+Name=System76 Keyboard Configurator
+Exec=system76-keyboard-configurator
 Icon=keyboard-configurator
 Type=Application
 Categories=Utility;
