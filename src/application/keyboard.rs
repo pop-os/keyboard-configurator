@@ -16,8 +16,9 @@ use std::{
     },
 };
 
-use crate::color::Rgb;
 use crate::daemon::Daemon;
+use crate::keyboard::Keyboard as ColorKeyboard;
+use crate::keyboard_color_button::KeyboardColorButton;
 use super::key::Key;
 use super::picker::Picker;
 use super::rect::Rect;
@@ -456,18 +457,14 @@ button {
             gdk::RGBA::black()
         };
 
-        let color_button = gtk::ColorButton::with_rgba(&color_rgba);
-        color_button.set_halign(gtk::Align::Fill);
-        let kb = self.clone();
-        color_button.connect_color_set(move |this| {
-            let rgba = this.get_rgba();
-            let color = Rgb::from_floats(rgba.red, rgba.green, rgba.blue);
-            if let Some(ref daemon) = kb.daemon_opt {
-                if let Err(err) = daemon.set_color(kb.daemon_board, color) {
-                    eprintln!("{}", err);
-                }
-            }
-        });
+        let color_keyboard = if let Some(ref daemon) = self.daemon_opt {
+            ColorKeyboard::new_daemon(daemon.clone(), self.daemon_board)
+        } else {
+
+            ColorKeyboard::new_dummy()
+        };
+        let color_button = KeyboardColorButton::new(color_keyboard).widget().clone();
+        color_button.set_valign(gtk::Align::Center);
 
         for page in &[
             "Layer 1",
