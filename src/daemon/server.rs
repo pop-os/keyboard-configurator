@@ -11,7 +11,6 @@ use std::{
         Read,
         Write,
     },
-    process,
     str,
     time::Duration,
 };
@@ -250,6 +249,7 @@ impl<R: Read, W: Write> Daemon for DaemonServer<R, W> {
     }
 
     fn exit(&mut self) -> Result<(), String> {
-        process::exit(0);
+        self.running = false;
+        Ok(())
     }
 }
