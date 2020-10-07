@@ -11,6 +11,7 @@ use std::iter::Iterator;
 use std::rc::{Rc, Weak};
 
 use crate::color::Rgb;
+use crate::daemon::Daemon;
 
 const DBUS_NAME: &'static str = "com.system76.PowerDaemon";
 const DBUS_KEYBOARD_IFACE: &'static str = "com.system76.PowerDaemon.Keyboard";
@@ -32,6 +33,10 @@ enum KeyboardImplementation {
     Dummy {
         properties: HashMap<&'static str, RefCell<Variant>>,
     },
+    Daemon {
+        daemon: Rc<dyn Daemon>,
+        board: usize,
+    }
 }
 
 struct KeyboardInner {
@@ -144,7 +149,14 @@ impl Keyboard {
         keyboard
     }
 
-    fn new_dummy() -> Self {
+    pub(crate) fn new_daemon(daemon: Rc<dyn Daemon>, board: usize) -> Self {
+        Self::new(KeyboardImplementation::Daemon {
+            daemon,
+            board,
+        })
+    }
+
+    pub(crate) fn new_dummy() -> Self {
         let mut properties = HashMap::new();
         properties.insert("max_brightness", RefCell::new(100i32.to_variant()));
         properties.insert("brightness", RefCell::new(0i32.to_variant()));
@@ -179,6 +191,7 @@ impl Keyboard {
                     .unwrap();
             }
             KeyboardImplementation::Dummy { .. } => {}
+            KeyboardImplementation::Daemon { .. } => {}
         }
     }
 
@@ -190,6 +203,15 @@ impl Keyboard {
             }
             KeyboardImplementation::Dummy { properties } => {
                 Ok(Some(properties.get(name).unwrap().borrow().clone()))
+            }
+            KeyboardImplementation::Daemon { ref daemon, board } => {
+                match name {
+                    "max-brightness" => daemon.max_brightness(*board).map(|b| Some(b.to_variant())).map_err(Error::msg),
+                    "brightness" => daemon.brightness(*board).map(|b| Some(b.to_variant())).map_err(Error::msg),
+                    "color" => daemon.color(*board).map(|b| Some(b.to_string().to_variant())).map_err(Error::msg),
+                    "name" => Ok(Some("".to_variant())),
+                    _ => unreachable!(),
+                }
             }
         }
     }
@@ -204,6 +226,13 @@ impl Keyboard {
             }
             KeyboardImplementation::Dummy { properties } => {
                 *properties.get(name).unwrap().borrow_mut() = value;
+            }
+            KeyboardImplementation::Daemon { ref daemon, board } => {
+                match name {
+                    "brightness" => daemon.set_brightness(*board, value.get().unwrap()).map_err(Error::msg)?,
+                    "color" => daemon.set_color(*board, Rgb::parse(&value.get::<String>().unwrap()).unwrap()).map_err(Error::msg)?,
+                    _ => unreachable!(),
+                };
             }
         }
         Ok(())
