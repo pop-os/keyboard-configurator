@@ -182,7 +182,7 @@ impl<R: Read, W: Write> Daemon for DaemonServer<R, W> {
         }
     }
 
-    fn color(&mut self) -> Result<Rgb, String> {
+    fn color(&mut self, board: usize) -> Result<Rgb, String> {
         let path = "/sys/class/leds/system76_acpi::kbd_backlight/color";
         match fs::read_to_string(&path) {
             Ok(string) => {
@@ -196,7 +196,7 @@ impl<R: Read, W: Write> Daemon for DaemonServer<R, W> {
         }
     }
 
-    fn set_color(&mut self, color: Rgb) -> Result<(), String> {
+    fn set_color(&mut self, board: usize, color: Rgb) -> Result<(), String> {
         let path = "/sys/class/leds/system76_acpi::kbd_backlight/color";
         match fs::write(path, &color.to_string()) {
             Ok(()) => Ok(()),
@@ -205,7 +205,7 @@ impl<R: Read, W: Write> Daemon for DaemonServer<R, W> {
 
     }
 
-    fn max_brightness(&mut self) -> Result<i32, String> {
+    fn max_brightness(&mut self, board: usize) -> Result<i32, String> {
         let path = "/sys/class/leds/system76_acpi::kbd_backlight/max_brightness";
         match fs::read_to_string(&path) {
             Ok(string) => {
@@ -223,7 +223,7 @@ impl<R: Read, W: Write> Daemon for DaemonServer<R, W> {
         }
     }
 
-    fn brightness(&mut self) -> Result<i32, String> {
+    fn brightness(&mut self, board: usize) -> Result<i32, String> {
         let path = "/sys/class/leds/system76_acpi::kbd_backlight/brightness";
         match fs::read_to_string(&path) {
             Ok(string) => {
@@ -241,7 +241,7 @@ impl<R: Read, W: Write> Daemon for DaemonServer<R, W> {
         }
     }
 
-    fn set_brightness(&mut self, brightness: i32) -> Result<(), String> {
+    fn set_brightness(&mut self, board: usize, brightness: i32) -> Result<(), String> {
         let path = "/sys/class/leds/system76_acpi::kbd_backlight/brightness";
         match fs::write(path, &format!("{}", brightness)) {
             Ok(()) => Ok(()),
