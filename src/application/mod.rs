@@ -126,11 +126,19 @@ impl ApplicationImpl for ConfiguratorAppInner {
             eprintln!("Focusing current window");
             window.present();
         } else {
+            let header_bar = cascade! {
+                gtk::HeaderBar::new();
+                ..set_title(Some("System76 Keyboard Configurator"));
+                ..set_show_close_button(true);
+            };
+
+
             let window = cascade! {
                 gtk::ApplicationWindow::new(app);
-                ..set_title("Keyboard Layout");
+                ..set_title("System76 Keyboard Configurator");
                 ..set_position(gtk::WindowPosition::Center);
                 ..set_default_size(1024, 768);
+                ..set_titlebar(Some(&header_bar));
                 ..add(&self.scrolled_window);
             };
 
