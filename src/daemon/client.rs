@@ -10,6 +10,7 @@ use std::{
 
 use super::{
     err_str,
+    Daemon,
     DaemonClientTrait,
     DaemonCommand,
     DaemonResponse,
@@ -43,6 +44,6 @@ impl<R: std::io::Read, W: std::io::Write> DaemonClientTrait for DaemonClient<R, 
 
 impl<R: Read, W: Write> Drop for DaemonClient<R, W> {
     fn drop(&mut self) {
-        let _ = self.send_command(DaemonCommand::exit{});
+        let _ = self.exit();
     }
 }
