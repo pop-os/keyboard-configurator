@@ -17,6 +17,7 @@ use crate::daemon::Daemon;
 use crate::keyboard::Keyboard as ColorKeyboard;
 use crate::keyboard_color_button::KeyboardColorButton;
 use super::key::Key;
+use super::page::Page;
 use super::picker::Picker;
 use super::rect::Rect;
 
@@ -448,14 +449,8 @@ button {
         let color_button = KeyboardColorButton::new(color_keyboard).widget().clone();
         color_button.set_valign(gtk::Align::Center);
 
-        for page in &[
-            "Layer 1",
-            "Layer 2",
-            "Keycaps",
-            "Logical",
-            "Electrical"
-        ] {
-            let page_label = gtk::Label::new(Some(page));
+        for page in Page::iter_all() {
+            let page_label = gtk::Label::new(Some(page.name()));
             let fixed = gtk::Fixed::new();
             notebook.append_page(&fixed, Some(&page_label));
 
@@ -514,7 +509,7 @@ button {
 
                 let mut keys = self.keys.borrow_mut();
                 let k = &mut keys[i];
-                k.gtk.insert(page.to_string(), button);
+                k.gtk.insert(page, button);
                 k.refresh(&self.picker);
             }
         }

@@ -7,6 +7,7 @@ use crate::daemon::{Daemon, DaemonClient, daemon_server};
 
 mod key;
 mod keyboard;
+mod page;
 mod picker;
 mod rect;
 
