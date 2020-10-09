@@ -3,6 +3,7 @@ use std::{
     collections::HashMap,
 };
 
+use super::page::Page;
 use super::picker::Picker;
 use super::rect::Rect;
 
@@ -28,7 +29,7 @@ pub struct Key {
     pub(crate) foreground_color: String,
     // GTK buttons by page
     //TODO: clean up this crap
-    pub(crate) gtk: HashMap<String, gtk::Button>,
+    pub(crate) gtk: HashMap<Page, gtk::Button>,
 }
 
 impl Key {
@@ -85,9 +86,9 @@ button {{
     }
 
     pub fn refresh(&self, picker: &Picker) {
-        for (page, button) in self.gtk.iter() {
-            button.set_label(match page.as_str() {
-                "Layer 1" => {
+        for (layer, button) in self.gtk.iter() {
+            button.set_label(match layer {
+                Page::Layer1 => {
                     let scancode_name = &self.scancodes[0].1;
                     if let Some(picker_key) = picker.keys.get(scancode_name) {
                         &picker_key.text
@@ -95,7 +96,7 @@ button {{
                         scancode_name
                     }
                 },
-                "Layer 2" => {
+                Page::Layer2 => {
                     let scancode_name = &self.scancodes[1].1;
                     if let Some(picker_key) = picker.keys.get(scancode_name) {
                         &picker_key.text
@@ -103,10 +104,9 @@ button {{
                         scancode_name
                     }
                 },
-                "Keycaps" => &self.physical_name,
-                "Logical" => &self.logical_name,
-                "Electrical" => &self.electrical_name,
-                _ => "",
+                Page::Keycaps => &self.physical_name,
+                Page::Logical => &self.logical_name,
+                Page::Electrical => &self.electrical_name,
             });
         }
     }
