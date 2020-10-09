@@ -269,7 +269,9 @@ fn daemon() -> Rc<dyn Daemon> {
 
 #[cfg(target_os = "macos")]
 fn macos_init() {
+    use gtk::SettingsExt;
     use std::{env, process};
+    let mut prefer_dark = false;
     // This command returns Dark if we should use the dark theme
     // defaults read -g AppleInterfaceStyle
     if let Ok(output) = process::Command::new("defaults")
@@ -278,36 +280,41 @@ fn macos_init() {
         .arg("AppleInterfaceStyle")
         .output()
     {
-        if output.stdout.starts_with(b"Dark") {
-            let _ = env::set_var("GTK_THEME", "Adwaita:dark");
-        }
+        prefer_dark = output.stdout.starts_with(b"Dark");
+    }
+
+    if let Some(settings) = gtk::Settings::get_default() {
+        settings.set_property_gtk_application_prefer_dark_theme(prefer_dark);
     }
 }
 
 #[cfg(target_os = "windows")]
 fn windows_init() {
-    use std::env;
     // This is a dword with a value of 0 if we should use the dark theme:
     // HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize\AppsUseLightTheme
+    use gtk::SettingsExt;
     use winreg::RegKey;
+    let mut prefer_dark = false;
     let hkcu = RegKey::predef(winreg::enums::HKEY_CURRENT_USER);
     if let Ok(subkey) = hkcu.open_subkey("Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize") {
         if let Ok(dword) = subkey.get_value::<u32, _>("AppsUseLightTheme") {
-            if dword == 0 {
-                let _ = env::set_var("GTK_THEME", "Adwaita:dark");
-            }
+            prefer_dark = (dword == 0);
         }
+    }
+
+    if let Some(settings) = gtk::Settings::get_default() {
+        settings.set_property_gtk_application_prefer_dark_theme(prefer_dark);
     }
 }
 
 pub fn run(args: Vec<String>) -> i32 {
+    gtk::init().unwrap();
+
     #[cfg(target_os = "macos")]
     macos_init();
 
     #[cfg(target_os = "windows")]
     windows_init();
-
-    gtk::init().unwrap();
 
     let application = ConfiguratorApp::new();
     application.run(&args)
