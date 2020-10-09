@@ -50,6 +50,8 @@ jobs:
       with:
         toolchain: stable-i686-pc-windows-gnu
     - uses: actions/checkout@v2
+      with:
+        submodules: true
     - name: Build and package
       shell: msys2 {0}
       run: cd windows && python build.py --rustup="C:/Rust/.cargo/bin/rustup.exe" $RELEASE
