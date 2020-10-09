@@ -24,18 +24,20 @@ EXES = {
     f"{TARGET_DIR}/system76-keyboard-configurator.exe",
 }
 
-DLL_RE = r"(?<==> ).*\\mingw32\\bin\\(\S+.dll)"
+DLL_RE = r"(?<==> )(.*\\mingw32)\\bin\\(\S+.dll)"
 
 
 # Use ntldd to find the mingw dlls required by a .exe
 def find_depends(exe):
     output = subprocess.check_output(['ntldd.exe', '-R', exe], universal_newlines=True)
     dlls = set()
+    mingw_dir = None
     for l in output.splitlines():
         m = re.search(DLL_RE, l, re.IGNORECASE)
         if m:
-            dlls.add((m.group(0), m.group(1)))
-    return dlls
+            dlls.add((m.group(0), m.group(2)))
+            mingw_dir = m.group(1)
+    return mingw_dir, dlls
 
 
 # Build application with rustup
@@ -46,8 +48,11 @@ subprocess.check_call(cmd)
 
 # Generate set of all required dlls
 dlls = set()
+mingw_dir = None
 for i in EXES:
-    dlls = dlls.union(find_depends(i))
+    mingw_dir_new, dlls_new = find_depends(i)
+    dlls = dlls.union(dlls_new)
+    mingw_dir = mingw_dir or mingw_dir_new
 
 # Generate libraries.wxi
 with open('libraries.wxi', 'w') as f:
@@ -71,8 +76,17 @@ for i in EXES:
     print(f"Strip {i} -> out/{filename}")
     subprocess.check_call([f"strip.exe", '-o', f"out/{filename}", i])
 for src, filename in dlls:
-    print(f"Copy {src} -> out/{filename}")
-    shutil.copy(f"{src}", 'out')
+    dest = "out/" + filename
+    print(f"Copy {src} -> {dest}")
+    shutil.copy(src, 'out')
+
+# Copy additional data
+os.mkdir("out/lib")
+for i in ('lib/p11-kit', 'lib/gdk-pixbuf-2.0'):
+    src = mingw_dir + '\\' + i.replace('/', '\\')
+    dest = "out/" + i
+    print(f"Copy {src} -> {dest}")
+    shutil.copytree(src, dest)
 
 # Extract crate version from cargo
 meta_str = subprocess.check_output(CARGO + ["metadata", "--format-version", "1", "--no-deps"])
