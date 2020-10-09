@@ -17,6 +17,7 @@ use keyboard::Keyboard;
 fn main_keyboard(app: &gtk::Application, keyboard: Rc<Keyboard>) {
     let vbox = cascade! {
         gtk::Box::new(gtk::Orientation::Vertical, 32);
+        ..set_halign(gtk::Align::Center);
         ..add(&keyboard.clone().gtk());
         ..add(&keyboard.clone().picker());
     };
