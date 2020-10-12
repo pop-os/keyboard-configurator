@@ -17,6 +17,7 @@ use keyboard::Keyboard;
 fn main_keyboard(app: &gtk::Application, keyboard: Rc<Keyboard>) {
     let vbox = cascade! {
         gtk::Box::new(gtk::Orientation::Vertical, 32);
+        ..set_property_margin(10);
         ..set_halign(gtk::Align::Center);
         ..add(&keyboard.clone().gtk());
         ..add(&keyboard.clone().picker());
@@ -30,7 +31,6 @@ fn main_keyboard(app: &gtk::Application, keyboard: Rc<Keyboard>) {
     let window = cascade! {
         gtk::ApplicationWindow::new(app);
         ..set_title("Keyboard Layout");
-        ..set_border_width(10);
         ..set_position(gtk::WindowPosition::Center);
         ..set_default_size(1024, 768);
         ..add(&scrolled_window);
