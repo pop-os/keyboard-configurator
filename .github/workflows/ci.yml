@@ -44,10 +44,7 @@ jobs:
     - uses: actions/checkout@v2
     - name: Build and package
       shell: msys2 {0}
-      run: |
-        cd windows
-        sed -i 's|RUSTUP =.*$|RUSTUP = \"C:/Rust/.cargo/bin/rustup.exe\"|' build.py
-        python build.py $RELEASE
+      run: cd windows && python build.py --rustup="C:/Rust/.cargo/bin/rustup.exe" $RELEASE
     - uses: actions/upload-artifact@v2
       with:
         if-no-files-found: error

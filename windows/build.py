@@ -11,14 +11,13 @@ import json
 # Handle commandline arguments
 parser = argparse.ArgumentParser()
 parser.add_argument('--release', action='store_true')
+parser.add_argument('--rustup', default=(os.environ['HOMEPATH'] + "/.cargo/bin/rustup.exe"))
+parser.add_argument('--wix', default="C:/Program Files (x86)/WiX Toolset v3.11")
 args = parser.parse_args()
 
-# Paths to find executables and libraries
-RUSTUP = f"{os.environ['HOMEPATH']}/.cargo/bin/rustup.exe"
-WIX = "C:/Program Files (x86)/WiX Toolset v3.11"
 # Rust toolchain version to use
 RUST_TOOLCHAIN = 'stable-i686-pc-windows-gnu'
-CARGO = [RUSTUP, "run", RUST_TOOLCHAIN, "cargo"]
+CARGO = [args.rustup, "run", RUST_TOOLCHAIN, "cargo"]
 # Executables to install
 TARGET_DIR = "../target/" + ('release' if args.release else 'debug')
 EXES = {
@@ -86,5 +85,5 @@ crate_version = package['version']
 subprocess.check_call(["convert", "-background", "#564e48", "-fill", "white", "-size", "256x256", "-gravity", "center", "label:Keyboard\nConfigurator", "out/keyboard-configurator.ico"])
 
 # Build .msi
-subprocess.check_call([f"{WIX}/bin/candle.exe", ".\keyboard-configurator.wxs", f"-dcrate_version={crate_version}"])
-subprocess.check_call([f"{WIX}/bin/light.exe", "-ext", "WixUIExtension", ".\keyboard-configurator.wixobj"])
+subprocess.check_call([f"{args.wix}/bin/candle.exe", ".\keyboard-configurator.wxs", f"-dcrate_version={crate_version}"])
+subprocess.check_call([f"{args.wix}/bin/light.exe", "-ext", "WixUIExtension", ".\keyboard-configurator.wixobj"])
