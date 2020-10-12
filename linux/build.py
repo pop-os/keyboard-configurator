@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import argparse
 import glob
 import os
 import shutil
@@ -7,9 +8,13 @@ import subprocess
 import sys
 from urllib.request import urlopen
 
+# Handle commandline arguments
+parser = argparse.ArgumentParser()
+parser.add_argument('--release', action='store_true')
+args = parser.parse_args()
+
 # Executables to install
-RELEASE = '--release' in sys.argv
-TARGET_DIR = f"../target/{'release' if RELEASE else 'debug'}"
+TARGET_DIR = "../target/" + ('release' if args.release else 'debug')
 
 # Appimage packaging
 PKG = "keyboard-configurator"
@@ -26,7 +31,7 @@ if os.path.exists(PKG):
 
 # Build the application
 cmd = ["cargo", "build"]
-if RELEASE:
+if args.release:
     cmd.append('--release')
 subprocess.check_call(cmd)
 

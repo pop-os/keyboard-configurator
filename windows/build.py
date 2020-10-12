@@ -1,9 +1,17 @@
+#!/usr/bin/env python3
+
+import argparse
 import os
 import re
 import shutil
 import subprocess
 import sys
 import json
+
+# Handle commandline arguments
+parser = argparse.ArgumentParser()
+parser.add_argument('--release', action='store_true')
+args = parser.parse_args()
 
 # Paths to find executables and libraries
 RUSTUP = f"{os.environ['HOMEPATH']}/.cargo/bin/rustup.exe"
@@ -12,8 +20,7 @@ WIX = "C:/Program Files (x86)/WiX Toolset v3.11"
 RUST_TOOLCHAIN = 'stable-i686-pc-windows-gnu'
 CARGO = [RUSTUP, "run", RUST_TOOLCHAIN, "cargo"]
 # Executables to install
-RELEASE = '--release' in sys.argv
-TARGET_DIR = f"../target/{'release' if RELEASE else 'debug'}"
+TARGET_DIR = "../target/" + ('release' if args.release else 'debug')
 EXES = {
     f"{TARGET_DIR}/system76-keyboard-configurator.exe",
 }
@@ -34,7 +41,7 @@ def find_depends(exe):
 
 # Build application with rustup
 cmd = CARGO + ['build']
-if RELEASE:
+if args.release:
     cmd.append('--release')
 subprocess.check_call(cmd)
 

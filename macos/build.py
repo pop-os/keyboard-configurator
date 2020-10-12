@@ -1,17 +1,22 @@
 #!/usr/bin/env python3
 
+import argparse
 import json
 import shutil
 import subprocess
 import sys
 
+# Handle commandline arguments
+parser = argparse.ArgumentParser()
+parser.add_argument('--release', action='store_true')
+args = parser.parse_args()
+
 # Executables to install
-RELEASE = '--release' in sys.argv
-TARGET_DIR = f"../target/{'release' if RELEASE else 'debug'}"
+TARGET_DIR = "../target/" + ('release' if args.release else 'debug')
 
 # Build the application
 cmd = ["cargo", "build"]
-if RELEASE:
+if args.release:
     cmd.append('--release')
 subprocess.check_call(cmd)
 
