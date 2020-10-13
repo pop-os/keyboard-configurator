@@ -41,7 +41,6 @@ fn main_keyboard(app: &gtk::Application, keyboard: Rc<Keyboard>) {
 
     window.connect_destroy(|_| {
         eprintln!("Window close");
-        gtk::main_quit();
     });
 }
 
@@ -64,7 +63,7 @@ fn main_app(app: &gtk::Application, daemon: Rc<dyn Daemon>) {
 }
 
 #[cfg(target_os = "linux")]
-fn with_daemon<F: Fn(Rc<dyn Daemon>)>(f: F) {
+fn daemon() -> Rc<dyn Daemon> {
     use std::{
         process::{
             Command,
@@ -75,8 +74,7 @@ fn with_daemon<F: Fn(Rc<dyn Daemon>)>(f: F) {
     if unsafe { libc::geteuid() == 0 } {
         eprintln!("Already running as root");
         let server = daemon_server().expect("Failed to create server");
-        f(Rc::new(server));
-        return;
+        return Rc::new(server);
     }
 
     // Use pkexec to spawn daemon as superuser
@@ -97,18 +95,13 @@ fn with_daemon<F: Fn(Rc<dyn Daemon>)>(f: F) {
     let stdin = child.stdin.take().expect("Failed to get stdin of daemon");
     let stdout = child.stdout.take().expect("Failed to get stdout of daemon");
 
-    f(Rc::new(DaemonClient::new(stdout, stdin)));
-
-    let status = child.wait().expect("Failed to wait for daemon");
-    if ! status.success() {
-        panic!("Failed to run daemon with exit status {:?}", status);
-    }
+    Rc::new(DaemonClient::new(child, stdout, stdin))
 }
 
 #[cfg(not(target_os = "linux"))]
-fn with_daemon<F: Fn(Rc<dyn Daemon>)>(f: F) {
+fn daemon() -> Rc<dyn Daemon> {
     let server = daemon_server().expect("Failed to create server");
-    f(Rc::new(server));
+    Rc::new(server)
 }
 
 #[cfg(target_os = "macos")]
@@ -161,11 +154,7 @@ pub fn run(args: Vec<String>) -> i32 {
             eprintln!("Focusing current window");
             window.present();
         } else {
-            with_daemon(|daemon| {
-                main_app(app, daemon);
-                //TODO: is this the best way to keep the daemon running?
-                gtk::main();
-            });
+            main_app(app, daemon());
         }
     });
 

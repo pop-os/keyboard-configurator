@@ -3,8 +3,12 @@ use std::{
     io::{
         BufRead,
         BufReader,
-        Read,
         Write,
+    },
+    process::{
+        Child,
+        ChildStdin,
+        ChildStdout,
     },
 };
 
@@ -16,21 +20,23 @@ use super::{
     DaemonResponse,
 };
 
-pub struct DaemonClient<R: Read, W: Write> {
-    read: RefCell<BufReader<R>>,
-    write: RefCell<W>,
+pub struct DaemonClient {
+    child: Child,
+    read: RefCell<BufReader<ChildStdout>>,
+    write: RefCell<ChildStdin>,
 }
 
-impl<R: Read, W: Write> DaemonClient<R, W> {
-    pub fn new(read: R, write: W) -> Self {
+impl DaemonClient {
+    pub fn new(child: Child, stdout: ChildStdout, stdin: ChildStdin) -> Self {
         Self {
-            read: RefCell::new(BufReader::new(read)),
-            write: RefCell::new(write),
+            child,
+            read: RefCell::new(BufReader::new(stdout)),
+            write: RefCell::new(stdin),
         }
     }
 }
 
-impl<R: std::io::Read, W: std::io::Write> DaemonClientTrait for DaemonClient<R, W> {
+impl DaemonClientTrait for DaemonClient {
     fn send_command(&self, command: DaemonCommand) -> Result<DaemonResponse, String> {
         let mut command_json = serde_json::to_string(&command).map_err(err_str)?;
         command_json.push('\n');
@@ -42,8 +48,13 @@ impl<R: std::io::Read, W: std::io::Write> DaemonClientTrait for DaemonClient<R, 
     }
 }
 
-impl<R: Read, W: Write> Drop for DaemonClient<R, W> {
+impl Drop for DaemonClient {
     fn drop(&mut self) {
         let _ = self.exit();
+
+        let status = self.child.wait().expect("Failed to wait for daemon");
+        if !status.success() {
+            panic!("Failed to run daemon with exit status {:?}", status);
+        }
     }
 }
