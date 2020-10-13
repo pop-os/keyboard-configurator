@@ -2,7 +2,10 @@ use cascade::cascade;
 use gtk::prelude::*;
 use serde_json::Value;
 use std::{
-    cell::RefCell,
+    cell::{
+        Cell,
+        RefCell,
+    },
     char,
     collections::HashMap,
     fs,
@@ -26,7 +29,7 @@ pub struct Keyboard {
     daemon_board: usize,
     keymap: HashMap<String, u16>,
     keys: RefCell<Vec<Key>>,
-    page: RefCell<u32>,
+    page: Cell<Page>,
     picker: Picker,
     selected: RefCell<Option<usize>>,
 }
@@ -241,7 +244,7 @@ impl Keyboard {
             daemon_board,
             keymap,
             keys: RefCell::new(keys),
-            page: RefCell::new(0),
+            page: Cell::new(Page::Layer1),
             picker: Picker::new(),
             selected: RefCell::new(None),
         })
@@ -249,9 +252,9 @@ impl Keyboard {
 
     pub fn layer(&self) -> usize {
         //TODO: make this more robust
-        match *self.page.borrow() {
-            0 => 0, // Layer 1
-            1 => 1, // Layer 2
+        match self.page.get() {
+            Page::Layer1 => 0,
+            Page::Layer2 => 1,
             _ => 0, // Any other page selects Layer 1
         }
     }
@@ -394,10 +397,12 @@ button {
     pub fn gtk(self: Rc<Self>) -> gtk::Box {
         let notebook = gtk::Notebook::new();
         let kb = self.clone();
-        notebook.connect_switch_page(move |_, _, page| {
-            println!("{}", page);
+        notebook.connect_switch_page(move |_, fixed, _| {
+            let page: Option<&Page> = unsafe { fixed.get_data("keyboard_confurator_page") };
+
+            println!("{:?}", page);
             let last_layer = kb.layer();
-            *kb.page.borrow_mut() = page;
+            kb.page.set(*page.unwrap_or(&Page::Layer1));
             let layer = kb.layer();
             if layer != last_layer {
                 if let Some(i) = *kb.selected.borrow() {
@@ -461,6 +466,9 @@ button {
             let page_label = gtk::Label::new(Some(page.name()));
             let fixed = gtk::Fixed::new();
             notebook.append_page(&fixed, Some(&page_label));
+
+            // TODO: Replace with something type-safe
+            unsafe { fixed.set_data("keyboard_confurator_page", page) };
 
             let keys_len = self.keys.borrow().len();
             for i in 0..keys_len {
