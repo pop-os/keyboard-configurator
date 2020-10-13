@@ -319,6 +319,8 @@ button {
                     gtk::Label::new(Some(&key.text));
                     ..set_line_wrap(true);
                     ..set_max_width_chars(1);
+                    ..set_margin_start(5);
+                    ..set_margin_end(5);
                     ..set_justify(gtk::Justification::Center);
                 };
 
@@ -482,6 +484,8 @@ button {
                     let label = cascade! {
                         gtk::Label::new(None);
                         ..set_line_wrap(true);
+                        ..set_margin_start(5);
+                        ..set_margin_end(5);
                         ..set_justify(gtk::Justification::Center);
                     };
 
