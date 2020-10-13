@@ -395,14 +395,20 @@ button {
     }
 
     pub fn gtk(self: Rc<Self>) -> gtk::Box {
-        let notebook = gtk::Notebook::new();
+        let stack = cascade! {
+            gtk::Stack::new();
+            ..set_transition_duration(0);
+        };
         let kb = self.clone();
-        notebook.connect_switch_page(move |_, fixed, _| {
-            let page: Option<&Page> = unsafe { fixed.get_data("keyboard_confurator_page") };
+        stack.connect_property_visible_child_notify(move |stack| {
+            let page: Option<Page> = match stack.get_visible_child() {
+                Some(child) => unsafe { child.get_data("keyboard_confurator_page").cloned() },
+                None => None,
+            };
 
             println!("{:?}", page);
             let last_layer = kb.layer();
-            kb.page.set(*page.unwrap_or(&Page::Layer1));
+            kb.page.set(page.unwrap_or(Page::Layer1));
             let layer = kb.layer();
             if layer != last_layer {
                 if let Some(i) = *kb.selected.borrow() {
@@ -463,9 +469,8 @@ button {
         color_button.set_valign(gtk::Align::Center);
 
         for page in Page::iter_all() {
-            let page_label = gtk::Label::new(Some(page.name()));
             let fixed = gtk::Fixed::new();
-            notebook.append_page(&fixed, Some(&page_label));
+            stack.add_titled(&fixed, page.name(), page.name());
 
             // TODO: Replace with something type-safe
             unsafe { fixed.set_data("keyboard_confurator_page", page) };
@@ -540,6 +545,16 @@ button {
             }
         }
 
+        let stack_switcher = cascade! {
+            gtk::StackSwitcher::new();
+            ..set_stack(Some(&stack));
+        };
+
+        let toolbar = cascade!{
+            gtk::Box::new(gtk::Orientation::Horizontal, 8);
+            ..set_center_widget(Some(&stack_switcher));
+        };
+
         let hbox = cascade! {
             gtk::Box::new(gtk::Orientation::Horizontal, 8);
             ..add(&brightness_label);
@@ -550,8 +565,9 @@ button {
 
         let vbox = cascade! {
             gtk::Box::new(gtk::Orientation::Vertical, 8);
+            ..add(&toolbar);
             ..add(&hbox);
-            ..add(&notebook);
+            ..add(&stack);
         };
 
         vbox
