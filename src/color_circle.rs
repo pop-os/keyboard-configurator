@@ -1,11 +1,13 @@
 use cascade::cascade;
 use glib::clone;
-use glib::clone::{Downgrade, Upgrade};
+use glib::subclass;
+use glib::subclass::prelude::*;
 use gtk::prelude::*;
+use gtk::subclass::prelude::*;
+use glib::translate::{FromGlibPtrFull, ToGlib, ToGlibPtr};
 use std::cell::Cell;
 use std::f64::consts::PI;
 use std::ptr;
-use std::rc::{Rc, Weak};
 
 use crate::color::Rgb;
 
@@ -32,29 +34,19 @@ pub struct ColorCircleInner {
     symbol: Cell<ColorCircleSymbol>,
 }
 
-#[derive(Clone)]
-pub struct ColorCircle(Rc<ColorCircleInner>);
+impl ObjectSubclass for ColorCircleInner {
+    const NAME: &'static str = "S76ColorCircle";
 
-pub struct ColorCircleWeak(Weak<ColorCircleInner>);
+    type ParentType = gtk::Bin;
 
-impl Downgrade for ColorCircle {
-    type Weak = ColorCircleWeak;
+    type Instance = subclass::simple::InstanceStruct<Self>;
+    type Class = subclass::simple::ClassStruct<Self>;
 
-    fn downgrade(&self) -> Self::Weak {
-        ColorCircleWeak(self.0.downgrade())
-    }
-}
+    glib_object_subclass!();
 
-impl Upgrade for ColorCircleWeak {
-    type Strong = ColorCircle;
+    fn class_init(_klass: &mut subclass::simple::ClassStruct<Self>) {}
 
-    fn upgrade(&self) -> Option<Self::Strong> {
-        self.0.upgrade().map(ColorCircle)
-    }
-}
-
-impl ColorCircle {
-    pub fn new(size: i32) -> Self {
+    fn new() -> Self {
         let drawing_area = gtk::DrawingArea::new();
 
         let provider = cascade! {
@@ -73,28 +65,67 @@ impl ColorCircle {
         let frame = cascade! {
             gtk::AspectFrame::new(None, 0., 0., 1., false);
             ..set_shadow_type(gtk::ShadowType::None);
-            ..set_size_request(size, size);
             ..add(&button);
         };
 
-        let color_circle = Self(Rc::new(ColorCircleInner {
+        Self {
             frame,
             drawing_area,
             button,
             rgb: Cell::new(Rgb::new(0, 0, 0)),
             symbol: Cell::new(ColorCircleSymbol::None),
             alpha: Cell::new(1.),
-        }));
+        }
+    }
+}
 
+impl ObjectImpl for ColorCircleInner {
+    glib_object_impl!();
+
+    fn constructed(&self, obj: &glib::Object) {
+        self.parent_constructed(obj);
+
+        let obj: &ColorCircle = obj.downcast_ref().unwrap();
+        obj.add(&self.frame);
+    }
+}
+
+impl WidgetImpl for ColorCircleInner {}
+impl ContainerImpl for ColorCircleInner {}
+impl BinImpl for ColorCircleInner {}
+
+glib_wrapper! {
+    pub struct ColorCircle(
+        Object<subclass::simple::InstanceStruct<ColorCircleInner>,
+        subclass::simple::ClassStruct<ColorCircleInner>, ColorCircleClass>)
+        @extends gtk::Bin, gtk::Container, gtk::Widget;
+
+    match fn {
+        get_type => || ColorCircleInner::get_type().to_glib(),
+    }
+}
+
+impl ColorCircle {
+    pub fn new(size: i32) -> Self {
+        let color_circle: Self = glib::Object::new(Self::static_type(), &[])
+            .unwrap()
+            .downcast()
+            .unwrap();
+
+        color_circle.inner().frame.set_size_request(size, size);
         color_circle.connect_signals();
 
         color_circle
     }
 
+    fn inner(&self) -> &ColorCircleInner {
+        ColorCircleInner::from_instance(self)
+    }
+
     fn connect_signals(&self) {
         let self_ = self;
 
-        self.0
+        self.inner()
             .drawing_area
             .connect_draw(clone!(@strong self_ => move |w, cr| {
                 self_.draw(w, cr);
@@ -105,13 +136,13 @@ impl ColorCircle {
     // `arbitrary_self_types` feature would allow `self: &Rc<Self>`
     pub fn connect_clicked<F: Fn(&Self) + 'static>(&self, cb: F) {
         let self_ = self;
-        self.0
+        self.inner()
             .button
             .connect_clicked(clone!(@weak self_ => @default-panic, move |_| cb(&self_)));
     }
 
     pub fn widget(&self) -> &gtk::Widget {
-        self.0.frame.upcast_ref::<gtk::Widget>()
+        self.upcast_ref()
     }
 
     fn draw(&self, w: &gtk::DrawingArea, cr: &cairo::Context) {
@@ -120,7 +151,7 @@ impl ColorCircle {
 
         let radius = width.min(height) / 2.;
         let (r, g, b) = self.rgb().to_floats();
-        let alpha = self.0.alpha.get();
+        let alpha = self.inner().alpha.get();
 
         cr.arc(radius, radius, radius, 0., 2. * PI);
         cr.set_source_rgba(r, g, b, alpha);
@@ -130,7 +161,7 @@ impl ColorCircle {
         cr.set_source_rgb(0.25, 0.25, 0.25);
         cr.set_line_width(1.5);
 
-        match self.0.symbol.get() {
+        match self.inner().symbol.get() {
             ColorCircleSymbol::Plus => {
                 cr.move_to(radius, 0.8 * radius);
                 cr.line_to(radius, 1.2 * radius);
@@ -149,24 +180,24 @@ impl ColorCircle {
     }
 
     pub fn set_rgb(&self, color: Rgb) {
-        self.0.rgb.set(color);
+        self.inner().rgb.set(color);
         self.widget().queue_draw();
     }
 
     pub fn rgb(&self) -> Rgb {
-        self.0.rgb.get()
+        self.inner().rgb.get()
     }
 
     pub fn set_symbol(&self, symbol: ColorCircleSymbol) {
-        self.0.symbol.set(symbol);
+        self.inner().symbol.set(symbol);
         self.widget().queue_draw();
     }
 
     pub fn set_alpha(&self, alpha: f64) {
-        self.0.alpha.set(alpha);
+        self.inner().alpha.set(alpha);
     }
 
     pub fn ptr_eq(&self, other: &Self) -> bool {
-        ptr::eq(self.0.as_ref(), other.0.as_ref())
+        ptr::eq(self.inner(), other.inner())
     }
 }
