@@ -50,12 +50,7 @@ fn with_daemon<F: Fn(Box<dyn Daemon>)>(f: F) {
     let stdin = child.stdin.take().expect("Failed to get stdin of daemon");
     let stdout = child.stdout.take().expect("Failed to get stdout of daemon");
 
-    f(Box::new(DaemonClient::new(stdout, stdin)));
-
-    let status = child.wait().expect("Failed to wait for daemon");
-    if ! status.success() {
-        panic!("Failed to run daemon with exit status {:?}", status);
-    }
+    f(Box::new(DaemonClient::new(child, stdout, stdin)));
 }
 
 #[cfg(not(target_os = "linux"))]
