@@ -29,7 +29,7 @@ pub struct Key {
     pub(crate) foreground_color: String,
     // GTK buttons by page
     //TODO: clean up this crap
-    pub(crate) gtk: HashMap<Page, gtk::Button>,
+    pub(crate) gtk: HashMap<Page, (gtk::Button, gtk::Label)>,
 }
 
 impl Key {
@@ -60,7 +60,7 @@ button {{
     }
 
     pub fn select(&self, picker: &Picker, layer: usize) {
-        for (_page, button) in self.gtk.iter() {
+        for (_page, (button, _label)) in self.gtk.iter() {
             button.get_style_context().add_class("selected");
         }
         if let Some((_scancode, scancode_name)) = self.scancodes.get(layer) {
@@ -73,7 +73,7 @@ button {{
     }
 
     pub fn deselect(&self, picker: &Picker, layer: usize) {
-        for (_page, button) in self.gtk.iter() {
+        for (_page, (button, _label)) in self.gtk.iter() {
             button.get_style_context().remove_class("selected");
         }
         if let Some((_scancode, scancode_name)) = self.scancodes.get(layer) {
@@ -86,8 +86,8 @@ button {{
     }
 
     pub fn refresh(&self, picker: &Picker) {
-        for (layer, button) in self.gtk.iter() {
-            button.set_label(match layer {
+        for (layer, (_button, label)) in self.gtk.iter() {
+            label.set_label(match layer {
                 Page::Layer1 => {
                     let scancode_name = &self.scancodes[0].1;
                     if let Some(picker_key) = picker.keys.get(scancode_name) {
