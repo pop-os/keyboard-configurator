@@ -315,12 +315,18 @@ button {
             }
 
             for key in group.keys.iter() {
+                let label = cascade! {
+                    gtk::Label::new(Some(&key.text));
+                    ..set_line_wrap(true);
+                    ..set_max_width_chars(1);
+                    ..set_justify(gtk::Justification::Center);
+                };
+
                 let button = cascade! {
                     gtk::Button::new();
-                    ..set_hexpand(false);
                     ..set_size_request(48 * group.width, 48);
-                    ..set_label(&key.text);
                     ..get_style_context().add_provider(&style_provider, gtk::STYLE_PROVIDER_PRIORITY_USER);
+                    ..add(&label);
                 };
 
                 // Check that scancode is available for the keyboard
@@ -456,7 +462,7 @@ button {
 
             let keys_len = self.keys.borrow().len();
             for i in 0..keys_len {
-                let button = {
+                let (button, label) = {
                     let keys = self.keys.borrow();
                     let k = &keys[i];
 
@@ -473,15 +479,23 @@ button {
                         ..load_from_data(css.as_bytes()).expect("Failed to parse css");
                     };
 
+                    let label = cascade! {
+                        gtk::Label::new(None);
+                        ..set_line_wrap(true);
+                        ..set_justify(gtk::Justification::Center);
+                    };
+
                     let button = cascade! {
                         gtk::Button::new();
                         ..set_focus_on_click(false);
                         ..set_size_request(w, h);
                         ..get_style_context().add_provider(&style_provider, gtk::STYLE_PROVIDER_PRIORITY_USER);
+                        ..add(&label);
                     };
 
                     fixed.put(&button, x, y);
-                    button
+
+                    (button, label)
                 };
 
                 {
@@ -509,7 +523,7 @@ button {
 
                 let mut keys = self.keys.borrow_mut();
                 let k = &mut keys[i];
-                k.gtk.insert(page, button);
+                k.gtk.insert(page, (button, label));
                 k.refresh(&self.picker);
             }
         }

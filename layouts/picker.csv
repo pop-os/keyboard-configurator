@@ -39,14 +39,14 @@ Number keys,4,1
 0,),0
 ,,
 Modifier keys,4,1
-LEFT_ALT,Left,Alt
-RIGHT_ALT,Right,Alt
-LEFT_CTRL,Left,Ctrl
-RIGHT_CTRL,Right,Ctrl
-LEFT_SHIFT,Left,Shift
-RIGHT_SHIFT,Right,Shift
-LEFT_SUPER,Left,Super
-RIGHT_SUPER,Right,Super
+LEFT_ALT,Left Alt,
+RIGHT_ALT,Right Alt,
+LEFT_CTRL,Left Ctrl,
+RIGHT_CTRL,Right Ctrl,
+LEFT_SHIFT,Left Shift,
+RIGHT_SHIFT,Right Shift,
+LEFT_SUPER,Left Super,
+RIGHT_SUPER,Right Super,
 ,,
 Actions,4,1
 ENTER,Enter,
@@ -77,7 +77,7 @@ F11,F11,
 F12,F12,
 ,,
 Numpad,6,1
-NUM_LOCK,Num,Lock
+NUM_LOCK,Num Lock,
 NUM_7,7,
 NUM_8,8,
 NUM_9,9,
@@ -120,35 +120,35 @@ END,End,
 ,,
 Media,3,1
 MUTE,Mute,
-VOLUME_UP,Vol,Up
-VOLUME_DOWN,Vol,Down
-PLAY_PAUSE,Play,Pause
-MEDIA_NEXT,Next,Track
-MEDIA_PREV,Prev,Track
+VOLUME_UP,Vol Up,
+VOLUME_DOWN,Vol Down,
+PLAY_PAUSE,Play Pause,
+MEDIA_NEXT,Next Track,
+MEDIA_PREV,Prev Track,
 ,,
 Controls,4,2
-DISPLAY_TOGGLE,Screen,Toggle
-BRIGHTNESS_UP,Screen,Up
-BRIGHTNESS_DOWN,Screen,Down
-DISPLAY_MODE,Screen,Mode
+DISPLAY_TOGGLE,Screen Toggle,
+BRIGHTNESS_UP,Screen Up,
+BRIGHTNESS_DOWN,Screen Down,
+DISPLAY_MODE,Screen Mode,
 SUSPEND,Suspend,
-CAMERA_TOGGLE,Camera,Toggle
-AIRPLANE_MODE,Airplane,Mode
+CAMERA_TOGGLE,Camera Toggle,
+AIRPLANE_MODE,Airplane Mode,
 TOUCHPAD,Touchpad,Toggle
 ,,
 LED controls,4,1
-KBD_TOGGLE,LED,Toggle
-KBD_UP,LED,Up
-KBD_DOWN,LED,Down
-KBD_BKL,LED,Cycle
-KBD_COLOR,LED,Color
+KBD_TOGGLE,LED Toggle,
+KBD_UP,LED Up,
+KBD_DOWN,LED Down,
+KBD_BKL,LED Cycle,
+KBD_COLOR,LED Color,
 ,,
 Layer keys,4,1
-LAYER_ACCESS_1,Access,Layer 1
-FN,Access,Layer 2
-LAYER_ACCESS_3,Access,Layer 3
-LAYER_ACCESS_4,Access,Layer 4
-LAYER_TOGGLE_1,Toggle,Layer 1
-LAYER_TOGGLE_2,Toggle,Layer 2
-LAYER_TOGGLE_3,Toggle,Layer 3
-LAYER_TOGGLE_4,Toggle,Layer 4
+LAYER_ACCESS_1,Access Layer 1,
+FN,Access Layer 2,
+LAYER_ACCESS_3,Access Layer 3,
+LAYER_ACCESS_4,Access Layer 4,
+LAYER_TOGGLE_1,Toggle Layer 1,
+LAYER_TOGGLE_2,Toggle Layer 2,
+LAYER_TOGGLE_3,Toggle Layer 3,
+LAYER_TOGGLE_4,Toggle Layer 4,
