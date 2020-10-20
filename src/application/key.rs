@@ -64,10 +64,8 @@ button {{
             button.get_style_context().add_class("selected");
         }
         if let Some((_scancode, scancode_name)) = self.scancodes.get(layer) {
-            if let Some(picker_key) = picker.keys.get(scancode_name) {
-                if let Some(button) = &*picker_key.gtk.borrow() {
-                    button.get_style_context().add_class("selected");
-                }
+            if let Some(button) = picker.get_button(scancode_name) {
+                button.get_style_context().add_class("selected");
             }
         }
     }
@@ -77,10 +75,8 @@ button {{
             button.get_style_context().remove_class("selected");
         }
         if let Some((_scancode, scancode_name)) = self.scancodes.get(layer) {
-            if let Some(picker_key) = picker.keys.get(scancode_name) {
-                if let Some(ref button) = &*picker_key.gtk.borrow() {
-                    button.get_style_context().remove_class("selected");
-                }
+            if let Some(button) = picker.get_button(scancode_name) {
+                button.get_style_context().remove_class("selected");
             }
         }
     }
@@ -90,19 +86,11 @@ button {{
             label.set_label(match layer {
                 Page::Layer1 => {
                     let scancode_name = &self.scancodes[0].1;
-                    if let Some(picker_key) = picker.keys.get(scancode_name) {
-                        &picker_key.text
-                    } else {
-                        scancode_name
-                    }
+                    picker.get_text(scancode_name).unwrap_or(scancode_name)
                 },
                 Page::Layer2 => {
                     let scancode_name = &self.scancodes[1].1;
-                    if let Some(picker_key) = picker.keys.get(scancode_name) {
-                        &picker_key.text
-                    } else {
-                        scancode_name
-                    }
+                    picker.get_text(scancode_name).unwrap_or(scancode_name)
                 },
                 Page::Keycaps => &self.physical_name,
                 Page::Logical => &self.logical_name,

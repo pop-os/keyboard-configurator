@@ -13,15 +13,19 @@ mod picker;
 mod rect;
 
 use keyboard::Keyboard;
+use picker::Picker;
 
 //TODO: allow multiple keyboards
 fn main_keyboard(app: &gtk::Application, keyboard: Rc<Keyboard>) {
+    let picker = Picker::new();
+    picker.set_keyboard(Some(keyboard.clone()));
+
     let vbox = cascade! {
         gtk::Box::new(gtk::Orientation::Vertical, 32);
         ..set_property_margin(10);
         ..set_halign(gtk::Align::Center);
         ..add(&keyboard.clone().gtk());
-        ..add(&keyboard.clone().picker());
+        ..add(&picker);
     };
 
     let scrolled_window = cascade! {
