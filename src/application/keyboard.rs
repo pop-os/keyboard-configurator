@@ -538,3 +538,27 @@ button {
         vbox
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_new_board() {
+        for i in &[
+            "system76/addw1",
+            "system76/addw2",
+            "system76/bonw14",
+            "system76/darp5",
+            "system76/darp6",
+            "system76/gaze15",
+            "system76/launch_alpha_1",
+            "system76/launch_alpha_2",
+            "system76/lemp9",
+            "system76/oryp5",
+            "system76/oryp6",
+        ] {
+            Keyboard::new_board(i, None, 0).unwrap();
+        }
+    }
+}
