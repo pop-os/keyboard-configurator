@@ -1,4 +1,5 @@
 use cascade::cascade;
+use glib::object::WeakRef;
 use gtk::prelude::*;
 use std::{
     cell::{
@@ -25,13 +26,13 @@ use super::physical_layout::{PhysicalLayout, PhysicalLayoutEntry, PhysicalKeyEnu
 use super::rect::Rect;
 
 pub struct Keyboard {
-    daemon_opt: Option<Rc<dyn Daemon>>,
-    daemon_board: usize,
-    keymap: HashMap<String, u16>,
-    keys: RefCell<Vec<Key>>,
+    pub(crate) daemon_opt: Option<Rc<dyn Daemon>>,
+    pub(crate) daemon_board: usize,
+    pub(crate) keymap: HashMap<String, u16>,
+    pub(crate) keys: RefCell<Vec<Key>>,
     page: Cell<Page>,
-    picker: Picker,
-    selected: RefCell<Option<usize>>,
+    picker: RefCell<WeakRef<Picker>>,
+    pub(crate) selected: RefCell<Option<usize>>,
 }
 
 impl Keyboard {
@@ -210,7 +211,7 @@ impl Keyboard {
             keymap,
             keys: RefCell::new(keys),
             page: Cell::new(Page::Layer1),
-            picker: Picker::new(),
+            picker: RefCell::new(WeakRef::new()),
             selected: RefCell::new(None),
         })
     }
@@ -224,141 +225,6 @@ impl Keyboard {
         }
     }
 
-    pub fn picker(self: Rc<Self>) -> gtk::Box {
-        const DEFAULT_COLS: i32 = 3;
-        const PICKER_CSS: &'static str =
-r#"
-button {
-    margin: 0;
-    padding: 0;
-}
-
-.selected {
-    border-color: #fbb86c;
-    border-width: 4px;
-}
-"#;
-
-        let style_provider = cascade! {
-            gtk::CssProvider::new();
-            ..load_from_data(&PICKER_CSS.as_bytes()).expect("Failed to parse css");
-        };
-
-        let picker_vbox = gtk::Box::new(gtk::Orientation::Vertical, 32);
-        let mut picker_hbox_opt: Option<gtk::Box> = None;
-        let mut picker_col = 0;
-        let picker_cols = DEFAULT_COLS;
-
-        for group in self.picker.groups.iter() {
-            let mut hbox_opt: Option<gtk::Box> = None;
-            let mut col = 0;
-
-            let label = cascade! {
-                gtk::Label::new(Some(&group.name));
-                ..set_halign(gtk::Align::Start);
-                ..set_margin_bottom(8);
-            };
-
-            let vbox = cascade! {
-                gtk::Box::new(gtk::Orientation::Vertical, 4);
-                ..add(&label);
-            };
-
-            let picker_hbox = match picker_hbox_opt.take() {
-                Some(some) => some,
-                None => {
-                    let picker_hbox = gtk::Box::new(gtk::Orientation::Horizontal, 64);
-                    picker_vbox.add(&picker_hbox);
-                    picker_hbox
-                }
-            };
-
-            picker_hbox.add(&vbox);
-
-            picker_col += 1;
-            if picker_col >= picker_cols {
-                picker_col = 0;
-            } else {
-                picker_hbox_opt = Some(picker_hbox);
-            }
-
-            for key in group.keys.iter() {
-                let label = cascade! {
-                    gtk::Label::new(Some(&key.text));
-                    ..set_line_wrap(true);
-                    ..set_max_width_chars(1);
-                    ..set_margin_start(5);
-                    ..set_margin_end(5);
-                    ..set_justify(gtk::Justification::Center);
-                };
-
-                let button = cascade! {
-                    gtk::Button::new();
-                    ..set_size_request(48 * group.width, 48);
-                    ..get_style_context().add_provider(&style_provider, gtk::STYLE_PROVIDER_PRIORITY_USER);
-                    ..add(&label);
-                };
-
-                // Check that scancode is available for the keyboard
-                button.set_sensitive(false);
-                if let Some(_scancode) = self.keymap.get(key.name.as_str()) {
-                    button.set_sensitive(true);
-                }
-
-                let kb = self.clone();
-                let name = key.name.to_string();
-                button.connect_clicked(move |_| {
-                    let layer = kb.layer();
-
-                    println!("Clicked {} layer {}", name, layer);
-                    if let Some(i) = *kb.selected.borrow() {
-                        let mut keys = kb.keys.borrow_mut();
-                        let k = &mut keys[i];
-                        let mut found = false;
-                        if let Some(scancode) = kb.keymap.get(name.as_str()) {
-                            k.deselect(&kb.picker, layer);
-                            k.scancodes[layer] = (*scancode, name.clone());
-                            k.refresh(&kb.picker);
-                            k.select(&kb.picker, layer);
-                            found = true;
-                        }
-                        if ! found {
-                            return;
-                        }
-                        println!("  set {}, {}, {} to {:04X}", layer, k.electrical.0, k.electrical.1, k.scancodes[layer].0);
-                        if let Some(ref daemon) = kb.daemon_opt {
-                            if let Err(err) = daemon.keymap_set(kb.daemon_board, layer as u8, k.electrical.0, k.electrical.1, k.scancodes[layer].0) {
-                                eprintln!("Failed to set keymap: {:?}", err);
-                            }
-                        }
-                    }
-                });
-
-                let hbox = match hbox_opt.take() {
-                    Some(some) => some,
-                    None => {
-                        let hbox = gtk::Box::new(gtk::Orientation::Horizontal, 4);
-                        vbox.add(&hbox);
-                        hbox
-                    }
-                };
-
-                hbox.add(&button);
-
-                *key.gtk.borrow_mut() = Some(button);
-
-                col += 1;
-                if col >= group.cols {
-                    col = 0;
-                } else {
-                    hbox_opt = Some(hbox);
-                }
-            }
-        }
-
-        picker_vbox
-    }
-
     pub fn gtk(self: Rc<Self>) -> gtk::Box {
         let stack = cascade! {
             gtk::Stack::new();
@@ -366,6 +232,11 @@ button {
         };
         let kb = self.clone();
         stack.connect_property_visible_child_notify(move |stack| {
+            let picker = match kb.picker.borrow().upgrade() {
+                Some(picker) => picker,
+                None => { return; },
+            };
+
             let page: Option<Page> = match stack.get_visible_child() {
                 Some(child) => unsafe { child.get_data("keyboard_confurator_page").cloned() },
                 None => None,
@@ -379,8 +250,8 @@ button {
                 if let Some(i) = *kb.selected.borrow() {
                     let keys = kb.keys.borrow();
                     let k = &keys[i];
-                    k.deselect(&kb.picker, last_layer);
-                    k.select(&kb.picker, layer);
+                    k.deselect(&picker, last_layer);
+                    k.select(&picker, layer);
                 }
             }
         });
@@ -483,10 +354,15 @@ button {
                 {
                     let kb = self.clone();
                     button.connect_clicked(move |_| {
+                        let picker = match kb.picker.borrow().upgrade() {
+                            Some(picker) => picker,
+                            None => { return; },
+                        };
+
                         let keys = kb.keys.borrow();
 
                         if let Some(selected) = kb.selected.borrow_mut().take() {
-                            keys[selected].deselect(&kb.picker, kb.layer());
+                            keys[selected].deselect(&picker, kb.layer());
                             if i == selected {
                                 // Allow deselect
                                 return;
@@ -496,7 +372,7 @@ button {
                         {
                             let k = &keys[i];
                             println!("{:#?}", k);
-                            k.select(&kb.picker, kb.layer());
+                            k.select(&picker, kb.layer());
                         }
 
                         *kb.selected.borrow_mut() = Some(i);
@@ -506,7 +382,9 @@ button {
                 let mut keys = self.keys.borrow_mut();
                 let k = &mut keys[i];
                 k.gtk.insert(page, (button, label));
-                k.refresh(&self.picker);
+                if let Some(picker) = self.picker.borrow().upgrade() {
+                    k.refresh(&picker);
+                }
             }
         }
 
@@ -537,6 +415,14 @@ button {
 
         vbox
     }
+
+    pub(super) fn set_picker(&self, picker: Option<&Picker>) {
+        // This function is called by Picker::set_keyboard()
+        *self.picker.borrow_mut() = match picker {
+            Some(picker) => picker.downgrade(),
+            None => WeakRef::new(),
+        };
+    }
 }
 
 #[cfg(test)]
@@ -545,6 +431,7 @@ mod tests {
 
     #[test]
     fn test_new_board() {
+        gtk::init().unwrap();
         for i in &[
             "system76/addw1",
             "system76/addw2",
