@@ -34,8 +34,6 @@ impl ObjectSubclass for KeyboardColorButtonInner {
 
     glib_object_subclass!();
 
-    fn class_init(_klass: &mut subclass::simple::ClassStruct<Self>) {}
-
     fn new() -> Self {
         let grid = cascade! {
             gtk::Grid::new();

@@ -44,8 +44,6 @@ impl ObjectSubclass for ColorCircleInner {
 
     glib_object_subclass!();
 
-    fn class_init(_klass: &mut subclass::simple::ClassStruct<Self>) {}
-
     fn new() -> Self {
         let drawing_area = gtk::DrawingArea::new();
 
