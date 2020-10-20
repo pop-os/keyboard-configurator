@@ -1,6 +1,5 @@
 use cascade::cascade;
 use gtk::prelude::*;
-use serde_json::Value;
 use std::{
     cell::{
         Cell,
@@ -22,6 +21,7 @@ use crate::keyboard_color_button::KeyboardColorButton;
 use super::key::Key;
 use super::page::Page;
 use super::picker::Picker;
+use super::physical_layout::{PhysicalLayout, PhysicalLayoutEntry, PhysicalKeyEnum};
 use super::rect::Rect;
 
 pub struct Keyboard {
@@ -97,7 +97,7 @@ impl Keyboard {
             layout.insert(logical_name, (output, input));
         }
 
-        let v: Value = serde_json::from_str(&physical_json).unwrap();
+        let physical_layout: PhysicalLayout = serde_json::from_str(&physical_json).unwrap();
         //println!("{:#?}", v);
 
         let mut keys = Vec::new();
@@ -111,132 +111,96 @@ impl Keyboard {
         let mut background_color = "#cccccc".to_string();
         let mut foreground_color = "#000000".to_string();
 
-        if let Value::Array(rows) = v {
-            for row in rows {
-                match row {
-                    Value::Array(cols) => {
-                        for col in cols {
-                            match col {
-                                Value::Object(o) => {
-                                    println!("Key metadata {:?}", o);
-                                    if let Some(x_v) = o.get("x") {
-                                        if let Value::Number(x_n) = x_v {
-                                            if let Some(x_f) = x_n.as_f64() {
-                                                x += x_f;
-                                            }
-                                        }
-                                    }
-                                    if let Some(y_v) = o.get("y") {
-                                        if let Value::Number(y_n) = y_v {
-                                            if let Some(y_f) = y_n.as_f64() {
-                                                y -= y_f;
-                                            }
-                                        }
-                                    }
-                                    if let Some(w_v) = o.get("w") {
-                                        if let Value::Number(w_n) = w_v {
-                                            if let Some(w_f) = w_n.as_f64() {
-                                                w = w_f;
-                                            }
-                                        }
-                                    }
-                                    if let Some(h_v) = o.get("h") {
-                                        if let Value::Number(h_n) = h_v {
-                                            if let Some(h_f) = h_n.as_f64() {
-                                                h = h_f;
-                                            }
-                                        }
-                                    }
-                                    if let Some(c_v) = o.get("c") {
-                                        if let Value::String(c_s) = c_v {
-                                            background_color = c_s.clone();
-                                        }
-                                    }
-                                    if let Some(t_v) = o.get("t") {
-                                        if let Value::String(t_s) = t_v {
-                                            //TODO: support using different color per line?
-                                            //Is this even possible in GTK?
-                                            if let Some(t_l) = t_s.lines().next() {
-                                                foreground_color = t_l.to_string();
-                                            }
-                                        }
-                                    }
-                                },
-                                Value::String(s) => {
-                                    println!("Key {}, {} = {:?}", x, y, s);
-
-                                    let logical = (row_i as u8, col_i as u8);
-                                    println!("  Logical: {:?}", logical);
-
-                                    let row_char = char::from_digit(logical.0 as u32, 36)
-                                        .expect("Failed to convert row to char");
-                                    let col_char = char::from_digit(logical.1 as u32, 36)
-                                        .expect("Failed to convert col to char");
-                                    let logical_name = format!("K{}{}", row_char, col_char).to_uppercase();
-                                    println!("  Logical Name: {}", logical_name);
-
-                                    let electrical = layout.get(logical_name.as_str())
-                                        //.expect("Failed to find electrical mapping");
-                                        .unwrap_or(&(0, 0));
-                                    println!("  Electrical: {:?}", electrical);
-
-                                    let mut scancodes = Vec::new();
-                                    for layer in 0..2 {
-                                        println!("  Layer {}", layer);
-                                        let scancode = if let Some(ref daemon) = daemon_opt {
-                                            match daemon.keymap_get(daemon_board, layer, electrical.0, electrical.1) {
-                                                Ok(value) => value,
-                                                Err(err) => {
-                                                    eprintln!("Failed to read scancode: {:?}", err);
-                                                    0
-                                                }
-                                            }
-                                        } else {
-                                            0
-                                        };
-                                        println!("    Scancode: {:04X}", scancode);
-
-                                        let scancode_name = match scancode_names.get(&scancode) {
-                                            Some(some) => some.to_string(),
-                                            None => String::new(),
-                                        };
-                                        println!("    Scancode Name: {}", scancode_name);
-
-                                        scancodes.push((scancode, scancode_name));
-                                    }
-
-                                    keys.push(Key {
-                                        logical,
-                                        logical_name,
-                                        physical: Rect::new(x, y, w, h),
-                                        physical_name: s,
-                                        electrical: electrical.clone(),
-                                        electrical_name: format!("{}, {}", electrical.0, electrical.1),
-                                        scancodes,
-                                        background_color: background_color.clone(),
-                                        foreground_color: foreground_color.clone(),
-                                        gtk: HashMap::new(),
-                                    });
-
-                                    x += w;
-
-                                    w = 1.0;
-                                    h = 1.0;
-
-                                    col_i += 1;
+        for entry in physical_layout.0 {
+            if let PhysicalLayoutEntry::Row(row) = entry {
+                for i in row.0 {
+                    match i {
+                        PhysicalKeyEnum::Meta(meta) => {
+                            println!("Key metadata {:?}", meta);
+                            x += meta.x;
+                            y -= meta.y;
+                            w = meta.w.unwrap_or(w);
+                            h = meta.h.unwrap_or(h);
+                            background_color = meta.c.unwrap_or(background_color);
+                            if let Some(t) = meta.t {
+                                //TODO: support using different color per line?
+                                //Is this even possible in GTK?
+                                if let Some(t_l) = t.lines().next() {
+                                    foreground_color = t_l.to_string();
                                 }
-                                _ => (),
                             }
                         }
+                        PhysicalKeyEnum::Name(name) => {
+                            println!("Key {}, {} = {:?}", x, y, name);
 
-                        x = 0.0;
-                        y -= 1.0;
+                            let logical = (row_i as u8, col_i as u8);
+                            println!("  Logical: {:?}", logical);
 
-                        col_i = 0;
-                        row_i += 1;
-                    },
-                    _ => (),
+                            let row_char = char::from_digit(logical.0 as u32, 36)
+                                .expect("Failed to convert row to char");
+                            let col_char = char::from_digit(logical.1 as u32, 36)
+                                .expect("Failed to convert col to char");
+                            let logical_name = format!("K{}{}", row_char, col_char).to_uppercase();
+                            println!("  Logical Name: {}", logical_name);
+
+                            let electrical = layout.get(logical_name.as_str())
+                                //.expect("Failed to find electrical mapping");
+                                .unwrap_or(&(0, 0));
+                            println!("  Electrical: {:?}", electrical);
+
+                            let mut scancodes = Vec::new();
+                            for layer in 0..2 {
+                                println!("  Layer {}", layer);
+                                let scancode = if let Some(ref daemon) = daemon_opt {
+                                    match daemon.keymap_get(daemon_board, layer, electrical.0, electrical.1) {
+                                        Ok(value) => value,
+                                        Err(err) => {
+                                            eprintln!("Failed to read scancode: {:?}", err);
+                                            0
+                                        }
+                                    }
+                                } else {
+                                    0
+                                };
+                                println!("    Scancode: {:04X}", scancode);
+
+                                let scancode_name = match scancode_names.get(&scancode) {
+                                    Some(some) => some.to_string(),
+                                    None => String::new(),
+                                };
+                                println!("    Scancode Name: {}", scancode_name);
+
+                                scancodes.push((scancode, scancode_name));
+                            }
+
+                            keys.push(Key {
+                                logical,
+                                logical_name,
+                                physical: Rect::new(x, y, w, h),
+                                physical_name: name,
+                                electrical: electrical.clone(),
+                                electrical_name: format!("{}, {}", electrical.0, electrical.1),
+                                scancodes,
+                                background_color: background_color.clone(),
+                                foreground_color: foreground_color.clone(),
+                                gtk: HashMap::new(),
+                            });
+
+                            x += w;
+
+                            w = 1.0;
+                            h = 1.0;
+
+                            col_i += 1;
+                        }
+                    }
                 }
+
+                x = 0.0;
+                y -= 1.0;
+
+                col_i = 0;
+                row_i += 1;
             }
         }
 
