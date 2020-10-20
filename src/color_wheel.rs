@@ -1,135 +1,129 @@
 // A hue/saturation color wheel that allows a color to be selected.
 
-use cascade::cascade;
-use glib::clone;
-use glib::clone::{Downgrade, Upgrade};
+use glib::subclass;
+use glib::subclass::prelude::*;
+use glib::translate::{FromGlibPtrFull, ToGlib, ToGlibPtr};
 use gtk::prelude::*;
+use gtk::subclass::prelude::*;
 use std::cell::{Cell, RefCell};
 use std::f64::consts::PI;
-use std::rc::{Rc, Weak};
 
 use crate::color::{Hs, Rgb};
 
-struct ColorWheelInner {
+pub struct ColorWheelInner {
     selected_hs: Cell<Hs>,
     surface: RefCell<cairo::ImageSurface>,
-    drawing_area: gtk::DrawingArea,
-    frame: gtk::AspectFrame,
     hs_changed_handlers: RefCell<Vec<Box<dyn Fn(&ColorWheel) + 'static>>>,
 }
 
-#[derive(Clone)]
-pub struct ColorWheel(Rc<ColorWheelInner>);
+impl ObjectSubclass for ColorWheelInner {
+    const NAME: &'static str = "S76ColorWheel";
 
-pub struct ColorWheelWeak(Weak<ColorWheelInner>);
+    type ParentType = gtk::DrawingArea;
 
-impl Downgrade for ColorWheel {
-    type Weak = ColorWheelWeak;
+    type Instance = subclass::simple::InstanceStruct<Self>;
+    type Class = subclass::simple::ClassStruct<Self>;
 
-    fn downgrade(&self) -> Self::Weak {
-        ColorWheelWeak(self.0.downgrade())
+    glib_object_subclass!();
+
+    fn new() -> Self {
+        Self {
+            selected_hs: Cell::new(Hs::new(0., 0.)),
+            surface: RefCell::new(cairo::ImageSurface::create(cairo::Format::Rgb24, 0, 0).unwrap()),
+            hs_changed_handlers: RefCell::new(Vec::new()),
+        }
     }
 }
 
-impl Upgrade for ColorWheelWeak {
-    type Strong = ColorWheel;
+impl ObjectImpl for ColorWheelInner {
+    glib_object_impl!();
+}
+impl WidgetImpl for ColorWheelInner {}
+impl DrawingAreaImpl for ColorWheelInner {}
 
-    fn upgrade(&self) -> Option<Self::Strong> {
-        self.0.upgrade().map(ColorWheel)
+glib_wrapper! {
+    pub struct ColorWheel(
+        Object<subclass::simple::InstanceStruct<ColorWheelInner>,
+        subclass::simple::ClassStruct<ColorWheelInner>, ColorWheelClass>)
+        @extends gtk::DrawingArea, gtk::Widget;
+
+    match fn {
+        get_type => || ColorWheelInner::get_type().to_glib(),
     }
 }
 
 impl ColorWheel {
     pub fn new() -> Self {
-        let drawing_area = cascade! {
-            gtk::DrawingArea::new();
-            ..add_events(gdk::EventMask::POINTER_MOTION_MASK | gdk::EventMask::BUTTON_PRESS_MASK);
-        };
+        let wheel: Self = glib::Object::new(Self::static_type(), &[])
+            .unwrap()
+            .downcast()
+            .unwrap();
 
-        let frame = cascade! {
-            gtk::AspectFrame::new(None, 0., 0., 1., false);
-            ..set_shadow_type(gtk::ShadowType::None);
-            ..set_size_request(500, 500);
-            ..add(&drawing_area);
-        };
-
-        let wheel = Self(Rc::new(ColorWheelInner {
-            selected_hs: Cell::new(Hs::new(0., 0.)),
-            surface: RefCell::new(cairo::ImageSurface::create(cairo::Format::Rgb24, 0, 0).unwrap()),
-            drawing_area,
-            frame,
-            hs_changed_handlers: RefCell::new(Vec::new()),
-        }));
-
+        wheel.set_size_request(500, 500);
+        wheel.add_events(gdk::EventMask::POINTER_MOTION_MASK | gdk::EventMask::BUTTON_PRESS_MASK);
         wheel.connect_signals();
 
         wheel
     }
 
+    fn inner(&self) -> &ColorWheelInner {
+        ColorWheelInner::from_instance(self)
+    }
+
     pub fn widget(&self) -> &gtk::Widget {
-        self.0.frame.upcast_ref()
+        self.upcast_ref()
     }
 
     pub fn hs(&self) -> Hs {
-        self.0.selected_hs.get()
+        self.inner().selected_hs.get()
     }
 
     pub fn set_hs(&self, hs: Hs) {
-        self.0.selected_hs.set(hs);
-        self.0.drawing_area.queue_draw();
-        for handler in self.0.hs_changed_handlers.borrow().iter() {
+        self.inner().selected_hs.set(hs);
+        self.queue_draw();
+        for handler in self.inner().hs_changed_handlers.borrow().iter() {
             handler(self);
         }
     }
 
     pub fn connect_hs_changed<F: Fn(&Self) + 'static>(&self, f: F) {
-        self.0
+        self.inner()
             .hs_changed_handlers
             .borrow_mut()
             .push(std::boxed::Box::new(f) as Box<dyn Fn(&Self)>);
     }
 
     fn connect_signals(&self) {
-        let self_ = self;
+        self.connect_draw(|self_, cr| {
+            self_.draw(cr);
+            Inhibit(false)
+        });
 
-        self.0
-            .drawing_area
-            .connect_draw(clone!(@strong self_ => move |w, cr| {
-                self_.draw(w, cr);
-                Inhibit(false)
-            }));
+        self.connect_size_allocate(|self_, rect| {
+            self_.generate_surface(rect);
+        });
 
-        self.0.drawing_area.connect_size_allocate(
-            clone!(@weak self_ => @default-panic, move |_w, rect| {
-                self_.generate_surface(rect);
-            }),
-        );
+        self.connect_button_press_event(|self_, evt| {
+            self_.mouse_select(evt.get_position());
+            Inhibit(false)
+        });
 
-        self.0.drawing_area.connect_button_press_event(
-            clone!(@weak self_ => @default-panic, move |w, evt| {
-                self_.mouse_select(w, evt.get_position());
-                Inhibit(false)
-            }),
-        );
-
-        self.0.drawing_area.connect_motion_notify_event(
-            clone!(@weak self_ => @default-panic, move |w, evt| {
-                if evt.get_state().contains(gdk::ModifierType::BUTTON1_MASK) {
-                    self_.mouse_select(w, evt.get_position());
-                }
-                Inhibit(false)
-            }),
-        );
+        self.connect_motion_notify_event(|self_, evt| {
+            if evt.get_state().contains(gdk::ModifierType::BUTTON1_MASK) {
+                self_.mouse_select(evt.get_position());
+            }
+            Inhibit(false)
+        });
     }
 
-    fn draw(&self, w: &gtk::DrawingArea, cr: &cairo::Context) {
-        let width = f64::from(w.get_allocated_width());
-        let height = f64::from(w.get_allocated_height());
+    fn draw(&self, cr: &cairo::Context) {
+        let width = f64::from(self.get_allocated_width());
+        let height = f64::from(self.get_allocated_height());
 
         let radius = width.min(height) / 2.;
 
         // Draw color wheel
-        cr.set_source_surface(&self.0.surface.borrow(), 0., 0.);
+        cr.set_source_surface(&self.inner().surface.borrow(), 0., 0.);
         cr.arc(radius, radius, radius, 0., 2. * PI);
         cr.fill();
 
@@ -170,12 +164,12 @@ impl ColorWheel {
         let image_surface =
             cairo::ImageSurface::create_for_data(data, cairo::Format::Rgb24, size, size, stride)
                 .unwrap();
-        self.0.surface.replace(image_surface);
+        self.inner().surface.replace(image_surface);
     }
 
-    fn mouse_select(&self, w: &gtk::DrawingArea, pos: (f64, f64)) {
-        let width = f64::from(w.get_allocated_width());
-        let height = f64::from(w.get_allocated_height());
+    fn mouse_select(&self, pos: (f64, f64)) {
+        let width = f64::from(self.get_allocated_width());
+        let height = f64::from(self.get_allocated_height());
 
         let radius = width.min(height) / 2.;
         let (x, y) = (pos.0 - radius, radius - pos.1);
