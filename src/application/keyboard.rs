@@ -65,6 +65,7 @@ impl Keyboard {
         keyboard!("system76/gaze15");
         keyboard!("system76/launch_alpha_1");
         keyboard!("system76/launch_alpha_2");
+        keyboard!("system76/launch_beta_1");
         keyboard!("system76/lemp9");
         keyboard!("system76/oryp5");
         keyboard!("system76/oryp6");
