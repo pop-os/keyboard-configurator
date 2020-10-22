@@ -128,7 +128,13 @@ impl KeyboardColorButton {
             .unwrap();
 
         keyboard_color_button.inner().keyboard.replace(keyboard.clone());
-        keyboard_color_button.inner().button.set_rgb(keyboard.color().unwrap());
+        keyboard_color_button.inner().button.set_rgb(match keyboard.color() {
+            Ok(ok) => ok,
+            Err(err) => {
+                eprintln!("{}", err);
+                Rgb::new(0, 0, 0)
+            }
+        });
 
         let button = &keyboard_color_button.inner().button;
         keyboard.connect_color_changed(clone!(@weak button => @default-panic, move |_, color| {
