@@ -139,10 +139,6 @@ impl ColorCircle {
             .connect_clicked(clone!(@weak self_ => @default-panic, move |_| cb(&self_)));
     }
 
-    pub fn widget(&self) -> &gtk::Widget {
-        self.upcast_ref()
-    }
-
     fn draw(&self, w: &gtk::DrawingArea, cr: &cairo::Context) {
         let width = f64::from(w.get_allocated_width());
         let height = f64::from(w.get_allocated_height());
@@ -179,7 +175,7 @@ impl ColorCircle {
 
     pub fn set_rgb(&self, color: Rgb) {
         self.inner().rgb.set(color);
-        self.widget().queue_draw();
+        self.queue_draw();
     }
 
     pub fn rgb(&self) -> Rgb {
@@ -188,7 +184,7 @@ impl ColorCircle {
 
     pub fn set_symbol(&self, symbol: ColorCircleSymbol) {
         self.inner().symbol.set(symbol);
-        self.widget().queue_draw();
+        self.queue_draw();
     }
 
     pub fn set_alpha(&self, alpha: f64) {
