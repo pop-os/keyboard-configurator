@@ -69,7 +69,7 @@ impl ObjectSubclass for KeyboardColorButtonInner {
             ..connect_clicked(clone!(@weak popover => @default-panic, move |_| popover.popup()));
         };
 
-        popover.set_relative_to(Some(button.widget()));
+        popover.set_relative_to(Some(&button));
 
         let add_circle = cascade! {
             ColorCircle::new(45);
@@ -201,14 +201,14 @@ impl KeyboardColorButton {
         {
             let x = i as i32 % 3;
             let y = i as i32 / 3;
-            self.inner().grid.attach(circle.widget(), x, y, 1, 1);
+            self.inner().grid.attach(circle, x, y, 1, 1);
         }
 
         self.inner().grid.show_all();
     }
 
     fn add_clicked(&self) {
-        if let Some(color) = choose_color(self.inner().keyboard.borrow().clone(), self.widget(), "Add Color", None)
+        if let Some(color) = choose_color(self.inner().keyboard.borrow().clone(), self, "Add Color", None)
         {
             self.add_color(color);
             self.inner().remove_button.set_visible(true);
@@ -237,7 +237,7 @@ impl KeyboardColorButton {
         if let Some(circle) = &*self.inner().current_circle.borrow() {
             if let Some(color) = choose_color(
                 self.inner().keyboard.borrow().clone(),
-                self.widget(),
+                self,
                 "Edit Color",
                 Some(circle.rgb()),
             ) {
@@ -256,9 +256,5 @@ impl KeyboardColorButton {
         circle.set_symbol(ColorCircleSymbol::Check);
         let old_circle = self.inner().current_circle.replace(Some(circle.clone()));
         old_circle.map(|c| c.set_symbol(ColorCircleSymbol::None));
-    }
-
-    pub fn widget(&self) -> &gtk::Widget {
-        self.upcast_ref()
     }
 }

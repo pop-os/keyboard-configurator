@@ -70,10 +70,6 @@ impl ColorWheel {
         ColorWheelInner::from_instance(self)
     }
 
-    pub fn widget(&self) -> &gtk::Widget {
-        self.upcast_ref()
-    }
-
     pub fn hs(&self) -> Hs {
         self.inner().selected_hs.get()
     }

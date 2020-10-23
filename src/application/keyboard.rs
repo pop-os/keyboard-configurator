@@ -301,7 +301,7 @@ impl Keyboard {
 
             ColorKeyboard::new_dummy()
         };
-        let color_button = KeyboardColorButton::new(color_keyboard).widget().clone();
+        let color_button = KeyboardColorButton::new(color_keyboard);
         color_button.set_valign(gtk::Align::Center);
 
         for page in Page::iter_all() {

@@ -41,7 +41,7 @@ pub fn choose_color<W: IsA<gtk::Widget>>(
         ..set_margin_end(12);
         ..set_margin_top(12);
         ..set_margin_bottom(12);
-        ..add(color_wheel.widget());
+        ..add(&color_wheel);
         ..add(&preview);
         ..show_all();
     };

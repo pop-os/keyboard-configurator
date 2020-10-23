@@ -54,7 +54,7 @@ fn page(keyboard: Keyboard) -> gtk::Widget {
         }),
     );
 
-    let button = KeyboardColorButton::new(keyboard).widget().clone();
+    let button = KeyboardColorButton::new(keyboard);
 
     let listbox = cascade! {
         gtk::ListBox::new();
