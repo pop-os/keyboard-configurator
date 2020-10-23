@@ -54,7 +54,7 @@ impl ObjectSubclass for ColorCircleInner {
 
         let button = cascade! {
             gtk::Button::new();
-            ..get_style_context().add_provider(&provider, gtk_sys::GTK_STYLE_PROVIDER_PRIORITY_APPLICATION as u32);
+            ..get_style_context().add_provider(&provider, gtk::STYLE_PROVIDER_PRIORITY_APPLICATION);
             ..get_style_context().add_class("circular");
             ..get_style_context().add_class("keyboard_color_button");
             ..add(&drawing_area);

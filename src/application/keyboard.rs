@@ -342,7 +342,7 @@ impl Keyboard {
                         gtk::Button::new();
                         ..set_focus_on_click(false);
                         ..set_size_request(w, h);
-                        ..get_style_context().add_provider(&style_provider, gtk::STYLE_PROVIDER_PRIORITY_USER);
+                        ..get_style_context().add_provider(&style_provider, gtk::STYLE_PROVIDER_PRIORITY_APPLICATION);
                         ..add(&label);
                     };
 
