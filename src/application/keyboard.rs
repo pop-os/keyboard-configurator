@@ -6,7 +6,6 @@ use std::{
         Cell,
         RefCell,
     },
-    char,
     collections::HashMap,
     fs,
     path::{
@@ -20,10 +19,9 @@ use crate::daemon::Daemon;
 use crate::keyboard::Keyboard as ColorKeyboard;
 use crate::keyboard_color_button::KeyboardColorButton;
 use super::key::Key;
+use super::layout::Layout;
 use super::page::Page;
 use super::picker::Picker;
-use super::physical_layout::{PhysicalLayout, PhysicalLayoutEntry, PhysicalKeyEnum};
-use super::rect::Rect;
 
 pub struct Keyboard {
     pub(crate) daemon_opt: Option<Rc<dyn Daemon>>,
@@ -48,172 +46,54 @@ impl Keyboard {
         Self::new_data(&keymap_csv, &layout_csv, &physical_json, daemon_opt, daemon_board)
     }
 
-    pub fn new_board(board: &str, daemon_opt: Option<Rc<dyn Daemon>>, daemon_board: usize) -> Option<Rc<Self>> {
-        macro_rules! keyboard {
-            ($board:expr) => (if board == $board {
-                let keymap_csv = include_str!(concat!("../../layouts/", $board, "/keymap.csv"));
-                let layout_csv = include_str!(concat!("../../layouts/", $board, "/layout.csv"));
-                let physical_json = include_str!(concat!("../../layouts/", $board, "/physical.json"));
-                return Some(Keyboard::new_data(keymap_csv, layout_csv, physical_json, daemon_opt, daemon_board));
-            });
-        }
-
-        keyboard!("system76/addw1");
-        keyboard!("system76/addw2");
-        keyboard!("system76/bonw14");
-        keyboard!("system76/darp5");
-        keyboard!("system76/darp6");
-        keyboard!("system76/gaze15");
-        keyboard!("system76/launch_alpha_1");
-        keyboard!("system76/launch_alpha_2");
-        keyboard!("system76/launch_beta_1");
-        keyboard!("system76/lemp9");
-        keyboard!("system76/oryp5");
-        keyboard!("system76/oryp6");
-        None
-    }
-
-    fn new_data(keymap_csv: &str, layout_csv: &str, physical_json: &str, daemon_opt: Option<Rc<dyn Daemon>>, daemon_board: usize) -> Rc<Self> {
-        let mut keymap = HashMap::new();
-        let mut scancode_names = HashMap::new();
-        scancode_names.insert(0, "NONE");
-        for line in keymap_csv.lines() {
-            let mut parts = line.split(',');
-            let scancode_name = parts.next().expect("Failed to read scancode name");
-            let scancode_str = parts.next().expect("Failed to read scancode");
-            let scancode_trim = scancode_str.trim_start_matches("0x");
-            let scancode = u16::from_str_radix(scancode_trim, 16).expect("Failed to parse scancode");
-            keymap.insert(scancode_name.to_string(), scancode);
-            scancode_names.insert(scancode, scancode_name);
-        }
-
-        let mut layout = HashMap::new();
-        for line in layout_csv.lines() {
-            let mut parts = line.split(',');
-            let logical_name = parts.next().expect("Failed to read logical name");
-            let output_str = parts.next().expect("Failed to read electrical output");
-            let output = output_str.parse().expect("Failed to parse electrical output");
-            let input_str = parts.next().expect("Failed to read electrical input");
-            let input = input_str.parse().expect("Failed to parse electrical input");
-            layout.insert(logical_name, (output, input));
-        }
-
-        let physical_layout: PhysicalLayout = serde_json::from_str(&physical_json).unwrap();
-        //println!("{:#?}", v);
-
-        let mut keys = Vec::new();
-
-        let mut row_i = 0;
-        let mut col_i = 0;
-        let mut x = 0.0;
-        let mut y = 0.0;
-        let mut w = 1.0;
-        let mut h = 1.0;
-        let mut background_color = "#cccccc".to_string();
-        let mut foreground_color = "#000000".to_string();
-
-        for entry in physical_layout.0 {
-            if let PhysicalLayoutEntry::Row(row) = entry {
-                for i in row.0 {
-                    match i {
-                        PhysicalKeyEnum::Meta(meta) => {
-                            println!("Key metadata {:?}", meta);
-                            x += meta.x;
-                            y -= meta.y;
-                            w = meta.w.unwrap_or(w);
-                            h = meta.h.unwrap_or(h);
-                            background_color = meta.c.unwrap_or(background_color);
-                            if let Some(t) = meta.t {
-                                //TODO: support using different color per line?
-                                //Is this even possible in GTK?
-                                if let Some(t_l) = t.lines().next() {
-                                    foreground_color = t_l.to_string();
-                                }
-                            }
-                        }
-                        PhysicalKeyEnum::Name(name) => {
-                            println!("Key {}, {} = {:?}", x, y, name);
-
-                            let logical = (row_i as u8, col_i as u8);
-                            println!("  Logical: {:?}", logical);
-
-                            let row_char = char::from_digit(logical.0 as u32, 36)
-                                .expect("Failed to convert row to char");
-                            let col_char = char::from_digit(logical.1 as u32, 36)
-                                .expect("Failed to convert col to char");
-                            let logical_name = format!("K{}{}", row_char, col_char).to_uppercase();
-                            println!("  Logical Name: {}", logical_name);
-
-                            let electrical = layout.get(logical_name.as_str())
-                                //.expect("Failed to find electrical mapping");
-                                .unwrap_or(&(0, 0));
-                            println!("  Electrical: {:?}", electrical);
-
-                            let mut scancodes = Vec::new();
-                            for layer in 0..2 {
-                                println!("  Layer {}", layer);
-                                let scancode = if let Some(ref daemon) = daemon_opt {
-                                    match daemon.keymap_get(daemon_board, layer, electrical.0, electrical.1) {
-                                        Ok(value) => value,
-                                        Err(err) => {
-                                            eprintln!("Failed to read scancode: {:?}", err);
-                                            0
-                                        }
-                                    }
-                                } else {
-                                    0
-                                };
-                                println!("    Scancode: {:04X}", scancode);
-
-                                let scancode_name = match scancode_names.get(&scancode) {
-                                    Some(some) => some.to_string(),
-                                    None => String::new(),
-                                };
-                                println!("    Scancode Name: {}", scancode_name);
-
-                                scancodes.push((scancode, scancode_name));
-                            }
-
-                            keys.push(Key {
-                                logical,
-                                logical_name,
-                                physical: Rect::new(x, y, w, h),
-                                physical_name: name,
-                                electrical: electrical.clone(),
-                                electrical_name: format!("{}, {}", electrical.0, electrical.1),
-                                scancodes,
-                                background_color: background_color.clone(),
-                                foreground_color: foreground_color.clone(),
-                                gtk: HashMap::new(),
-                            });
-
-                            x += w;
-
-                            w = 1.0;
-                            h = 1.0;
-
-                            col_i += 1;
+    fn new_layout(layout: Layout, daemon_opt: Option<Rc<dyn Daemon>>, daemon_board: usize) -> Rc<Self> {
+        let mut keys = layout.keys();
+        for key in keys.iter_mut() {
+            for layer in 0..2 {
+                println!("  Layer {}", layer);
+                let scancode = if let Some(ref daemon) = daemon_opt {
+                    match daemon.keymap_get(daemon_board, layer, key.electrical.0, key.electrical.1) {
+                        Ok(value) => value,
+                        Err(err) => {
+                            eprintln!("Failed to read scancode: {:?}", err);
+                            0
                         }
                     }
-                }
+                } else {
+                    0
+                };
+                println!("    Scancode: {:04X}", scancode);
 
-                x = 0.0;
-                y -= 1.0;
+                let scancode_name = match layout.scancode_names.get(&scancode) {
+                    Some(some) => some.to_string(),
+                    None => String::new(),
+                };
+                println!("    Scancode Name: {}", scancode_name);
 
-                col_i = 0;
-                row_i += 1;
+                key.scancodes.push((scancode, scancode_name));
             }
         }
 
         Rc::new(Self {
             daemon_opt,
             daemon_board,
-            keymap,
+            keymap: layout.keymap,
             keys: RefCell::new(keys),
             page: Cell::new(Page::Layer1),
             picker: RefCell::new(WeakRef::new()),
             selected: RefCell::new(None),
         })
+    }
+
+    pub fn new_board(board: &str, daemon_opt: Option<Rc<dyn Daemon>>, daemon_board: usize) -> Option<Rc<Self>> {
+        Layout::from_board(board).map(|layout|
+            Self::new_layout(layout, daemon_opt, daemon_board)
+        )
+    }
+
+    fn new_data(keymap_csv: &str, layout_csv: &str, physical_json: &str, daemon_opt: Option<Rc<dyn Daemon>>, daemon_board: usize) -> Rc<Self> {
+        let layout = Layout::from_data(keymap_csv, layout_csv, physical_json);
+        Self::new_layout(layout, daemon_opt, daemon_board)
     }
 
     pub fn layer(&self) -> usize {
@@ -422,30 +302,5 @@ impl Keyboard {
             Some(picker) => picker.downgrade(),
             None => WeakRef::new(),
         };
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_new_board() {
-        gtk::init().unwrap();
-        for i in &[
-            "system76/addw1",
-            "system76/addw2",
-            "system76/bonw14",
-            "system76/darp5",
-            "system76/darp6",
-            "system76/gaze15",
-            "system76/launch_alpha_1",
-            "system76/launch_alpha_2",
-            "system76/lemp9",
-            "system76/oryp5",
-            "system76/oryp6",
-        ] {
-            Keyboard::new_board(i, None, 0).unwrap();
-        }
     }
 }
