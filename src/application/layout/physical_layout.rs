@@ -1,5 +1,4 @@
 /// Serde based deserialization for physical.json
-
 use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
