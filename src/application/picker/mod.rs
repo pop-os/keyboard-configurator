@@ -192,16 +192,14 @@ impl Picker {
                             "  set {}, {}, {} to {:04X}",
                             layer, k.electrical.0, k.electrical.1, k.scancodes[layer].0
                         );
-                        if let Some(ref daemon) = kb.daemon_opt {
-                            if let Err(err) = daemon.keymap_set(
-                                kb.daemon_board,
-                                layer as u8,
-                                k.electrical.0,
-                                k.electrical.1,
-                                k.scancodes[layer].0,
-                            ) {
-                                eprintln!("Failed to set keymap: {:?}", err);
-                            }
+                        if let Err(err) = kb.daemon.keymap_set(
+                            kb.daemon_board,
+                            layer as u8,
+                            k.electrical.0,
+                            k.electrical.1,
+                            k.scancodes[layer].0,
+                        ) {
+                            eprintln!("Failed to set keymap: {:?}", err);
                         }
                     }
                 }));

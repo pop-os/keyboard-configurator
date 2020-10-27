@@ -3,7 +3,7 @@ use gio::prelude::*;
 use gtk::prelude::*;
 use std::rc::Rc;
 
-use crate::daemon::{Daemon, DaemonClient, daemon_server};
+use crate::daemon::{Daemon, DaemonClient, DaemonDummy, daemon_server};
 
 mod key;
 mod keyboard;
@@ -51,7 +51,7 @@ fn main_app(app: &gtk::Application, daemon: Rc<dyn Daemon>) {
 
     let mut count = 0;
     for (i, board) in boards.iter().enumerate() {
-        if let Some(keyboard) = Keyboard::new_board(board, Some(daemon.clone()), i) {
+        if let Some(keyboard) = Keyboard::new_board(board, daemon.clone(), i) {
             let widget = main_keyboard(app, keyboard);
             board_dropdown.append(Some(&board), &board);
             stack.add_named(&widget, &board);
@@ -66,18 +66,27 @@ fn main_app(app: &gtk::Application, daemon: Rc<dyn Daemon>) {
         }
     }
 
-    if count == 0 {
+    if count == 1 {
         eprintln!("Failed to locate any keyboards, showing demo");
-        let board = "system76/launch_alpha_2";
-        let keyboard = Keyboard::new_board(board, None, 0)
-            .expect("Failed to load demo layout");
 
-        let widget = main_keyboard(app, keyboard);
-        board_dropdown.append(Some(board), board);
-        stack.add_named(&widget, board);
+        let daemon = Rc::new(DaemonDummy::new());
+        let boards = daemon.boards().unwrap();
 
-        widget.show();
-        board_dropdown.set_active_id(Some(board));
+        for (i, board) in boards.iter().enumerate() {
+            if let Some(keyboard) = Keyboard::new_board(board, daemon.clone(), i) {
+                let widget = main_keyboard(app, keyboard);
+                board_dropdown.append(Some(&board), &board);
+                stack.add_named(&widget, &board);
+                count += 1;
+
+                if count == 1 {
+                    widget.show();
+                    board_dropdown.set_active_id(Some(&board));
+                }
+            } else {
+                eprintln!("Failed to locate layout for '{}'", board);
+            }
+        }
     }
 
     let vbox = cascade! {

@@ -9,6 +9,9 @@ mod client;
 pub use self::server::DaemonServer;
 mod server;
 
+pub use self::dummy::DaemonDummy;
+mod dummy;
+
 pub trait DaemonClientTrait {
     fn send_command(&self, command: DaemonCommand) -> Result<DaemonResponse, String>;
 }

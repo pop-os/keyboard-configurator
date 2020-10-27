@@ -23,7 +23,7 @@ impl Hs {
     }
 }
 
-#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, Default)]
 pub struct Rgb {
     /// Red
     pub r: u8,
