@@ -24,7 +24,7 @@ use super::page::Page;
 use super::picker::Picker;
 
 pub struct Keyboard {
-    pub(crate) daemon_opt: Option<Rc<dyn Daemon>>,
+    pub(crate) daemon: Rc<dyn Daemon>,
     pub(crate) daemon_board: usize,
     pub(crate) keymap: HashMap<String, u16>,
     pub(crate) keys: RefCell<Vec<Key>>,
@@ -34,7 +34,7 @@ pub struct Keyboard {
 }
 
 impl Keyboard {
-    pub fn new<P: AsRef<Path>>(dir: P, daemon_opt: Option<Rc<dyn Daemon>>, daemon_board: usize) -> Rc<Self> {
+    pub fn new<P: AsRef<Path>>(dir: P, daemon: Rc<dyn Daemon>, daemon_board: usize) -> Rc<Self> {
         let dir = dir.as_ref();
 
         let keymap_csv = fs::read_to_string(dir.join("keymap.csv"))
@@ -43,24 +43,20 @@ impl Keyboard {
             .expect("Failed to load layout.csv");
         let physical_json = fs::read_to_string(dir.join("physical.json"))
             .expect("Failed to load physical.json");
-        Self::new_data(&keymap_csv, &layout_csv, &physical_json, daemon_opt, daemon_board)
+        Self::new_data(&keymap_csv, &layout_csv, &physical_json, daemon, daemon_board)
     }
 
-    fn new_layout(layout: Layout, daemon_opt: Option<Rc<dyn Daemon>>, daemon_board: usize) -> Rc<Self> {
+    fn new_layout(layout: Layout, daemon: Rc<dyn Daemon>, daemon_board: usize) -> Rc<Self> {
         let mut keys = layout.keys();
         for key in keys.iter_mut() {
             for layer in 0..2 {
                 println!("  Layer {}", layer);
-                let scancode = if let Some(ref daemon) = daemon_opt {
-                    match daemon.keymap_get(daemon_board, layer, key.electrical.0, key.electrical.1) {
-                        Ok(value) => value,
-                        Err(err) => {
-                            eprintln!("Failed to read scancode: {:?}", err);
-                            0
-                        }
+                let scancode = match daemon.keymap_get(daemon_board, layer, key.electrical.0, key.electrical.1) {
+                    Ok(value) => value,
+                    Err(err) => {
+                        eprintln!("Failed to read scancode: {:?}", err);
+                        0
                     }
-                } else {
-                    0
                 };
                 println!("    Scancode: {:04X}", scancode);
 
@@ -75,7 +71,7 @@ impl Keyboard {
         }
 
         Rc::new(Self {
-            daemon_opt,
+            daemon,
             daemon_board,
             keymap: layout.keymap,
             keys: RefCell::new(keys),
@@ -85,15 +81,15 @@ impl Keyboard {
         })
     }
 
-    pub fn new_board(board: &str, daemon_opt: Option<Rc<dyn Daemon>>, daemon_board: usize) -> Option<Rc<Self>> {
+    pub fn new_board(board: &str, daemon: Rc<dyn Daemon>, daemon_board: usize) -> Option<Rc<Self>> {
         Layout::from_board(board).map(|layout|
-            Self::new_layout(layout, daemon_opt, daemon_board)
+            Self::new_layout(layout, daemon, daemon_board)
         )
     }
 
-    fn new_data(keymap_csv: &str, layout_csv: &str, physical_json: &str, daemon_opt: Option<Rc<dyn Daemon>>, daemon_board: usize) -> Rc<Self> {
+    fn new_data(keymap_csv: &str, layout_csv: &str, physical_json: &str, daemon: Rc<dyn Daemon>, daemon_board: usize) -> Rc<Self> {
         let layout = Layout::from_data(keymap_csv, layout_csv, physical_json);
-        Self::new_layout(layout, daemon_opt, daemon_board)
+        Self::new_layout(layout, daemon, daemon_board)
     }
 
     pub fn layer(&self) -> usize {
@@ -141,16 +137,12 @@ impl Keyboard {
             ..set_halign(gtk::Align::Start);
         };
 
-        let max_brightness = if let Some(ref daemon) = self.daemon_opt {
-            match daemon.max_brightness(self.daemon_board) {
-                Ok(value) => value as f64,
-                Err(err) => {
-                    eprintln!("{}", err);
-                    100.0
-                }
+        let max_brightness = match self.daemon.max_brightness(self.daemon_board) {
+            Ok(value) => value as f64,
+            Err(err) => {
+                eprintln!("{}", err);
+                100.0
             }
-        } else {
-            100.0
         };
 
         let brightness_scale = cascade! {
@@ -161,10 +153,8 @@ impl Keyboard {
         let kb = self.clone();
         brightness_scale.connect_value_changed(move |this| {
             let value = this.get_value() as i32;
-            if let Some(ref daemon) = kb.daemon_opt {
-                if let Err(err) = daemon.set_brightness(kb.daemon_board, value) {
-                    eprintln!("{}", err);
-                }
+            if let Err(err) = kb.daemon.set_brightness(kb.daemon_board, value) {
+                eprintln!("{}", err);
             }
             println!("{}", value);
 
@@ -175,12 +165,7 @@ impl Keyboard {
             ..set_halign(gtk::Align::Start);
         };
 
-        let color_keyboard = if let Some(ref daemon) = self.daemon_opt {
-            ColorKeyboard::new_daemon(daemon.clone(), self.daemon_board)
-        } else {
-
-            ColorKeyboard::new_dummy()
-        };
+        let color_keyboard = ColorKeyboard::new_daemon(self.daemon.clone(), self.daemon_board);
         let color_button = KeyboardColorButton::new(color_keyboard);
         color_button.set_valign(gtk::Align::Center);
 
