@@ -16,7 +16,7 @@ use keyboard::Keyboard;
 use picker::Picker;
 
 //TODO: allow multiple keyboards
-fn main_keyboard(app: &gtk::Application, keyboard: Rc<Keyboard>) {
+fn main_keyboard(app: &gtk::Application, keyboard: Rc<Keyboard>) -> gtk::Box {
     let picker = Picker::new();
     picker.set_keyboard(Some(keyboard.clone()));
 
@@ -26,6 +26,64 @@ fn main_keyboard(app: &gtk::Application, keyboard: Rc<Keyboard>) {
         ..set_halign(gtk::Align::Center);
         ..add(&keyboard.clone().gtk());
         ..add(&picker);
+    };
+
+    vbox
+}
+
+fn main_app(app: &gtk::Application, daemon: Rc<dyn Daemon>) {
+    let boards = daemon.boards().expect("Failed to load boards");
+
+    let board_dropdown = cascade! {
+        gtk::ComboBoxText::new();
+    };
+
+    let stack = cascade! {
+        gtk::Stack::new();
+        ..set_transition_duration(0);
+    };
+
+    board_dropdown.connect_changed(clone!(@weak stack => @default-panic, move |combobox| {
+        if let Some(id) = combobox.get_active_id() {
+            stack.set_visible_child_name(&id);
+        }
+    }));
+
+    let mut count = 0;
+    for (i, board) in boards.iter().enumerate() {
+        if let Some(keyboard) = Keyboard::new_board(board, Some(daemon.clone()), i) {
+            let widget = main_keyboard(app, keyboard);
+            board_dropdown.append(Some(&board), &board);
+            stack.add_named(&widget, &board);
+            count += 1;
+
+            if count == 1 {
+                widget.show();
+                board_dropdown.set_active_id(Some(&board));
+            }
+        } else {
+            eprintln!("Failed to locate layout for '{}'", board);
+        }
+    }
+
+    if count == 0 {
+        eprintln!("Failed to locate any keyboards, showing demo");
+        let board = "system76/launch_alpha_2";
+        let keyboard = Keyboard::new_board(board, None, 0)
+            .expect("Failed to load demo layout");
+
+        let widget = main_keyboard(app, keyboard);
+        board_dropdown.append(Some(board), board);
+        stack.add_named(&widget, board);
+
+        widget.show();
+        board_dropdown.set_active_id(Some(board));
+    }
+
+    let vbox = cascade! {
+        gtk::Box::new(gtk::Orientation::Vertical, 32);
+        ..add(&board_dropdown);
+        ..add(&stack);
     };
 
     let scrolled_window = cascade! {
@@ -47,24 +105,6 @@ fn main_keyboard(app: &gtk::Application, keyboard: Rc<Keyboard>) {
     window.connect_destroy(|_| {
         eprintln!("Window close");
     });
-}
-
-fn main_app(app: &gtk::Application, daemon: Rc<dyn Daemon>) {
-    let boards = daemon.boards().expect("Failed to load boards");
-    let i = 0;
-    if let Some(board) = boards.get(i) {
-        if let Some(keyboard) = Keyboard::new_board(board, Some(daemon), i) {
-            main_keyboard(app, keyboard);
-            return;
-        } else {
-            eprintln!("Failed to locate layout for '{}'", board);
-        }
-    }
-
-    eprintln!("Failed to locate any keyboards, showing demo");
-    let keyboard = Keyboard::new_board("system76/launch_alpha_2", None, 0)
-        .expect("Failed to load demo layout");
-    main_keyboard(app, keyboard);
 }
 
 #[cfg(target_os = "linux")]
