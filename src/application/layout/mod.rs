@@ -15,6 +15,45 @@ pub(super) struct Layout<'a> {
     layout: HashMap<&'a str, (u8, u8)>,
 }
 
+macro_rules! keyboards {
+    ($( $board:expr ),* $(,)?) => {
+        fn layout_data(board: &str) -> Option<(&'static str, &'static str, &'static str)> {
+            match board {
+                $(
+                $board => {
+                    let keymap_csv =
+                        include_str!(concat!("../../../layouts/", $board, "/keymap.csv"));
+                    let layout_csv =
+                        include_str!(concat!("../../../layouts/", $board, "/layout.csv"));
+                    let physical_json =
+                        include_str!(concat!("../../../layouts/", $board, "/physical.json"));
+                    Some((keymap_csv, layout_csv, physical_json))
+                }
+                )*
+                _ => None
+            }
+        }
+
+        pub fn layouts() -> &'static [&'static str] {
+            &[$( $board ),*]
+        }
+    };
+}
+
+keyboards![
+    "system76/addw1",
+    "system76/addw2",
+    "system76/bonw14",
+    "system76/darp5",
+    "system76/darp6",
+    "system76/gaze15",
+    "system76/launch_alpha_1",
+    "system76/launch_alpha_2",
+    "system76/lemp9",
+    "system76/oryp5",
+    "system76/oryp6",
+];
+
 impl<'a> Layout<'a> {
     pub fn from_data(keymap_csv: &'a str, layout_csv: &'a str, physical_json: &'a str) -> Self {
         let (keymap, scancode_names) = parse_keymap_csv(keymap_csv);
@@ -29,33 +68,9 @@ impl<'a> Layout<'a> {
     }
 
     pub fn from_board(board: &'a str) -> Option<Self> {
-        macro_rules! keyboard {
-            ($board:expr) => {
-                if board == $board {
-                    let keymap_csv =
-                        include_str!(concat!("../../../layouts/", $board, "/keymap.csv"));
-                    let layout_csv =
-                        include_str!(concat!("../../../layouts/", $board, "/layout.csv"));
-                    let physical_json =
-                        include_str!(concat!("../../../layouts/", $board, "/physical.json"));
-                    return Some(Self::from_data(keymap_csv, layout_csv, physical_json));
-                }
-            };
-        }
-
-        keyboard!("system76/addw1");
-        keyboard!("system76/addw2");
-        keyboard!("system76/bonw14");
-        keyboard!("system76/darp5");
-        keyboard!("system76/darp6");
-        keyboard!("system76/gaze15");
-        keyboard!("system76/launch_alpha_1");
-        keyboard!("system76/launch_alpha_2");
-        keyboard!("system76/lemp9");
-        keyboard!("system76/oryp5");
-        keyboard!("system76/oryp6");
-
-        None
+        layout_data(board).map(|(keymap_csv, layout_csv, physical_json)| {
+            Self::from_data(keymap_csv, layout_csv, physical_json)
+        })
     }
 
     pub fn keys(&self) -> Vec<Key> {
@@ -186,19 +201,7 @@ mod tests {
 
     #[test]
     fn layout_from_board() {
-        for i in &[
-            "system76/addw1",
-            "system76/addw2",
-            "system76/bonw14",
-            "system76/darp5",
-            "system76/darp6",
-            "system76/gaze15",
-            "system76/launch_alpha_1",
-            "system76/launch_alpha_2",
-            "system76/lemp9",
-            "system76/oryp5",
-            "system76/oryp6",
-        ] {
+        for i in layouts() {
             Layout::from_board(i).unwrap();
         }
     }

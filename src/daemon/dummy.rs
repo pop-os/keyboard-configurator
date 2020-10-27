@@ -8,6 +8,7 @@ use std::{
 
 use crate::color::Rgb;
 use super::Daemon;
+use crate::application::layout;
 
 #[derive(Default)]
 struct BoardDummy {
@@ -29,7 +30,7 @@ impl DaemonDummy {
 
 impl DaemonDummy {
     pub fn new() -> Self {
-        let board_names = vec!["system76/launch_alpha_2".to_string()];
+        let board_names: Vec<_> = layout::layouts().iter().map(|s| s.to_string()).collect();
         let boards = board_names.iter().map(|_| BoardDummy::default()).collect();
         Self {
             board_names,
