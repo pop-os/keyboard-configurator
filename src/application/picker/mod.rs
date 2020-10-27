@@ -1,5 +1,6 @@
 use super::keyboard::Keyboard;
 use cascade::cascade;
+use glib::clone;
 use glib::subclass;
 use glib::subclass::prelude::*;
 use gtk::prelude::*;
@@ -157,12 +158,12 @@ impl Picker {
     }
 
     fn connect_signals(&self) {
+        let picker = self;
         for group in self.inner().groups.iter() {
             for key in group.iter_keys() {
                 let button = &key.gtk;
-                let picker = self.clone();
                 let name = key.name.to_string();
-                button.connect_clicked(move |_| {
+                button.connect_clicked(clone!(@weak picker => @default-panic, move |_| {
                     let kb = match picker.inner().keyboard.borrow().clone() {
                         Some(kb) => kb,
                         None => {
@@ -203,7 +204,7 @@ impl Picker {
                             }
                         }
                     }
-                });
+                }));
             }
         }
     }
