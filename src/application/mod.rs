@@ -7,7 +7,7 @@ use crate::daemon::{Daemon, DaemonClient, DaemonDummy, daemon_server};
 
 mod key;
 mod keyboard;
-mod layout;
+pub(crate) mod layout;
 mod page;
 mod picker;
 mod rect;
@@ -66,7 +66,7 @@ fn main_app(app: &gtk::Application, daemon: Rc<dyn Daemon>) {
         }
     }
 
-    if count == 1 {
+    if count == 0 {
         eprintln!("Failed to locate any keyboards, showing demo");
 
         let daemon = Rc::new(DaemonDummy::new());
