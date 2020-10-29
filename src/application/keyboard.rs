@@ -264,10 +264,8 @@ impl Keyboard {
         let k = &mut keys[key_index];
         let mut found = false;
         if let Some(scancode) = self.keymap().get(scancode_name) {
-            k.deselect(&picker, layer);
             k.scancodes[layer] = (*scancode, scancode_name.to_string());
             k.refresh(&picker);
-            k.select(&picker, layer);
             found = true;
         }
         if !found {
@@ -287,17 +285,14 @@ impl Keyboard {
             eprintln!("Failed to set keymap: {:?}", err);
         }
 
+        drop(keys);
+        self.set_selected(self.selected());
     }
 
     fn connect_signals(&self) {
         let kb = self;
 
         self.inner().stack.connect_property_visible_child_notify(clone!(@weak kb => @default-panic, move |stack| {
-            let picker = match kb.inner().picker.borrow().upgrade() {
-                Some(picker) => picker,
-                None => { return; },
-            };
-
             let page: Option<Page> = match stack.get_visible_child() {
                 Some(child) => unsafe { child.get_data("keyboard_confurator_page").cloned() },
                 None => None,
@@ -306,14 +301,8 @@ impl Keyboard {
             println!("{:?}", page);
             let last_layer = kb.layer();
             kb.inner().page.set(page.unwrap_or(Page::Layer1));
-            let layer = kb.layer();
-            if layer != last_layer {
-                if let Some(i) = kb.inner().selected.get() {
-                    let keys = kb.inner().keys.borrow();
-                    let k = &keys[i];
-                    k.deselect(&picker, last_layer);
-                    k.select(&picker, layer);
-                }
+            if kb.layer() != last_layer {
+                kb.set_selected(kb.selected());
             }
         }));
 
@@ -414,14 +403,22 @@ impl Keyboard {
         };
         let keys = self.inner().keys.borrow();
 
-        if let Some(selected) = self.inner().selected.get() {
-            keys[selected].deselect(&picker, self.layer());
+        if let Some(selected) = self.selected() {
+            for (_page, (button, _label)) in keys[selected].gtk.iter() {
+                button.get_style_context().remove_class("selected");
+            }
+            picker.set_selected(None);
         }
 
         if let Some(i) = i {
             let k = &keys[i];
             println!("{:#?}", k);
-            k.select(&picker, self.layer());
+            for (_page, (button, _label)) in keys[i].gtk.iter() {
+                button.get_style_context().add_class("selected");
+            }
+            if let Some((_scancode, scancode_name)) = keys[i].scancodes.get(self.layer()) {
+                picker.set_selected(Some(scancode_name.to_string()));
+            }
         }
 
         self.inner().selected.set(i);

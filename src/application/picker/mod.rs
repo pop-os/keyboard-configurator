@@ -6,7 +6,11 @@ use glib::subclass::prelude::*;
 use gtk::prelude::*;
 use gtk::subclass::prelude::*;
 use glib::translate::{FromGlibPtrFull, ToGlib, ToGlibPtr};
-use std::{cell::RefCell, collections::HashMap, rc::Rc};
+use std::{
+    cell::{Cell, RefCell},
+    collections::HashMap,
+    rc::Rc,
+};
 
 mod picker_csv;
 mod picker_group;
@@ -33,6 +37,7 @@ pub struct PickerInner {
     groups: Vec<PickerGroup>,
     keys: HashMap<String, Rc<PickerKey>>,
     keyboard: RefCell<Option<Keyboard>>,
+    selected: RefCell<Option<String>>,
 }
 
 impl ObjectSubclass for PickerInner {
@@ -86,6 +91,7 @@ impl ObjectSubclass for PickerInner {
             groups,
             keys,
             keyboard: RefCell::new(None),
+            selected: RefCell::new(None),
         }
     }
 }
@@ -181,7 +187,7 @@ impl Picker {
         }
     }
 
-    pub(crate) fn get_button(&self, scancode_name: &str) -> Option<&gtk::Button> {
+    fn get_button(&self, scancode_name: &str) -> Option<&gtk::Button> {
         self.inner().keys.get(scancode_name).map(|k| &k.gtk)
     }
 
@@ -204,5 +210,23 @@ impl Picker {
             kb.set_picker(Some(&self));
         }
         *self.inner().keyboard.borrow_mut() = keyboard;
+    }
+
+    pub(crate) fn set_selected(&self, scancode_name: Option<String>) {
+        let mut selected = self.inner().selected.borrow_mut();
+
+        if let Some(selected) = selected.as_ref() {
+            if let Some(button) = self.get_button(selected) {
+                button.get_style_context().remove_class("selected");
+            }
+        }
+
+        *selected = scancode_name;
+
+        if let Some(selected) = selected.as_ref() {
+            if let Some(button) = self.get_button(selected) {
+                button.get_style_context().add_class("selected");
+            }
+        }
     }
 }
