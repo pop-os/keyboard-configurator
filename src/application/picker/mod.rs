@@ -6,8 +6,9 @@ use glib::subclass::prelude::*;
 use gtk::prelude::*;
 use gtk::subclass::prelude::*;
 use glib::translate::{FromGlibPtrFull, ToGlib, ToGlibPtr};
+use once_cell::sync::Lazy;
 use std::{
-    cell::{Cell, RefCell},
+    cell::RefCell,
     collections::HashMap,
     rc::Rc,
 };
@@ -32,6 +33,24 @@ button {
     border-width: 4px;
 }
 "#;
+
+pub static SCANCODE_LABELS: Lazy<HashMap<String, String>> = Lazy::new(|| {
+    let mut labels = HashMap::new();
+    for record in picker_csv() {
+        match record {
+            PickerCsv::Group { .. } => {}
+            PickerCsv::Key { name, top, bottom } => {
+                let text = if bottom.is_empty() {
+                    top
+                } else {
+                    format!("{}\n{}", top, bottom)
+                };
+                labels.insert(name, text);
+            }
+        }
+    }
+    labels
+});
 
 pub struct PickerInner {
     groups: Vec<PickerGroup>,
@@ -180,7 +199,7 @@ impl Picker {
 
                     println!("Clicked {} layer {}", name, layer);
                     if let Some(i) = kb.selected() {
-                        kb.keymap_set(&picker, i, layer, &name);
+                        kb.keymap_set(i, layer, &name);
                     }
                 }));
             }
@@ -189,10 +208,6 @@ impl Picker {
 
     fn get_button(&self, scancode_name: &str) -> Option<&gtk::Button> {
         self.inner().keys.get(scancode_name).map(|k| &k.gtk)
-    }
-
-    pub(crate) fn get_text(&self, scancode_name: &str) -> Option<&str> {
-        self.inner().keys.get(scancode_name).map(|k| k.text.as_ref())
     }
 
     pub(crate) fn set_keyboard(&self, keyboard: Option<Keyboard>) {

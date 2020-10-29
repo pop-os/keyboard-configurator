@@ -258,14 +258,13 @@ impl Keyboard {
         self.keymap().contains_key(scancode_name)
     }
 
-    pub fn keymap_set(&self, picker: &Picker, key_index: usize, layer: usize, scancode_name: &str) {
-        // XXX avoid reference to Picker
+    pub fn keymap_set(&self, key_index: usize, layer: usize, scancode_name: &str) {
         let mut keys = self.inner().keys.borrow_mut();
         let k = &mut keys[key_index];
         let mut found = false;
         if let Some(scancode) = self.keymap().get(scancode_name) {
             k.scancodes[layer] = (*scancode, scancode_name.to_string());
-            k.refresh(&picker);
+            k.refresh();
             found = true;
         }
         if !found {
@@ -377,6 +376,7 @@ impl Keyboard {
 
                 let mut keys = self.inner().keys.borrow_mut();
                 let k = &mut keys[i];
+                k.refresh();
                 k.gtk.insert(page, (button, label));
             }
         }
@@ -388,12 +388,6 @@ impl Keyboard {
             Some(picker) => picker.downgrade(),
             None => WeakRef::new(),
         };
-
-        for k in self.inner().keys.borrow().iter() {
-            if let Some(picker) = self.inner().picker.borrow().upgrade() {
-                k.refresh(&picker);
-            }
-        }
     }
 
     fn set_selected(&self, i: Option<usize>) {
