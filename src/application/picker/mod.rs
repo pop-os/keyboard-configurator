@@ -173,33 +173,8 @@ impl Picker {
                     let layer = kb.layer();
 
                     println!("Clicked {} layer {}", name, layer);
-                    if let Some(i) = kb.selected.get() {
-                        let mut keys = kb.keys.borrow_mut();
-                        let k = &mut keys[i];
-                        let mut found = false;
-                        if let Some(scancode) = kb.keymap.get(name.as_str()) {
-                            k.deselect(&picker, layer);
-                            k.scancodes[layer] = (*scancode, name.clone());
-                            k.refresh(&picker);
-                            k.select(&picker, layer);
-                            found = true;
-                        }
-                        if !found {
-                            return;
-                        }
-                        println!(
-                            "  set {}, {}, {} to {:04X}",
-                            layer, k.electrical.0, k.electrical.1, k.scancodes[layer].0
-                        );
-                        if let Err(err) = kb.daemon.keymap_set(
-                            kb.daemon_board,
-                            layer as u8,
-                            k.electrical.0,
-                            k.electrical.1,
-                            k.scancodes[layer].0,
-                        ) {
-                            eprintln!("Failed to set keymap: {:?}", err);
-                        }
+                    if let Some(i) = kb.selected() {
+                        kb.keymap_set(&picker, i, layer, &name);
                     }
                 }));
             }
@@ -222,7 +197,7 @@ impl Picker {
             for group in self.inner().groups.iter() {
                 for key in group.iter_keys() {
                     // Check that scancode is available for the keyboard
-                    let sensitive = kb.keymap.contains_key(key.name.as_str());
+                    let sensitive = kb.has_scancode(&key.name);
                     key.gtk.set_sensitive(sensitive);
                 }
             }

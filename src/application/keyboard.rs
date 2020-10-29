@@ -24,13 +24,13 @@ use super::page::Page;
 use super::picker::Picker;
 
 pub struct Keyboard {
-    pub(crate) daemon: Rc<dyn Daemon>,
-    pub(crate) daemon_board: usize,
-    pub(crate) keymap: HashMap<String, u16>,
-    pub(crate) keys: RefCell<Vec<Key>>,
+    daemon: Rc<dyn Daemon>,
+    daemon_board: usize,
+    keymap: HashMap<String, u16>,
+    keys: RefCell<Vec<Key>>,
     page: Cell<Page>,
     picker: RefCell<WeakRef<Picker>>,
-    pub(crate) selected: Cell<Option<usize>>,
+    selected: Cell<Option<usize>>,
 }
 
 impl Keyboard {
@@ -99,6 +99,45 @@ impl Keyboard {
             Page::Layer2 => 1,
             _ => 0, // Any other page selects Layer 1
         }
+    }
+
+    pub fn selected(&self) -> Option<usize> {
+        self.selected.get()
+    }
+
+    pub fn has_scancode(&self, scancode_name: &str) -> bool {
+        self.keymap.contains_key(scancode_name)
+    }
+
+    pub fn keymap_set(&self, picker: &Picker, key_index: usize, layer: usize, scancode_name: &str) {
+        // XXX avoid reference to Picker
+        let mut keys = self.keys.borrow_mut();
+        let k = &mut keys[key_index];
+        let mut found = false;
+        if let Some(scancode) = self.keymap.get(scancode_name) {
+            k.deselect(&picker, layer);
+            k.scancodes[layer] = (*scancode, scancode_name.to_string());
+            k.refresh(&picker);
+            k.select(&picker, layer);
+            found = true;
+        }
+        if !found {
+            return;
+        }
+        println!(
+            "  set {}, {}, {} to {:04X}",
+            layer, k.electrical.0, k.electrical.1, k.scancodes[layer].0
+        );
+        if let Err(err) = self.daemon.keymap_set(
+            self.daemon_board,
+            layer as u8,
+            k.electrical.0,
+            k.electrical.1,
+            k.scancodes[layer].0,
+        ) {
+            eprintln!("Failed to set keymap: {:?}", err);
+        }
+
     }
 
     pub fn gtk(self: Rc<Self>) -> gtk::Box {
