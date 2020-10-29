@@ -69,7 +69,8 @@ fn main_app(app: &gtk::Application, daemon: Rc<dyn Daemon>) {
     if count == 0 {
         eprintln!("Failed to locate any keyboards, showing demo");
 
-        let daemon = Rc::new(DaemonDummy::new());
+        let board_names = layout::layouts().iter().map(|s| s.to_string()).collect();
+        let daemon = Rc::new(DaemonDummy::new(board_names));
         let boards = daemon.boards().unwrap();
 
         for (i, board) in boards.iter().enumerate() {

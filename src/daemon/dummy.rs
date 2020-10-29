@@ -29,8 +29,7 @@ impl DaemonDummy {
 }
 
 impl DaemonDummy {
-    pub fn new() -> Self {
-        let board_names: Vec<_> = layout::layouts().iter().map(|s| s.to_string()).collect();
+    pub fn new(board_names: Vec<String>) -> Self {
         let boards = board_names.iter().map(|_| BoardDummy::default()).collect();
         Self {
             board_names,
