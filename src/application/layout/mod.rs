@@ -34,7 +34,7 @@ macro_rules! keyboards {
             }
         }
 
-        pub fn layouts() -> &'static [&'static str] {
+        pub(super) fn layouts() -> &'static [&'static str] {
             &[$( $board ),*]
         }
     };
