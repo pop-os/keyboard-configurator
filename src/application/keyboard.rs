@@ -290,8 +290,9 @@ impl Keyboard {
     }
 
     fn connect_signals(&self) {
-        let kb = self.clone();
-        self.inner().stack.connect_property_visible_child_notify(move |stack| {
+        let kb = self;
+
+        self.inner().stack.connect_property_visible_child_notify(clone!(@weak kb => @default-panic, move |stack| {
             let picker = match kb.inner().picker.borrow().upgrade() {
                 Some(picker) => picker,
                 None => { return; },
@@ -314,20 +315,21 @@ impl Keyboard {
                     k.select(&picker, layer);
                 }
             }
-        });
+        }));
 
-        let kb = self.clone();
-        self.inner().brightness_scale.connect_value_changed(move |this| {
+        self.inner().brightness_scale.connect_value_changed(clone!(@weak kb => @default-panic, move |this| {
             let value = this.get_value() as i32;
             if let Err(err) = kb.daemon().set_brightness(kb.daemon_board(), value) {
                 eprintln!("{}", err);
             }
             println!("{}", value);
 
-        });
+        }));
     }
 
     fn add_pages(&self) {
+        let kb = self;
+
         for page in Page::iter_all() {
             let fixed = gtk::Fixed::new();
             self.inner().stack.add_titled(&fixed, page.name(), page.name());
@@ -375,33 +377,30 @@ impl Keyboard {
                     (button, label)
                 };
 
-                {
-                    let kb = self.clone();
-                    button.connect_clicked(move |_| {
-                        let picker = match kb.inner().picker.borrow().upgrade() {
-                            Some(picker) => picker,
-                            None => { return; },
-                        };
+                button.connect_clicked(clone!(@weak kb => @default-panic, move |_| {
+                    let picker = match kb.inner().picker.borrow().upgrade() {
+                        Some(picker) => picker,
+                        None => { return; },
+                    };
 
-                        let keys = kb.inner().keys.borrow();
+                    let keys = kb.inner().keys.borrow();
 
-                        if let Some(selected) = kb.inner().selected.replace(None) {
-                            keys[selected].deselect(&picker, kb.layer());
-                            if i == selected {
-                                // Allow deselect
-                                return;
-                            }
+                    if let Some(selected) = kb.inner().selected.replace(None) {
+                        keys[selected].deselect(&picker, kb.layer());
+                        if i == selected {
+                            // Allow deselect
+                            return;
                         }
+                    }
 
-                        {
-                            let k = &keys[i];
-                            println!("{:#?}", k);
-                            k.select(&picker, kb.layer());
-                        }
+                    {
+                        let k = &keys[i];
+                        println!("{:#?}", k);
+                        k.select(&picker, kb.layer());
+                    }
 
-                        kb.inner().selected.set(Some(i));
-                    });
-                }
+                    kb.inner().selected.set(Some(i));
+                }));
 
                 let mut keys = self.inner().keys.borrow_mut();
                 let k = &mut keys[i];
