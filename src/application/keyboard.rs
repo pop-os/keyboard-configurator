@@ -378,28 +378,12 @@ impl Keyboard {
                 };
 
                 button.connect_clicked(clone!(@weak kb => @default-panic, move |_| {
-                    let picker = match kb.inner().picker.borrow().upgrade() {
-                        Some(picker) => picker,
-                        None => { return; },
-                    };
-
-                    let keys = kb.inner().keys.borrow();
-
-                    if let Some(selected) = kb.inner().selected.replace(None) {
-                        keys[selected].deselect(&picker, kb.layer());
-                        if i == selected {
-                            // Allow deselect
-                            return;
-                        }
+                    // Deselect
+                    if kb.inner().selected.get() == Some(i) {
+                        kb.set_selected(None);
+                    } else {
+                        kb.set_selected(Some(i));
                     }
-
-                    {
-                        let k = &keys[i];
-                        println!("{:#?}", k);
-                        k.select(&picker, kb.layer());
-                    }
-
-                    kb.inner().selected.set(Some(i));
                 }));
 
                 let mut keys = self.inner().keys.borrow_mut();
@@ -421,5 +405,25 @@ impl Keyboard {
                 k.refresh(&picker);
             }
         }
+    }
+
+    fn set_selected(&self, i: Option<usize>) {
+        let picker = match self.inner().picker.borrow().upgrade() {
+            Some(picker) => picker,
+            None => { return; },
+        };
+        let keys = self.inner().keys.borrow();
+
+        if let Some(selected) = self.inner().selected.get() {
+            keys[selected].deselect(&picker, self.layer());
+        }
+
+        if let Some(i) = i {
+            let k = &keys[i];
+            println!("{:#?}", k);
+            k.select(&picker, self.layer());
+        }
+
+        self.inner().selected.set(i);
     }
 }
