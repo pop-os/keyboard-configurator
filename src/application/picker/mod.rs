@@ -32,7 +32,7 @@ button {
 pub struct PickerInner {
     groups: Vec<PickerGroup>,
     keys: HashMap<String, Rc<PickerKey>>,
-    keyboard: RefCell<Option<Rc<Keyboard>>>,
+    keyboard: RefCell<Option<Keyboard>>,
 }
 
 impl ObjectSubclass for PickerInner {
@@ -189,7 +189,7 @@ impl Picker {
         self.inner().keys.get(scancode_name).map(|k| k.text.as_ref())
     }
 
-    pub(crate) fn set_keyboard(&self, keyboard: Option<Rc<Keyboard>>) {
+    pub(crate) fn set_keyboard(&self, keyboard: Option<Keyboard>) {
         if let Some(old_kb) = &*self.inner().keyboard.borrow() {
             old_kb.set_picker(None);
         }

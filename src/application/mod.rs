@@ -16,7 +16,7 @@ use keyboard::Keyboard;
 use picker::Picker;
 
 //TODO: allow multiple keyboards
-fn main_keyboard(app: &gtk::Application, keyboard: Rc<Keyboard>) -> gtk::Box {
+fn main_keyboard(app: &gtk::Application, keyboard: Keyboard) -> gtk::Box {
     let picker = Picker::new();
     picker.set_keyboard(Some(keyboard.clone()));
 
@@ -24,7 +24,7 @@ fn main_keyboard(app: &gtk::Application, keyboard: Rc<Keyboard>) -> gtk::Box {
         gtk::Box::new(gtk::Orientation::Vertical, 32);
         ..set_property_margin(10);
         ..set_halign(gtk::Align::Center);
-        ..add(&keyboard.clone().gtk());
+        ..add(&keyboard);
         ..add(&picker);
     };
 
