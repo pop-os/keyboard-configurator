@@ -173,8 +173,7 @@ impl Picker {
                     let layer = kb.layer();
 
                     println!("Clicked {} layer {}", name, layer);
-                    let selected = *kb.selected.borrow();
-                    if let Some(i) = selected {
+                    if let Some(i) = kb.selected.get() {
                         let mut keys = kb.keys.borrow_mut();
                         let k = &mut keys[i];
                         let mut found = false;

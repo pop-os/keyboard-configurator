@@ -30,7 +30,7 @@ pub struct Keyboard {
     pub(crate) keys: RefCell<Vec<Key>>,
     page: Cell<Page>,
     picker: RefCell<WeakRef<Picker>>,
-    pub(crate) selected: RefCell<Option<usize>>,
+    pub(crate) selected: Cell<Option<usize>>,
 }
 
 impl Keyboard {
@@ -77,7 +77,7 @@ impl Keyboard {
             keys: RefCell::new(keys),
             page: Cell::new(Page::Layer1),
             picker: RefCell::new(WeakRef::new()),
-            selected: RefCell::new(None),
+            selected: Cell::new(None),
         })
     }
 
@@ -123,7 +123,7 @@ impl Keyboard {
             kb.page.set(page.unwrap_or(Page::Layer1));
             let layer = kb.layer();
             if layer != last_layer {
-                if let Some(i) = *kb.selected.borrow() {
+                if let Some(i) = kb.selected.get() {
                     let keys = kb.keys.borrow();
                     let k = &keys[i];
                     k.deselect(&picker, last_layer);
@@ -226,7 +226,7 @@ impl Keyboard {
 
                         let keys = kb.keys.borrow();
 
-                        if let Some(selected) = kb.selected.borrow_mut().take() {
+                        if let Some(selected) = kb.selected.replace(None) {
                             keys[selected].deselect(&picker, kb.layer());
                             if i == selected {
                                 // Allow deselect
@@ -240,7 +240,7 @@ impl Keyboard {
                             k.select(&picker, kb.layer());
                         }
 
-                        *kb.selected.borrow_mut() = Some(i);
+                        kb.selected.set(Some(i));
                     });
                 }
 
