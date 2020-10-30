@@ -15,22 +15,6 @@ mod rect;
 use keyboard::Keyboard;
 use picker::Picker;
 
-//TODO: allow multiple keyboards
-fn main_keyboard(app: &gtk::Application, keyboard: Keyboard) -> gtk::Box {
-    let picker = Picker::new();
-    picker.set_keyboard(Some(keyboard.clone()));
-
-    let vbox = cascade! {
-        gtk::Box::new(gtk::Orientation::Vertical, 32);
-        ..set_property_margin(10);
-        ..set_halign(gtk::Align::Center);
-        ..add(&keyboard);
-        ..add(&picker);
-    };
-
-    vbox
-}
-
 fn main_app(app: &gtk::Application, daemon: Rc<dyn Daemon>) {
     let boards = daemon.boards().expect("Failed to load boards");
 
@@ -43,23 +27,27 @@ fn main_app(app: &gtk::Application, daemon: Rc<dyn Daemon>) {
         ..set_transition_duration(0);
     };
 
-    board_dropdown.connect_changed(clone!(@weak stack => @default-panic, move |combobox| {
+    let picker = Picker::new();
+
+    board_dropdown.connect_changed(clone!(@weak stack, @weak picker => @default-panic, move |combobox| {
         if let Some(id) = combobox.get_active_id() {
             stack.set_visible_child_name(&id);
+            let keyboard = stack.get_child_by_name(&id).unwrap().downcast().unwrap();
+            picker.set_keyboard(Some(keyboard));
         }
     }));
 
     let mut count = 0;
     for (i, board) in boards.iter().enumerate() {
         if let Some(keyboard) = Keyboard::new_board(board, daemon.clone(), i) {
-            let widget = main_keyboard(app, keyboard);
             board_dropdown.append(Some(&board), &board);
-            stack.add_named(&widget, &board);
+            stack.add_named(&keyboard, &board);
             count += 1;
 
             if count == 1 {
-                widget.show();
+                keyboard.show();
                 board_dropdown.set_active_id(Some(&board));
+                picker.set_keyboard(Some(keyboard.clone()));
             }
         } else {
             eprintln!("Failed to locate layout for '{}'", board);
@@ -75,14 +63,14 @@ fn main_app(app: &gtk::Application, daemon: Rc<dyn Daemon>) {
 
         for (i, board) in boards.iter().enumerate() {
             if let Some(keyboard) = Keyboard::new_board(board, daemon.clone(), i) {
-                let widget = main_keyboard(app, keyboard);
                 board_dropdown.append(Some(&board), &board);
-                stack.add_named(&widget, &board);
+                stack.add_named(&keyboard, &board);
                 count += 1;
 
                 if count == 1 {
-                    widget.show();
+                    keyboard.show();
                     board_dropdown.set_active_id(Some(&board));
+                    picker.set_keyboard(Some(keyboard.clone()));
                 }
             } else {
                 eprintln!("Failed to locate layout for '{}'", board);
@@ -92,8 +80,11 @@ fn main_app(app: &gtk::Application, daemon: Rc<dyn Daemon>) {
 
     let vbox = cascade! {
         gtk::Box::new(gtk::Orientation::Vertical, 32);
+        ..set_property_margin(10);
+        ..set_halign(gtk::Align::Center);
         ..add(&board_dropdown);
         ..add(&stack);
+        ..add(&picker);
     };
 
     let scrolled_window = cascade! {
