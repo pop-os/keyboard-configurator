@@ -1,6 +1,12 @@
 use cascade::cascade;
 use gio::prelude::*;
+use glib::subclass;
+use glib::subclass::prelude::*;
 use gtk::prelude::*;
+use gtk::subclass::prelude::*;
+use glib::translate::{FromGlibPtrFull, ToGlib, ToGlibPtr};
+use once_cell::unsync::OnceCell;
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::rc::Rc;
 
 use crate::daemon::{Daemon, DaemonClient, DaemonDummy, daemon_server};
@@ -15,97 +21,168 @@ mod rect;
 use keyboard::Keyboard;
 use picker::Picker;
 
-fn main_app(app: &gtk::Application, daemon: Rc<dyn Daemon>) {
-    let boards = daemon.boards().expect("Failed to load boards");
+pub struct ConfiguratorAppInner {
+    board_dropdown: gtk::ComboBoxText,
+    count: AtomicUsize,
+    picker: Picker,
+    scrolled_window: gtk::ScrolledWindow,
+    stack: gtk::Stack,
+    window: OnceCell<gtk::ApplicationWindow>,
+}
 
-    let board_dropdown = cascade! {
-        gtk::ComboBoxText::new();
-    };
+impl ObjectSubclass for ConfiguratorAppInner {
+    const NAME: &'static str = "S76ConfiguratorApp";
 
-    let stack = cascade! {
-        gtk::Stack::new();
-        ..set_transition_duration(0);
-    };
+    type ParentType = gtk::Application;
 
-    let picker = Picker::new();
+    type Instance = subclass::simple::InstanceStruct<Self>;
+    type Class = subclass::simple::ClassStruct<Self>;
 
-    board_dropdown.connect_changed(clone!(@weak stack, @weak picker => @default-panic, move |combobox| {
-        if let Some(id) = combobox.get_active_id() {
-            stack.set_visible_child_name(&id);
-            let keyboard = stack.get_child_by_name(&id).unwrap().downcast().unwrap();
-            picker.set_keyboard(Some(keyboard));
+    glib_object_subclass!();
+
+    fn new() -> Self {
+        let board_dropdown = cascade! {
+            gtk::ComboBoxText::new();
+        };
+
+        let stack = cascade! {
+            gtk::Stack::new();
+            ..set_transition_duration(0);
+        };
+
+        let picker = Picker::new();
+
+        board_dropdown.connect_changed(clone!(@weak stack, @weak picker => @default-panic, move |combobox| {
+            if let Some(id) = combobox.get_active_id() {
+                stack.set_visible_child_name(&id);
+                let keyboard = stack.get_child_by_name(&id).unwrap().downcast().unwrap();
+                picker.set_keyboard(Some(keyboard));
+            }
+        }));
+
+        let vbox = cascade! {
+            gtk::Box::new(gtk::Orientation::Vertical, 32);
+            ..set_property_margin(10);
+            ..set_halign(gtk::Align::Center);
+            ..add(&board_dropdown);
+            ..add(&stack);
+            ..add(&picker);
+        };
+
+        let scrolled_window = cascade! {
+            gtk::ScrolledWindow::new::<gtk::Adjustment, gtk::Adjustment>(None, None);
+            ..add(&vbox);
+        };
+
+        Self {
+            board_dropdown,
+            count: AtomicUsize::new(0),
+            picker,
+            scrolled_window,
+            stack,
+            window: OnceCell::new(),
         }
-    }));
+    }
+}
 
-    let mut count = 0;
-    for (i, board) in boards.iter().enumerate() {
+impl ObjectImpl for ConfiguratorAppInner {
+    glib_object_impl!();
+
+    fn constructed(&self, obj: &glib::Object) {
+        self.parent_constructed(obj);
+
+        let app: &ConfiguratorApp = obj.downcast_ref().unwrap();
+        app.set_application_id(Some("com.system76.keyboard-layout"));
+    }
+}
+
+impl ApplicationImpl for ConfiguratorAppInner {
+    fn activate(&self, app: &gio::Application) {
+        let app: &ConfiguratorApp = app.downcast_ref().unwrap();
+
+        if let Some(window) = app.get_active_window() {
+            //TODO
+            eprintln!("Focusing current window");
+            window.present();
+        } else {
+            let window = cascade! {
+                gtk::ApplicationWindow::new(app);
+                ..set_title("Keyboard Layout");
+                ..set_position(gtk::WindowPosition::Center);
+                ..set_default_size(1024, 768);
+                ..add(&app.inner().scrolled_window);
+            };
+
+            window.set_focus::<gtk::Widget>(None);
+            window.show_all();
+
+            window.connect_destroy(|_| {
+                eprintln!("Window close");
+            });
+
+            let _ = app.inner().window.set(window);
+
+            let daemon = daemon();
+            let boards = daemon.boards().expect("Failed to load boards");
+
+            for (i, board) in boards.iter().enumerate() {
+                app.add_keyboard(daemon.clone(), board, i);
+            }
+
+            if app.inner().count.load(Ordering::Relaxed) == 0 {
+                eprintln!("Failed to locate any keyboards, showing demo");
+
+                let board_names = layout::layouts().iter().map(|s| s.to_string()).collect();
+                let daemon = Rc::new(DaemonDummy::new(board_names));
+                let boards = daemon.boards().unwrap();
+
+                for (i, board) in boards.iter().enumerate() {
+                    app.add_keyboard(daemon.clone(), board, i);
+                }
+            }
+        }
+    }
+}
+
+impl GtkApplicationImpl for ConfiguratorAppInner {}
+
+glib_wrapper! {
+    pub struct ConfiguratorApp(
+        Object<subclass::simple::InstanceStruct<ConfiguratorAppInner>,
+        subclass::simple::ClassStruct<ConfiguratorAppInner>, ConfiguratorAppClass>)
+        @extends gtk::Application, gio::Application;
+
+    match fn {
+        get_type => || ConfiguratorAppInner::get_type().to_glib(),
+    }
+}
+
+impl ConfiguratorApp {
+    fn new() -> Self {
+        glib::Object::new(Self::static_type(), &[])
+            .unwrap()
+            .downcast()
+            .unwrap()
+    }
+
+    fn inner(&self) -> &ConfiguratorAppInner {
+        ConfiguratorAppInner::from_instance(self)
+    }
+
+    fn add_keyboard(&self, daemon: Rc<dyn Daemon>, board: &str, i: usize) {
         if let Some(keyboard) = Keyboard::new_board(board, daemon.clone(), i) {
-            board_dropdown.append(Some(&board), &board);
-            stack.add_named(&keyboard, &board);
-            count += 1;
+            keyboard.show_all();
+            self.inner().board_dropdown.append(Some(&board), &board);
+            self.inner().stack.add_named(&keyboard, &board);
 
-            if count == 1 {
-                keyboard.show();
-                board_dropdown.set_active_id(Some(&board));
-                picker.set_keyboard(Some(keyboard.clone()));
+            if self.inner().count.fetch_add(1, Ordering::Relaxed) == 0 {
+                self.inner().board_dropdown.set_active_id(Some(&board));
+                self.inner().picker.set_keyboard(Some(keyboard.clone()));
             }
         } else {
             eprintln!("Failed to locate layout for '{}'", board);
         }
     }
-
-    if count == 0 {
-        eprintln!("Failed to locate any keyboards, showing demo");
-
-        let board_names = layout::layouts().iter().map(|s| s.to_string()).collect();
-        let daemon = Rc::new(DaemonDummy::new(board_names));
-        let boards = daemon.boards().unwrap();
-
-        for (i, board) in boards.iter().enumerate() {
-            if let Some(keyboard) = Keyboard::new_board(board, daemon.clone(), i) {
-                board_dropdown.append(Some(&board), &board);
-                stack.add_named(&keyboard, &board);
-                count += 1;
-
-                if count == 1 {
-                    keyboard.show();
-                    board_dropdown.set_active_id(Some(&board));
-                    picker.set_keyboard(Some(keyboard.clone()));
-                }
-            } else {
-                eprintln!("Failed to locate layout for '{}'", board);
-            }
-        }
-    }
-
-    let vbox = cascade! {
-        gtk::Box::new(gtk::Orientation::Vertical, 32);
-        ..set_property_margin(10);
-        ..set_halign(gtk::Align::Center);
-        ..add(&board_dropdown);
-        ..add(&stack);
-        ..add(&picker);
-    };
-
-    let scrolled_window = cascade! {
-        gtk::ScrolledWindow::new::<gtk::Adjustment, gtk::Adjustment>(None, None);
-        ..add(&vbox);
-    };
-
-    let window = cascade! {
-        gtk::ApplicationWindow::new(app);
-        ..set_title("Keyboard Layout");
-        ..set_position(gtk::WindowPosition::Center);
-        ..set_default_size(1024, 768);
-        ..add(&scrolled_window);
-    };
-
-    window.set_focus::<gtk::Widget>(None);
-    window.show_all();
-
-    window.connect_destroy(|_| {
-        eprintln!("Window close");
-    });
 }
 
 #[cfg(target_os = "linux")]
@@ -190,19 +267,8 @@ pub fn run(args: Vec<String>) -> i32 {
     #[cfg(target_os = "windows")]
     windows_init();
 
-    let application =
-        gtk::Application::new(Some("com.system76.keyboard-layout"), Default::default())
-            .expect("Failed to create gtk::Application");
+    gtk::init().unwrap();
 
-    application.connect_activate(move |app| {
-        if let Some(window) = app.get_active_window() {
-            //TODO
-            eprintln!("Focusing current window");
-            window.present();
-        } else {
-            main_app(app, daemon());
-        }
-    });
-
+    let application = ConfiguratorApp::new();
     application.run(&args)
 }
