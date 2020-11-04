@@ -32,7 +32,7 @@ pub struct KeyboardInner {
     daemon: OnceCell<Rc<dyn Daemon>>,
     daemon_board: OnceCell<usize>,
     keymap: OnceCell<HashMap<String, u16>>,
-    keys: RefCell<Vec<Key>>,
+    keys: OnceCell<Box<[Key]>>,
     page: Cell<Page>,
     picker: RefCell<WeakRef<Picker>>,
     selected: Cell<Option<usize>>,
@@ -105,7 +105,7 @@ impl ObjectSubclass for KeyboardInner {
             daemon: OnceCell::new(),
             daemon_board: OnceCell::new(),
             keymap: OnceCell::new(),
-            keys: RefCell::new(Vec::new()),
+            keys: OnceCell::new(),
             page: Cell::new(Page::Layer1),
             picker: RefCell::new(WeakRef::new()),
             selected: Cell::new(None),
@@ -186,10 +186,10 @@ impl Keyboard {
                 };
                 println!("    Scancode Name: {}", scancode_name);
 
-                key.scancodes.push((scancode, scancode_name));
+                key.scancodes.borrow_mut().push((scancode, scancode_name));
             }
         }
-        *keyboard.inner().keys.borrow_mut() = keys;
+        let _ = keyboard.inner().keys.set(keys.into_boxed_slice());
 
         let _ = keyboard.inner().daemon.set(daemon);
         let _ = keyboard.inner().daemon_board.set(daemon_board);
@@ -258,12 +258,15 @@ impl Keyboard {
         self.keymap().contains_key(scancode_name)
     }
 
+    fn keys(&self) -> &[Key] {
+        self.inner().keys.get().unwrap()
+    }
+
     pub fn keymap_set(&self, key_index: usize, layer: usize, scancode_name: &str) {
-        let mut keys = self.inner().keys.borrow_mut();
-        let k = &mut keys[key_index];
+        let k = &self.keys()[key_index];
         let mut found = false;
         if let Some(scancode) = self.keymap().get(scancode_name) {
-            k.scancodes[layer] = (*scancode, scancode_name.to_string());
+            k.scancodes.borrow_mut()[layer] = (*scancode, scancode_name.to_string());
             k.refresh();
             found = true;
         }
@@ -272,19 +275,18 @@ impl Keyboard {
         }
         println!(
             "  set {}, {}, {} to {:04X}",
-            layer, k.electrical.0, k.electrical.1, k.scancodes[layer].0
+            layer, k.electrical.0, k.electrical.1, k.scancodes.borrow()[layer].0
         );
         if let Err(err) = self.daemon().keymap_set(
             self.daemon_board(),
             layer as u8,
             k.electrical.0,
             k.electrical.1,
-            k.scancodes[layer].0,
+            k.scancodes.borrow_mut()[layer].0,
         ) {
             eprintln!("Failed to set keymap: {:?}", err);
         }
 
-        drop(keys);
         self.set_selected(self.selected());
     }
 
@@ -325,10 +327,10 @@ impl Keyboard {
             // TODO: Replace with something type-safe
             unsafe { fixed.set_data("keyboard_confurator_page", page) };
 
-            let keys_len = self.inner().keys.borrow().len();
+            let keys_len = self.keys().len();
             for i in 0..keys_len {
                 let (button, label) = {
-                    let keys = self.inner().keys.borrow();
+                    let keys = self.keys();
                     let k = &keys[i];
 
                     let scale = 64.0;
@@ -374,10 +376,9 @@ impl Keyboard {
                     }
                 }));
 
-                let mut keys = self.inner().keys.borrow_mut();
-                let k = &mut keys[i];
+                let k = &self.keys()[i];
                 k.refresh();
-                k.gtk.insert(page, (button, label));
+                k.gtk.borrow_mut().insert(page, (button, label));
             }
         }
     }
@@ -395,10 +396,10 @@ impl Keyboard {
             Some(picker) => picker,
             None => { return; },
         };
-        let keys = self.inner().keys.borrow();
+        let keys = self.keys();
 
         if let Some(selected) = self.selected() {
-            for (_page, (button, _label)) in keys[selected].gtk.iter() {
+            for (_page, (button, _label)) in keys[selected].gtk.borrow().iter() {
                 button.get_style_context().remove_class("selected");
             }
             picker.set_selected(None);
@@ -407,10 +408,10 @@ impl Keyboard {
         if let Some(i) = i {
             let k = &keys[i];
             println!("{:#?}", k);
-            for (_page, (button, _label)) in keys[i].gtk.iter() {
+            for (_page, (button, _label)) in keys[i].gtk.borrow().iter() {
                 button.get_style_context().add_class("selected");
             }
-            if let Some((_scancode, scancode_name)) = keys[i].scancodes.get(self.layer()) {
+            if let Some((_scancode, scancode_name)) = keys[i].scancodes.borrow().get(self.layer()) {
                 picker.set_selected(Some(scancode_name.to_string()));
             }
         }
