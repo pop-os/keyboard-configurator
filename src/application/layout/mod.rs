@@ -1,3 +1,4 @@
+use std::cell::RefCell;
 use std::char;
 use std::collections::HashMap;
 
@@ -131,10 +132,10 @@ impl<'a> Layout<'a> {
                                 physical_name: name.clone(),
                                 electrical: electrical.clone(),
                                 electrical_name: format!("{}, {}", electrical.0, electrical.1),
-                                scancodes: Vec::new(),
+                                scancodes: RefCell::new(Vec::new()),
                                 background_color: background_color.clone(),
                                 foreground_color: foreground_color.clone(),
-                                gtk: HashMap::new(),
+                                gtk: RefCell::new(HashMap::new()),
                             });
 
                             x += w;

@@ -1,5 +1,6 @@
 use gtk::prelude::*;
 use std::{
+    cell::RefCell,
     collections::HashMap,
 };
 
@@ -22,14 +23,14 @@ pub struct Key {
     // Electrical name (output, input)
     pub(crate) electrical_name: String,
     // Currently loaded scancodes and their names
-    pub(crate) scancodes: Vec<(u16, String)>,
+    pub(crate) scancodes: RefCell<Vec<(u16, String)>>,
     // Background color
     pub(crate) background_color: String,
     // Foreground color
     pub(crate) foreground_color: String,
     // GTK buttons by page
     //TODO: clean up this crap
-    pub(crate) gtk: HashMap<Page, (gtk::Button, gtk::Label)>,
+    pub(crate) gtk: RefCell<HashMap<Page, (gtk::Button, gtk::Label)>>,
 }
 
 impl Key {
@@ -60,14 +61,15 @@ button {{
     }
 
     pub fn refresh(&self) {
-        for (layer, (_button, label)) in self.gtk.iter() {
+        let scancodes = self.scancodes.borrow();
+        for (layer, (_button, label)) in self.gtk.borrow().iter() {
             label.set_label(match layer {
                 Page::Layer1 => {
-                    let scancode_name = &self.scancodes[0].1;
+                    let scancode_name = &scancodes[0].1;
                     SCANCODE_LABELS.get(scancode_name).unwrap_or(scancode_name)
                 },
                 Page::Layer2 => {
-                    let scancode_name = &self.scancodes[1].1;
+                    let scancode_name = &scancodes[1].1;
                     SCANCODE_LABELS.get(scancode_name).unwrap_or(scancode_name)
                 },
                 Page::Keycaps => &self.physical_name,
