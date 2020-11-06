@@ -11,6 +11,7 @@ use std::rc::Rc;
 
 use crate::daemon::{Daemon, DaemonClient, DaemonDummy, daemon_server};
 
+mod error_dialog;
 mod key;
 mod keyboard;
 pub(crate) mod layout;

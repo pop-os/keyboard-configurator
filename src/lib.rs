@@ -11,5 +11,6 @@ mod color_wheel;
 mod keyboard;
 mod keyboard_backlight_widget;
 mod keyboard_color_button;
+mod keymap;
 
 pub use keyboard_backlight_widget::keyboard_backlight_widget;
