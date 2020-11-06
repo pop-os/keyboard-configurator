@@ -12,7 +12,8 @@ use std::{
         RefCell,
     },
     collections::HashMap,
-    fs,
+    ffi::OsStr,
+    fs::{self, File},
     path::{
         Path,
     },
@@ -23,21 +24,26 @@ use std::{
 use crate::daemon::Daemon;
 use crate::keyboard::Keyboard as ColorKeyboard;
 use crate::keyboard_color_button::KeyboardColorButton;
+use crate::keymap::KeyMap;
+use super::error_dialog::error_dialog;
 use super::key::Key;
 use super::layout::Layout;
 use super::page::Page;
 use super::picker::Picker;
 
 pub struct KeyboardInner {
+    board: OnceCell<String>,
     daemon: OnceCell<Rc<dyn Daemon>>,
     daemon_board: OnceCell<usize>,
     keymap: OnceCell<HashMap<String, u16>>,
     keys: OnceCell<Box<[Key]>>,
+    load_button: gtk::Button,
     page: Cell<Page>,
     picker: RefCell<WeakRef<Picker>>,
     selected: Cell<Option<usize>>,
     color_button_bin: gtk::Frame,
     brightness_scale: gtk::Scale,
+    save_button: gtk::Button,
     toolbar: gtk::Box,
     hbox: gtk::Box,
     stack: gtk::Stack,
@@ -88,9 +94,19 @@ impl ObjectSubclass for KeyboardInner {
             ..set_stack(Some(&stack));
         };
 
-        let toolbar = cascade!{
+        let toolbar = cascade! {
             gtk::Box::new(gtk::Orientation::Horizontal, 8);
             ..set_center_widget(Some(&stack_switcher));
+        };
+
+        let load_button = cascade! {
+            gtk::Button::with_label("Load");
+            ..set_valign(gtk::Align::Center);
+        };
+
+        let save_button = cascade! {
+            gtk::Button::with_label("Save");
+            ..set_valign(gtk::Align::Center);
         };
 
         let hbox = cascade! {
@@ -99,15 +115,20 @@ impl ObjectSubclass for KeyboardInner {
             ..add(&brightness_scale);
             ..add(&color_label);
             ..add(&color_button_bin);
+            ..add(&load_button);
+            ..add(&save_button);
         };
 
         Self {
+            board: OnceCell::new(),
             daemon: OnceCell::new(),
             daemon_board: OnceCell::new(),
             keymap: OnceCell::new(),
             keys: OnceCell::new(),
+            load_button,
             page: Cell::new(Page::Layer1),
             picker: RefCell::new(WeakRef::new()),
+            save_button,
             selected: Cell::new(None),
             color_button_bin,
             brightness_scale,
@@ -149,7 +170,7 @@ glib_wrapper! {
 }
 
 impl Keyboard {
-    pub fn new<P: AsRef<Path>>(dir: P, daemon: Rc<dyn Daemon>, daemon_board: usize) -> Self {
+    pub fn new<P: AsRef<Path>>(dir: P, board: &str, daemon: Rc<dyn Daemon>, daemon_board: usize) -> Self {
         let dir = dir.as_ref();
 
         let keymap_csv = fs::read_to_string(dir.join("keymap.csv"))
@@ -158,10 +179,10 @@ impl Keyboard {
             .expect("Failed to load layout.csv");
         let physical_json = fs::read_to_string(dir.join("physical.json"))
             .expect("Failed to load physical.json");
-        Self::new_data(&keymap_csv, &layout_csv, &physical_json, daemon, daemon_board)
+        Self::new_data(board, &keymap_csv, &layout_csv, &physical_json, daemon, daemon_board)
     }
 
-    fn new_layout(layout: Layout, daemon: Rc<dyn Daemon>, daemon_board: usize) -> Self {
+    fn new_layout(board: &str, layout: Layout, daemon: Rc<dyn Daemon>, daemon_board: usize) -> Self {
         let keyboard: Self = glib::Object::new(Self::static_type(), &[])
             .unwrap()
             .downcast()
@@ -191,6 +212,7 @@ impl Keyboard {
         }
         let _ = keyboard.inner().keys.set(keys.into_boxed_slice());
 
+        let _ = keyboard.inner().board.set(board.to_string());
         let _ = keyboard.inner().daemon.set(daemon);
         let _ = keyboard.inner().daemon_board.set(daemon_board);
         let _ = keyboard.inner().keymap.set(layout.keymap);
@@ -216,17 +238,21 @@ impl Keyboard {
 
     pub fn new_board(board: &str, daemon: Rc<dyn Daemon>, daemon_board: usize) -> Option<Self> {
         Layout::from_board(board).map(|layout|
-            Self::new_layout(layout, daemon, daemon_board)
+            Self::new_layout(board, layout, daemon, daemon_board)
         )
     }
 
-    fn new_data(keymap_csv: &str, layout_csv: &str, physical_json: &str, daemon: Rc<dyn Daemon>, daemon_board: usize) -> Self {
+    fn new_data(board: &str, keymap_csv: &str, layout_csv: &str, physical_json: &str, daemon: Rc<dyn Daemon>, daemon_board: usize) -> Self {
         let layout = Layout::from_data(keymap_csv, layout_csv, physical_json);
-        Self::new_layout(layout, daemon, daemon_board)
+        Self::new_layout(board, layout, daemon, daemon_board)
     }
 
     fn inner(&self) -> &KeyboardInner {
         KeyboardInner::from_instance(self)
+    }
+
+    fn board(&self) -> &str {
+        self.inner().board.get().unwrap()
     }
 
     fn daemon(&self) -> &Rc<dyn Daemon> {
@@ -239,6 +265,10 @@ impl Keyboard {
 
     fn keymap(&self) -> &HashMap<String, u16> {
         self.inner().keymap.get().unwrap()
+    }
+
+    fn window(&self) -> Option<gtk::Window> {
+        self.get_toplevel()?.downcast().ok()
     }
 
     pub fn layer(&self) -> usize {
@@ -290,30 +320,130 @@ impl Keyboard {
         self.set_selected(self.selected());
     }
 
+    pub fn export_keymap(&self) -> KeyMap {
+        let mut map = HashMap::new();
+        for key in self.keys() {
+            let scancodes = key.scancodes.borrow();
+            let scancodes = scancodes.iter().map(|s| s.1.clone()).collect();
+            map.insert(key.logical_name.clone(), scancodes);
+        }
+        KeyMap {
+            board: self.board().to_string(),
+            map: map,
+        }
+    }
+
+    pub fn import_keymap(&self, keymap: &KeyMap) {
+        // TODO: don't block UI thread
+        // TODO: Ideally don't want this function to be O(Keys^2)
+
+        if &keymap.board != self.board() {
+            error_dialog(&self.window().unwrap(),
+                         "Failed to import keymap",
+                         format!("Keymap is for board '{}'", keymap.board));
+            return;
+        }
+
+        for (k, v) in keymap.map.iter() {
+            let n = self
+                .keys()
+                .iter()
+                .position(|i| &i.logical_name == k)
+                .unwrap();
+            for (layer, scancode_name) in v.iter().enumerate() {
+                self.keymap_set(n, layer, scancode_name);
+            }
+        }
+    }
+
     fn connect_signals(&self) {
         let kb = self;
 
-        self.inner().stack.connect_property_visible_child_notify(clone!(@weak kb => @default-panic, move |stack| {
-            let page: Option<Page> = match stack.get_visible_child() {
-                Some(child) => unsafe { child.get_data("keyboard_confurator_page").cloned() },
-                None => None,
+        self.inner().stack.connect_property_visible_child_notify(
+            clone!(@weak kb => @default-panic, move |stack| {
+                let page: Option<Page> = match stack.get_visible_child() {
+                    Some(child) => unsafe { child.get_data("keyboard_confurator_page").cloned() },
+                    None => None,
+                };
+
+                println!("{:?}", page);
+                let last_layer = kb.layer();
+                kb.inner().page.set(page.unwrap_or(Page::Layer1));
+                if kb.layer() != last_layer {
+                    kb.set_selected(kb.selected());
+                }
+            }),
+        );
+
+        self.inner().brightness_scale.connect_value_changed(
+            clone!(@weak kb => @default-panic, move |this| {
+                let value = this.get_value() as i32;
+                if let Err(err) = kb.daemon().set_brightness(kb.daemon_board(), value) {
+                    eprintln!("{}", err);
+                }
+                println!("{}", value);
+            }),
+        );
+
+        self.inner().load_button.connect_clicked(clone!(@weak kb => @default-panic, move |_button| {
+            let filter = cascade! {
+                gtk::FileFilter::new();
+                ..set_name(Some("JSON"));
+                ..add_mime_type("application/json");
+                ..add_pattern("*.json");
             };
 
-            println!("{:?}", page);
-            let last_layer = kb.layer();
-            kb.inner().page.set(page.unwrap_or(Page::Layer1));
-            if kb.layer() != last_layer {
-                kb.set_selected(kb.selected());
+            let chooser = cascade! {
+                gtk::FileChooserNative::new::<gtk::Window>(Some("Load Layout"), None, gtk::FileChooserAction::Open, Some("Load"), Some("Cancel"));
+                ..add_filter(&filter);
+            };
+
+            if chooser.run() == gtk::ResponseType::Accept {
+                let path = chooser.get_filename().unwrap();
+                match File::open(&path) {
+                    Ok(file) => match KeyMap::from_reader(file) {
+                        Ok(keymap) => kb.import_keymap(&keymap),
+                        Err(err) => error_dialog(&kb.window().unwrap(), "Failed to import keymap", err),
+                    }
+                    Err(err) => error_dialog(&kb.window().unwrap(), "Failed to open file", err),
+                }
             }
         }));
 
-        self.inner().brightness_scale.connect_value_changed(clone!(@weak kb => @default-panic, move |this| {
-            let value = this.get_value() as i32;
-            if let Err(err) = kb.daemon().set_brightness(kb.daemon_board(), value) {
-                eprintln!("{}", err);
-            }
-            println!("{}", value);
+        self.inner().save_button.connect_clicked(clone!(@weak kb => @default-panic, move |_button| {
+            let filter = cascade! {
+                gtk::FileFilter::new();
+                ..set_name(Some("JSON"));
+                ..add_mime_type("application/json");
+                ..add_pattern("*.json");
+            };
 
+            let chooser = cascade! {
+                gtk::FileChooserNative::new::<gtk::Window>(Some("Save Layout"), None, gtk::FileChooserAction::Save, Some("Save"), Some("Cancel"));
+                ..add_filter(&filter);
+            };
+
+            if chooser.run() == gtk::ResponseType::Accept {
+                let mut path = chooser.get_filename().unwrap();
+                match path.extension() {
+                    None => { path.set_extension(OsStr::new("json")); }
+                    Some(ext) if ext == OsStr::new("json") => {}
+                    Some(ext) => {
+                        let mut ext = ext.to_owned();
+                        ext.push(".json");
+                        path.set_extension(&ext);
+                    }
+                }
+                let keymap = kb.export_keymap();
+
+                match File::create(&path) {
+                    Ok(file) => match keymap.to_writer_pretty(file) {
+                        Ok(()) => {},
+                        Err(err) => error_dialog(&kb.window().unwrap(), "Failed to export keymap", err),
+                    }
+                    Err(err) => error_dialog(&kb.window().unwrap(), "Failed to open file", err),
+                }
+            }
         }));
     }
 
