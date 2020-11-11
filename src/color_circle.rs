@@ -26,7 +26,6 @@ pub enum ColorCircleSymbol {
 }
 
 pub struct ColorCircleInner {
-    frame: gtk::AspectFrame,
     drawing_area: gtk::DrawingArea,
     button: gtk::Button,
     rgb: Cell<Rgb>,
@@ -60,14 +59,7 @@ impl ObjectSubclass for ColorCircleInner {
             ..add(&drawing_area);
         };
 
-        let frame = cascade! {
-            gtk::AspectFrame::new(None, 0., 0., 1., false);
-            ..set_shadow_type(gtk::ShadowType::None);
-            ..add(&button);
-        };
-
         Self {
-            frame,
             drawing_area,
             button,
             rgb: Cell::new(Rgb::new(0, 0, 0)),
@@ -84,7 +76,7 @@ impl ObjectImpl for ColorCircleInner {
         self.parent_constructed(obj);
 
         let obj: &ColorCircle = obj.downcast_ref().unwrap();
-        obj.add(&self.frame);
+        obj.add(&self.button);
     }
 }
 
@@ -110,7 +102,7 @@ impl ColorCircle {
             .downcast()
             .unwrap();
 
-        color_circle.inner().frame.set_size_request(size, size);
+        color_circle.set_size_request(size, size);
         color_circle.connect_signals();
 
         color_circle
