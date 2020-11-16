@@ -25,6 +25,7 @@ pub struct ConfiguratorAppInner {
     board_dropdown: gtk::ComboBoxText,
     count: AtomicUsize,
     picker: Picker,
+    phony_board_names: OnceCell<Vec<String>>,
     scrolled_window: gtk::ScrolledWindow,
     stack: gtk::Stack,
     window: OnceCell<gtk::ApplicationWindow>,
@@ -78,6 +79,7 @@ impl ObjectSubclass for ConfiguratorAppInner {
             board_dropdown,
             count: AtomicUsize::new(0),
             picker,
+            phony_board_names: OnceCell::new(),
             scrolled_window,
             stack,
             window: OnceCell::new(),
@@ -93,10 +95,28 @@ impl ObjectImpl for ConfiguratorAppInner {
 
         let app: &ConfiguratorApp = obj.downcast_ref().unwrap();
         app.set_application_id(Some("com.system76.keyboard-layout"));
+        app.add_main_option("fake-keyboard", glib::Char::new('k').unwrap(), glib::OptionFlags::NONE, glib::OptionArg::String, "", None);
     }
 }
 
 impl ApplicationImpl for ConfiguratorAppInner {
+    fn handle_local_options(&self, _app: &gio::Application, opts: &glib::VariantDict) -> i32 {
+        let board_names = if let Some(opt) = opts.lookup_value("fake-keyboard", None) {
+            let value: String = opt.get().unwrap();
+
+            if &value == "all" {
+                layout::layouts().iter().map(|s| s.to_string()).collect()
+            } else {
+                value.split(',').map(str::to_string).collect()
+            }
+        } else {
+            vec![]
+        };
+
+        let _ = self.phony_board_names.set(board_names);
+        -1
+    }
+
     fn activate(&self, app: &gio::Application) {
         let app: &ConfiguratorApp = app.downcast_ref().unwrap();
 
@@ -110,7 +130,7 @@ impl ApplicationImpl for ConfiguratorAppInner {
                 ..set_title("Keyboard Layout");
                 ..set_position(gtk::WindowPosition::Center);
                 ..set_default_size(1024, 768);
-                ..add(&app.inner().scrolled_window);
+                ..add(&self.scrolled_window);
             };
 
             window.set_focus::<gtk::Widget>(None);
@@ -120,7 +140,7 @@ impl ApplicationImpl for ConfiguratorAppInner {
                 eprintln!("Window close");
             });
 
-            let _ = app.inner().window.set(window);
+            let _ = self.window.set(window);
 
             let daemon = daemon();
             let boards = daemon.boards().expect("Failed to load boards");
@@ -129,16 +149,19 @@ impl ApplicationImpl for ConfiguratorAppInner {
                 app.add_keyboard(daemon.clone(), board, i);
             }
 
-            if app.inner().count.load(Ordering::Relaxed) == 0 {
-                eprintln!("Failed to locate any keyboards, showing demo");
-
-                let board_names = layout::layouts().iter().map(|s| s.to_string()).collect();
-                let daemon = Rc::new(DaemonDummy::new(board_names));
+            let phony_board_names = self.phony_board_names.get().unwrap();
+            if !phony_board_names.is_empty() {
+                let daemon = Rc::new(DaemonDummy::new(phony_board_names.clone()));
                 let boards = daemon.boards().unwrap();
 
                 for (i, board) in boards.iter().enumerate() {
                     app.add_keyboard(daemon.clone(), board, i);
                 }
+            } else if self.count.load(Ordering::Relaxed) == 0 {
+                eprintln!("Failed to locate any keyboards, showing demo");
+
+                let daemon = Rc::new(DaemonDummy::new(vec!["system76/launch_alpha_2".to_string()]));
+                app.add_keyboard(daemon, "system76/launch_alpha_2", 0);
             }
         }
     }
