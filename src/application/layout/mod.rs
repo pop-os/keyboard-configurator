@@ -50,6 +50,7 @@ keyboards![
     "system76/gaze15",
     "system76/launch_alpha_1",
     "system76/launch_alpha_2",
+    "system76/launch_beta_1",
     "system76/lemp9",
     "system76/oryp5",
     "system76/oryp6",
