@@ -60,7 +60,8 @@ impl<R: Read, W: Write> DaemonServer<R, W> {
         match HidApi::new() {
             Ok(api) => for info in api.device_list() {
                 match (info.vendor_id(), info.product_id()) {
-                    (0x1776, 0x1776) => match info.interface_number() {
+                    // System76 launch_1
+                    (0x3384, 0x0001) => match info.interface_number() {
                         //TODO: better way to determine this
                         1 => match info.open_device(&api) {
                             Ok(device) => {
