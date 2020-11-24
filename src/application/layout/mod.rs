@@ -164,7 +164,6 @@ impl<'a> Layout<'a> {
 fn parse_keymap_csv(keymap_csv: &str) -> (HashMap<String, u16>, HashMap<u16, &str>) {
     let mut keymap = HashMap::new();
     let mut scancode_names = HashMap::new();
-    scancode_names.insert(0, "NONE");
     for line in keymap_csv.lines() {
         let mut parts = line.split(',');
         let scancode_name = parts.next().expect("Failed to read scancode name");
