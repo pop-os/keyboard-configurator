@@ -196,11 +196,20 @@ impl ConfiguratorApp {
     fn add_keyboard(&self, daemon: Rc<dyn Daemon>, board: &str, i: usize) {
         if let Some(keyboard) = Keyboard::new_board(board, daemon.clone(), i) {
             keyboard.show_all();
-            self.inner().board_dropdown.append(Some(&board), &board);
-            self.inner().stack.add_named(&keyboard, &board);
+
+            // Generate unique ID for board, even with multiple of same model
+            let mut num = 1;
+            let mut board_id = format!("{}1", board);
+            while self.inner().stack.get_child_by_name(&board_id).is_some() {
+                num += 1;
+                board_id = format!("{}{}", board, num);
+            }
+
+            self.inner().board_dropdown.append(Some(&board_id), &board);
+            self.inner().stack.add_named(&keyboard, &board_id);
 
             if self.inner().count.fetch_add(1, Ordering::Relaxed) == 0 {
-                self.inner().board_dropdown.set_active_id(Some(&board));
+                self.inner().board_dropdown.set_active_id(Some(&board_id));
                 self.inner().picker.set_keyboard(Some(keyboard.clone()));
             }
         } else {
