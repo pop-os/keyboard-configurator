@@ -173,13 +173,15 @@ impl Keyboard {
     pub fn new<P: AsRef<Path>>(dir: P, board: &str, daemon: Rc<dyn Daemon>, daemon_board: usize) -> Self {
         let dir = dir.as_ref();
 
+        let default_json = fs::read_to_string(dir.join("default_json"))
+            .expect("Failed to load keymap.csv");
         let keymap_csv = fs::read_to_string(dir.join("keymap.csv"))
             .expect("Failed to load keymap.csv");
         let layout_csv = fs::read_to_string(dir.join("layout.csv"))
             .expect("Failed to load layout.csv");
         let physical_json = fs::read_to_string(dir.join("physical.json"))
             .expect("Failed to load physical.json");
-        Self::new_data(board, &keymap_csv, &layout_csv, &physical_json, daemon, daemon_board)
+        Self::new_data(board, &default_json, &keymap_csv, &layout_csv, &physical_json, daemon, daemon_board)
     }
 
     fn new_layout(board: &str, layout: Layout, daemon: Rc<dyn Daemon>, daemon_board: usize) -> Self {
@@ -242,8 +244,8 @@ impl Keyboard {
         )
     }
 
-    fn new_data(board: &str, keymap_csv: &str, layout_csv: &str, physical_json: &str, daemon: Rc<dyn Daemon>, daemon_board: usize) -> Self {
-        let layout = Layout::from_data(keymap_csv, layout_csv, physical_json);
+    fn new_data(board: &str, default_json: &str, keymap_csv: &str, layout_csv: &str, physical_json: &str, daemon: Rc<dyn Daemon>, daemon_board: usize) -> Self {
+        let layout = Layout::from_data(default_json, keymap_csv, layout_csv, physical_json);
         Self::new_layout(board, layout, daemon, daemon_board)
     }
 
