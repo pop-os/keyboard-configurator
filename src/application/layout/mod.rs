@@ -5,11 +5,13 @@ use std::collections::HashMap;
 mod physical_layout;
 pub(super) use physical_layout::PhysicalLayout;
 
+use crate::keymap::KeyMap;
 use super::key::Key;
 use super::rect::Rect;
 use physical_layout::{PhysicalKeyEnum, PhysicalLayoutEntry};
 
 pub(super) struct Layout<'a> {
+    pub default: KeyMap,
     pub keymap: HashMap<String, u16>,
     pub scancode_names: HashMap<u16, &'a str>,
     physical: PhysicalLayout,
@@ -18,17 +20,19 @@ pub(super) struct Layout<'a> {
 
 macro_rules! keyboards {
     ($( $board:expr ),* $(,)?) => {
-        fn layout_data(board: &str) -> Option<(&'static str, &'static str, &'static str)> {
+        fn layout_data(board: &str) -> Option<(&'static str, &'static str, &'static str, &'static str)> {
             match board {
                 $(
                 $board => {
+                    let default_json =
+                        include_str!(concat!("../../../layouts/", $board, "/default.json"));
                     let keymap_csv =
                         include_str!(concat!("../../../layouts/", $board, "/keymap.csv"));
                     let layout_csv =
                         include_str!(concat!("../../../layouts/", $board, "/layout.csv"));
                     let physical_json =
                         include_str!(concat!("../../../layouts/", $board, "/physical.json"));
-                    Some((keymap_csv, layout_csv, physical_json))
+                    Some((default_json, keymap_csv, layout_csv, physical_json))
                 }
                 )*
                 _ => None
@@ -57,11 +61,13 @@ keyboards![
 ];
 
 impl<'a> Layout<'a> {
-    pub fn from_data(keymap_csv: &'a str, layout_csv: &'a str, physical_json: &'a str) -> Self {
+    pub fn from_data(default_json: &'a str, keymap_csv: &'a str, layout_csv: &'a str, physical_json: &'a str) -> Self {
+        let default = KeyMap::from_str(default_json).unwrap();
         let (keymap, scancode_names) = parse_keymap_csv(keymap_csv);
         let layout = parse_layout_csv(layout_csv);
         let physical = parse_physical_json(&physical_json);
         Self {
+            default,
             keymap,
             scancode_names,
             physical,
@@ -70,8 +76,8 @@ impl<'a> Layout<'a> {
     }
 
     pub fn from_board(board: &'a str) -> Option<Self> {
-        layout_data(board).map(|(keymap_csv, layout_csv, physical_json)| {
-            Self::from_data(keymap_csv, layout_csv, physical_json)
+        layout_data(board).map(|(default_json, keymap_csv, layout_csv, physical_json)| {
+            Self::from_data(default_json, keymap_csv, layout_csv, physical_json)
         })
     }
 
