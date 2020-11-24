@@ -35,6 +35,7 @@ pub struct KeyboardInner {
     board: OnceCell<String>,
     daemon: OnceCell<Rc<dyn Daemon>>,
     daemon_board: OnceCell<usize>,
+    default_layout: OnceCell<KeyMap>,
     keymap: OnceCell<HashMap<String, u16>>,
     keys: OnceCell<Box<[Key]>>,
     load_button: gtk::Button,
@@ -44,6 +45,7 @@ pub struct KeyboardInner {
     color_button_bin: gtk::Frame,
     brightness_scale: gtk::Scale,
     save_button: gtk::Button,
+    reset_button: gtk::Button,
     toolbar: gtk::Box,
     hbox: gtk::Box,
     stack: gtk::Stack,
@@ -109,6 +111,11 @@ impl ObjectSubclass for KeyboardInner {
             ..set_valign(gtk::Align::Center);
         };
 
+        let reset_button = cascade! {
+            gtk::Button::with_label("Reset");
+            ..set_valign(gtk::Align::Center);
+        };
+
         let hbox = cascade! {
             gtk::Box::new(gtk::Orientation::Horizontal, 8);
             ..add(&brightness_label);
@@ -117,18 +124,21 @@ impl ObjectSubclass for KeyboardInner {
             ..add(&color_button_bin);
             ..add(&load_button);
             ..add(&save_button);
+            ..add(&reset_button);
         };
 
         Self {
             board: OnceCell::new(),
             daemon: OnceCell::new(),
             daemon_board: OnceCell::new(),
+            default_layout: OnceCell::new(),
             keymap: OnceCell::new(),
             keys: OnceCell::new(),
             load_button,
             page: Cell::new(Page::Layer1),
             picker: RefCell::new(WeakRef::new()),
             save_button,
+            reset_button,
             selected: Cell::new(None),
             color_button_bin,
             brightness_scale,
@@ -218,6 +228,7 @@ impl Keyboard {
         let _ = keyboard.inner().daemon.set(daemon);
         let _ = keyboard.inner().daemon_board.set(daemon_board);
         let _ = keyboard.inner().keymap.set(layout.keymap);
+        let _ = keyboard.inner().default_layout.set(layout.default);
 
         let color_keyboard = ColorKeyboard::new_daemon(keyboard.daemon().clone(), keyboard.daemon_board());
         let color_button = KeyboardColorButton::new(color_keyboard);
@@ -267,6 +278,10 @@ impl Keyboard {
 
     fn keymap(&self) -> &HashMap<String, u16> {
         self.inner().keymap.get().unwrap()
+    }
+
+    fn default_layout(&self) -> &KeyMap {
+        self.inner().default_layout.get().unwrap()
     }
 
     fn window(&self) -> Option<gtk::Window> {
@@ -446,6 +461,10 @@ impl Keyboard {
                     Err(err) => error_dialog(&kb.window().unwrap(), "Failed to open file", err),
                 }
             }
+        }));
+
+        self.inner().reset_button.connect_clicked(clone!(@weak kb => @default-panic, move |_button| {
+            kb.import_keymap(kb.default_layout());
         }));
     }
 
