@@ -222,6 +222,7 @@ impl Keyboard {
                 key.scancodes.borrow_mut().push((scancode, scancode_name));
             }
         }
+
         let _ = keyboard.inner().keys.set(keys.into_boxed_slice());
 
         let _ = keyboard.inner().board.set(board.to_string());
@@ -528,9 +529,12 @@ impl Keyboard {
                 }));
 
                 let k = &self.keys()[i];
-                k.refresh();
                 k.gtk.borrow_mut().insert(page, (button, label));
             }
+        }
+
+        for k in self.keys() {
+            k.refresh();
         }
     }
 
