@@ -46,6 +46,7 @@ QMK_MAPPING = {
     'LCTRL': 'LEFT_CTRL',
     'LGUI': 'LEFT_SUPER',
     'LSHIFT': 'LEFT_SHIFT',
+    'NO': 'NONE',
     'MEDIA_NEXT_TRACK': 'MEDIA_NEXT',
     'MEDIA_PLAY_PAUSE': 'PLAY_PAUSE',
     'MEDIA_PREV_TRACK': 'MEDIA_PREV',
@@ -101,8 +102,13 @@ def extract_scancodes(includedir: str, common_keymap_h: str, is_qmk: bool) -> Li
     if is_qmk:
         scancode_list.append(('FN', 0x5101)) # MO(0)
         scancode_list.append(('RESET', 0x5C00))
+    else:
+        scancode_list.append(('NONE', 0x0000))
 
-    scancode_list.append(('NONE', 0x0000))
+    scancode_list = [(name, code) for (name, code) in scancode_list if name not in ('INT_1', 'INT_2')]
+
+    # Make sure scancodes are unique
+    assert len(scancode_list) == len(set(i for _, i in scancode_list))
 
     return scancode_list
 
