@@ -240,8 +240,8 @@ fn daemon() -> Rc<dyn Daemon> {
     let mut command = Command::new("pkexec");
 
     // Use canonicalized command name
-    let command_path = if let Ok(path) = env::var("APPIMAGE") {
-        PathBuf::from(path)
+    let command_path = if cfg!(feature = "appimage") {
+        PathBuf::from(env::var("APPIMAGE").expect("Failed to get executable path"))
     } else {
         env::current_exe().expect("Failed to get executable path")
     };

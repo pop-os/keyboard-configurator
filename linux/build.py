@@ -30,7 +30,7 @@ if os.path.exists(PKG):
     os.remove(PKG)
 
 # Build the application
-cmd = ["cargo", "build"]
+cmd = ["cargo", "build", "--features", "appimage"]
 if args.release:
     cmd.append('--release')
 subprocess.check_call(cmd)

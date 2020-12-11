@@ -35,3 +35,6 @@ features = ["hidapi", "std"]
 
 [target.'cfg(target_os = "windows")'.dependencies]
 winreg = "0.7"
+
+[features]
+appimage = []
