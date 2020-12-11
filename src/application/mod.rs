@@ -221,6 +221,8 @@ impl ConfiguratorApp {
 #[cfg(target_os = "linux")]
 fn daemon() -> Rc<dyn Daemon> {
     use std::{
+        env,
+        path::PathBuf,
         process::{
             Command,
             Stdio,
@@ -238,7 +240,12 @@ fn daemon() -> Rc<dyn Daemon> {
     let mut command = Command::new("pkexec");
 
     // Use canonicalized command name
-    let command_path = std::env::current_exe().expect("Failed to get executable path");
+    let command_path = if let Ok(path) = env::var("APPIMAGE") {
+        PathBuf::from(path)
+    } else {
+        env::current_exe().expect("Failed to get executable path")
+    };
+
     command.arg(command_path);
     command.arg("--daemon");
 
