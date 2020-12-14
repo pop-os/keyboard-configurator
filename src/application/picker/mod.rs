@@ -133,7 +133,10 @@ impl ObjectImpl for PickerInner {
             let picker_hbox = match picker_hbox_opt.take() {
                 Some(some) => some,
                 None => {
-                    let picker_hbox = gtk::Box::new(gtk::Orientation::Horizontal, 64);
+                    let picker_hbox = cascade! {
+                        gtk::Box::new(gtk::Orientation::Horizontal, 64);
+                        ..set_halign(gtk::Align::Center);
+                    };
                     picker.add(&picker_hbox);
                     picker_hbox
                 }
