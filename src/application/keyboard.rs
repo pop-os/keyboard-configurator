@@ -180,6 +180,7 @@ glib_wrapper! {
 }
 
 impl Keyboard {
+    #[allow(dead_code)]
     pub fn new<P: AsRef<Path>>(dir: P, board: &str, daemon: Rc<dyn Daemon>, daemon_board: usize) -> Self {
         let dir = dir.as_ref();
 
@@ -256,6 +257,7 @@ impl Keyboard {
         )
     }
 
+    #[allow(dead_code)]
     fn new_data(board: &str, default_json: &str, keymap_csv: &str, layout_csv: &str, physical_json: &str, daemon: Rc<dyn Daemon>, daemon_board: usize) -> Self {
         let layout = Layout::from_data(default_json, keymap_csv, layout_csv, physical_json);
         Self::new_layout(board, layout, daemon, daemon_board)
