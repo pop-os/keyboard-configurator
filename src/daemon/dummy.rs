@@ -8,7 +8,6 @@ use std::{
 
 use crate::color::Rgb;
 use super::Daemon;
-use crate::application::layout;
 
 #[derive(Default)]
 struct BoardDummy {

@@ -14,3 +14,4 @@ mod keyboard_color_button;
 mod keymap;
 
 pub use keyboard_backlight_widget::keyboard_backlight_widget;
+pub use keymap::KeyMap;

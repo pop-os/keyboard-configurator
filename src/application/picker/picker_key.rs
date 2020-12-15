@@ -5,8 +5,6 @@ use std::rc::Rc;
 pub(super) struct PickerKey {
     /// Symbolic name of the key
     pub(super) name: String,
-    /// Text on key
-    pub(super) text: String,
     // GTK button
     pub(super) gtk: gtk::Button,
 }
@@ -36,7 +34,6 @@ impl PickerKey {
 
         Rc::new(Self {
             name,
-            text,
             gtk: button,
         })
     }

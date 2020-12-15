@@ -42,7 +42,7 @@ fn page(keyboard: Keyboard) -> gtk::Widget {
         ..set_hexpand(true);
         ..set_draw_value(false);
         ..set_value(brightness);
-        ..connect_change_value(clone!(@weak keyboard => @default-panic, move |scale, _, value| {
+        ..connect_change_value(clone!(@weak keyboard => @default-panic, move |_scale, _, value| {
             keyboard.set_brightness(value as i32);
             Inhibit(false)
         }));

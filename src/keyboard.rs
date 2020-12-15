@@ -111,7 +111,7 @@ impl Keyboard {
     }
 
     #[cfg(target_os = "linux")]
-    fn new_s76Power(path: &str) -> Self {
+    fn new_s76_power(path: &str) -> Self {
         // XXX unwrap
         let proxy = gio::DBusProxy::new_for_bus_sync::<gio::Cancellable>(
             gio::BusType::System,
@@ -352,7 +352,7 @@ fn add_s76power_keyboards(keyboards: &mut Vec<Keyboard>) -> Result<()> {
             .get::<String>()
             .unwrap();
         if path.starts_with("/com/system76/PowerDaemon/keyboard") {
-            keyboards.push(Keyboard::new_s76Power(&path));
+            keyboards.push(Keyboard::new_s76_power(&path));
         }
     }
     unsafe { glib_sys::g_variant_iter_free(iter) };

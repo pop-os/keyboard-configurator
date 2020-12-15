@@ -5,8 +5,6 @@ use std::rc::Rc;
 use super::picker_key::PickerKey;
 
 pub(super) struct PickerGroup {
-    /// Name of the group
-    pub(super) name: String,
     /// Number of keys to show in each row
     pub(super) cols: i32,
     /// Width of each key in this group
@@ -32,7 +30,6 @@ impl PickerGroup {
         };
 
         Self {
-            name,
             cols,
             width,
             keys: Vec::new(),
