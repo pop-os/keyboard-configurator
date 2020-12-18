@@ -1,3 +1,4 @@
+use cascade::cascade;
 use gio::prelude::*;
 use glib::subclass;
 use glib::subclass::prelude::*;
@@ -8,6 +9,7 @@ use once_cell::unsync::OnceCell;
 
 use main_window::MainWindow;
 
+mod about_dialog;
 mod error_dialog;
 mod gresource;
 mod key;
@@ -70,9 +72,21 @@ impl ApplicationImpl for ConfiguratorAppInner {
         -1
     }
 
-    fn activate(&self, app: &gio::Application) {
-        let app: &ConfiguratorApp = app.downcast_ref().unwrap();
+    fn startup(&self, app: &gio::Application) {
+        self.parent_startup(app);
 
+        let about_action = cascade! {
+            gio::SimpleAction::new("about", None);
+            ..connect_activate(|_, _| about_dialog::about_dialog());
+        };
+
+        app.add_action(&about_action);
+    }
+
+    fn activate(&self, app: &gio::Application) {
+        self.parent_activate(app);
+
+        let app: &ConfiguratorApp = app.downcast_ref().unwrap();
         if let Some(window) = app.get_active_window() {
             //TODO
             eprintln!("Focusing current window");
@@ -91,7 +105,8 @@ glib_wrapper! {
     pub struct ConfiguratorApp(
         Object<subclass::simple::InstanceStruct<ConfiguratorAppInner>,
         subclass::simple::ClassStruct<ConfiguratorAppInner>, ConfiguratorAppClass>)
-        @extends gtk::Application, gio::Application;
+        @extends gtk::Application, gio::Application,
+        @implements gio::ActionGroup, gio::ActionMap;
 
     match fn {
         get_type => || ConfiguratorAppInner::get_type().to_glib(),

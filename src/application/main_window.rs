@@ -32,10 +32,22 @@ impl ObjectSubclass for MainWindowInner {
     glib_object_subclass!();
 
     fn new() -> Self {
+        let menu = cascade! {
+            gio::Menu::new();
+            ..append(Some("About Keyboard Configurator"), Some("app.about"));
+        };
+
+        let menu_button = cascade! {
+            gtk::MenuButton::new();
+            ..set_menu_model(Some(&menu));
+            ..add(&gtk::Image::from_icon_name(Some("open-menu-symbolic"), gtk::IconSize::Menu));
+        };
+
         let header_bar = cascade! {
             gtk::HeaderBar::new();
             ..set_title(Some("System76 Keyboard Configurator"));
             ..set_show_close_button(true);
+            ..pack_end(&menu_button);
         };
 
         let board_dropdown = cascade! {
@@ -114,8 +126,8 @@ glib_wrapper! {
     pub struct MainWindow(
         Object<subclass::simple::InstanceStruct<MainWindowInner>,
         subclass::simple::ClassStruct<MainWindowInner>, ConfiguratorAppClass>)
-        @extends gtk::ApplicationWindow, gtk::Window, gtk::Bin, gtk::Container, gtk::Widget;
-
+        @extends gtk::ApplicationWindow, gtk::Window, gtk::Bin, gtk::Container, gtk::Widget,
+        @implements gio::ActionGroup, gio::ActionMap;
     match fn {
         get_type => || MainWindowInner::get_type().to_glib(),
     }
