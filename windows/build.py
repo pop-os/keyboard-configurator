@@ -82,11 +82,14 @@ for src, filename in dlls:
 
 # Copy additional data
 os.mkdir("out/lib")
-for i in ('lib/p11-kit', 'lib/gdk-pixbuf-2.0'):
+for i in ('share/icons/Adwaita/16x16/actions', 'share/icons/Adwaita/16x16/ui', 'share/icons/Adwaita/index.theme', 'lib/p11-kit', 'lib/gdk-pixbuf-2.0'):
     src = mingw_dir + '\\' + i.replace('/', '\\')
     dest = "out/" + i
     print(f"Copy {src} -> {dest}")
-    shutil.copytree(src, dest)
+    if os.path.isdir(src):
+        shutil.copytree(src, dest)
+    else:
+        shutil.copy(src, dest)
 
 # Extract crate version from cargo
 meta_str = subprocess.check_output(CARGO + ["metadata", "--format-version", "1", "--no-deps"])
