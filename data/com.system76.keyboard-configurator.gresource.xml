@@ -1,5 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <gresources>
     <gresource prefix="/com/system76/keyboard-configurator">
+      <file>icons/16x16/actions/window-close-symbolic.symbolic.png</file>
+      <file>icons/16x16/actions/window-maximize-symbolic.symbolic.png</file>
+      <file>icons/16x16/actions/window-minimize-symbolic.symbolic.png</file>
+      <file>icons/16x16/actions/window-restore-symbolic.symbolic.png</file>
+      <file>icons/16x16/actions/open-menu-symbolic.symbolic.png</file>
     </gresource>
 </gresources>
