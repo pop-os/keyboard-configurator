@@ -9,6 +9,7 @@ use once_cell::unsync::OnceCell;
 use main_window::MainWindow;
 
 mod error_dialog;
+mod gresource;
 mod key;
 mod keyboard;
 pub(crate) mod layout;
@@ -45,7 +46,8 @@ impl ObjectImpl for ConfiguratorAppInner {
         self.parent_constructed(obj);
 
         let app: &ConfiguratorApp = obj.downcast_ref().unwrap();
-        app.set_application_id(Some("com.system76.keyboard-layout"));
+        app.set_application_id(Some("com.system76.keyboard-configurator"));
+        app.set_resource_base_path(Some("/com/system76/keyboard-configurator"));
         app.add_main_option("fake-keyboard", glib::Char::new('k').unwrap(), glib::OptionFlags::NONE, glib::OptionArg::String, "", None);
     }
 }
@@ -153,6 +155,8 @@ pub fn run(args: Vec<String>) -> i32 {
 
     #[cfg(target_os = "windows")]
     windows_init();
+
+    gresource::init().expect("failed to init configurator gresource");
 
     let application = ConfiguratorApp::new();
     application.run(&args)
