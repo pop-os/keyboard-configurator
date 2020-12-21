@@ -82,7 +82,8 @@ for src, filename in dlls:
 
 # Copy additional data
 os.mkdir("out/lib")
-for i in ('lib/p11-kit', 'lib/gdk-pixbuf-2.0'):
+os.makedirs("out/share/glib-2.0/schemas")
+for i in ('share/glib-2.0/schemas/org.gtk.Settings.FileChooser.gschema.xml', 'lib/p11-kit', 'lib/gdk-pixbuf-2.0'):
     src = mingw_dir + '\\' + i.replace('/', '\\')
     dest = "out/" + i
     print(f"Copy {src} -> {dest}")
@@ -90,6 +91,7 @@ for i in ('lib/p11-kit', 'lib/gdk-pixbuf-2.0'):
         shutil.copytree(src, dest)
     else:
         shutil.copy(src, dest)
+subprocess.check_call(["glib-compile-schemas", "out/share/glib-2.0/schemas"])
 
 # Extract crate version from cargo
 meta_str = subprocess.check_output(CARGO + ["metadata", "--format-version", "1", "--no-deps"])
