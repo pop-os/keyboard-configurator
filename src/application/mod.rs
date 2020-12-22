@@ -43,11 +43,11 @@ impl ObjectImpl for ConfiguratorAppInner {
     glib_object_impl!();
 
     fn constructed(&self, obj: &glib::Object) {
-        self.parent_constructed(obj);
-
         let app: &ConfiguratorApp = obj.downcast_ref().unwrap();
         app.set_application_id(Some("com.system76.keyboard-configurator"));
-        app.set_resource_base_path(Some("/com/system76/keyboard-configurator"));
+
+        self.parent_constructed(obj);
+
         app.add_main_option("fake-keyboard", glib::Char::new('k').unwrap(), glib::OptionFlags::NONE, glib::OptionArg::String, "", None);
     }
 }
