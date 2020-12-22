@@ -5,6 +5,7 @@ import json
 import shutil
 import subprocess
 import sys
+import tempfile
 
 # Handle commandline arguments
 parser = argparse.ArgumentParser()
@@ -34,7 +35,18 @@ with open("Info.plist", "w") as f:
 
 # Generate .icns icon file
 subprocess.check_call(["convert", "-background", "#564e48", "-fill", "white", "-size", "256x256", "-gravity", "center", "label:Keyboard\nConfigurator", "keyboard-configurator.png"])
-subprocess.check_call(["makeicns", "-256", "keyboard-configurator.png", "-out", "keyboard-configurator.icns"])
+with tempfile.TemporaryDirectory('.iconset') as d:
+    for i in [16, 32, 64, 128, 256, 512]:
+        size = "{}x{}".format(i, i)
+        outname = "{}/icon_{}x{}.png".format(d, i, i)
+        subprocess.check_call(["convert", "keyboard-configurator.png", "-resize", size, "-quality", "100", outname])
+
+        # hidpi icon
+        size = "{}x{}".format(i * 2, i * 2)
+        outname = "{}/icon_{}x{}x2.png".format(d, i, i)
+        subprocess.check_call(["convert", "keyboard-configurator.png", "-resize", size, "-quality", "100", outname])
+
+    subprocess.check_call(["iconutil", "--convert", "icns", "--output", "keyboard-configurator.icns", d])
 
 # Copy executable
 subprocess.check_call([f"strip", '-o', f"keyboard-configurator", f"{TARGET_DIR}/system76-keyboard-configurator"])

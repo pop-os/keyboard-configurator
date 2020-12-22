@@ -72,7 +72,7 @@ jobs:
   macos:
     runs-on: macos-latest
     steps:
-    - run: brew install gtk+3 makeicns imagemagick jdupes
+    - run: brew install gtk+3 imagemagick jdupes
     - run: npm install -g appdmg
     - run: cd && git clone https://gitlab.gnome.org/GNOME/gtk-mac-bundler && make -C gtk-mac-bundler install
     - run: echo "$HOME/.local/bin" >> $GITHUB_PATH
