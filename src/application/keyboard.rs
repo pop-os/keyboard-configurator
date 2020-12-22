@@ -409,7 +409,6 @@ impl Keyboard {
             let filter = cascade! {
                 gtk::FileFilter::new();
                 ..set_name(Some("JSON"));
-                ..add_mime_type("application/json");
                 ..add_pattern("*.json");
             };
 
@@ -434,7 +433,6 @@ impl Keyboard {
             let filter = cascade! {
                 gtk::FileFilter::new();
                 ..set_name(Some("JSON"));
-                ..add_mime_type("application/json");
                 ..add_pattern("*.json");
             };
 
