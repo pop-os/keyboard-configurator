@@ -291,12 +291,11 @@ impl Keyboard {
         self.get_toplevel()?.downcast().ok()
     }
 
-    pub fn layer(&self) -> usize {
-        //TODO: make this more robust
+    pub fn layer(&self) -> Option<usize> {
         match self.inner().page.get() {
-            Page::Layer1 => 0,
-            Page::Layer2 => 1,
-            _ => 0, // Any other page selects Layer 1
+            Page::Layer1 => Some(0),
+            Page::Layer2 => Some(1),
+            _ => None
         }
     }
 
@@ -566,8 +565,10 @@ impl Keyboard {
             for (_page, (button, _label)) in keys[i].gtk.borrow().iter() {
                 button.get_style_context().add_class("selected");
             }
-            if let Some((_scancode, scancode_name)) = keys[i].scancodes.borrow().get(self.layer()) {
-                picker.set_selected(Some(scancode_name.to_string()));
+            if let Some(layer) = self.layer() {
+                if let Some((_scancode, scancode_name)) = keys[i].scancodes.borrow().get(layer) {
+                    picker.set_selected(Some(scancode_name.to_string()));
+                }
             }
         }
 
