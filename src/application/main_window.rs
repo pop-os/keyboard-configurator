@@ -8,7 +8,7 @@ use glib::translate::{FromGlibPtrFull, ToGlib, ToGlibPtr};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::rc::Rc;
 
-use crate::daemon::{Daemon, DaemonClient, DaemonDummy, daemon_server};
+use crate::daemon::{Daemon, DaemonClient, DaemonDummy, DaemonServer};
 use super::keyboard::Keyboard;
 use super::picker::Picker;
 
@@ -206,7 +206,7 @@ impl MainWindow {
 fn daemon() -> Rc<dyn Daemon> {
     if unsafe { libc::geteuid() == 0 } {
         eprintln!("Already running as root");
-        Rc::new(daemon_server().expect("Failed to create server"))
+        Rc::new(DaemonServer::new_stdio().expect("Failed to create server"))
     } else {
         eprintln!("Not running as root, spawning daemon with pkexec");
         Rc::new(DaemonClient::new_pkexec())
@@ -215,6 +215,6 @@ fn daemon() -> Rc<dyn Daemon> {
 
 #[cfg(not(target_os = "linux"))]
 fn daemon() -> Rc<dyn Daemon> {
-    let server = daemon_server().expect("Failed to create server");
+    let server = DaemonServer::new_stdio().expect("Failed to create server");
     Rc::new(server)
 }
