@@ -1,5 +1,4 @@
 use serde::{Deserialize, Serialize};
-use std::io;
 
 use crate::color::Rgb;
 
@@ -82,8 +81,4 @@ commands! {
 
 fn err_str<E: std::fmt::Debug>(err: E) -> String {
     format!("{:?}", err)
-}
-
-pub fn daemon_server() -> Result<DaemonServer<io::Stdin, io::Stdout>, String> {
-    DaemonServer::new(io::stdin(), io::stdout())
 }

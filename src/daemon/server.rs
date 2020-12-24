@@ -35,6 +35,12 @@ pub struct DaemonServer<R: Read, W: Write> {
     lpc: RefCell<Vec<Ec<AccessLpcLinux>>>,
 }
 
+impl DaemonServer<io::Stdin, io::Stdout> {
+    pub fn new_stdio() -> Result<Self, String> {
+        Self::new(io::stdin(), io::stdout())
+    }
+}
+
 impl<R: Read, W: Write> DaemonServer<R, W> {
     pub fn new(read: R, write: W) -> Result<Self, String> {
         #[cfg(target_os = "linux")]
