@@ -204,45 +204,13 @@ impl MainWindow {
 
 #[cfg(target_os = "linux")]
 fn daemon() -> Rc<dyn Daemon> {
-    use std::{
-        env,
-        path::PathBuf,
-        process::{
-            Command,
-            Stdio,
-        },
-    };
-
     if unsafe { libc::geteuid() == 0 } {
         eprintln!("Already running as root");
-        let server = daemon_server().expect("Failed to create server");
-        return Rc::new(server);
-    }
-
-    // Use pkexec to spawn daemon as superuser
-    eprintln!("Not running as root, spawning daemon with pkexec");
-    let mut command = Command::new("pkexec");
-
-    // Use canonicalized command name
-    let command_path = if cfg!(feature = "appimage") {
-        PathBuf::from(env::var("APPIMAGE").expect("Failed to get executable path"))
+        Rc::new(daemon_server().expect("Failed to create server"))
     } else {
-        env::current_exe().expect("Failed to get executable path")
-    };
-
-    command.arg(command_path);
-    command.arg("--daemon");
-
-    // Pipe stdin and stdout
-    command.stdin(Stdio::piped());
-    command.stdout(Stdio::piped());
-
-    let mut child = command.spawn().expect("Failed to spawn daemon");
-
-    let stdin = child.stdin.take().expect("Failed to get stdin of daemon");
-    let stdout = child.stdout.take().expect("Failed to get stdout of daemon");
-
-    Rc::new(DaemonClient::new(child, stdout, stdin))
+        eprintln!("Not running as root, spawning daemon with pkexec");
+        Rc::new(DaemonClient::new_pkexec())
+    }
 }
 
 #[cfg(not(target_os = "linux"))]
