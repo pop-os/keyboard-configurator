@@ -46,7 +46,6 @@ pub struct KeyboardInner {
     brightness_scale: gtk::Scale,
     save_button: gtk::Button,
     reset_button: gtk::Button,
-    toolbar: gtk::Box,
     hbox: gtk::Box,
     stack: gtk::Stack,
 }
@@ -91,16 +90,6 @@ impl ObjectSubclass for KeyboardInner {
             ..set_valign(gtk::Align::Center);
         };
 
-        let stack_switcher = cascade! {
-            gtk::StackSwitcher::new();
-            ..set_stack(Some(&stack));
-        };
-
-        let toolbar = cascade! {
-            gtk::Box::new(gtk::Orientation::Horizontal, 8);
-            ..set_center_widget(Some(&stack_switcher));
-        };
-
         let load_button = cascade! {
             gtk::Button::with_label("Load");
             ..set_valign(gtk::Align::Center);
@@ -142,7 +131,6 @@ impl ObjectSubclass for KeyboardInner {
             selected: Cell::new(None),
             color_button_bin,
             brightness_scale,
-            toolbar,
             hbox,
             stack,
         }
@@ -158,7 +146,6 @@ impl ObjectImpl for KeyboardInner {
         let keyboard: &Keyboard = obj.downcast_ref().unwrap();
         keyboard.set_orientation(gtk::Orientation::Vertical);
         keyboard.set_spacing(8);
-        keyboard.add(&keyboard.inner().toolbar);
         keyboard.add(&keyboard.inner().hbox);
         keyboard.add(&keyboard.inner().stack);
     }
@@ -301,6 +288,10 @@ impl Keyboard {
 
     pub fn selected(&self) -> Option<usize> {
         self.inner().selected.get()
+    }
+
+    pub fn stack(&self) -> &gtk::Stack {
+        &self.inner().stack
     }
 
     pub fn has_scancode(&self, scancode_name: &str) -> bool {

@@ -16,6 +16,7 @@ pub struct MainWindowInner {
     board_dropdown: gtk::ComboBoxText,
     count: AtomicUsize,
     header_bar: gtk::HeaderBar,
+    layer_switcher: gtk::StackSwitcher,
     picker: Picker,
     scrolled_window: gtk::ScrolledWindow,
     stack: gtk::Stack,
@@ -43,9 +44,14 @@ impl ObjectSubclass for MainWindowInner {
             ..add(&gtk::Image::from_icon_name(Some("open-menu-symbolic"), gtk::IconSize::Menu));
         };
 
+        let layer_switcher = cascade! {
+            gtk::StackSwitcher::new();
+        };
+
         let header_bar = cascade! {
             gtk::HeaderBar::new();
             ..set_title(Some("System76 Keyboard Configurator"));
+            ..set_custom_title(Some(&layer_switcher));
             ..set_show_close_button(true);
             ..pack_end(&menu_button);
         };
@@ -61,10 +67,11 @@ impl ObjectSubclass for MainWindowInner {
 
         let picker = Picker::new();
 
-        board_dropdown.connect_changed(clone!(@weak stack, @weak picker => @default-panic, move |combobox| {
+        board_dropdown.connect_changed(clone!(@weak stack, @weak picker, @weak layer_switcher => @default-panic, move |combobox| {
             if let Some(id) = combobox.get_active_id() {
                 stack.set_visible_child_name(&id);
-                let keyboard = stack.get_child_by_name(&id).unwrap().downcast().unwrap();
+                let keyboard: Keyboard = stack.get_child_by_name(&id).unwrap().downcast().unwrap();
+                layer_switcher.set_stack(Some(keyboard.stack()));
                 picker.set_keyboard(Some(keyboard));
             }
         }));
@@ -87,6 +94,7 @@ impl ObjectSubclass for MainWindowInner {
             board_dropdown,
             count: AtomicUsize::new(0),
             header_bar,
+            layer_switcher,
             picker,
             scrolled_window,
             stack,
@@ -185,6 +193,7 @@ impl MainWindow {
 
             if self.inner().count.fetch_add(1, Ordering::Relaxed) == 0 {
                 self.inner().board_dropdown.set_active_id(Some(&board_id));
+                self.inner().layer_switcher.set_stack(Some(keyboard.stack()));
                 self.inner().picker.set_keyboard(Some(keyboard.clone()));
             }
         } else {
