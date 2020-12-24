@@ -1,14 +1,18 @@
 use std::{
     cell::RefCell,
+    env,
     io::{
         BufRead,
         BufReader,
         Write,
     },
+    path::PathBuf,
     process::{
         Child,
         ChildStdin,
         ChildStdout,
+        Command,
+        Stdio,
     },
 };
 
@@ -27,7 +31,25 @@ pub struct DaemonClient {
 }
 
 impl DaemonClient {
-    pub fn new(child: Child, stdout: ChildStdout, stdin: ChildStdin) -> Self {
+    pub fn new_pkexec() -> Self {
+        // Use canonicalized command name
+        let command_path = if cfg!(feature = "appimage") {
+            PathBuf::from(env::var("APPIMAGE").expect("Failed to get executable path"))
+        } else {
+            env::current_exe().expect("Failed to get executable path")
+        };
+
+        let mut child = Command::new("pkexec")
+            .arg(command_path)
+            .arg("--daemon")
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .spawn()
+            .expect("Failed to spawn daemon");
+
+        let stdin = child.stdin.take().unwrap();
+        let stdout = child.stdout.take().unwrap();
+
         Self {
             child,
             read: RefCell::new(BufReader::new(stdout)),
