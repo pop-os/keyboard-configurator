@@ -48,11 +48,20 @@ impl DaemonClient {
             .expect("Failed to spawn daemon");
 
         let stdin = child.stdin.take().unwrap();
-        let stdout = child.stdout.take().unwrap();
+        let mut stdout = BufReader::new(child.stdout.take().unwrap());
+
+        // Check if daemon has started
+        let mut line = String::new();
+        if let Ok(count) = stdout.read_line(&mut line) {
+            // pkexec terminated returning EOF
+            if count == 0 {
+                panic!("Failed to start daemon with pkexec");
+            }
+        }
 
         Self {
             child,
-            read: RefCell::new(BufReader::new(stdout)),
+            read: RefCell::new(stdout),
             write: RefCell::new(stdin),
         }
     }

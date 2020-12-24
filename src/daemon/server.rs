@@ -111,6 +111,8 @@ impl<R: Read, W: Write> DaemonServer<R, W> {
     }
 
     pub fn run(mut self) -> io::Result<()> {
+        println!("Daemon started");
+
         while self.running.get() {
             let mut command_json = String::new();
             self.read.read_line(&mut command_json)?;
