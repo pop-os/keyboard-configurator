@@ -563,6 +563,8 @@ impl Keyboard {
             }
         }
 
+        picker.set_sensitive(self.layer() != None);
+
         self.inner().selected.set(i);
     }
 }
