@@ -127,6 +127,7 @@ MEDIA_NEXT,Next Track,
 MEDIA_PREV,Prev Track,
 ,,
 Controls,4,2
+FAN_TOGGLE,Fan Toggle,
 DISPLAY_TOGGLE,Screen Toggle,
 BRIGHTNESS_UP,Screen Up,
 BRIGHTNESS_DOWN,Screen Down,
@@ -134,7 +135,7 @@ DISPLAY_MODE,Screen Mode,
 SUSPEND,Suspend,
 CAMERA_TOGGLE,Camera Toggle,
 AIRPLANE_MODE,Airplane Mode,
-TOUCHPAD,Touchpad,Toggle
+TOUCHPAD,Touchpad Toggle,
 ,,
 LED controls,4,1
 KBD_TOGGLE,LED Toggle,
