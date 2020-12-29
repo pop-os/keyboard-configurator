@@ -1,8 +1,4 @@
-use gtk::prelude::*;
-use std::{
-    cell::RefCell,
-    collections::HashMap,
-};
+use std::cell::RefCell;
 
 use super::page::Page;
 use super::picker::SCANCODE_LABELS;
@@ -28,54 +24,23 @@ pub struct Key {
     pub(crate) background_color: String,
     // Foreground color
     pub(crate) foreground_color: String,
-    // GTK buttons by page
-    //TODO: clean up this crap
-    pub(crate) gtk: RefCell<HashMap<Page, (gtk::Button, gtk::Label)>>,
 }
 
 impl Key {
-    pub fn css(&self) -> String {
-        format!(
-r#"
-button {{
-    background-image: none;
-    background-color: {};
-    border-image: none;
-    box-shadow: none;
-    color: {};
-    margin: 0;
-    padding: 0;
-    text-shadow: none;
-    -gtk-icon-effect: none;
-    -gtk-icon-shadow: none;
-}}
-
-.selected {{
-    border-color: #fbb86c;
-    border-width: 4px;
-}}
-"#,
-            self.background_color,
-            self.foreground_color,
-        )
-    }
-
-    pub fn refresh(&self) {
+    pub fn get_label(&self, page: Page) -> String {
         let scancodes = self.scancodes.borrow();
-        for (layer, (_button, label)) in self.gtk.borrow().iter() {
-            label.set_label(match layer {
-                Page::Layer1 => {
-                    let scancode_name = &scancodes[0].1;
-                    SCANCODE_LABELS.get(scancode_name).unwrap_or(scancode_name)
-                },
-                Page::Layer2 => {
-                    let scancode_name = &scancodes[1].1;
-                    SCANCODE_LABELS.get(scancode_name).unwrap_or(scancode_name)
-                },
-                Page::Keycaps => &self.physical_name,
-                Page::Logical => &self.logical_name,
-                Page::Electrical => &self.electrical_name,
-            });
+        match page {
+            Page::Layer1 => {
+                let scancode_name = &scancodes[0].1;
+                SCANCODE_LABELS.get(scancode_name).unwrap_or(scancode_name).into()
+            },
+            Page::Layer2 => {
+                let scancode_name = &scancodes[1].1;
+                SCANCODE_LABELS.get(scancode_name).unwrap_or(scancode_name).into()
+            },
+            Page::Keycaps => self.physical_name.clone(),
+            Page::Logical => self.logical_name.clone(),
+            Page::Electrical => self.electrical_name.clone(),
         }
     }
 }

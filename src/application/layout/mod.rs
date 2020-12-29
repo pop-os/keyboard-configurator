@@ -142,7 +142,6 @@ impl<'a> Layout<'a> {
                                 scancodes: RefCell::new(Vec::new()),
                                 background_color: background_color.clone(),
                                 foreground_color: foreground_color.clone(),
-                                gtk: RefCell::new(HashMap::new()),
                             });
 
                             x += w;

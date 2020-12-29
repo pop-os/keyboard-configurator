@@ -307,7 +307,6 @@ impl Keyboard {
         let mut found = false;
         if let Some(scancode) = self.keymap().get(scancode_name) {
             k.scancodes.borrow_mut()[layer] = (*scancode, scancode_name.to_string());
-            k.refresh();
             found = true;
         }
         if !found {
@@ -372,7 +371,7 @@ impl Keyboard {
         self.inner().stack.connect_property_visible_child_notify(
             clone!(@weak kb => @default-panic, move |stack| {
                 let page: Option<Page> = match stack.get_visible_child() {
-                    Some(child) => unsafe { child.get_data("keyboard_confurator_page").cloned() },
+                    Some(child) => unsafe { child.get_data("keyboard_configurator_page").cloned() },
                     None => None,
                 };
 
@@ -463,68 +462,82 @@ impl Keyboard {
         let kb = self;
 
         for page in Page::iter_all() {
-            let fixed = gtk::Fixed::new();
-            self.inner().stack.add_titled(&fixed, page.name(), page.name());
+            const SCALE: f64 = 64.0;
+            const MARGIN: f64 = 2.;
+
+            let (width, height) = self.keys().iter().map(|k| {
+                let w = (k.physical.w + k.physical.x) * SCALE - MARGIN;
+                let h = (k.physical.h - k.physical.y) * SCALE - MARGIN;
+                (w as i32, h as i32)
+            }).max().unwrap();
+
+            let drawing_area = cascade!{
+                gtk::DrawingArea::new();
+                ..set_size_request(width, height);
+                ..add_events(gdk::EventMask::BUTTON_PRESS_MASK);
+            };
+
+            drawing_area.connect_draw(clone!(@weak kb => @default-panic, move |drawing_area, cr| {
+                for (i, k) in kb.keys().iter().enumerate() {
+                    let x = (k.physical.x * SCALE) + MARGIN;
+                    let y = -(k.physical.y * SCALE) + MARGIN;
+                    let w = (k.physical.w * SCALE) - MARGIN * 2.;
+                    let h = (k.physical.h * SCALE) - MARGIN * 2.;
+
+                    let bg = crate::color::Rgb::parse(&k.background_color[1..]).unwrap().to_floats();
+                    let fg = crate::color::Rgb::parse(&k.foreground_color[1..]).unwrap().to_floats();
+                    let selected = crate::color::Rgb::parse("fbb86c").unwrap().to_floats();
+
+                    cr.rectangle(x, y, w, h);
+                    cr.set_source_rgb(bg.0, bg.1, bg.2);
+                    cr.fill();
+
+                    if kb.selected() == Some(i) {
+                        cr.rectangle(x, y, w, h);
+                        cr.set_source_rgb(selected.0, selected.1, selected.2);
+                        cr.set_line_width(4.);
+                        cr.stroke();
+                    }
+
+                    // Draw label
+                    let text = k.get_label(page);
+                    let layout = cascade! {
+                        drawing_area.create_pango_layout(Some(&text));
+                        ..set_width((w * pango::SCALE as f64) as i32);
+                        ..set_alignment(pango::Alignment::Center);
+                    };
+                    let text_height = layout.get_pixel_size().1 as f64;
+                    cr.move_to(x, y + (h - text_height) / 2.);
+                    cr.set_source_rgb(fg.0, fg.1, fg.2);
+                    pangocairo::show_layout(cr, &layout);
+                }
+
+                Inhibit(false)
+            }));
+
+            drawing_area.connect_button_press_event(clone!(@weak kb => @default-panic, move |_drawing_area, evt| {
+                let pos = evt.get_position();
+                for (i, k) in kb.keys().iter().enumerate() {
+                    let x = (k.physical.x * SCALE) + MARGIN;
+                    let y = -(k.physical.y * SCALE) + MARGIN;
+                    let w = (k.physical.w * SCALE) - MARGIN * 2.;
+                    let h = (k.physical.h * SCALE) - MARGIN * 2.;
+
+                    if (x..=x+w).contains(&pos.0) && (y..=y+h).contains(&pos.1) {
+                        if kb.selected() == Some(i) {
+                            kb.set_selected(None);
+                        } else {
+                            kb.set_selected(Some(i));
+                        }
+                    }
+                }
+                Inhibit(false)
+            }));
+
+            self.inner().stack.add_titled(&drawing_area, page.name(), page.name());
 
             // TODO: Replace with something type-safe
-            unsafe { fixed.set_data("keyboard_confurator_page", page) };
-
-            let keys_len = self.keys().len();
-            for i in 0..keys_len {
-                let (button, label) = {
-                    let keys = self.keys();
-                    let k = &keys[i];
-
-                    let scale = 64.0;
-                    let margin = 2;
-                    let x = (k.physical.x * scale) as i32 + margin;
-                    let y = -(k.physical.y * scale) as i32 + margin;
-                    let w = (k.physical.w * scale) as i32 - margin * 2;
-                    let h = (k.physical.h * scale) as i32 - margin * 2;
-
-                    let css = k.css();
-                    let style_provider = cascade! {
-                        gtk::CssProvider::new();
-                        ..load_from_data(css.as_bytes()).expect("Failed to parse css");
-                    };
-
-                    let label = cascade! {
-                        gtk::Label::new(None);
-                        ..set_line_wrap(true);
-                        ..set_margin_start(5);
-                        ..set_margin_end(5);
-                        ..set_justify(gtk::Justification::Center);
-                    };
-
-                    let button = cascade! {
-                        gtk::Button::new();
-                        ..set_focus_on_click(false);
-                        ..set_size_request(w, h);
-                        ..get_style_context().add_provider(&style_provider, gtk::STYLE_PROVIDER_PRIORITY_APPLICATION);
-                        ..add(&label);
-                    };
-
-                    fixed.put(&button, x, y);
-
-                    (button, label)
-                };
-
-                button.connect_clicked(clone!(@weak kb => @default-panic, move |_| {
-                    // Deselect
-                    if kb.inner().selected.get() == Some(i) {
-                        kb.set_selected(None);
-                    } else {
-                        kb.set_selected(Some(i));
-                    }
-                }));
-
-                let k = &self.keys()[i];
-                k.gtk.borrow_mut().insert(page, (button, label));
-            }
-        }
-
-        for k in self.keys() {
-            k.refresh();
+            unsafe { drawing_area.set_data("keyboard_configurator_page", page) };
         }
     }
 
@@ -543,19 +556,11 @@ impl Keyboard {
         };
         let keys = self.keys();
 
-        if let Some(selected) = self.selected() {
-            for (_page, (button, _label)) in keys[selected].gtk.borrow().iter() {
-                button.get_style_context().remove_class("selected");
-            }
-            picker.set_selected(None);
-        }
+        picker.set_selected(None);
 
         if let Some(i) = i {
             let k = &keys[i];
             println!("{:#?}", k);
-            for (_page, (button, _label)) in keys[i].gtk.borrow().iter() {
-                button.get_style_context().add_class("selected");
-            }
             if let Some(layer) = self.layer() {
                 if let Some((_scancode, scancode_name)) = keys[i].scancodes.borrow().get(layer) {
                     picker.set_selected(Some(scancode_name.to_string()));
@@ -566,5 +571,7 @@ impl Keyboard {
         picker.set_sensitive(self.layer() != None);
 
         self.inner().selected.set(i);
+
+        self.queue_draw();
     }
 }
