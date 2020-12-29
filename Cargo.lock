@@ -539,6 +539,35 @@ dependencies = [
 ]
 
 [[package]]
+name = "pangocairo"
+version = "0.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "bitflags 1.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "cairo-rs 0.9.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "cairo-sys-rs 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "glib 0.10.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "glib-sys 0.10.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "gobject-sys 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "libc 0.2.78 (registry+https://github.com/rust-lang/crates.io-index)",
+ "pango 0.9.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "pango-sys 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "pangocairo-sys 0.11.0 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "pangocairo-sys"
+version = "0.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "cairo-sys-rs 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "glib-sys 0.10.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "libc 0.2.78 (registry+https://github.com/rust-lang/crates.io-index)",
+ "pango-sys 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "system-deps 1.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "phf"
 version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -817,6 +846,8 @@ dependencies = [
  "libc 0.2.78 (registry+https://github.com/rust-lang/crates.io-index)",
  "once_cell 1.4.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "palette 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "pango 0.9.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "pangocairo 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 1.0.116 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_json 1.0.58 (registry+https://github.com/rust-lang/crates.io-index)",
  "system76_ectool 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -967,6 +998,8 @@ dependencies = [
 "checksum palette_derive 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)" = "0b4b5f600e60dd3a147fb57b4547033d382d1979eb087af310e91cb45a63b1f4"
 "checksum pango 0.9.1 (registry+https://github.com/rust-lang/crates.io-index)" = "9937068580bebd8ced19975938573803273ccbcbd598c58d4906efd4ac87c438"
 "checksum pango-sys 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)" = "24d2650c8b62d116c020abd0cea26a4ed96526afda89b1c4ea567131fdefc890"
+"checksum pangocairo 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)" = "00f5ae67a05a5e023f09f64e9a71c845274d4b82dedee237b70425811885e883"
+"checksum pangocairo-sys 0.11.0 (registry+https://github.com/rust-lang/crates.io-index)" = "94ccc97f698c2f0233b84e5ca676893a1e676785b60eec700b9c0e6dcd0feb98"
 "checksum phf 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)" = "3dfb61232e34fcb633f43d12c58f83c1df82962dcdfa565a4e866ffc17dafe12"
 "checksum phf_codegen 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)" = "cbffee61585b0411840d3ece935cce9cb6321f01c45477d30066498cd5e1a815"
 "checksum phf_generator 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)" = "17367f0cc86f2d25802b2c26ee58a7b23faeccf78a396094c13dced0d0182526"
