@@ -1,5 +1,6 @@
 use std::cell::RefCell;
 
+use crate::color::Rgb;
 use super::page::Page;
 use super::picker::SCANCODE_LABELS;
 use super::rect::Rect;
@@ -21,9 +22,9 @@ pub struct Key {
     // Currently loaded scancodes and their names
     pub(crate) scancodes: RefCell<Vec<(u16, String)>>,
     // Background color
-    pub(crate) background_color: String,
+    pub(crate) background_color: Rgb,
     // Foreground color
-    pub(crate) foreground_color: String,
+    pub(crate) foreground_color: Rgb,
 }
 
 impl Key {

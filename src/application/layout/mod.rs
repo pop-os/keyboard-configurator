@@ -5,6 +5,7 @@ use std::collections::HashMap;
 mod physical_layout;
 pub(super) use physical_layout::PhysicalLayout;
 
+use crate::color::Rgb;
 use crate::keymap::KeyMap;
 use super::key::Key;
 use super::rect::Rect;
@@ -90,8 +91,8 @@ impl<'a> Layout<'a> {
         let mut y = 0.0;
         let mut w = 1.0;
         let mut h = 1.0;
-        let mut background_color = "#cccccc".to_string();
-        let mut foreground_color = "#000000".to_string();
+        let mut background_color = Rgb::new(0xcc, 0xcc, 0xcc);
+        let mut foreground_color = Rgb::new(0x00, 0x00, 0x00);
 
         for entry in &self.physical.0 {
             if let PhysicalLayoutEntry::Row(row) = entry {
@@ -103,12 +104,16 @@ impl<'a> Layout<'a> {
                             y -= meta.y;
                             w = meta.w.unwrap_or(w);
                             h = meta.h.unwrap_or(h);
-                            background_color = meta.c.clone().unwrap_or(background_color);
+                            background_color = meta.c.as_ref().map(|c| {
+                                let err = format!("Failed to parse color {}", c);
+                                Rgb::parse(&c[1..]).expect(&err)
+                            }).unwrap_or(background_color);
                             if let Some(t) = &meta.t {
                                 //TODO: support using different color per line?
                                 //Is this even possible in GTK?
                                 if let Some(t_l) = t.lines().next() {
-                                    foreground_color = t_l.to_string();
+                                    let err = format!("Failed to parse color {}", t_l);
+                                    foreground_color = Rgb::parse(&t_l[1..]).expect(&err);
                                 }
                             }
                         }
@@ -140,8 +145,8 @@ impl<'a> Layout<'a> {
                                 electrical: electrical.clone(),
                                 electrical_name: format!("{}, {}", electrical.0, electrical.1),
                                 scancodes: RefCell::new(Vec::new()),
-                                background_color: background_color.clone(),
-                                foreground_color: foreground_color.clone(),
+                                background_color,
+                                foreground_color,
                             });
 
                             x += w;

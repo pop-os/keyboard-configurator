@@ -21,6 +21,7 @@ use std::{
     str,
 };
 
+use crate::color::Rgb;
 use crate::daemon::Daemon;
 use crate::keyboard::Keyboard as ColorKeyboard;
 use crate::keyboard_color_button::KeyboardColorButton;
@@ -478,15 +479,15 @@ impl Keyboard {
             };
 
             drawing_area.connect_draw(clone!(@weak kb => @default-panic, move |drawing_area, cr| {
+                let selected = Rgb::new(0xfb, 0xb8, 0x6c).to_floats();
                 for (i, k) in kb.keys().iter().enumerate() {
                     let x = (k.physical.x * SCALE) + MARGIN;
                     let y = -(k.physical.y * SCALE) + MARGIN;
                     let w = (k.physical.w * SCALE) - MARGIN * 2.;
                     let h = (k.physical.h * SCALE) - MARGIN * 2.;
 
-                    let bg = crate::color::Rgb::parse(&k.background_color[1..]).unwrap().to_floats();
-                    let fg = crate::color::Rgb::parse(&k.foreground_color[1..]).unwrap().to_floats();
-                    let selected = crate::color::Rgb::parse("fbb86c").unwrap().to_floats();
+                    let bg = k.background_color.to_floats();
+                    let fg = k.foreground_color.to_floats();
 
                     cr.rectangle(x, y, w, h);
                     cr.set_source_rgb(bg.0, bg.1, bg.2);
