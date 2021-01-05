@@ -158,9 +158,9 @@ impl<R: Read, W: Write> Daemon for DaemonServer<R, W> {
         #[cfg(target_os = "linux")]
         {
             let mut lpc = self.lpc.borrow_mut();
-            if board < lpc.len() {
+            if let Some(ref mut ec) = lpc.get_mut(board) {
                 return unsafe {
-                    lpc[board].keymap_get(layer, output, input).map_err(err_str)
+                    ec.keymap_get(layer, output, input).map_err(err_str)
                 };
             }
             board -= lpc.len();
@@ -179,9 +179,9 @@ impl<R: Read, W: Write> Daemon for DaemonServer<R, W> {
         #[cfg(target_os = "linux")]
         {
             let mut lpc = self.lpc.borrow_mut();
-            if board < lpc.len() {
+            if let Some(ref mut ec) = lpc.get_mut(board) {
                 return unsafe {
-                    lpc[board].keymap_set(layer, output, input, value).map_err(err_str)
+                    ec.keymap_set(layer, output, input, value).map_err(err_str)
                 };
             }
             board -= lpc.len();
@@ -200,9 +200,9 @@ impl<R: Read, W: Write> Daemon for DaemonServer<R, W> {
         #[cfg(target_os = "linux")]
         {
             let mut lpc = self.lpc.borrow_mut();
-            if board < lpc.len() {
+            if let Some(ref mut ec) = lpc.get_mut(board) {
                 return unsafe {
-                    lpc[board].led_get_color(0xFF).map(|x| Rgb::new(x.0, x.1, x.2)).map_err(err_str)
+                    ec.led_get_color(0xFF).map(|x| Rgb::new(x.0, x.1, x.2)).map_err(err_str)
                 };
             }
             board -= lpc.len();
@@ -221,9 +221,9 @@ impl<R: Read, W: Write> Daemon for DaemonServer<R, W> {
         #[cfg(target_os = "linux")]
         {
             let mut lpc = self.lpc.borrow_mut();
-            if board < lpc.len() {
+            if let Some(ref mut ec) = lpc.get_mut(board) {
                 return unsafe {
-                    lpc[board].led_set_color(0xFF, color.r, color.g, color.b).map_err(err_str)
+                    ec.led_set_color(0xFF, color.r, color.g, color.b).map_err(err_str)
                 };
             }
             board -= lpc.len();
@@ -242,9 +242,9 @@ impl<R: Read, W: Write> Daemon for DaemonServer<R, W> {
         #[cfg(target_os = "linux")]
         {
             let mut lpc = self.lpc.borrow_mut();
-            if board < lpc.len() {
+            if let Some(ref mut ec) = lpc.get_mut(board) {
                 return unsafe {
-                    lpc[board].led_get_value(0xFF).map(|x| x.1 as i32).map_err(err_str)
+                    ec.led_get_value(0xFF).map(|x| x.1 as i32).map_err(err_str)
                 };
             }
             board -= lpc.len();
@@ -263,9 +263,9 @@ impl<R: Read, W: Write> Daemon for DaemonServer<R, W> {
         #[cfg(target_os = "linux")]
         {
             let mut lpc = self.lpc.borrow_mut();
-            if board < lpc.len() {
+            if let Some(ref mut ec) = lpc.get_mut(board) {
                 return unsafe {
-                    lpc[board].led_get_value(0xFF).map(|x| x.0 as i32).map_err(err_str)
+                    ec.led_get_value(0xFF).map(|x| x.0 as i32).map_err(err_str)
                 };
             }
             board -= lpc.len();
@@ -284,9 +284,9 @@ impl<R: Read, W: Write> Daemon for DaemonServer<R, W> {
         #[cfg(target_os = "linux")]
         {
             let mut lpc = self.lpc.borrow_mut();
-            if board < lpc.len() {
+            if let Some(ref mut ec) = lpc.get_mut(board) {
                 return unsafe {
-                    lpc[board].led_set_value(0xFF, brightness as u8).map_err(err_str)
+                    ec.led_set_value(0xFF, brightness as u8).map_err(err_str)
                 };
             }
             board -= lpc.len();
