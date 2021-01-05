@@ -196,70 +196,108 @@ impl<R: Read, W: Write> Daemon for DaemonServer<R, W> {
         }
     }
 
-    fn color(&self, board: usize) -> Result<Rgb, String> {
-        let path = "/sys/class/leds/system76_acpi::kbd_backlight/color";
-        match fs::read_to_string(&path) {
-            Ok(string) => {
-                let trimmed = string.trim();
-                match Rgb::parse(trimmed) {
-                    Some(color) => Ok(color),
-                    None => Err(format!("Failed to parse keyboard color '{}'", trimmed))
-                }
-            },
-            Err(err) => Err(format!("Failed to read keyboard color: {}", err))
-        }
-    }
-
-    fn set_color(&self, board: usize, color: Rgb) -> Result<(), String> {
-        let path = "/sys/class/leds/system76_acpi::kbd_backlight/color";
-        match fs::write(path, &color.to_string()) {
-            Ok(()) => Ok(()),
-            Err(err) => Err(format!("Failed to write keyboard color: {}", err))
-        }
-
-    }
-
-    fn max_brightness(&self, board: usize) -> Result<i32, String> {
-        let path = "/sys/class/leds/system76_acpi::kbd_backlight/max_brightness";
-        match fs::read_to_string(&path) {
-            Ok(string) => {
-                let trimmed = string.trim();
-                match trimmed.parse::<i32>() {
-                    Ok(value) => Ok(value),
-                    Err(err) => {
-                        Err(format!("Failed to parse keyboard max brightness '{}': {}", trimmed, err))
-                    }
-                }
-            },
-            Err(err) => {
-                Err(format!("Failed to read keyboard max brightness: {}", err))
+    fn color(&self, mut board: usize) -> Result<Rgb, String> {
+        #[cfg(target_os = "linux")]
+        {
+            let mut lpc = self.lpc.borrow_mut();
+            if board < lpc.len() {
+                return unsafe {
+                    lpc[board].led_get_color(0xFF).map(|x| Rgb::new(x.0, x.1, x.2)).map_err(err_str)
+                };
             }
+            board -= lpc.len();
         }
-    }
 
-    fn brightness(&self, board: usize) -> Result<i32, String> {
-        let path = "/sys/class/leds/system76_acpi::kbd_backlight/brightness";
-        match fs::read_to_string(&path) {
-            Ok(string) => {
-                let trimmed = string.trim();
-                match trimmed.parse::<i32>() {
-                    Ok(value) => Ok(value),
-                    Err(err) => {
-                        Err(format!("Failed to parse keyboard brightness '{}': {}", trimmed, err))
-                    }
-                }
-            },
-            Err(err) => {
-                Err(format!("Failed to read keyboard brightness: {}", err))
+        if let Some(ref mut ec) = self.hid.borrow_mut().get_mut(board) {
+            unsafe {
+                ec.led_get_color(0xFF).map(|x| Rgb::new(x.0, x.1, x.2)).map_err(err_str)
             }
+        } else {
+            Err("failed to find board".to_string())
         }
     }
 
-    fn set_brightness(&self, board: usize, brightness: i32) -> Result<(), String> {
-        let path = "/sys/class/leds/system76_acpi::kbd_backlight/brightness";
-        match fs::write(path, &format!("{}", brightness)) {
-            Ok(()) => Ok(()),
-            Err(err) => Err(format!("Failed to write keyboard brightness: {}", err))
+    fn set_color(&self, mut board: usize, color: Rgb) -> Result<(), String> {
+        #[cfg(target_os = "linux")]
+        {
+            let mut lpc = self.lpc.borrow_mut();
+            if board < lpc.len() {
+                return unsafe {
+                    lpc[board].led_set_color(0xFF, color.r, color.g, color.b).map_err(err_str)
+                };
+            }
+            board -= lpc.len();
+        }
+
+        if let Some(ref mut ec) = self.hid.borrow_mut().get_mut(board) {
+            unsafe {
+                ec.led_set_color(0xFF, color.r, color.g, color.b).map_err(err_str)
+            }
+        } else {
+            Err("failed to find board".to_string())
+        }
+    }
+
+    fn max_brightness(&self, mut board: usize) -> Result<i32, String> {
+        #[cfg(target_os = "linux")]
+        {
+            let mut lpc = self.lpc.borrow_mut();
+            if board < lpc.len() {
+                return unsafe {
+                    lpc[board].led_get_value(0xFF).map(|x| x.1 as i32).map_err(err_str)
+                };
+            }
+            board -= lpc.len();
+        }
+
+        if let Some(ref mut ec) = self.hid.borrow_mut().get_mut(board) {
+            unsafe {
+                ec.led_get_value(0xFF).map(|x| x.1 as i32).map_err(err_str)
+            }
+        } else {
+            Err("failed to find board".to_string())
+        }
+    }
+
+    fn brightness(&self, mut board: usize) -> Result<i32, String> {
+        #[cfg(target_os = "linux")]
+        {
+            let mut lpc = self.lpc.borrow_mut();
+            if board < lpc.len() {
+                return unsafe {
+                    lpc[board].led_get_value(0xFF).map(|x| x.0 as i32).map_err(err_str)
+                };
+            }
+            board -= lpc.len();
+        }
+
+        if let Some(ref mut ec) = self.hid.borrow_mut().get_mut(board) {
+            unsafe {
+                ec.led_get_value(0xFF).map(|x| x.0 as i32).map_err(err_str)
+            }
+        } else {
+            Err("failed to find board".to_string())
+        }
+    }
+
+    fn set_brightness(&self, mut board: usize, brightness: i32) -> Result<(), String> {
+        #[cfg(target_os = "linux")]
+        {
+            let mut lpc = self.lpc.borrow_mut();
+            if board < lpc.len() {
+                return unsafe {
+                    lpc[board].led_set_value(0xFF, brightness as u8).map_err(err_str)
+                };
+            }
+            board -= lpc.len();
+        }
+
+        if let Some(ref mut ec) = self.hid.borrow_mut().get_mut(board) {
+            unsafe {
+                ec.led_set_value(0xFF, brightness as u8).map_err(err_str)
+            }
+        } else {
+            Err("failed to find board".to_string())
         }
     }
 
