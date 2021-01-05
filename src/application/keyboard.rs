@@ -233,6 +233,15 @@ impl Keyboard {
         };
         keyboard.inner().brightness_scale.set_range(0.0, max_brightness);
 
+        let brightness = match keyboard.daemon().brightness(keyboard.daemon_board()) {
+            Ok(value) => value as f64,
+            Err(err) => {
+                eprintln!("{}", err);
+                0.0
+            }
+        };
+        keyboard.inner().brightness_scale.set_value(brightness);
+
         keyboard.add_pages();
         keyboard.connect_signals();
 
