@@ -35,6 +35,16 @@ pub fn choose_color<W: IsA<gtk::Widget>>(
         preview.queue_draw();
     }));
 
+    let hue_spinbutton = cascade! {
+        gtk::SpinButton::with_range(0., 360., 1.);
+        ..bind_property("value", &color_wheel, "hue").flags(glib::BindingFlags::BIDIRECTIONAL).build();
+    };
+
+    let saturation_spinbutton = cascade! {
+        gtk::SpinButton::with_range(0., 100., 1.);
+        ..bind_property("value", &color_wheel, "saturation").flags(glib::BindingFlags::BIDIRECTIONAL).build();
+    };
+
     let vbox = cascade! {
         gtk::Box::new(gtk::Orientation::Vertical, 12);
         ..set_margin_start(12);
@@ -43,6 +53,8 @@ pub fn choose_color<W: IsA<gtk::Widget>>(
         ..set_margin_bottom(12);
         ..add(&color_wheel);
         ..add(&preview);
+        ..add(&hue_spinbutton);
+        ..add(&saturation_spinbutton);
         ..show_all();
     };
 

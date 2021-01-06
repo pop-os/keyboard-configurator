@@ -10,6 +10,31 @@ use std::f64::consts::PI;
 
 use crate::color::{Hs, Rgb};
 
+static PROPERTIES: [subclass::Property; 2] = [
+    subclass::Property("hue", |name|
+        glib::ParamSpec::double(
+            name,
+            "hue",
+            "hue",
+            0.,
+            360.,
+            0.,
+            glib::ParamFlags::READWRITE,
+        )
+    ),
+    subclass::Property("saturation", |name|
+        glib::ParamSpec::double(
+            name,
+            "saturation",
+            "saturation",
+            0.,
+            100.,
+            0.,
+            glib::ParamFlags::READWRITE,
+        )
+    ),
+];
+
 pub struct ColorWheelInner {
     selected_hs: Cell<Hs>,
     surface: RefCell<cairo::ImageSurface>,
@@ -26,6 +51,10 @@ impl ObjectSubclass for ColorWheelInner {
 
     glib_object_subclass!();
 
+    fn class_init(klass: &mut Self::Class) {
+        klass.install_properties(&PROPERTIES);
+    }
+
     fn new() -> Self {
         Self {
             selected_hs: Cell::new(Hs::new(0., 0.)),
@@ -37,6 +66,45 @@ impl ObjectSubclass for ColorWheelInner {
 
 impl ObjectImpl for ColorWheelInner {
     glib_object_impl!();
+
+    fn set_property(&self, obj: &glib::Object, id: usize, value: &glib::Value) {
+        let prop = &PROPERTIES[id];
+
+        let color_wheel: &ColorWheel = obj.downcast_ref().unwrap();
+
+        match *prop {
+            subclass::Property("hue", ..) => {
+                let hue: f64 = value.get_some().unwrap();
+                let mut hs = color_wheel.hs();
+                hs.h = (hue * PI / 180.).max(0.).min(2. * PI);
+                color_wheel.set_hs(hs);
+            }
+            subclass::Property("saturation", ..) => {
+                let saturation: f64 = value.get_some().unwrap();
+                let mut hs = color_wheel.hs();
+                hs.s = (saturation / 100.).max(0.).min(1.);
+                color_wheel.set_hs(hs);
+            }
+            _ => unimplemented!(),
+        }
+    }
+
+    fn get_property(&self, _obj: &glib::Object, id: usize) -> Result<glib::Value, ()> {
+        let prop = &PROPERTIES[id];
+
+        match *prop {
+            subclass::Property("hue", ..) => {
+                let mut hue = self.selected_hs.get().h * 180. / PI;
+                hue = (360. + hue) % 360.;
+                Ok(hue.to_value())
+            }
+            subclass::Property("saturation", ..) => {
+                let saturation = self.selected_hs.get().s * 100.;
+                Ok(saturation.to_value())
+            }
+            _ => unimplemented!(),
+        }
+    }
 }
 impl WidgetImpl for ColorWheelInner {}
 impl DrawingAreaImpl for ColorWheelInner {}
@@ -77,6 +145,8 @@ impl ColorWheel {
     pub fn set_hs(&self, hs: Hs) {
         self.inner().selected_hs.set(hs);
         self.queue_draw();
+        self.notify("hue");
+        self.notify("saturation");
         for handler in self.inner().hs_changed_handlers.borrow().iter() {
             handler(self);
         }
