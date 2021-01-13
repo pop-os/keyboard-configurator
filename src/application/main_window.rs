@@ -4,7 +4,6 @@ use glib::subclass;
 use glib::subclass::prelude::*;
 use gtk::prelude::*;
 use gtk::subclass::prelude::*;
-use glib::translate::{FromGlibPtrFull, ToGlib, ToGlibPtr};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::rc::Rc;
 
@@ -26,11 +25,12 @@ impl ObjectSubclass for MainWindowInner {
     const NAME: &'static str = "S76ConfiguratorMainWindow";
 
     type ParentType = gtk::ApplicationWindow;
+    type Type = MainWindow;
 
     type Instance = subclass::simple::InstanceStruct<Self>;
     type Class = subclass::simple::ClassStruct<Self>;
 
-    glib_object_subclass!();
+    glib::object_subclass!();
 
     fn new() -> Self {
         let menu = cascade! {
@@ -103,12 +103,9 @@ impl ObjectSubclass for MainWindowInner {
 }
 
 impl ObjectImpl for MainWindowInner {
-    glib_object_impl!();
+    fn constructed(&self, window: &MainWindow) {
+        self.parent_constructed(window);
 
-    fn constructed(&self, obj: &glib::Object) {
-        self.parent_constructed(obj);
-
-        let window: &MainWindow = obj.downcast_ref().unwrap();
         window.set_title("System76 Keyboard Configurator");
         window.set_position(gtk::WindowPosition::Center);
         window.set_default_size(1024, 768);
@@ -120,8 +117,8 @@ impl ObjectImpl for MainWindowInner {
     }
 }
 impl WidgetImpl for MainWindowInner {
-    fn destroy(&self, widget: &gtk::Widget) {
-        self.parent_destroy(widget);
+    fn destroy(&self, window: &MainWindow) {
+        self.parent_destroy(window);
         eprintln!("Window close");
     }
 }
@@ -130,23 +127,15 @@ impl BinImpl for MainWindowInner {}
 impl WindowImpl for MainWindowInner {}
 impl ApplicationWindowImpl for MainWindowInner {}
 
-glib_wrapper! {
-    pub struct MainWindow(
-        Object<subclass::simple::InstanceStruct<MainWindowInner>,
-        subclass::simple::ClassStruct<MainWindowInner>, ConfiguratorAppClass>)
+glib::wrapper! {
+    pub struct MainWindow(ObjectSubclass<MainWindowInner>)
         @extends gtk::ApplicationWindow, gtk::Window, gtk::Bin, gtk::Container, gtk::Widget,
         @implements gio::ActionGroup, gio::ActionMap;
-    match fn {
-        get_type => || MainWindowInner::get_type().to_glib(),
-    }
 }
 
 impl MainWindow {
     pub fn new(phony_board_names: Vec<String>) -> Self {
-        let window: Self = glib::Object::new(Self::static_type(), &[])
-            .unwrap()
-            .downcast()
-            .unwrap();
+        let window: Self = glib::Object::new(&[]).unwrap();
 
         let daemon = daemon();
         let boards = daemon.boards().expect("Failed to load boards");

@@ -5,7 +5,6 @@ use glib::subclass;
 use glib::subclass::prelude::*;
 use gtk::prelude::*;
 use gtk::subclass::prelude::*;
-use glib::translate::{FromGlibPtrFull, ToGlib, ToGlibPtr};
 use once_cell::sync::Lazy;
 use std::{
     cell::RefCell,
@@ -63,11 +62,12 @@ impl ObjectSubclass for PickerInner {
     const NAME: &'static str = "S76KeyboardPicker";
 
     type ParentType = gtk::Box;
+    type Type = Picker;
 
     type Instance = subclass::simple::InstanceStruct<Self>;
     type Class = subclass::simple::ClassStruct<Self>;
 
-    glib_object_subclass!();
+    glib::object_subclass!();
 
     fn new() -> Self {
         let style_provider = cascade! {
@@ -116,12 +116,9 @@ impl ObjectSubclass for PickerInner {
 }
 
 impl ObjectImpl for PickerInner {
-    glib_object_impl!();
+    fn constructed(&self, picker: &Picker) {
+        self.parent_constructed(picker);
 
-    fn constructed(&self, obj: &glib::Object) {
-        self.parent_constructed(obj);
-
-        let picker: &Picker = obj.downcast_ref().unwrap();
         picker.set_orientation(gtk::Orientation::Vertical);
         picker.set_spacing(32);
 
@@ -158,23 +155,14 @@ impl WidgetImpl for PickerInner {}
 impl ContainerImpl for PickerInner {}
 impl BoxImpl for PickerInner {}
  
-glib_wrapper! {
-    pub struct Picker(
-        Object<subclass::simple::InstanceStruct<PickerInner>,
-        subclass::simple::ClassStruct<PickerInner>, PickerClass>)
+glib::wrapper! {
+    pub struct Picker(ObjectSubclass<PickerInner>)
         @extends gtk::Box, gtk::Container, gtk::Widget, @implements gtk::Orientable;
-
-    match fn {
-        get_type => || PickerInner::get_type().to_glib(),
-    }
 }
 
 impl Picker {
     pub fn new() -> Self {
-        let picker: Self = glib::Object::new(Self::static_type(), &[])
-            .unwrap()
-            .downcast()
-            .unwrap();
+        let picker: Self = glib::Object::new(&[]).unwrap();
 
         picker.connect_signals();
 

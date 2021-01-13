@@ -4,7 +4,6 @@ use glib::subclass;
 use glib::subclass::prelude::*;
 use gtk::prelude::*;
 use gtk::subclass::prelude::*;
-use glib::translate::{FromGlibPtrFull, ToGlib, ToGlibPtr};
 use std::cell::RefCell;
 use std::iter;
 
@@ -28,11 +27,12 @@ impl ObjectSubclass for KeyboardColorButtonInner {
     const NAME: &'static str = "S76KeyboardColorButton";
 
     type ParentType = gtk::Bin;
+    type Type = KeyboardColorButton;
 
     type Instance = subclass::simple::InstanceStruct<Self>;
     type Class = subclass::simple::ClassStruct<Self>;
 
-    glib_object_subclass!();
+    glib::object_subclass!();
 
     fn new() -> Self {
         let grid = cascade! {
@@ -93,12 +93,9 @@ impl ObjectSubclass for KeyboardColorButtonInner {
 }
 
 impl ObjectImpl for KeyboardColorButtonInner {
-    glib_object_impl!();
-
-    fn constructed(&self, obj: &glib::Object) {
+    fn constructed(&self, obj: &KeyboardColorButton) {
         self.parent_constructed(obj);
 
-        let obj: &KeyboardColorButton = obj.downcast_ref().unwrap();
         obj.add(&self.button);
     }
 }
@@ -107,23 +104,14 @@ impl WidgetImpl for KeyboardColorButtonInner {}
 impl ContainerImpl for KeyboardColorButtonInner {}
 impl BinImpl for KeyboardColorButtonInner {}
 
-glib_wrapper! {
-    pub struct KeyboardColorButton(
-        Object<subclass::simple::InstanceStruct<KeyboardColorButtonInner>,
-        subclass::simple::ClassStruct<KeyboardColorButtonInner>, KeyboardColorButtonClass>)
+glib::wrapper! {
+    pub struct KeyboardColorButton(ObjectSubclass<KeyboardColorButtonInner>)
         @extends gtk::Bin, gtk::Container, gtk::Widget;
-
-    match fn {
-        get_type => || KeyboardColorButtonInner::get_type().to_glib(),
-    }
 }
 
 impl KeyboardColorButton {
     pub fn new(keyboard: Keyboard) -> Self {
-        let keyboard_color_button: Self = glib::Object::new(Self::static_type(), &[])
-            .unwrap()
-            .downcast()
-            .unwrap();
+        let keyboard_color_button: Self = glib::Object::new(&[]).unwrap();
 
         keyboard_color_button.inner().keyboard.replace(keyboard.clone());
         keyboard_color_button.inner().button.set_rgb(match keyboard.color() {

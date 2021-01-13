@@ -4,7 +4,6 @@ use glib::subclass;
 use glib::subclass::prelude::*;
 use gtk::prelude::*;
 use gtk::subclass::prelude::*;
-use glib::translate::{FromGlibPtrFull, ToGlib, ToGlibPtr};
 use std::cell::Cell;
 use std::f64::consts::PI;
 use std::ptr;
@@ -37,11 +36,12 @@ impl ObjectSubclass for ColorCircleInner {
     const NAME: &'static str = "S76ColorCircle";
 
     type ParentType = gtk::Bin;
+    type Type = ColorCircle;
 
     type Instance = subclass::simple::InstanceStruct<Self>;
     type Class = subclass::simple::ClassStruct<Self>;
 
-    glib_object_subclass!();
+    glib::object_subclass!();
 
     fn new() -> Self {
         let drawing_area = gtk::DrawingArea::new();
@@ -70,12 +70,9 @@ impl ObjectSubclass for ColorCircleInner {
 }
 
 impl ObjectImpl for ColorCircleInner {
-    glib_object_impl!();
-
-    fn constructed(&self, obj: &glib::Object) {
+    fn constructed(&self, obj: &ColorCircle) {
         self.parent_constructed(obj);
 
-        let obj: &ColorCircle = obj.downcast_ref().unwrap();
         obj.add(&self.button);
     }
 }
@@ -84,23 +81,14 @@ impl WidgetImpl for ColorCircleInner {}
 impl ContainerImpl for ColorCircleInner {}
 impl BinImpl for ColorCircleInner {}
 
-glib_wrapper! {
-    pub struct ColorCircle(
-        Object<subclass::simple::InstanceStruct<ColorCircleInner>,
-        subclass::simple::ClassStruct<ColorCircleInner>, ColorCircleClass>)
+glib::wrapper! {
+    pub struct ColorCircle(ObjectSubclass<ColorCircleInner>)
         @extends gtk::Bin, gtk::Container, gtk::Widget;
-
-    match fn {
-        get_type => || ColorCircleInner::get_type().to_glib(),
-    }
 }
 
 impl ColorCircle {
     pub fn new(size: i32) -> Self {
-        let color_circle: Self = glib::Object::new(Self::static_type(), &[])
-            .unwrap()
-            .downcast()
-            .unwrap();
+        let color_circle: Self = glib::Object::new(&[]).unwrap();
 
         color_circle.set_size_request(size, size);
         color_circle.connect_signals();

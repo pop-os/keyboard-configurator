@@ -4,7 +4,6 @@ use glib::subclass;
 use glib::subclass::prelude::*;
 use gtk::prelude::*;
 use gtk::subclass::prelude::*;
-use glib::translate::{FromGlibPtrFull, ToGlib, ToGlibPtr};
 use once_cell::unsync::OnceCell;
 
 use main_window::MainWindow;
@@ -28,11 +27,12 @@ impl ObjectSubclass for ConfiguratorAppInner {
     const NAME: &'static str = "S76ConfiguratorApp";
 
     type ParentType = gtk::Application;
+    type Type = ConfiguratorApp;
 
     type Instance = subclass::simple::InstanceStruct<Self>;
     type Class = subclass::simple::ClassStruct<Self>;
 
-    glib_object_subclass!();
+    glib::object_subclass!();
 
     fn new() -> Self {
         Self {
@@ -42,20 +42,17 @@ impl ObjectSubclass for ConfiguratorAppInner {
 }
 
 impl ObjectImpl for ConfiguratorAppInner {
-    glib_object_impl!();
-
-    fn constructed(&self, obj: &glib::Object) {
-        let app: &ConfiguratorApp = obj.downcast_ref().unwrap();
+    fn constructed(&self, app: &ConfiguratorApp) {
         app.set_application_id(Some("com.system76.keyboard-configurator"));
 
-        self.parent_constructed(obj);
+        self.parent_constructed(app);
 
         app.add_main_option("fake-keyboard", glib::Char::new('k').unwrap(), glib::OptionFlags::NONE, glib::OptionArg::String, "", None);
     }
 }
 
 impl ApplicationImpl for ConfiguratorAppInner {
-    fn handle_local_options(&self, _app: &gio::Application, opts: &glib::VariantDict) -> i32 {
+    fn handle_local_options(&self, _app: &ConfiguratorApp, opts: &glib::VariantDict) -> i32 {
         let board_names = if let Some(opt) = opts.lookup_value("fake-keyboard", None) {
             let value: String = opt.get().unwrap();
 
@@ -72,7 +69,7 @@ impl ApplicationImpl for ConfiguratorAppInner {
         -1
     }
 
-    fn startup(&self, app: &gio::Application) {
+    fn startup(&self, app: &ConfiguratorApp) {
         self.parent_startup(app);
 
         let about_action = cascade! {
@@ -83,10 +80,9 @@ impl ApplicationImpl for ConfiguratorAppInner {
         app.add_action(&about_action);
     }
 
-    fn activate(&self, app: &gio::Application) {
+    fn activate(&self, app: &ConfiguratorApp) {
         self.parent_activate(app);
 
-        let app: &ConfiguratorApp = app.downcast_ref().unwrap();
         if let Some(window) = app.get_active_window() {
             //TODO
             eprintln!("Focusing current window");
@@ -101,24 +97,15 @@ impl ApplicationImpl for ConfiguratorAppInner {
 
 impl GtkApplicationImpl for ConfiguratorAppInner {}
 
-glib_wrapper! {
-    pub struct ConfiguratorApp(
-        Object<subclass::simple::InstanceStruct<ConfiguratorAppInner>,
-        subclass::simple::ClassStruct<ConfiguratorAppInner>, ConfiguratorAppClass>)
+glib::wrapper! {
+    pub struct ConfiguratorApp(ObjectSubclass<ConfiguratorAppInner>)
         @extends gtk::Application, gio::Application,
         @implements gio::ActionGroup, gio::ActionMap;
-
-    match fn {
-        get_type => || ConfiguratorAppInner::get_type().to_glib(),
-    }
 }
 
 impl ConfiguratorApp {
     fn new() -> Self {
-        glib::Object::new(Self::static_type(), &[])
-            .unwrap()
-            .downcast()
-            .unwrap()
+        glib::Object::new(&[]).unwrap()
     }
 }
 

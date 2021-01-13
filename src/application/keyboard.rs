@@ -4,7 +4,6 @@ use glib::subclass;
 use glib::subclass::prelude::*;
 use gtk::prelude::*;
 use gtk::subclass::prelude::*;
-use glib::translate::{FromGlibPtrFull, ToGlib, ToGlibPtr};
 use once_cell::unsync::OnceCell;
 use std::{
     cell::{
@@ -55,11 +54,12 @@ impl ObjectSubclass for KeyboardInner {
     const NAME: &'static str = "S76Keyboard";
 
     type ParentType = gtk::Box;
+    type Type = Keyboard;
 
     type Instance = subclass::simple::InstanceStruct<Self>;
     type Class = subclass::simple::ClassStruct<Self>;
 
-    glib_object_subclass!();
+    glib::object_subclass!();
 
     fn new() -> Self {
         let stack = cascade! {
@@ -139,12 +139,9 @@ impl ObjectSubclass for KeyboardInner {
 }
 
 impl ObjectImpl for KeyboardInner {
-    glib_object_impl!();
+    fn constructed(&self, keyboard: &Keyboard) {
+        self.parent_constructed(keyboard);
 
-    fn constructed(&self, obj: &glib::Object) {
-        self.parent_constructed(obj);
-
-        let keyboard: &Keyboard = obj.downcast_ref().unwrap();
         keyboard.set_orientation(gtk::Orientation::Vertical);
         keyboard.set_spacing(8);
         keyboard.add(&keyboard.inner().hbox);
@@ -156,15 +153,9 @@ impl WidgetImpl for KeyboardInner {}
 impl ContainerImpl for KeyboardInner {}
 impl BoxImpl for KeyboardInner {}
 
-glib_wrapper! {
-    pub struct Keyboard(
-        Object<subclass::simple::InstanceStruct<KeyboardInner>,
-        subclass::simple::ClassStruct<KeyboardInner>, KeyboardClass>)
+glib::wrapper! {
+    pub struct Keyboard(ObjectSubclass<KeyboardInner>)
         @extends gtk::Box, gtk::Container, gtk::Widget, @implements gtk::Orientable;
-
-    match fn {
-        get_type => || KeyboardInner::get_type().to_glib(),
-    }
 }
 
 impl Keyboard {
@@ -184,10 +175,7 @@ impl Keyboard {
     }
 
     fn new_layout(board: &str, layout: Layout, daemon: Rc<dyn Daemon>, daemon_board: usize) -> Self {
-        let keyboard: Self = glib::Object::new(Self::static_type(), &[])
-            .unwrap()
-            .downcast()
-            .unwrap();
+        let keyboard: Self = glib::Object::new(&[]).unwrap();
 
         let mut keys = layout.keys();
         for key in keys.iter_mut() {

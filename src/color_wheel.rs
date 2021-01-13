@@ -2,7 +2,6 @@
 
 use glib::subclass;
 use glib::subclass::prelude::*;
-use glib::translate::{FromGlibPtrFull, ToGlib, ToGlibPtr};
 use gtk::prelude::*;
 use gtk::subclass::prelude::*;
 use std::cell::{Cell, RefCell};
@@ -20,11 +19,12 @@ impl ObjectSubclass for ColorWheelInner {
     const NAME: &'static str = "S76ColorWheel";
 
     type ParentType = gtk::DrawingArea;
+    type Type = ColorWheel;
 
     type Instance = subclass::simple::InstanceStruct<Self>;
     type Class = subclass::simple::ClassStruct<Self>;
 
-    glib_object_subclass!();
+    glib::object_subclass!();
 
     fn new() -> Self {
         Self {
@@ -35,29 +35,18 @@ impl ObjectSubclass for ColorWheelInner {
     }
 }
 
-impl ObjectImpl for ColorWheelInner {
-    glib_object_impl!();
-}
+impl ObjectImpl for ColorWheelInner {}
 impl WidgetImpl for ColorWheelInner {}
 impl DrawingAreaImpl for ColorWheelInner {}
 
-glib_wrapper! {
-    pub struct ColorWheel(
-        Object<subclass::simple::InstanceStruct<ColorWheelInner>,
-        subclass::simple::ClassStruct<ColorWheelInner>, ColorWheelClass>)
+glib::wrapper! {
+    pub struct ColorWheel(ObjectSubclass<ColorWheelInner>)
         @extends gtk::DrawingArea, gtk::Widget;
-
-    match fn {
-        get_type => || ColorWheelInner::get_type().to_glib(),
-    }
 }
 
 impl ColorWheel {
     pub fn new() -> Self {
-        let wheel: Self = glib::Object::new(Self::static_type(), &[])
-            .unwrap()
-            .downcast()
-            .unwrap();
+        let wheel: Self = glib::Object::new(&[]).unwrap();
 
         wheel.set_size_request(500, 500);
         wheel.add_events(gdk::EventMask::POINTER_MOTION_MASK | gdk::EventMask::BUTTON_PRESS_MASK);
