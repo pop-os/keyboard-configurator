@@ -12,6 +12,7 @@ use std::{
         RefCell,
     },
     collections::HashMap,
+    f64::consts::PI,
     ffi::OsStr,
     fs::{self, File},
     path::{
@@ -471,6 +472,7 @@ impl Keyboard {
         for page in Page::iter_all() {
             const SCALE: f64 = 64.0;
             const MARGIN: f64 = 2.;
+            const RADIUS: f64 = 4.;
 
             let (width, height) = self.keys().iter().map(|k| {
                 let w = (k.physical.w + k.physical.x) * SCALE - MARGIN;
@@ -495,12 +497,18 @@ impl Keyboard {
                     let bg = k.background_color.to_floats();
                     let fg = k.foreground_color.to_floats();
 
-                    cr.rectangle(x, y, w, h);
+                    // Rounded rectangle
+                    cr.new_sub_path();
+                    cr.arc(x + w - RADIUS, y + RADIUS, RADIUS, -0.5 * PI, 0.);
+                    cr.arc(x + w - RADIUS, y + h - RADIUS, RADIUS, 0., 0.5 * PI);
+                    cr.arc(x + RADIUS, y + h - RADIUS, RADIUS, 0.5 * PI, PI);
+                    cr.arc(x + RADIUS, y + RADIUS, RADIUS, PI, 1.5 * PI);
+                    cr.close_path();
+
                     cr.set_source_rgb(bg.0, bg.1, bg.2);
-                    cr.fill();
+                    cr.fill_preserve();
 
                     if kb.selected() == Some(i) {
-                        cr.rectangle(x, y, w, h);
                         cr.set_source_rgb(selected.0, selected.1, selected.2);
                         cr.set_line_width(4.);
                         cr.stroke();
@@ -514,6 +522,7 @@ impl Keyboard {
                         ..set_alignment(pango::Alignment::Center);
                     };
                     let text_height = layout.get_pixel_size().1 as f64;
+                    cr.new_path();
                     cr.move_to(x, y + (h - text_height) / 2.);
                     cr.set_source_rgb(fg.0, fg.1, fg.2);
                     pangocairo::show_layout(cr, &layout);
