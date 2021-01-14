@@ -584,7 +584,7 @@ impl Keyboard {
             }
         }
 
-        picker.set_sensitive(self.layer() != None);
+        picker.set_sensitive(i.is_some() && self.layer() != None);
 
         self.inner().selected.set(i);
 
