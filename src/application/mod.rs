@@ -78,6 +78,8 @@ impl ApplicationImpl for ConfiguratorAppInner {
         };
 
         app.add_action(&about_action);
+        app.set_accels_for_action("kbd.load", &["<Primary>o"]);
+        app.set_accels_for_action("kbd.save", &["<Primary>s"]);
     }
 
     fn activate(&self, app: &ConfiguratorApp) {
