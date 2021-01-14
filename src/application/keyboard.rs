@@ -1,4 +1,5 @@
 use cascade::cascade;
+use gio::prelude::*;
 use glib::object::WeakRef;
 use glib::subclass;
 use glib::subclass::prelude::*;
@@ -32,20 +33,21 @@ use super::page::Page;
 use super::picker::Picker;
 
 pub struct KeyboardInner {
+    action_group: gio::SimpleActionGroup,
     board: OnceCell<String>,
     daemon: OnceCell<Rc<dyn Daemon>>,
     daemon_board: OnceCell<usize>,
     default_layout: OnceCell<KeyMap>,
     keymap: OnceCell<HashMap<String, u16>>,
     keys: OnceCell<Box<[Key]>>,
-    load_button: gtk::Button,
+    load_action: gio::SimpleAction,
     page: Cell<Page>,
     picker: RefCell<WeakRef<Picker>>,
     selected: Cell<Option<usize>>,
     color_button_bin: gtk::Frame,
     brightness_scale: gtk::Scale,
-    save_button: gtk::Button,
-    reset_button: gtk::Button,
+    save_action: gio::SimpleAction,
+    reset_action: gio::SimpleAction,
     hbox: gtk::Box,
     stack: gtk::Stack,
 }
@@ -91,19 +93,24 @@ impl ObjectSubclass for KeyboardInner {
             ..set_valign(gtk::Align::Center);
         };
 
-        let load_button = cascade! {
-            gtk::Button::with_label("Load");
-            ..set_valign(gtk::Align::Center);
+
+        let load_action = cascade! {
+            gio::SimpleAction::new("load", None);
         };
 
-        let save_button = cascade! {
-            gtk::Button::with_label("Save");
-            ..set_valign(gtk::Align::Center);
+        let save_action = cascade! {
+            gio::SimpleAction::new("save", None);
         };
 
-        let reset_button = cascade! {
-            gtk::Button::with_label("Reset");
-            ..set_valign(gtk::Align::Center);
+        let reset_action = cascade! {
+            gio::SimpleAction::new("reset", None);
+        };
+
+        let action_group = cascade! {
+            gio::SimpleActionGroup::new();
+            ..add_action(&load_action);
+            ..add_action(&save_action);
+            ..add_action(&reset_action);
         };
 
         let hbox = cascade! {
@@ -112,23 +119,21 @@ impl ObjectSubclass for KeyboardInner {
             ..add(&brightness_scale);
             ..add(&color_label);
             ..add(&color_button_bin);
-            ..add(&load_button);
-            ..add(&save_button);
-            ..add(&reset_button);
         };
 
         Self {
+            action_group,
             board: OnceCell::new(),
             daemon: OnceCell::new(),
             daemon_board: OnceCell::new(),
             default_layout: OnceCell::new(),
             keymap: OnceCell::new(),
             keys: OnceCell::new(),
-            load_button,
+            load_action,
             page: Cell::new(Page::Layer1),
             picker: RefCell::new(WeakRef::new()),
-            save_button,
-            reset_button,
+            save_action,
+            reset_action,
             selected: Cell::new(None),
             color_button_bin,
             brightness_scale,
@@ -250,6 +255,10 @@ impl Keyboard {
 
     fn inner(&self) -> &KeyboardInner {
         KeyboardInner::from_instance(self)
+    }
+
+    pub fn action_group(&self) -> &gio::ActionGroup {
+        self.inner().action_group.upcast_ref()
     }
 
     fn board(&self) -> &str {
@@ -392,7 +401,7 @@ impl Keyboard {
             }),
         );
 
-        self.inner().load_button.connect_clicked(clone!(@weak kb => @default-panic, move |_button| {
+        self.inner().load_action.connect_activate(clone!(@weak kb => @default-panic, move |_, _| {
             let filter = cascade! {
                 gtk::FileFilter::new();
                 ..set_name(Some("JSON"));
@@ -416,7 +425,7 @@ impl Keyboard {
             }
         }));
 
-        self.inner().save_button.connect_clicked(clone!(@weak kb => @default-panic, move |_button| {
+        self.inner().save_action.connect_activate(clone!(@weak kb => @default-panic, move |_, _| {
             let filter = cascade! {
                 gtk::FileFilter::new();
                 ..set_name(Some("JSON"));
@@ -451,7 +460,7 @@ impl Keyboard {
             }
         }));
 
-        self.inner().reset_button.connect_clicked(clone!(@weak kb => @default-panic, move |_button| {
+        self.inner().reset_action.connect_activate(clone!(@weak kb => @default-panic, move |_, _| {
             kb.import_keymap(kb.default_layout());
         }));
     }

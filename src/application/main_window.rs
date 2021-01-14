@@ -35,6 +35,9 @@ impl ObjectSubclass for MainWindowInner {
     fn new() -> Self {
         let menu = cascade! {
             gio::Menu::new();
+            ..append(Some("Load Layout"), Some("kbd.load"));
+            ..append(Some("Save Layout"), Some("kbd.save"));
+            ..append(Some("Reset Layout"), Some("kbd.reset"));
             ..append(Some("About Keyboard Configurator"), Some("app.about"));
         };
 
@@ -184,6 +187,7 @@ impl MainWindow {
                 self.inner().board_dropdown.set_active_id(Some(&board_id));
                 self.inner().layer_switcher.set_stack(Some(keyboard.stack()));
                 self.inner().picker.set_keyboard(Some(keyboard.clone()));
+                self.insert_action_group("kbd", Some(keyboard.action_group()));
             }
         } else {
             eprintln!("Failed to locate layout for '{}'", board);
