@@ -26,7 +26,6 @@ pub enum ColorCircleSymbol {
 
 pub struct ColorCircleInner {
     drawing_area: gtk::DrawingArea,
-    button: gtk::Button,
     rgb: Cell<Rgb>,
     alpha: Cell<f64>,
     symbol: Cell<ColorCircleSymbol>,
@@ -35,7 +34,7 @@ pub struct ColorCircleInner {
 impl ObjectSubclass for ColorCircleInner {
     const NAME: &'static str = "S76ColorCircle";
 
-    type ParentType = gtk::Bin;
+    type ParentType = gtk::Button;
     type Type = ColorCircle;
 
     type Instance = subclass::simple::InstanceStruct<Self>;
@@ -46,22 +45,8 @@ impl ObjectSubclass for ColorCircleInner {
     fn new() -> Self {
         let drawing_area = gtk::DrawingArea::new();
 
-        let provider = cascade! {
-            gtk::CssProvider::new();
-            ..load_from_data(CSS).unwrap();
-        };
-
-        let button = cascade! {
-            gtk::Button::new();
-            ..get_style_context().add_provider(&provider, gtk::STYLE_PROVIDER_PRIORITY_APPLICATION);
-            ..get_style_context().add_class("circular");
-            ..get_style_context().add_class("keyboard_color_button");
-            ..add(&drawing_area);
-        };
-
         Self {
             drawing_area,
-            button,
             rgb: Cell::new(Rgb::new(0, 0, 0)),
             symbol: Cell::new(ColorCircleSymbol::None),
             alpha: Cell::new(1.),
@@ -73,17 +58,28 @@ impl ObjectImpl for ColorCircleInner {
     fn constructed(&self, obj: &ColorCircle) {
         self.parent_constructed(obj);
 
-        obj.add(&self.button);
+        let provider = cascade! {
+            gtk::CssProvider::new();
+            ..load_from_data(CSS).unwrap();
+        };
+
+        let context = obj.get_style_context();
+        context.add_provider(&provider, gtk::STYLE_PROVIDER_PRIORITY_APPLICATION);
+        context.add_class("circular");
+        context.add_class("keyboard_color_button");
+
+        obj.add(&self.drawing_area);
     }
 }
 
 impl WidgetImpl for ColorCircleInner {}
 impl ContainerImpl for ColorCircleInner {}
 impl BinImpl for ColorCircleInner {}
+impl ButtonImpl for ColorCircleInner {}
 
 glib::wrapper! {
     pub struct ColorCircle(ObjectSubclass<ColorCircleInner>)
-        @extends gtk::Bin, gtk::Container, gtk::Widget;
+        @extends gtk::Button, gtk::Bin, gtk::Container, gtk::Widget;
 }
 
 impl ColorCircle {
@@ -109,14 +105,6 @@ impl ColorCircle {
                 self_.draw(w, cr);
                 Inhibit(false)
             }));
-    }
-
-    // `arbitrary_self_types` feature would allow `self: &Rc<Self>`
-    pub fn connect_clicked<F: Fn(&Self) + 'static>(&self, cb: F) {
-        let self_ = self;
-        self.inner()
-            .button
-            .connect_clicked(clone!(@weak self_ => @default-panic, move |_| cb(&self_)));
     }
 
     fn draw(&self, w: &gtk::DrawingArea, cr: &cairo::Context) {
