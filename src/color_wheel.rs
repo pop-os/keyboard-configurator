@@ -35,8 +35,61 @@ impl ObjectSubclass for ColorWheelInner {
     }
 }
 
-impl ObjectImpl for ColorWheelInner {}
-impl WidgetImpl for ColorWheelInner {}
+impl ObjectImpl for ColorWheelInner {
+    fn constructed(&self, wheel: &ColorWheel) {
+        self.parent_constructed(wheel);
+
+        wheel.set_size_request(500, 500);
+        wheel.add_events(gdk::EventMask::POINTER_MOTION_MASK | gdk::EventMask::BUTTON_PRESS_MASK);
+    }
+}
+
+impl WidgetImpl for ColorWheelInner {
+    fn draw(&self, wheel: &ColorWheel, cr: &cairo::Context) -> Inhibit {
+        self.parent_draw(wheel, cr);
+
+        let width = f64::from(wheel.get_allocated_width());
+        let height = f64::from(wheel.get_allocated_height());
+
+        let radius = width.min(height) / 2.;
+
+        // Draw color wheel
+        cr.set_source_surface(&self.surface.borrow(), 0., 0.);
+        cr.arc(radius, radius, radius, 0., 2. * PI);
+        cr.fill();
+
+        // Draw selector circle
+        let Hs { h, s } = wheel.hs();
+        let x = radius + h.cos() * s * radius;
+        let y = radius - h.sin() * s * radius;
+        cr.arc(x, y, 7.5, 0., 2. * PI);
+        cr.set_source_rgb(1., 1., 1.);
+        cr.fill_preserve();
+        cr.set_source_rgb(0., 0., 0.);
+        cr.set_line_width(1.);
+        cr.stroke();
+
+        Inhibit(false)
+    }
+
+    fn size_allocate(&self, wheel: &ColorWheel, rect: &gdk::Rectangle) {
+        self.parent_size_allocate(wheel, rect);
+        wheel.generate_surface(rect);
+    }
+
+    fn button_press_event(&self, wheel: &ColorWheel, evt: &gdk::EventButton) -> Inhibit {
+        wheel.mouse_select(evt.get_position());
+        Inhibit(false)
+    }
+
+    fn motion_notify_event(&self, wheel: &ColorWheel, evt: &gdk::EventMotion) -> Inhibit {
+        if evt.get_state().contains(gdk::ModifierType::BUTTON1_MASK) {
+            wheel.mouse_select(evt.get_position());
+        }
+        Inhibit(false)
+    }
+}
+
 impl DrawingAreaImpl for ColorWheelInner {}
 
 glib::wrapper! {
@@ -46,13 +99,7 @@ glib::wrapper! {
 
 impl ColorWheel {
     pub fn new() -> Self {
-        let wheel: Self = glib::Object::new(&[]).unwrap();
-
-        wheel.set_size_request(500, 500);
-        wheel.add_events(gdk::EventMask::POINTER_MOTION_MASK | gdk::EventMask::BUTTON_PRESS_MASK);
-        wheel.connect_signals();
-
-        wheel
+        glib::Object::new(&[]).unwrap()
     }
 
     fn inner(&self) -> &ColorWheelInner {
@@ -76,52 +123,6 @@ impl ColorWheel {
             .hs_changed_handlers
             .borrow_mut()
             .push(std::boxed::Box::new(f) as Box<dyn Fn(&Self)>);
-    }
-
-    fn connect_signals(&self) {
-        self.connect_draw(|self_, cr| {
-            self_.draw(cr);
-            Inhibit(false)
-        });
-
-        self.connect_size_allocate(|self_, rect| {
-            self_.generate_surface(rect);
-        });
-
-        self.connect_button_press_event(|self_, evt| {
-            self_.mouse_select(evt.get_position());
-            Inhibit(false)
-        });
-
-        self.connect_motion_notify_event(|self_, evt| {
-            if evt.get_state().contains(gdk::ModifierType::BUTTON1_MASK) {
-                self_.mouse_select(evt.get_position());
-            }
-            Inhibit(false)
-        });
-    }
-
-    fn draw(&self, cr: &cairo::Context) {
-        let width = f64::from(self.get_allocated_width());
-        let height = f64::from(self.get_allocated_height());
-
-        let radius = width.min(height) / 2.;
-
-        // Draw color wheel
-        cr.set_source_surface(&self.inner().surface.borrow(), 0., 0.);
-        cr.arc(radius, radius, radius, 0., 2. * PI);
-        cr.fill();
-
-        // Draw selector circle
-        let Hs { h, s } = self.hs();
-        let x = radius + h.cos() * s * radius;
-        let y = radius - h.sin() * s * radius;
-        cr.arc(x, y, 7.5, 0., 2. * PI);
-        cr.set_source_rgb(1., 1., 1.);
-        cr.fill_preserve();
-        cr.set_source_rgb(0., 0., 0.);
-        cr.set_line_width(1.);
-        cr.stroke();
     }
 
     fn generate_surface(&self, rect: &gtk::Rectangle) {
