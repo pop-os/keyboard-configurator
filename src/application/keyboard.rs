@@ -12,7 +12,7 @@ use std::{
         RefCell,
     },
     collections::HashMap,
-    f64::consts::PI,
+    convert::TryFrom,
     ffi::OsStr,
     fs::{self, File},
     path::{
@@ -22,13 +22,13 @@ use std::{
     str,
 };
 
-use crate::color::Rgb;
 use crate::daemon::Daemon;
 use crate::keyboard::Keyboard as ColorKeyboard;
 use crate::keyboard_color_button::KeyboardColorButton;
 use crate::keymap::KeyMap;
 use super::error_dialog::error_dialog;
 use super::key::Key;
+use super::keyboard_layer::KeyboardLayer;
 use super::layout::Layout;
 use super::page::Page;
 use super::picker::Picker;
@@ -40,7 +40,7 @@ pub struct KeyboardInner {
     daemon_board: OnceCell<usize>,
     default_layout: OnceCell<KeyMap>,
     keymap: OnceCell<HashMap<String, u16>>,
-    keys: OnceCell<Box<[Key]>>,
+    keys: OnceCell<Rc<[Key]>>,
     load_action: gio::SimpleAction,
     page: Cell<Page>,
     picker: RefCell<WeakRef<Picker>>,
@@ -53,6 +53,20 @@ pub struct KeyboardInner {
     stack: gtk::Stack,
 }
 
+static PROPERTIES: [subclass::Property; 1] = [
+    subclass::Property("selected", |name|
+        glib::ParamSpec::int(
+            name,
+            "selected",
+            "selected",
+            -1,
+            i32::MAX,
+            -1,
+            glib::ParamFlags::READWRITE,
+        )
+    ),
+];
+
 impl ObjectSubclass for KeyboardInner {
     const NAME: &'static str = "S76Keyboard";
 
@@ -63,6 +77,10 @@ impl ObjectSubclass for KeyboardInner {
     type Class = subclass::simple::ClassStruct<Self>;
 
     glib::object_subclass!();
+
+    fn class_init(klass: &mut Self::Class) {
+        klass.install_properties(&PROPERTIES);
+    }
 
     fn new() -> Self {
         let stack = cascade! {
@@ -153,6 +171,30 @@ impl ObjectImpl for KeyboardInner {
         keyboard.add(&keyboard.inner().hbox);
         keyboard.add(&keyboard.inner().stack);
     }
+
+    fn set_property(&self, keyboard: &Keyboard, id: usize, value: &glib::Value) {
+        let prop = &PROPERTIES[id];
+
+        match *prop {
+            subclass::Property("selected", ..) => {
+                let v: i32 = value.get_some().unwrap();
+                let selected = usize::try_from(v).ok();
+                keyboard.set_selected(selected);
+            }
+            _ => unimplemented!(),
+        }
+    }
+
+    fn get_property(&self, keyboard: &Keyboard, id: usize) -> glib::Value {
+        let prop = &PROPERTIES[id];
+
+        match *prop {
+            subclass::Property("selected", ..) => {
+                keyboard.selected().map(|v| v as i32).unwrap_or(-1).to_value()
+            }
+            _ => unimplemented!(),
+        }
+    }
 }
 
 impl WidgetImpl for KeyboardInner {}
@@ -206,7 +248,7 @@ impl Keyboard {
             }
         }
 
-        let _ = keyboard.inner().keys.set(keys.into_boxed_slice());
+        let _ = keyboard.inner().keys.set(keys.into_boxed_slice().into());
 
         let _ = keyboard.inner().board.set(board.to_string());
         let _ = keyboard.inner().daemon.set(daemon);
@@ -378,10 +420,9 @@ impl Keyboard {
 
         self.inner().stack.connect_property_visible_child_notify(
             clone!(@weak kb => @default-panic, move |stack| {
-                let page: Option<Page> = match stack.get_visible_child() {
-                    Some(child) => unsafe { child.get_data("keyboard_configurator_page").cloned() },
-                    None => None,
-                };
+                let page = stack
+                    .get_visible_child()
+                    .map(|c| c.downcast_ref::<KeyboardLayer>().unwrap().page());
 
                 println!("{:?}", page);
                 let last_layer = kb.layer();
@@ -467,93 +508,14 @@ impl Keyboard {
     }
 
     fn add_pages(&self) {
-        let kb = self;
+        let keys = self.inner().keys.get().unwrap();
 
         for page in Page::iter_all() {
-            const SCALE: f64 = 64.0;
-            const MARGIN: f64 = 2.;
-            const RADIUS: f64 = 4.;
-
-            let (width, height) = self.keys().iter().map(|k| {
-                let w = (k.physical.w + k.physical.x) * SCALE - MARGIN;
-                let h = (k.physical.h - k.physical.y) * SCALE - MARGIN;
-                (w as i32, h as i32)
-            }).max().unwrap();
-
-            let drawing_area = cascade!{
-                gtk::DrawingArea::new();
-                ..set_size_request(width, height);
-                ..add_events(gdk::EventMask::BUTTON_PRESS_MASK);
-            };
-
-            drawing_area.connect_draw(clone!(@weak kb => @default-panic, move |drawing_area, cr| {
-                let selected = Rgb::new(0xfb, 0xb8, 0x6c).to_floats();
-                for (i, k) in kb.keys().iter().enumerate() {
-                    let x = (k.physical.x * SCALE) + MARGIN;
-                    let y = -(k.physical.y * SCALE) + MARGIN;
-                    let w = (k.physical.w * SCALE) - MARGIN * 2.;
-                    let h = (k.physical.h * SCALE) - MARGIN * 2.;
-
-                    let bg = k.background_color.to_floats();
-                    let fg = k.foreground_color.to_floats();
-
-                    // Rounded rectangle
-                    cr.new_sub_path();
-                    cr.arc(x + w - RADIUS, y + RADIUS, RADIUS, -0.5 * PI, 0.);
-                    cr.arc(x + w - RADIUS, y + h - RADIUS, RADIUS, 0., 0.5 * PI);
-                    cr.arc(x + RADIUS, y + h - RADIUS, RADIUS, 0.5 * PI, PI);
-                    cr.arc(x + RADIUS, y + RADIUS, RADIUS, PI, 1.5 * PI);
-                    cr.close_path();
-
-                    cr.set_source_rgb(bg.0, bg.1, bg.2);
-                    cr.fill_preserve();
-
-                    if kb.selected() == Some(i) {
-                        cr.set_source_rgb(selected.0, selected.1, selected.2);
-                        cr.set_line_width(4.);
-                        cr.stroke();
-                    }
-
-                    // Draw label
-                    let text = k.get_label(page);
-                    let layout = cascade! {
-                        drawing_area.create_pango_layout(Some(&text));
-                        ..set_width((w * pango::SCALE as f64) as i32);
-                        ..set_alignment(pango::Alignment::Center);
-                    };
-                    let text_height = layout.get_pixel_size().1 as f64;
-                    cr.new_path();
-                    cr.move_to(x, y + (h - text_height) / 2.);
-                    cr.set_source_rgb(fg.0, fg.1, fg.2);
-                    pangocairo::show_layout(cr, &layout);
-                }
-
-                Inhibit(false)
-            }));
-
-            drawing_area.connect_button_press_event(clone!(@weak kb => @default-panic, move |_drawing_area, evt| {
-                let pos = evt.get_position();
-                for (i, k) in kb.keys().iter().enumerate() {
-                    let x = (k.physical.x * SCALE) + MARGIN;
-                    let y = -(k.physical.y * SCALE) + MARGIN;
-                    let w = (k.physical.w * SCALE) - MARGIN * 2.;
-                    let h = (k.physical.h * SCALE) - MARGIN * 2.;
-
-                    if (x..=x+w).contains(&pos.0) && (y..=y+h).contains(&pos.1) {
-                        if kb.selected() == Some(i) {
-                            kb.set_selected(None);
-                        } else {
-                            kb.set_selected(Some(i));
-                        }
-                    }
-                }
-                Inhibit(false)
-            }));
-
-            self.inner().stack.add_titled(&drawing_area, page.name(), page.name());
-
-            // TODO: Replace with something type-safe
-            unsafe { drawing_area.set_data("keyboard_configurator_page", page) };
+            let keyboard_layer = KeyboardLayer::new(page, keys.clone());
+            self.bind_property("selected", &keyboard_layer, "selected")
+                .flags(glib::BindingFlags::BIDIRECTIONAL)
+                .build();
+            self.inner().stack.add_titled(&keyboard_layer, page.name(), page.name());
         }
     }
 
@@ -589,5 +551,6 @@ impl Keyboard {
         self.inner().selected.set(i);
 
         self.queue_draw();
+        self.notify("selected");
     }
 }

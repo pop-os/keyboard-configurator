@@ -13,6 +13,7 @@ mod error_dialog;
 mod gresource;
 mod key;
 mod keyboard;
+mod keyboard_layer;
 pub(crate) mod layout;
 mod main_window;
 mod page;
