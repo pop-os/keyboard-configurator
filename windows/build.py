@@ -29,6 +29,8 @@ DLL_RE = r"(?<==> )(.*\\mingw32)\\bin\\(\S+.dll)"
 
 # Use ntldd to find the mingw dlls required by a .exe
 def find_depends(exe):
+    if not os.path.exists(exe):
+        sys.exit(f"'{exe}' does not exist")
     output = subprocess.check_output(['ntldd.exe', '-R', exe], universal_newlines=True)
     dlls = set()
     mingw_dir = None
@@ -53,6 +55,9 @@ for i in EXES:
     mingw_dir_new, dlls_new = find_depends(i)
     dlls = dlls.union(dlls_new)
     mingw_dir = mingw_dir or mingw_dir_new
+
+# The svg module is loaded at runtime, so it's dependencies are also needed
+dlls = dlls.union(find_depends(f"{mingw_dir}/lib/gdk-pixbuf-2.0/2.10.0/loaders/libpixbufloader-svg.dll")[1])
 
 # Generate libraries.wxi
 with open('libraries.wxi', 'w') as f:
@@ -83,7 +88,8 @@ for src, filename in dlls:
 # Copy additional data
 os.mkdir("out/lib")
 os.makedirs("out/share/glib-2.0/schemas")
-for i in ('share/glib-2.0/schemas/org.gtk.Settings.FileChooser.gschema.xml', 'lib/p11-kit', 'lib/gdk-pixbuf-2.0'):
+os.makedirs("out/share/icons/hicolor")
+for i in ('share/glib-2.0/schemas/org.gtk.Settings.FileChooser.gschema.xml', 'share/icons/hicolor/index.theme', 'lib/p11-kit', 'lib/gdk-pixbuf-2.0'):
     src = mingw_dir + '\\' + i.replace('/', '\\')
     dest = "out/" + i
     print(f"Copy {src} -> {dest}")

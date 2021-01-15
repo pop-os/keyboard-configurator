@@ -161,6 +161,7 @@ pub fn run(args: Vec<String>) -> i32 {
     windows_init();
 
     gresource::init().expect("failed to init configurator gresource");
+    gtk::Window::set_default_icon_name("com.system76.keyboard-configurator");
 
     let application = ConfiguratorApp::new();
     application.run(&args)
