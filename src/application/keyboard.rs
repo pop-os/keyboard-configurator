@@ -522,7 +522,10 @@ impl Keyboard {
     pub(super) fn set_picker(&self, picker: Option<&Picker>) {
         // This function is called by Picker::set_keyboard()
         *self.inner().picker.borrow_mut() = match picker {
-            Some(picker) => picker.downgrade(),
+            Some(picker) => {
+                picker.set_sensitive(self.selected().is_some() && self.layer() != None);
+                picker.downgrade()
+            },
             None => WeakRef::new(),
         };
     }
