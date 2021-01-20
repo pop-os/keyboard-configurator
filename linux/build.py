@@ -15,6 +15,7 @@ args = parser.parse_args()
 
 # Executables to install
 TARGET_DIR = "../target/" + ('release' if args.release else 'debug')
+ICON = "../data/icons/scalable/apps/com.system76.keyboard-configurator.svg"
 
 # Appimage packaging
 PKG = "keyboard-configurator"
@@ -57,7 +58,7 @@ subprocess.check_call([f"./{LINUXDEPLOY}",
                        f"--appdir={PKG}.AppDir",
                        f"--executable=system76-keyboard-configurator",
                        f"--desktop-file={APPID}.desktop",
-                       f"--icon-file={PKG}.png",
+                       f"--icon-file={ICON}",
                         "--plugin", "gtk",
                         "--output", "appimage"])
 shutil.move(glob.glob(f"System76_Keyboard_Configurator-*-{ARCH}.AppImage")[0], f"{PKG}-{ARCH}.AppImage")

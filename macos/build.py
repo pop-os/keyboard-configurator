@@ -14,6 +14,7 @@ args = parser.parse_args()
 
 # Executables to install
 TARGET_DIR = "../target/" + ('release' if args.release else 'debug')
+ICON = "../data/icons/scalable/apps/com.system76.keyboard-configurator.svg"
 
 # Build the application
 cmd = ["cargo", "build"]
@@ -34,17 +35,14 @@ with open("Info.plist", "w") as f:
     f.write(plist)
 
 # Generate .icns icon file
-subprocess.check_call(["convert", "-background", "#564e48", "-fill", "white", "-size", "256x256", "-gravity", "center", "label:Keyboard\nConfigurator", "keyboard-configurator.png"])
 with tempfile.TemporaryDirectory('.iconset') as d:
     for i in [16, 32, 64, 128, 256, 512]:
-        size = "{}x{}".format(i, i)
         outname = "{}/icon_{}x{}.png".format(d, i, i)
-        subprocess.check_call(["convert", "keyboard-configurator.png", "-resize", size, "-quality", "100", outname])
+        subprocess.check_call(["rsvg-convert", "--width", str(i), "--height", str(i), "-o", outname, ICON])
 
         # hidpi icon
-        size = "{}x{}".format(i * 2, i * 2)
         outname = "{}/icon_{}x{}x2.png".format(d, i, i)
-        subprocess.check_call(["convert", "keyboard-configurator.png", "-resize", size, "-quality", "100", outname])
+        subprocess.check_call(["rsvg-convert", "--width", str(i * 2), "--height", str(i * 2), "-o", outname, ICON])
 
     subprocess.check_call(["iconutil", "--convert", "icns", "--output", "keyboard-configurator.icns", d])
 

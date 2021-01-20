@@ -23,6 +23,7 @@ TARGET_DIR = "../target/" + ('release' if args.release else 'debug')
 EXES = {
     f"{TARGET_DIR}/system76-keyboard-configurator.exe",
 }
+ICON = "../data/icons/scalable/apps/com.system76.keyboard-configurator.svg"
 
 DLL_RE = r"(?<==> )(.*\\mingw32)\\bin\\(\S+.dll)"
 
@@ -107,7 +108,7 @@ crate_version = package['version']
 
 # Generate Icon
 # TODO: Replace with final version
-subprocess.check_call(["convert", "-background", "#564e48", "-fill", "white", "-size", "256x256", "-gravity", "center", "label:Keyboard\nConfigurator", "out/keyboard-configurator.ico"])
+subprocess.check_call(["rsvg-convert", "--width", "256", "--height", "256", "-o", "out/keyboard-configurator.ico", ICON])
 
 # Build .msi
 subprocess.check_call([f"{args.wix}/bin/candle.exe", ".\keyboard-configurator.wxs", f"-dcrate_version={crate_version}"])
