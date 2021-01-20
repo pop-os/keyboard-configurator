@@ -70,15 +70,6 @@ impl ObjectSubclass for MainWindowInner {
 
         let picker = Picker::new();
 
-        board_dropdown.connect_changed(clone!(@weak stack, @weak picker, @weak layer_switcher => @default-panic, move |combobox| {
-            if let Some(id) = combobox.get_active_id() {
-                stack.set_visible_child_name(&id);
-                let keyboard: Keyboard = stack.get_child_by_name(&id).unwrap().downcast().unwrap();
-                layer_switcher.set_stack(Some(keyboard.stack()));
-                picker.set_keyboard(Some(keyboard));
-            }
-        }));
-
         let vbox = cascade! {
             gtk::Box::new(gtk::Orientation::Vertical, 32);
             ..set_property_margin(10);
@@ -108,6 +99,17 @@ impl ObjectSubclass for MainWindowInner {
 impl ObjectImpl for MainWindowInner {
     fn constructed(&self, window: &MainWindow) {
         self.parent_constructed(window);
+
+        self.board_dropdown.connect_changed(clone!(@weak window => @default-panic, move |combobox| {
+            let self_ = window.inner();
+            if let Some(id) = combobox.get_active_id() {
+                self_.stack.set_visible_child_name(&id);
+                let keyboard: Keyboard = self_.stack.get_child_by_name(&id).unwrap().downcast().unwrap();
+                self_.layer_switcher.set_stack(Some(keyboard.stack()));
+                window.insert_action_group("kbd", Some(keyboard.action_group()));
+                self_.picker.set_keyboard(Some(keyboard));
+            }
+        }));
 
         window.set_title("System76 Keyboard Configurator");
         window.set_position(gtk::WindowPosition::Center);
