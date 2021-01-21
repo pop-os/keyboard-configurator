@@ -19,6 +19,7 @@ mod main_window;
 mod page;
 mod picker;
 mod rect;
+mod shortcuts_window;
 
 pub struct ConfiguratorAppInner {
     phony_board_names: OnceCell<Vec<String>>,

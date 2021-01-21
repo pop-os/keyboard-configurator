@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+  <object class="GtkShortcutsWindow" id="shortcuts-window">
+    <property name="modal">1</property>
+    <property name="section-name">keyboard</property>
+    <child>
+      <object class="GtkShortcutsSection" id="keyboard-section">
+        <property name="visible">True</property>
+        <property name="section-name">keyboard</property>
+        <child>
+          <object class="GtkShortcutsGroup">
+            <property name="visible">True</property>
+            <child>
+              <object class="GtkShortcutsShortcut">
+                <property name="visible">True</property>
+                <property name="title" translatable="yes">Load Layout</property>
+                <property name="action-name">kbd.load</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkShortcutsShortcut">
+                <property name="visible">True</property>
+                <property name="title" translatable="yes">Save Layout</property>
+                <property name="action-name">kbd.save</property>
+              </object>
+            </child>
+          </object>
+        </child>
+      </object>
+    </child>
+  </object>
+</interface>
