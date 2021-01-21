@@ -39,7 +39,6 @@ impl ObjectImpl for ColorWheelInner {
     fn constructed(&self, wheel: &ColorWheel) {
         self.parent_constructed(wheel);
 
-        wheel.set_size_request(500, 500);
         wheel.add_events(gdk::EventMask::POINTER_MOTION_MASK | gdk::EventMask::BUTTON_PRESS_MASK);
     }
 }

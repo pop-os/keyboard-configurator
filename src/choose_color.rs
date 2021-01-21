@@ -12,7 +12,10 @@ pub fn choose_color<W: IsA<gtk::Widget>>(
     title: &'static str,
     color: Option<Rgb>,
 ) -> Option<Rgb> {
-    let color_wheel = ColorWheel::new();
+    let color_wheel = cascade! {
+        ColorWheel::new();
+        ..set_size_request(300, 300);
+    };
 
     if let Some(color) = color {
         color_wheel.set_hs(color.to_hs_lossy());
@@ -37,10 +40,10 @@ pub fn choose_color<W: IsA<gtk::Widget>>(
 
     let vbox = cascade! {
         gtk::Box::new(gtk::Orientation::Vertical, 12);
-        ..set_margin_start(12);
-        ..set_margin_end(12);
-        ..set_margin_top(12);
-        ..set_margin_bottom(12);
+        ..set_margin_start(24);
+        ..set_margin_end(24);
+        ..set_margin_top(24);
+        ..set_margin_bottom(24);
         ..add(&color_wheel);
         ..add(&preview);
         ..show_all();
