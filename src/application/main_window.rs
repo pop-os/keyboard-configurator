@@ -1,7 +1,4 @@
-use cascade::cascade;
-use gio::prelude::*;
 use glib::subclass;
-use glib::subclass::prelude::*;
 use gtk::prelude::*;
 use gtk::subclass::prelude::*;
 use std::sync::atomic::{AtomicUsize, Ordering};
@@ -12,14 +9,21 @@ use super::keyboard::Keyboard;
 use super::picker::Picker;
 use super::shortcuts_window::shortcuts_window;
 
+#[derive(Default, gtk::CompositeTemplate)]
 pub struct MainWindowInner {
-    board_dropdown: gtk::ComboBoxText,
+    #[template_child]
+    board_dropdown: TemplateChild<gtk::ComboBoxText>,
     count: AtomicUsize,
-    header_bar: gtk::HeaderBar,
-    layer_switcher: gtk::StackSwitcher,
-    picker: Picker,
-    scrolled_window: gtk::ScrolledWindow,
-    stack: gtk::Stack,
+    #[template_child]
+    header_bar: TemplateChild<gtk::HeaderBar>,
+    #[template_child]
+    vbox: TemplateChild<gtk::Box>,
+    #[template_child]
+    layer_switcher: TemplateChild<gtk::StackSwitcher>,
+    #[template_child]
+    picker: TemplateChild<Picker>,
+    #[template_child]
+    stack: TemplateChild<gtk::Stack>,
 }
 
 impl ObjectSubclass for MainWindowInner {
@@ -33,83 +37,20 @@ impl ObjectSubclass for MainWindowInner {
 
     glib::object_subclass!();
 
+    fn class_init(klass: &mut Self::Class) {
+        Picker::static_type();
+        klass.set_template(include_bytes!("main_window.ui"));
+        Self::bind_template_children(klass);
+    }
+
     fn new() -> Self {
-        let menu = cascade! {
-            gio::Menu::new();
-            ..append_section(None,
-                &cascade!(
-                    gio::Menu::new();
-                    ..append(Some("Load Layout"), Some("kbd.load"));
-                    ..append(Some("Save Layout"), Some("kbd.save"));
-                    ..append(Some("Reset Layout"), Some("kbd.reset"));
-                )
-            );
-            ..append_section(None,
-                &cascade!(
-                    gio::Menu::new();
-                    ..append(Some("Keyboard Shortcuts"), Some("win.show-help-overlay"));
-                    ..append(Some("About Keyboard Configurator"), Some("app.about"));
-                )
-            );
-        };
-
-        let menu_button = cascade! {
-            gtk::MenuButton::new();
-            ..set_menu_model(Some(&menu));
-            ..add(&gtk::Image::from_icon_name(Some("open-menu-symbolic"), gtk::IconSize::Menu));
-        };
-
-        let layer_switcher = cascade! {
-            gtk::StackSwitcher::new();
-        };
-
-        let header_bar = cascade! {
-            gtk::HeaderBar::new();
-            ..set_title(Some("System76 Keyboard Configurator"));
-            ..set_custom_title(Some(&layer_switcher));
-            ..set_show_close_button(true);
-            ..pack_end(&menu_button);
-        };
-
-        let board_dropdown = cascade! {
-            gtk::ComboBoxText::new();
-        };
-
-        let stack = cascade! {
-            gtk::Stack::new();
-            ..set_transition_duration(0);
-        };
-
-        let picker = Picker::new();
-
-        let vbox = cascade! {
-            gtk::Box::new(gtk::Orientation::Vertical, 32);
-            ..set_property_margin(10);
-            ..set_halign(gtk::Align::Center);
-            ..add(&board_dropdown);
-            ..add(&stack);
-            ..add(&picker);
-        };
-
-        let scrolled_window = cascade! {
-            gtk::ScrolledWindow::new::<gtk::Adjustment, gtk::Adjustment>(None, None);
-            ..add(&vbox);
-        };
-
-        Self {
-            board_dropdown,
-            count: AtomicUsize::new(0),
-            header_bar,
-            layer_switcher,
-            picker,
-            scrolled_window,
-            stack,
-        }
+        Self::default()
     }
 }
 
 impl ObjectImpl for MainWindowInner {
     fn constructed(&self, window: &MainWindow) {
+        window.init_template();
         self.parent_constructed(window);
 
         self.board_dropdown.connect_changed(clone!(@weak window => @default-panic, move |combobox| {
@@ -123,11 +64,6 @@ impl ObjectImpl for MainWindowInner {
             }
         }));
 
-        window.set_title("System76 Keyboard Configurator");
-        window.set_position(gtk::WindowPosition::Center);
-        window.set_default_size(1024, 768);
-        window.set_titlebar(Some(&self.header_bar));
-        window.add(&self.scrolled_window);
         window.set_help_overlay(Some(&shortcuts_window()));
 
         window.set_focus::<gtk::Widget>(None);
