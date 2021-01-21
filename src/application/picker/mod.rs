@@ -103,6 +103,7 @@ impl ObjectImpl for PickerInner {
         self.parent_constructed(picker);
 
         picker.set_orientation(gtk::Orientation::Vertical);
+        picker.set_halign(gtk::Align::Center);
         picker.set_spacing(32);
 
         let mut picker_hbox_opt: Option<gtk::Box> = None;
@@ -115,7 +116,6 @@ impl ObjectImpl for PickerInner {
                 None => {
                     let picker_hbox = cascade! {
                         gtk::Box::new(gtk::Orientation::Horizontal, 64);
-                        ..set_halign(gtk::Align::Center);
                     };
                     picker.add(&picker_hbox);
                     picker_hbox
