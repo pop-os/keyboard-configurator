@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+  <template class="S76Keyboard" parent="GtkBox">
+    <property name="orientation">vertical</property>
+    <property name="spacing">8</property>
+    <child>
+      <object class="GtkBox">
+        <property name="spacing">8</property>
+        <child>
+          <object class="GtkLabel">
+            <property name="label">Brightness:</property>
+            <property name="halign">start</property>
+          </object>
+        </child>
+        <child>
+          <object class="GtkScale" id="brightness_scale">
+            <property name="orientation">horizontal</property>
+            <property name="halign">fill</property>
+            <property name="width-request">200</property>
+            <property name="height-request">0</property>
+            <property name="adjustment">brightness_adjustment</property>
+          </object>
+        </child>
+        <child>
+          <object class="GtkLabel">
+            <property name="label">Color:</property>
+            <property name="halign">start</property>
+          </object>
+        </child>
+        <!-- XXX add support to ColorButton for changing keyboard -->
+        <child>
+          <object class="GtkFrame" id="color_button_bin">
+            <property name="shadow-type">none</property>
+            <property name="valign">center</property>
+          </object>
+        </child>
+      </object>
+    </child>
+    <child>
+      <object class="GtkStack" id="stack">
+        <property name="transition-duration">0</property>
+      </object>
+    </child>
+  </template>
+  <object class="GtkAdjustment" id="brightness_adjustment">
+    <property name="page-increment">1</property>
+    <property name="step-increment">1</property>
+  </object>
+  <object class="GSimpleActionGroup" id="action_group" />
+</interface>

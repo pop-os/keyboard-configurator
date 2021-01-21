@@ -1,8 +1,6 @@
 use cascade::cascade;
-use gio::prelude::*;
 use glib::object::WeakRef;
 use glib::subclass;
-use glib::subclass::prelude::*;
 use gtk::prelude::*;
 use gtk::subclass::prelude::*;
 use once_cell::unsync::OnceCell;
@@ -33,24 +31,25 @@ use super::layout::Layout;
 use super::page::Page;
 use super::picker::Picker;
 
+#[derive(Default, gtk::CompositeTemplate)]
 pub struct KeyboardInner {
-    action_group: gio::SimpleActionGroup,
+    #[template_child]
+    action_group: TemplateChild<gio::SimpleActionGroup>,
     board: OnceCell<String>,
     daemon: OnceCell<Rc<dyn Daemon>>,
     daemon_board: OnceCell<usize>,
     default_layout: OnceCell<KeyMap>,
     keymap: OnceCell<HashMap<String, u16>>,
     keys: OnceCell<Rc<[Key]>>,
-    load_action: gio::SimpleAction,
     page: Cell<Page>,
     picker: RefCell<WeakRef<Picker>>,
     selected: Cell<Option<usize>>,
-    color_button_bin: gtk::Frame,
-    brightness_scale: gtk::Scale,
-    save_action: gio::SimpleAction,
-    reset_action: gio::SimpleAction,
-    hbox: gtk::Box,
-    stack: gtk::Stack,
+    #[template_child]
+    color_button_bin: TemplateChild<gtk::Frame>,
+    #[template_child]
+    brightness_scale: TemplateChild<gtk::Scale>,
+    #[template_child]
+    stack: TemplateChild<gtk::Stack>,
 }
 
 static PROPERTIES: [subclass::Property; 1] = [
@@ -80,96 +79,66 @@ impl ObjectSubclass for KeyboardInner {
 
     fn class_init(klass: &mut Self::Class) {
         klass.install_properties(&PROPERTIES);
+
+        klass.set_template(include_bytes!("keyboard.ui"));
+        Self::bind_template_children(klass);
     }
 
     fn new() -> Self {
-        let stack = cascade! {
-            gtk::Stack::new();
-            ..set_transition_duration(0);
-        };
-
-        let brightness_label = cascade! {
-            gtk::Label::new(Some("Brightness:"));
-            ..set_halign(gtk::Align::Start);
-        };
-
-        let brightness_scale = cascade! {
-            gtk::Scale::new::<gtk::Adjustment>(gtk::Orientation::Horizontal, None);
-            ..set_increments(1.0, 1.0);
-            ..set_halign(gtk::Align::Fill);
-            ..set_size_request(200, 0);
-        };
-
-        let color_label = cascade! {
-            gtk::Label::new(Some("Color:"));
-            ..set_halign(gtk::Align::Start);
-        };
-
-        // XXX add support to ColorButton for changing keyboard
-        let color_button_bin = cascade!{
-            gtk::Frame::new(None);
-            ..set_shadow_type(gtk::ShadowType::None);
-            ..set_valign(gtk::Align::Center);
-        };
-
-
-        let load_action = cascade! {
-            gio::SimpleAction::new("load", None);
-        };
-
-        let save_action = cascade! {
-            gio::SimpleAction::new("save", None);
-        };
-
-        let reset_action = cascade! {
-            gio::SimpleAction::new("reset", None);
-        };
-
-        let action_group = cascade! {
-            gio::SimpleActionGroup::new();
-            ..add_action(&load_action);
-            ..add_action(&save_action);
-            ..add_action(&reset_action);
-        };
-
-        let hbox = cascade! {
-            gtk::Box::new(gtk::Orientation::Horizontal, 8);
-            ..add(&brightness_label);
-            ..add(&brightness_scale);
-            ..add(&color_label);
-            ..add(&color_button_bin);
-        };
-
-        Self {
-            action_group,
-            board: OnceCell::new(),
-            daemon: OnceCell::new(),
-            daemon_board: OnceCell::new(),
-            default_layout: OnceCell::new(),
-            keymap: OnceCell::new(),
-            keys: OnceCell::new(),
-            load_action,
-            page: Cell::new(Page::Layer1),
-            picker: RefCell::new(WeakRef::new()),
-            save_action,
-            reset_action,
-            selected: Cell::new(None),
-            color_button_bin,
-            brightness_scale,
-            hbox,
-            stack,
-        }
+        Self::default()
     }
 }
 
 impl ObjectImpl for KeyboardInner {
     fn constructed(&self, keyboard: &Keyboard) {
+        keyboard.init_template();
         self.parent_constructed(keyboard);
 
-        keyboard.set_orientation(gtk::Orientation::Vertical);
-        keyboard.set_spacing(8);
-        keyboard.add(&keyboard.inner().hbox);
-        keyboard.add(&keyboard.inner().stack);
+        self.action_group.add_action(&cascade! {
+            gio::SimpleAction::new("load", None);
+            ..connect_activate(clone!(@weak keyboard => move |_, _| {
+                keyboard.load();
+            }));
+        });
+
+        self.action_group.add_action(&cascade! {
+            gio::SimpleAction::new("save", None);
+            ..connect_activate(clone!(@weak keyboard => move |_, _| {
+                keyboard.save();
+            }));
+        });
+
+        self.action_group.add_action(&cascade! {
+            gio::SimpleAction::new("reset", None);
+            ..connect_activate(clone!(@weak keyboard => move |_, _| {
+                keyboard.reset();
+            }));
+        });
+
+        self.stack.connect_property_visible_child_notify(
+            clone!(@weak keyboard => move |stack| {
+                let page = stack
+                    .get_visible_child()
+                    .map(|c| c.downcast_ref::<KeyboardLayer>().unwrap().page());
+
+                println!("{:?}", page);
+                let last_layer = keyboard.layer();
+                keyboard.inner().page.set(page.unwrap_or(Page::Layer1));
+                if keyboard.layer() != last_layer {
+                    keyboard.set_selected(keyboard.selected());
+                }
+            })
+        );
+
+        self.brightness_scale.connect_value_changed(
+            clone!(@weak keyboard => move |this| {
+                let value = this.get_value() as i32;
+                if let Err(err) = keyboard.daemon().set_brightness(keyboard.daemon_board(), value) {
+                    eprintln!("{}", err);
+                }
+                println!("{}", value);
+            })
+        );
     }
 
     fn set_property(&self, keyboard: &Keyboard, id: usize, value: &glib::Value) {
@@ -279,7 +248,6 @@ impl Keyboard {
         keyboard.inner().brightness_scale.set_value(brightness);
 
         keyboard.add_pages();
-        keyboard.connect_signals();
 
         keyboard
     }
@@ -415,97 +383,69 @@ impl Keyboard {
         }
     }
 
-    fn connect_signals(&self) {
-        let kb = self;
+    fn load(&self) {
+        let filter = cascade! {
+            gtk::FileFilter::new();
+            ..set_name(Some("JSON"));
+            ..add_pattern("*.json");
+        };
 
-        self.inner().stack.connect_property_visible_child_notify(
-            clone!(@weak kb => @default-panic, move |stack| {
-                let page = stack
-                    .get_visible_child()
-                    .map(|c| c.downcast_ref::<KeyboardLayer>().unwrap().page());
+        let chooser = cascade! {
+            gtk::FileChooserNative::new::<gtk::Window>(Some("Load Layout"), None, gtk::FileChooserAction::Open, Some("Load"), Some("Cancel"));
+            ..add_filter(&filter);
+        };
 
-                println!("{:?}", page);
-                let last_layer = kb.layer();
-                kb.inner().page.set(page.unwrap_or(Page::Layer1));
-                if kb.layer() != last_layer {
-                    kb.set_selected(kb.selected());
+        if chooser.run() == gtk::ResponseType::Accept {
+            let path = chooser.get_filename().unwrap();
+            match File::open(&path) {
+                Ok(file) => match KeyMap::from_reader(file) {
+                    Ok(keymap) => self.import_keymap(&keymap),
+                    Err(err) => error_dialog(&self.window().unwrap(), "Failed to import keymap", err),
                 }
-            }),
-        );
-
-        self.inner().brightness_scale.connect_value_changed(
-            clone!(@weak kb => @default-panic, move |this| {
-                let value = this.get_value() as i32;
-                if let Err(err) = kb.daemon().set_brightness(kb.daemon_board(), value) {
-                    eprintln!("{}", err);
-                }
-                println!("{}", value);
-            }),
-        );
-
-        self.inner().load_action.connect_activate(clone!(@weak kb => @default-panic, move |_, _| {
-            let filter = cascade! {
-                gtk::FileFilter::new();
-                ..set_name(Some("JSON"));
-                ..add_pattern("*.json");
-            };
-
-            let chooser = cascade! {
-                gtk::FileChooserNative::new::<gtk::Window>(Some("Load Layout"), None, gtk::FileChooserAction::Open, Some("Load"), Some("Cancel"));
-                ..add_filter(&filter);
-            };
-
-            if chooser.run() == gtk::ResponseType::Accept {
-                let path = chooser.get_filename().unwrap();
-                match File::open(&path) {
-                    Ok(file) => match KeyMap::from_reader(file) {
-                        Ok(keymap) => kb.import_keymap(&keymap),
-                        Err(err) => error_dialog(&kb.window().unwrap(), "Failed to import keymap", err),
-                    }
-                    Err(err) => error_dialog(&kb.window().unwrap(), "Failed to open file", err),
-                }
+                Err(err) => error_dialog(&self.window().unwrap(), "Failed to open file", err),
             }
-        }));
-
-        self.inner().save_action.connect_activate(clone!(@weak kb => @default-panic, move |_, _| {
-            let filter = cascade! {
-                gtk::FileFilter::new();
-                ..set_name(Some("JSON"));
-                ..add_pattern("*.json");
-            };
-
-            let chooser = cascade! {
-                gtk::FileChooserNative::new::<gtk::Window>(Some("Save Layout"), None, gtk::FileChooserAction::Save, Some("Save"), Some("Cancel"));
-                ..add_filter(&filter);
-            };
-
-            if chooser.run() == gtk::ResponseType::Accept {
-                let mut path = chooser.get_filename().unwrap();
-                match path.extension() {
-                    None => { path.set_extension(OsStr::new("json")); }
-                    Some(ext) if ext == OsStr::new("json") => {}
-                    Some(ext) => {
-                        let mut ext = ext.to_owned();
-                        ext.push(".json");
-                        path.set_extension(&ext);
-                    }
-                }
-                let keymap = kb.export_keymap();
-
-                match File::create(&path) {
-                    Ok(file) => match keymap.to_writer_pretty(file) {
-                        Ok(()) => {},
-                        Err(err) => error_dialog(&kb.window().unwrap(), "Failed to export keymap", err),
-                    }
-                    Err(err) => error_dialog(&kb.window().unwrap(), "Failed to open file", err),
-                }
-            }
-        }));
-
-        self.inner().reset_action.connect_activate(clone!(@weak kb => @default-panic, move |_, _| {
-            kb.import_keymap(kb.default_layout());
-        }));
+        }
     }
+
+    fn save(&self) {
+        let filter = cascade! {
+            gtk::FileFilter::new();
+            ..set_name(Some("JSON"));
+            ..add_pattern("*.json");
+        };
+
+        let chooser = cascade! {
+            gtk::FileChooserNative::new::<gtk::Window>(Some("Save Layout"), None, gtk::FileChooserAction::Save, Some("Save"), Some("Cancel"));
+            ..add_filter(&filter);
+        };
+
+        if chooser.run() == gtk::ResponseType::Accept {
+            let mut path = chooser.get_filename().unwrap();
+            match path.extension() {
+                None => { path.set_extension(OsStr::new("json")); }
+                Some(ext) if ext == OsStr::new("json") => {}
+                Some(ext) => {
+                    let mut ext = ext.to_owned();
+                    ext.push(".json");
+                    path.set_extension(&ext);
+                }
+            }
+            let keymap = self.export_keymap();
+
+            match File::create(&path) {
+                Ok(file) => match keymap.to_writer_pretty(file) {
+                    Ok(()) => {},
+                    Err(err) => error_dialog(&self.window().unwrap(), "Failed to export keymap", err),
+                }
+                Err(err) => error_dialog(&self.window().unwrap(), "Failed to open file", err),
+            }
+        }
+    }
+
+    fn reset(&self) {
+        self.import_keymap(self.default_layout());
+    }
+
 
     fn add_pages(&self) {
         let keys = self.inner().keys.get().unwrap();

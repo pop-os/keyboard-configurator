@@ -28,3 +28,9 @@ impl Page {
         ].into_iter()
     }
 }
+
+impl Default for Page {
+    fn default() -> Self {
+        Self::Layer1
+    }
+}
