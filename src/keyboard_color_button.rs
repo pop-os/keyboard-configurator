@@ -12,14 +12,22 @@ use crate::color::Rgb;
 use crate::color_circle::{ColorCircle, ColorCircleSymbol};
 use crate::keyboard::Keyboard;
 
+#[derive(Default, gtk::CompositeTemplate)]
 pub struct KeyboardColorButtonInner {
-    button: ColorCircle,
+    #[template_child]
+    button: TemplateChild<ColorCircle>,
     circles: RefCell<Vec<ColorCircle>>,
-    grid: gtk::Grid,
+    #[template_child]
+    grid: TemplateChild<gtk::Grid>,
     current_circle: RefCell<Option<ColorCircle>>,
-    add_circle: ColorCircle,
-    remove_button: gtk::Button,
-    edit_button: gtk::Button,
+    #[template_child]
+    add_circle: TemplateChild<ColorCircle>,
+    #[template_child]
+    remove_button: TemplateChild<gtk::Button>,
+    #[template_child]
+    edit_button: TemplateChild<gtk::Button>,
+    #[template_child]
+    popover: TemplateChild<gtk::Popover>,
     keyboard: RefCell<Keyboard>,
 }
 
@@ -34,69 +42,36 @@ impl ObjectSubclass for KeyboardColorButtonInner {
 
     glib::object_subclass!();
 
+    fn class_init(klass: &mut Self::Class) {
+        ColorCircle::static_type();
+        klass.set_template(include_bytes!("keyboard_color_button.ui"));
+        Self::bind_template_children(klass);
+    }
+
     fn new() -> Self {
-        let grid = cascade! {
-            gtk::Grid::new();
-            ..set_column_spacing(6);
-            ..set_row_spacing(6);
-            ..set_halign(gtk::Align::Center);
-        };
-
-        let remove_button = gtk::Button::with_label("Remove");
-        let edit_button = gtk::Button::with_label("Edit");
-
-        let buttons_box = cascade! {
-            gtk::Box::new(gtk::Orientation::Horizontal, 0);
-            ..add(&remove_button);
-            ..add(&edit_button);
-        };
-
-        let vbox = cascade! {
-            gtk::Box::new(gtk::Orientation::Vertical, 0);
-            ..add(&grid);
-            ..add(&gtk::Separator::new(gtk::Orientation::Horizontal));
-            ..add(&buttons_box);
-            ..show_all();
-        };
-
-        let popover = cascade! {
-            gtk::Popover::new::<gtk::Widget>(None);
-            ..add(&vbox);
-        };
-
-        let button = cascade! {
-            ColorCircle::new(30);
-            ..connect_clicked(clone!(@weak popover => @default-panic, move |_| popover.popup()));
-        };
-
-        popover.set_relative_to(Some(&button));
-
-        let add_circle = cascade! {
-            ColorCircle::new(45);
-            ..set_alpha(0.);
-            ..set_symbol(ColorCircleSymbol::Plus);
-        };
-
-        let keyboard = Keyboard::new_dummy();
-
-        Self {
-            button,
-            circles: RefCell::new(Vec::new()),
-            grid,
-            current_circle: RefCell::new(None),
-            add_circle,
-            remove_button,
-            edit_button,
-            keyboard: RefCell::new(keyboard),
-        }
+        Self::default()
     }
 }
 
 impl ObjectImpl for KeyboardColorButtonInner {
     fn constructed(&self, obj: &KeyboardColorButton) {
+        obj.init_template();
         self.parent_constructed(obj);
 
-        obj.add(&self.button);
+        let popover: &gtk::Popover = &*&self.popover;
+        self.button.connect_clicked(
+            clone!(@weak popover => move |_| popover.popup()));
+
+        self.add_circle.set_alpha(0.);
+        self.add_circle.set_symbol(ColorCircleSymbol::Plus);
+        self.add_circle.connect_clicked(
+            clone!(@weak obj => move |_| obj.add_clicked()));
+
+        self.remove_button.connect_clicked(
+            clone!(@weak obj => move |_| obj.remove_clicked()));
+
+        self.edit_button.connect_clicked(
+            clone!(@weak obj => move |_| obj.edit_clicked()));
     }
 }
 
@@ -122,12 +97,10 @@ impl KeyboardColorButton {
             }
         });
 
-        let button = &keyboard_color_button.inner().button;
-        keyboard.connect_color_changed(clone!(@weak button => @default-panic, move |_, color| {
+        let button: &ColorCircle = &*&keyboard_color_button.inner().button;
+        keyboard.connect_color_changed(clone!(@weak button => move |_, color| {
             button.set_rgb(color);
         }));
-
-        keyboard_color_button.connect_signals();
 
         let colors = vec![
             Rgb::new(255, 255, 255),
@@ -150,29 +123,11 @@ impl KeyboardColorButton {
         KeyboardColorButtonInner::from_instance(self)
     }
 
-    fn connect_signals(&self) {
-        let self_ = self;
-
-        self.inner()
-            .add_circle
-            .connect_clicked(clone!(@weak self_ => move |_| {
-                self_.add_clicked();
-            }));
-
-        self.inner().remove_button.connect_clicked(
-            clone!(@weak self_ => @default-panic, move |_| self_.remove_clicked()),
-        );
-
-        self.inner()
-            .edit_button
-            .connect_clicked(clone!(@weak self_ => @default-panic, move |_| self_.edit_clicked()));
-    }
-
     fn add_color(&self, color: Rgb) {
         let self_ = self;
         let circle = cascade! {
             ColorCircle::new(45);
-            ..connect_clicked(clone!(@weak self_ => @default-panic, move |c| self_.circle_clicked(c)));
+            ..connect_clicked(clone!(@weak self_ => move |c| self_.circle_clicked(c)));
             ..set_rgb(color);
         };
         self.inner().circles.borrow_mut().push(circle);
@@ -184,7 +139,7 @@ impl KeyboardColorButton {
         let circles = self.inner().circles.borrow();
         for (i, circle) in circles
             .iter()
-            .chain(iter::once(&self.inner().add_circle))
+            .chain(iter::once(&self.inner().add_circle.get()))
             .enumerate()
         {
             let x = i as i32 % 3;

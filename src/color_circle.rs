@@ -68,6 +68,12 @@ impl ObjectImpl for ColorCircleInner {
         context.add_class("circular");
         context.add_class("keyboard_color_button");
 
+        self.drawing_area.connect_draw(
+            clone!(@weak obj => @default-panic, move |w, cr| {
+                obj.draw(w, cr);
+                Inhibit(false)
+            }));
+
         obj.add(&self.drawing_area);
     }
 }
@@ -87,24 +93,12 @@ impl ColorCircle {
         let color_circle: Self = glib::Object::new(&[]).unwrap();
 
         color_circle.set_size_request(size, size);
-        color_circle.connect_signals();
 
         color_circle
     }
 
     fn inner(&self) -> &ColorCircleInner {
         ColorCircleInner::from_instance(self)
-    }
-
-    fn connect_signals(&self) {
-        let self_ = self;
-
-        self.inner()
-            .drawing_area
-            .connect_draw(clone!(@strong self_ => move |w, cr| {
-                self_.draw(w, cr);
-                Inhibit(false)
-            }));
     }
 
     fn draw(&self, w: &gtk::DrawingArea, cr: &cairo::Context) {

@@ -318,6 +318,12 @@ impl fmt::Display for Keyboard {
     }
 }
 
+impl Default for Keyboard {
+    fn default() -> Self {
+        Self::new_dummy()
+    }
+}
+
 #[cfg(target_os = "linux")]
 fn add_s76power_keyboards(keyboards: &mut Vec<Keyboard>) -> Result<()> {
     let proxy = gio::DBusProxy::new_for_bus_sync::<gio::Cancellable>(
