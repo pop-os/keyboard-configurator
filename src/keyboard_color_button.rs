@@ -9,7 +9,7 @@ use std::iter;
 
 use crate::choose_color::choose_color;
 use crate::color::Rgb;
-use crate::color_circle::{ColorCircle, ColorCircleSymbol};
+use crate::color_circle::ColorCircle;
 use crate::keyboard::Keyboard;
 
 #[derive(Default, gtk::CompositeTemplate)]
@@ -63,7 +63,7 @@ impl ObjectImpl for KeyboardColorButtonInner {
             clone!(@weak popover => move |_| popover.popup()));
 
         self.add_circle.set_alpha(0.);
-        self.add_circle.set_symbol(ColorCircleSymbol::Plus);
+        self.add_circle.set_symbol("+");
         self.add_circle.connect_clicked(
             clone!(@weak obj => move |_| obj.add_clicked()));
 
@@ -169,7 +169,7 @@ impl KeyboardColorButton {
             if let Some(index) = circles.iter().position(|c| c.ptr_eq(current_circle)) {
                 circles.remove(index);
                 *current_circle = circles[index.saturating_sub(1)].clone();
-                current_circle.set_symbol(ColorCircleSymbol::Check);
+                current_circle.set_symbol("✓");
             }
             self.inner().remove_button.set_visible(circles.len() > 1);
         }
@@ -196,8 +196,11 @@ impl KeyboardColorButton {
         self.inner().keyboard.borrow().set_color(color);
         self.inner().button.set_rgb(color);
 
-        circle.set_symbol(ColorCircleSymbol::Check);
-        let old_circle = self.inner().current_circle.replace(Some(circle.clone()));
-        old_circle.map(|c| c.set_symbol(ColorCircleSymbol::None));
+        let mut current = self.inner().current_circle.borrow_mut();
+        if let Some(c) = &*current {
+            c.set_symbol("");
+        }
+        circle.set_symbol("✓");
+        *current = Some(circle.clone());
     }
 }

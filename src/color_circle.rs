@@ -17,18 +17,12 @@ const CSS: &[u8] = b"
     }
 ";
 
-#[derive(Clone, Copy)]
-pub enum ColorCircleSymbol {
-    Check,
-    Plus,
-    None,
-}
-
+#[derive(Default)]
 pub struct ColorCircleInner {
     drawing_area: gtk::DrawingArea,
     rgb: Cell<Rgb>,
     alpha: Cell<f64>,
-    symbol: Cell<ColorCircleSymbol>,
+    symbol: Cell<&'static str>,
 }
 
 impl ObjectSubclass for ColorCircleInner {
@@ -43,13 +37,9 @@ impl ObjectSubclass for ColorCircleInner {
     glib::object_subclass!();
 
     fn new() -> Self {
-        let drawing_area = gtk::DrawingArea::new();
-
         Self {
-            drawing_area,
-            rgb: Cell::new(Rgb::new(0, 0, 0)),
-            symbol: Cell::new(ColorCircleSymbol::None),
             alpha: Cell::new(1.),
+            ..Default::default()
         }
     }
 }
@@ -105,6 +95,9 @@ impl ColorCircle {
         let width = f64::from(w.get_allocated_width());
         let height = f64::from(w.get_allocated_height());
 
+        let style = w.get_style_context();
+        let fg = style.get_color(gtk::StateFlags::NORMAL);
+
         let radius = width.min(height) / 2.;
         let (r, g, b) = self.rgb().to_floats();
         let alpha = self.inner().alpha.get();
@@ -113,24 +106,22 @@ impl ColorCircle {
         cr.set_source_rgba(r, g, b, alpha);
         cr.fill_preserve();
 
+        let text = self.inner().symbol.get();
+        let attrs = cascade! {
+            pango::AttrList::new();
+            ..insert(pango::Attribute::new_size(14 * pango::SCALE));
+        };
+        let layout = cascade! {
+            w.create_pango_layout(Some(text));
+            ..set_width((width * pango::SCALE as f64) as i32);
+            ..set_alignment(pango::Alignment::Center);
+            ..set_attributes(Some(&attrs));
+        };
+        let text_height = layout.get_pixel_size().1 as f64;
         cr.new_path();
-        cr.set_source_rgb(0.25, 0.25, 0.25);
-        cr.set_line_width(1.5);
-
-        match self.inner().symbol.get() {
-            ColorCircleSymbol::Plus => {
-                cr.move_to(radius, 0.8 * radius);
-                cr.line_to(radius, 1.2 * radius);
-                cr.move_to(0.8 * radius, radius);
-                cr.line_to(1.2 * radius, radius);
-            }
-            ColorCircleSymbol::Check => {
-                cr.move_to(0.8 * radius, radius);
-                cr.line_to(radius, 1.2 * radius);
-                cr.line_to(1.2 * radius, 0.8 * radius);
-            }
-            ColorCircleSymbol::None => {}
-        }
+        cr.move_to(0., (height - text_height) / 2.);
+        cr.set_source_rgb(fg.red, fg.green, fg.blue);
+        pangocairo::show_layout(cr, &layout);
 
         cr.stroke();
     }
@@ -144,7 +135,7 @@ impl ColorCircle {
         self.inner().rgb.get()
     }
 
-    pub fn set_symbol(&self, symbol: ColorCircleSymbol) {
+    pub fn set_symbol(&self, symbol: &'static str) {
         self.inner().symbol.set(symbol);
         self.queue_draw();
     }
