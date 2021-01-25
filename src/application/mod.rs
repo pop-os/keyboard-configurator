@@ -82,6 +82,10 @@ impl ApplicationImpl for ConfiguratorAppInner {
         app.add_action(&about_action);
         app.set_accels_for_action("kbd.load", &["<Primary>o"]);
         app.set_accels_for_action("kbd.save", &["<Primary>s"]);
+        for (i, _) in page::Page::iter_all().enumerate() {
+            app.set_accels_for_action(&format!("kbd.page{}", i),
+                &[&format!("<Primary>{}", i + 1)]);
+        }
     }
 
     fn activate(&self, app: &ConfiguratorApp) {

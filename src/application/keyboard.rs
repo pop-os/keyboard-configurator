@@ -446,16 +446,23 @@ impl Keyboard {
         self.import_keymap(self.default_layout());
     }
 
-
     fn add_pages(&self) {
         let keys = self.inner().keys.get().unwrap();
+        let stack = &*self.inner().stack;
 
-        for page in Page::iter_all() {
+        for (i, page) in Page::iter_all().enumerate() {
             let keyboard_layer = KeyboardLayer::new(page, keys.clone());
             self.bind_property("selected", &keyboard_layer, "selected")
                 .flags(glib::BindingFlags::BIDIRECTIONAL)
                 .build();
-            self.inner().stack.add_titled(&keyboard_layer, page.name(), page.name());
+            stack.add_titled(&keyboard_layer, page.name(), page.name());
+
+            self.inner().action_group.add_action(&cascade! {
+                gio::SimpleAction::new(&format!("page{}", i), None);
+                ..connect_activate(clone!(@weak stack, @weak keyboard_layer => move |_, _| {
+                    stack.set_visible_child(&keyboard_layer);
+                }));
+            });
         }
     }
 
