@@ -2,7 +2,6 @@ use anyhow::{Error, Result};
 use gio::prelude::*;
 use glib::clone;
 use glib::clone::{Downgrade, Upgrade};
-use glib::translate::{from_glib_none, ToGlibPtr};
 use glib::variant::Variant;
 use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
@@ -60,37 +59,20 @@ impl Upgrade for KeyboardWeak {
     }
 }
 
-// https://github.com/gtk-rs/glib/pull/651
-unsafe fn variant_get_child_value(variant: &glib::Variant, index: usize) -> glib::Variant {
-    from_glib_none(glib_sys::g_variant_get_child_value(
-        variant.to_glib_none().0,
-        index,
-    ))
-}
-
 fn set_property(
     properties_proxy: &gio::DBusProxy,
     property: &str,
     value: glib::Variant,
     cancellable: &gio::Cancellable,
 ) -> Result<()> {
-    let variant: glib::Variant =
-        unsafe { from_glib_none(glib_sys::g_variant_new_variant(value.to_glib_none().0)) };
-    let args: glib::Variant = unsafe {
-        from_glib_none(glib_sys::g_variant_new_tuple(
-            vec![
-                DBUS_KEYBOARD_IFACE.to_variant(),
-                property.to_variant(),
-                variant,
-            ]
-            .to_glib_none()
-            .0,
-            3,
-        ))
-    };
+    let args = (
+        DBUS_KEYBOARD_IFACE,
+        property,
+        value,
+    );
     properties_proxy.call(
         "Set",
-        Some(&args),
+        Some(&args.to_variant()),
         gio::DBusCallFlags::NONE,
         60000,
         Some(cancellable),
@@ -344,25 +326,15 @@ fn add_s76power_keyboards(keyboards: &mut Vec<Keyboard>) -> Result<()> {
             None,
         )?;
 
-    let mut keyboards = Vec::new();
-
-    let dict = unsafe { variant_get_child_value(&ret, 0) };
-    let iter = unsafe { glib_sys::g_variant_iter_new(dict.to_glib_none().0) };
-    loop {
-        let i = unsafe { glib_sys::g_variant_iter_next_value(iter) };
-        if i.is_null() {
-            break;
-        }
-        let i: glib::Variant = unsafe { from_glib_none(i) };
-        let path = unsafe { variant_get_child_value(&i, 0) }
+    for i in ret.get_child_value(0).iter() {
+        let path = i.get_child_value(0)
             .get::<String>()
             .unwrap();
         if path.starts_with("/com/system76/PowerDaemon/keyboard") {
             keyboards.push(Keyboard::new_s76_power(&path));
         }
     }
-    unsafe { glib_sys::g_variant_iter_free(iter) };
-    
+
     Ok(())
 }
 
