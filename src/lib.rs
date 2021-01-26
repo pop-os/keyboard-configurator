@@ -8,7 +8,6 @@ mod choose_color;
 mod color;
 mod color_circle;
 mod color_wheel;
-mod keyboard;
 mod keyboard_backlight_widget;
 mod keyboard_color_button;
 mod keymap;

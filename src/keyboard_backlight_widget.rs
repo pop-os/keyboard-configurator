@@ -1,11 +1,11 @@
 // Intended for use in Gnome Control Center's Keyboard panel
 
 use cascade::cascade;
-use gio::prelude::*;
 use glib::clone;
 use gtk::prelude::*;
+use std::rc::Rc;
 
-use crate::keyboard::{keyboards, Keyboard};
+use crate::daemon::{Daemon, DaemonS76Power};
 use crate::keyboard_color_button::KeyboardColorButton;
 
 pub fn keyboard_backlight_widget() -> gtk::Widget {
@@ -26,35 +26,43 @@ pub fn keyboard_backlight_widget() -> gtk::Widget {
         ..add(&stack);
     };
 
-    for i in keyboards() {
-        let title = format!("{}", i);
-        stack.add_titled(&page(i), &title, &title);
+    if let Err(err) = add_boards(&stack) {
+        eprintln!("Failed to get keyboards: {}", err);
     }
 
     vbox.upcast()
 }
 
-fn page(keyboard: Keyboard) -> gtk::Widget {
-    let max_brightness = keyboard.max_brightness().unwrap() as f64;
-    let brightness = keyboard.brightness().unwrap() as f64;
+fn add_boards(stack: &gtk::Stack) -> Result<(), String> {
+    let daemon = Rc::new(DaemonS76Power::new()?);
+    let boards = daemon.boards()?;
+
+    for (i, title) in boards.iter().enumerate() {
+        stack.add_titled(&page(&daemon, i), &title, &title);
+    }
+
+    Ok(())
+}
+
+fn page(daemon: &Rc<DaemonS76Power>, daemon_board: usize) -> gtk::Widget {
+    let max_brightness = daemon.max_brightness(daemon_board).unwrap_or(100) as f64;
+    let brightness = daemon.brightness(daemon_board).unwrap_or(0) as f64;
     let brightness_scale = cascade! {
         gtk::Scale::with_range(gtk::Orientation::Horizontal, 0., max_brightness, 1.);
         ..set_hexpand(true);
         ..set_draw_value(false);
         ..set_value(brightness);
-        ..connect_change_value(clone!(@weak keyboard => @default-panic, move |_scale, _, value| {
-            keyboard.set_brightness(value as i32);
+        ..connect_change_value(clone!(@weak daemon => @default-panic, move |_scale, _, value| {
+            if let Err(err) = daemon.set_brightness(daemon_board, value as i32) {
+                eprintln!("Failed to set keyboard brightness: {}", err);
+            }
             Inhibit(false)
         }));
     };
 
-    keyboard.connect_brightness_changed(
-        clone!(@weak brightness_scale => @default-panic, move |_, brightness| {
-            brightness_scale.set_value(brightness as f64);
-        }),
-    );
+    // TODO detect when brightness changed in daemon
 
-    let button = KeyboardColorButton::new(keyboard);
+    let button = KeyboardColorButton::new(daemon.clone(), daemon_board);
 
     let listbox = cascade! {
         gtk::ListBox::new();

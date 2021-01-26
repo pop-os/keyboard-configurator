@@ -21,7 +21,6 @@ use std::{
 };
 
 use crate::daemon::Daemon;
-use crate::keyboard::Keyboard as ColorKeyboard;
 use crate::keyboard_color_button::KeyboardColorButton;
 use crate::keymap::KeyMap;
 use super::error_dialog::error_dialog;
@@ -225,8 +224,7 @@ impl Keyboard {
         let _ = keyboard.inner().keymap.set(layout.keymap);
         let _ = keyboard.inner().default_layout.set(layout.default);
 
-        let color_keyboard = ColorKeyboard::new_daemon(keyboard.daemon().clone(), keyboard.daemon_board());
-        let color_button = KeyboardColorButton::new(color_keyboard);
+        let color_button = KeyboardColorButton::new(keyboard.daemon().clone(), keyboard.daemon_board());
         keyboard.inner().color_button_bin.add(&color_button);
 
         let max_brightness = match keyboard.daemon().max_brightness(keyboard.daemon_board()) {
