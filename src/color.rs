@@ -1,3 +1,4 @@
+use glib::subclass::prelude::BoxedType;
 use palette::{Component, IntoColor, RgbHue};
 use serde::{Serialize, Deserialize};
 
@@ -23,7 +24,8 @@ impl Hs {
     }
 }
 
-#[derive(Clone, Copy, Debug, Serialize, Deserialize, Default)]
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, Default, glib::GBoxed)]
+#[gboxed(type_name = "S76Rgb")]
 pub struct Rgb {
     /// Red
     pub r: u8,

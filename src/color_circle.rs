@@ -25,6 +25,18 @@ pub struct ColorCircleInner {
     symbol: Cell<&'static str>,
 }
 
+static PROPERTIES: [subclass::Property; 1] = [
+    subclass::Property("rgb", |name|
+        glib::ParamSpec::boxed(
+            name,
+            "rgb",
+            "rgb",
+            Rgb::get_type(),
+            glib::ParamFlags::READWRITE,
+        )
+    ),
+];
+
 impl ObjectSubclass for ColorCircleInner {
     const NAME: &'static str = "S76ColorCircle";
 
@@ -35,6 +47,10 @@ impl ObjectSubclass for ColorCircleInner {
     type Class = subclass::simple::ClassStruct<Self>;
 
     glib::object_subclass!();
+
+    fn class_init(klass: &mut Self::Class) {
+        klass.install_properties(&PROPERTIES);
+    }
 
     fn new() -> Self {
         Self {
@@ -65,6 +81,29 @@ impl ObjectImpl for ColorCircleInner {
             }));
 
         obj.add(&self.drawing_area);
+    }
+
+    fn set_property(&self, widget: &ColorCircle, id: usize, value: &glib::Value) {
+        let prop = &PROPERTIES[id];
+
+        match *prop {
+            subclass::Property("rgb", ..) => {
+                let rgb: &Rgb = value.get_some().unwrap();
+                widget.set_rgb(rgb.clone());
+            }
+            _ => unimplemented!(),
+        }
+    }
+
+    fn get_property(&self, widget: &ColorCircle, id: usize) -> glib::Value {
+        let prop = &PROPERTIES[id];
+
+        match *prop {
+            subclass::Property("rgb", ..) => {
+                widget.rgb().to_value()
+            }
+            _ => unimplemented!(),
+        }
     }
 }
 
@@ -128,6 +167,7 @@ impl ColorCircle {
 
     pub fn set_rgb(&self, color: Rgb) {
         self.inner().rgb.set(color);
+        self.notify("rgb");
         self.queue_draw();
     }
 

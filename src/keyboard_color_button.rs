@@ -4,7 +4,7 @@ use glib::subclass;
 use gtk::prelude::*;
 use gtk::subclass::prelude::*;
 use once_cell::unsync::OnceCell;
-use std::{cell::RefCell, iter, rc::Rc};
+use std::{cell::{Cell, RefCell}, iter, rc::Rc};
 
 use crate::choose_color::choose_color;
 use crate::color::Rgb;
@@ -29,7 +29,20 @@ pub struct KeyboardColorButtonInner {
     popover: TemplateChild<gtk::Popover>,
     daemon: OnceCell<Rc<dyn Daemon>>,
     daemon_board: OnceCell<usize>,
+    rgb: Cell<Rgb>,
 }
+
+static PROPERTIES: [subclass::Property; 1] = [
+    subclass::Property("rgb", |name|
+        glib::ParamSpec::boxed(
+            name,
+            "rgb",
+            "rgb",
+            Rgb::get_type(),
+            glib::ParamFlags::READWRITE,
+        )
+    ),
+];
 
 impl ObjectSubclass for KeyboardColorButtonInner {
     const NAME: &'static str = "S76KeyboardColorButton";
@@ -46,6 +59,7 @@ impl ObjectSubclass for KeyboardColorButtonInner {
         ColorCircle::static_type();
         klass.set_template(include_bytes!("keyboard_color_button.ui"));
         Self::bind_template_children(klass);
+        klass.install_properties(&PROPERTIES);
     }
 
     fn new() -> Self {
@@ -73,6 +87,30 @@ impl ObjectImpl for KeyboardColorButtonInner {
         self.edit_button
             .connect_clicked(clone!(@weak obj => move |_| obj.edit_clicked()));
     }
+
+    fn set_property(&self, widget: &KeyboardColorButton, id: usize, value: &glib::Value) {
+        let prop = &PROPERTIES[id];
+
+        match *prop {
+            subclass::Property("rgb", ..) => {
+                let rgb: &Rgb = value.get_some().unwrap();
+                widget.set_rgb(rgb.clone());
+                widget.notify("rgb");
+            }
+            _ => unimplemented!(),
+        }
+    }
+
+    fn get_property(&self, _widget: &KeyboardColorButton, id: usize) -> glib::Value {
+        let prop = &PROPERTIES[id];
+
+        match *prop {
+            subclass::Property("rgb", ..) => {
+                self.rgb.get().to_value()
+            }
+            _ => unimplemented!(),
+        }
+    }
 }
 
 impl WidgetImpl for KeyboardColorButtonInner {}
@@ -89,7 +127,7 @@ impl KeyboardColorButton {
         let keyboard_color_button: Self = glib::Object::new(&[]).unwrap();
 
         let color = daemon.color(daemon_board);
-        keyboard_color_button.inner().button.set_rgb(match color {
+        keyboard_color_button.set_rgb(match color {
             Ok(ok) => ok,
             Err(err) => {
                 eprintln!("{}", err);
@@ -205,7 +243,7 @@ impl KeyboardColorButton {
         if let Err(err) = self.daemon().set_color(self.daemon_board(), color) {
             eprintln!("Failed to set keyboard color: {}", err);
         }
-        self.inner().button.set_rgb(color);
+        self.set_rgb(color);
 
         let mut current = self.inner().current_circle.borrow_mut();
         if let Some(c) = &*current {
@@ -221,5 +259,10 @@ impl KeyboardColorButton {
 
     fn daemon_board(&self) -> usize {
         *self.inner().daemon_board.get().unwrap()
+    }
+
+    fn set_rgb(&self, rgb: Rgb) {
+        self.inner().rgb.set(rgb);
+        self.notify("rgb");
     }
 }

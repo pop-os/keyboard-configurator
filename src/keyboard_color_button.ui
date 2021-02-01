@@ -3,6 +3,7 @@
   <template class="S76KeyboardColorButton" parent="GtkBin">
     <child>
       <object class="S76ColorCircle" id="button">
+        <property name="rgb" bind-source="S76KeyboardColorButton" bind-property="rgb" bind-flags="sync-create" />
         <property name="height-request">30</property>
         <property name="width-request">30</property>
       </object>
