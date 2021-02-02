@@ -10,7 +10,6 @@ use main_window::MainWindow;
 
 mod about_dialog;
 mod error_dialog;
-mod gresource;
 mod key;
 mod keyboard;
 mod keyboard_layer;
@@ -167,7 +166,7 @@ pub fn run(args: Vec<String>) -> i32 {
     #[cfg(target_os = "windows")]
     windows_init();
 
-    gresource::init().expect("failed to init configurator gresource");
+    gio::resources_register_include!("compiled.gresource").unwrap();
     gtk::Window::set_default_icon_name("com.system76.keyboard-configurator");
 
     let application = ConfiguratorApp::new();
