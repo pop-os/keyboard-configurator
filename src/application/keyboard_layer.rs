@@ -24,20 +24,6 @@ pub struct KeyboardLayerInner {
     selected: Cell<Option<usize>>,
 }
 
-static PROPERTIES: [subclass::Property; 1] = [
-    subclass::Property("selected", |name|
-        glib::ParamSpec::int(
-            name,
-            "selected",
-            "selected",
-            -1,
-            i32::MAX,
-            -1,
-            glib::ParamFlags::READWRITE,
-        )
-    ),
-];
-
 impl ObjectSubclass for KeyboardLayerInner {
     const NAME: &'static str = "S76KeyboardLayer";
 
@@ -46,12 +32,9 @@ impl ObjectSubclass for KeyboardLayerInner {
 
     type Instance = subclass::simple::InstanceStruct<Self>;
     type Class = subclass::simple::ClassStruct<Self>;
+    type Interfaces = ();
 
     glib::object_subclass!();
-
-    fn class_init(klass: &mut Self::Class) {
-        klass.install_properties(&PROPERTIES);
-    }
 
     fn new() -> Self {
         Self {
@@ -69,11 +52,28 @@ impl ObjectImpl for KeyboardLayerInner {
         widget.add_events(gdk::EventMask::BUTTON_PRESS_MASK);
     }
 
-    fn set_property(&self, widget: &KeyboardLayer, id: usize, value: &glib::Value) {
-        let prop = &PROPERTIES[id];
+    fn properties() -> &'static [glib::ParamSpec] {
+        use once_cell::sync::Lazy;
+        static PROPERTIES: Lazy<Vec<glib::ParamSpec>> = Lazy::new(|| {
+            vec![
+                glib::ParamSpec::int(
+                    "selected",
+                    "selected",
+                    "selected",
+                    -1,
+                    i32::MAX,
+                    -1,
+                    glib::ParamFlags::READWRITE,
+                )
+            ]
+        });
 
-        match *prop {
-            subclass::Property("selected", ..) => {
+        PROPERTIES.as_ref()
+    }
+
+    fn set_property(&self, widget: &KeyboardLayer, _id: usize, value: &glib::Value, pspec: &glib::ParamSpec) {
+        match pspec.get_name() {
+            "selected" => {
                 let v: i32 = value.get_some().unwrap();
                 let selected = usize::try_from(v).ok();
                 widget.set_selected(selected);
@@ -82,11 +82,9 @@ impl ObjectImpl for KeyboardLayerInner {
         }
     }
 
-    fn get_property(&self, widget: &KeyboardLayer, id: usize) -> glib::Value {
-        let prop = &PROPERTIES[id];
-
-        match *prop {
-            subclass::Property("selected", ..) => {
+    fn get_property(&self, widget: &KeyboardLayer, _id: usize, pspec: &glib::ParamSpec) -> glib::Value {
+        match pspec.get_name() {
+            "selected" => {
                 widget.selected().map(|v| v as i32).unwrap_or(-1).to_value()
             }
             _ => unimplemented!(),

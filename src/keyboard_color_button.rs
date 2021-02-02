@@ -32,23 +32,12 @@ pub struct KeyboardColorButtonInner {
     rgb: Cell<Rgb>,
 }
 
-static PROPERTIES: [subclass::Property; 1] = [
-    subclass::Property("rgb", |name|
-        glib::ParamSpec::boxed(
-            name,
-            "rgb",
-            "rgb",
-            Rgb::get_type(),
-            glib::ParamFlags::READWRITE,
-        )
-    ),
-];
-
 impl ObjectSubclass for KeyboardColorButtonInner {
     const NAME: &'static str = "S76KeyboardColorButton";
 
     type ParentType = gtk::Bin;
     type Type = KeyboardColorButton;
+    type Interfaces = ();
 
     type Instance = subclass::simple::InstanceStruct<Self>;
     type Class = subclass::simple::ClassStruct<Self>;
@@ -59,7 +48,6 @@ impl ObjectSubclass for KeyboardColorButtonInner {
         ColorCircle::static_type();
         klass.set_template(include_bytes!("keyboard_color_button.ui"));
         Self::bind_template_children(klass);
-        klass.install_properties(&PROPERTIES);
     }
 
     fn new() -> Self {
@@ -88,11 +76,26 @@ impl ObjectImpl for KeyboardColorButtonInner {
             .connect_clicked(clone!(@weak obj => move |_| obj.edit_clicked()));
     }
 
-    fn set_property(&self, widget: &KeyboardColorButton, id: usize, value: &glib::Value) {
-        let prop = &PROPERTIES[id];
+    fn properties() -> &'static [glib::ParamSpec] {
+        use once_cell::sync::Lazy;
+        static PROPERTIES: Lazy<Vec<glib::ParamSpec>> = Lazy::new(|| {
+            vec![
+                glib::ParamSpec::boxed(
+                    "rgb",
+                    "rgb",
+                    "rgb",
+                    Rgb::get_type(),
+                    glib::ParamFlags::READWRITE,
+                )
+            ]
+        });
 
-        match *prop {
-            subclass::Property("rgb", ..) => {
+        PROPERTIES.as_ref()
+    }
+
+    fn set_property(&self, widget: &KeyboardColorButton, _id: usize, value: &glib::Value, pspec: &glib::ParamSpec) {
+        match pspec.get_name() {
+            "rgb" => {
                 let rgb: &Rgb = value.get_some().unwrap();
                 widget.set_rgb(rgb.clone());
                 widget.notify("rgb");
@@ -101,11 +104,9 @@ impl ObjectImpl for KeyboardColorButtonInner {
         }
     }
 
-    fn get_property(&self, _widget: &KeyboardColorButton, id: usize) -> glib::Value {
-        let prop = &PROPERTIES[id];
-
-        match *prop {
-            subclass::Property("rgb", ..) => {
+    fn get_property(&self, _widget: &KeyboardColorButton, _id: usize, pspec: &glib::ParamSpec) -> glib::Value {
+        match pspec.get_name() {
+            "rgb" => {
                 self.rgb.get().to_value()
             }
             _ => unimplemented!(),

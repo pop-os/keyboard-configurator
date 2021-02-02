@@ -30,6 +30,7 @@ impl ObjectSubclass for ConfiguratorAppInner {
 
     type ParentType = gtk::Application;
     type Type = ConfiguratorApp;
+    type Interfaces = ();
 
     type Instance = subclass::simple::InstanceStruct<Self>;
     type Class = subclass::simple::ClassStruct<Self>;

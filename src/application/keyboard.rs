@@ -51,25 +51,12 @@ pub struct KeyboardInner {
     stack: TemplateChild<gtk::Stack>,
 }
 
-static PROPERTIES: [subclass::Property; 1] = [
-    subclass::Property("selected", |name|
-        glib::ParamSpec::int(
-            name,
-            "selected",
-            "selected",
-            -1,
-            i32::MAX,
-            -1,
-            glib::ParamFlags::READWRITE,
-        )
-    ),
-];
-
 impl ObjectSubclass for KeyboardInner {
     const NAME: &'static str = "S76Keyboard";
 
     type ParentType = gtk::Box;
     type Type = Keyboard;
+    type Interfaces = ();
 
     type Instance = subclass::simple::InstanceStruct<Self>;
     type Class = subclass::simple::ClassStruct<Self>;
@@ -77,8 +64,6 @@ impl ObjectSubclass for KeyboardInner {
     glib::object_subclass!();
 
     fn class_init(klass: &mut Self::Class) {
-        klass.install_properties(&PROPERTIES);
-
         klass.set_template(include_bytes!("keyboard.ui"));
         Self::bind_template_children(klass);
     }
@@ -140,11 +125,28 @@ impl ObjectImpl for KeyboardInner {
         );
     }
 
-    fn set_property(&self, keyboard: &Keyboard, id: usize, value: &glib::Value) {
-        let prop = &PROPERTIES[id];
+    fn properties() -> &'static [glib::ParamSpec] {
+        use once_cell::sync::Lazy;
+        static PROPERTIES: Lazy<Vec<glib::ParamSpec>> = Lazy::new(|| {
+            vec![
+                glib::ParamSpec::int(
+                    "selected",
+                    "selected",
+                    "selected",
+                    -1,
+                    i32::MAX,
+                    -1,
+                    glib::ParamFlags::READWRITE,
+                )
+            ]
+        });
 
-        match *prop {
-            subclass::Property("selected", ..) => {
+        PROPERTIES.as_ref()
+    }
+
+    fn set_property(&self, keyboard: &Keyboard, _id: usize, value: &glib::Value, pspec: &glib::ParamSpec) {
+        match pspec.get_name() {
+            "selected" => {
                 let v: i32 = value.get_some().unwrap();
                 let selected = usize::try_from(v).ok();
                 keyboard.set_selected(selected);
@@ -153,11 +155,9 @@ impl ObjectImpl for KeyboardInner {
         }
     }
 
-    fn get_property(&self, keyboard: &Keyboard, id: usize) -> glib::Value {
-        let prop = &PROPERTIES[id];
-
-        match *prop {
-            subclass::Property("selected", ..) => {
+    fn get_property(&self, keyboard: &Keyboard, _id: usize, pspec: &glib::ParamSpec) -> glib::Value {
+        match pspec.get_name() {
+            "selected" => {
                 keyboard.selected().map(|v| v as i32).unwrap_or(-1).to_value()
             }
             _ => unimplemented!(),

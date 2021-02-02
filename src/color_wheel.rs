@@ -20,6 +20,7 @@ impl ObjectSubclass for ColorWheelInner {
 
     type ParentType = gtk::DrawingArea;
     type Type = ColorWheel;
+    type Interfaces = ();
 
     type Instance = subclass::simple::InstanceStruct<Self>;
     type Class = subclass::simple::ClassStruct<Self>;

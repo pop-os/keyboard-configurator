@@ -1,4 +1,3 @@
-use glib::subclass::prelude::BoxedType;
 use palette::{Component, IntoColor, RgbHue};
 use serde::{Serialize, Deserialize};
 

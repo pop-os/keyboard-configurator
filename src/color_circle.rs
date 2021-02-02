@@ -25,32 +25,17 @@ pub struct ColorCircleInner {
     symbol: Cell<&'static str>,
 }
 
-static PROPERTIES: [subclass::Property; 1] = [
-    subclass::Property("rgb", |name|
-        glib::ParamSpec::boxed(
-            name,
-            "rgb",
-            "rgb",
-            Rgb::get_type(),
-            glib::ParamFlags::READWRITE,
-        )
-    ),
-];
-
 impl ObjectSubclass for ColorCircleInner {
     const NAME: &'static str = "S76ColorCircle";
 
     type ParentType = gtk::Button;
     type Type = ColorCircle;
+    type Interfaces = ();
 
     type Instance = subclass::simple::InstanceStruct<Self>;
     type Class = subclass::simple::ClassStruct<Self>;
 
     glib::object_subclass!();
-
-    fn class_init(klass: &mut Self::Class) {
-        klass.install_properties(&PROPERTIES);
-    }
 
     fn new() -> Self {
         Self {
@@ -83,11 +68,26 @@ impl ObjectImpl for ColorCircleInner {
         obj.add(&self.drawing_area);
     }
 
-    fn set_property(&self, widget: &ColorCircle, id: usize, value: &glib::Value) {
-        let prop = &PROPERTIES[id];
+    fn properties() -> &'static [glib::ParamSpec] {
+        use once_cell::sync::Lazy;
+        static PROPERTIES: Lazy<Vec<glib::ParamSpec>> = Lazy::new(|| {
+            vec![
+                glib::ParamSpec::boxed(
+                    "rgb",
+                    "rgb",
+                    "rgb",
+                    Rgb::get_type(),
+                    glib::ParamFlags::READWRITE,
+                )
+            ]
+        });
 
-        match *prop {
-            subclass::Property("rgb", ..) => {
+        PROPERTIES.as_ref()
+    }
+
+    fn set_property(&self, widget: &ColorCircle, _id: usize, value: &glib::Value, pspec: &glib::ParamSpec) {
+        match pspec.get_name() {
+            "rgb" => {
                 let rgb: &Rgb = value.get_some().unwrap();
                 widget.set_rgb(rgb.clone());
             }
@@ -95,11 +95,9 @@ impl ObjectImpl for ColorCircleInner {
         }
     }
 
-    fn get_property(&self, widget: &ColorCircle, id: usize) -> glib::Value {
-        let prop = &PROPERTIES[id];
-
-        match *prop {
-            subclass::Property("rgb", ..) => {
+    fn get_property(&self, widget: &ColorCircle, _id: usize, pspec: &glib::ParamSpec) -> glib::Value {
+        match pspec.get_name() {
+            "rgb" => {
                 widget.rgb().to_value()
             }
             _ => unimplemented!(),

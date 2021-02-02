@@ -31,6 +31,7 @@ impl ObjectSubclass for MainWindowInner {
 
     type ParentType = gtk::ApplicationWindow;
     type Type = MainWindow;
+    type Interfaces = ();
 
     type Instance = subclass::simple::InstanceStruct<Self>;
     type Class = subclass::simple::ClassStruct<Self>;

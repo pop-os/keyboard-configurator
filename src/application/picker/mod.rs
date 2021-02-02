@@ -63,6 +63,7 @@ impl ObjectSubclass for PickerInner {
 
     type ParentType = gtk::Box;
     type Type = Picker;
+    type Interfaces = ();
 
     type Instance = subclass::simple::InstanceStruct<Self>;
     type Class = subclass::simple::ClassStruct<Self>;
