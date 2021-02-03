@@ -12,11 +12,11 @@ use std::{
     rc::Rc,
 };
 
-mod picker_csv;
 mod picker_group;
+mod picker_json;
 mod picker_key;
 
-use picker_csv::{picker_csv, PickerCsv};
+use picker_json::picker_json;
 use picker_group::PickerGroup;
 use picker_key::PickerKey;
 
@@ -35,17 +35,9 @@ button {
 
 pub static SCANCODE_LABELS: Lazy<HashMap<String, String>> = Lazy::new(|| {
     let mut labels = HashMap::new();
-    for record in picker_csv() {
-        match record {
-            PickerCsv::Group { .. } => {}
-            PickerCsv::Key { name, top, bottom } => {
-                let text = if bottom.is_empty() {
-                    top
-                } else {
-                    format!("{}\n{}", top, bottom)
-                };
-                labels.insert(name, text);
-            }
+    for group in picker_json() {
+        for key in group.keys {
+            labels.insert(key.keysym, key.label);
         }
     }
     labels
@@ -79,32 +71,22 @@ impl ObjectSubclass for PickerInner {
         let mut groups = Vec::new();
         let mut keys = HashMap::new();
 
-        for record in picker_csv() {
-            match record {
-                PickerCsv::Group { name, cols, width } => {
-                    groups.push(PickerGroup::new(name, cols, width));
-                }
-                PickerCsv::Key { name, top, bottom } => {
-                    let text = if bottom.is_empty() {
-                        top
-                    } else {
-                        format!("{}\n{}", top, bottom)
-                    };
+        for json_group in picker_json() {
+            let mut group = PickerGroup::new(json_group.label, json_group.cols);
 
-                    let key = PickerKey::new(
-                        name.clone(),
-                        text,
-                        groups.last().map(|g| g.width).unwrap_or(1),
-                        &style_provider,
-                    );
+            for json_key in json_group.keys {
+                let key = PickerKey::new(
+                    json_key.keysym.clone(),
+                    json_key.label,
+                    json_group.width,
+                    &style_provider,
+                );
 
-                    if let Some(group) = groups.last_mut() {
-                        group.add_key(key.clone());
-                    }
-
-                    keys.insert(name, key);
-                }
+                group.add_key(key.clone());
+                keys.insert(json_key.keysym, key);
             }
+
+            groups.push(group);
         }
 
         Self {

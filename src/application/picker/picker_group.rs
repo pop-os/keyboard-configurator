@@ -7,8 +7,6 @@ use super::picker_key::PickerKey;
 pub(super) struct PickerGroup {
     /// Number of keys to show in each row
     pub(super) cols: i32,
-    /// Width of each key in this group
-    pub(super) width: i32,
     /// Name of keys in this group
     keys: Vec<Rc<PickerKey>>,
     pub(super) vbox: gtk::Box,
@@ -17,7 +15,7 @@ pub(super) struct PickerGroup {
 }
 
 impl PickerGroup {
-    pub(super) fn new(name: String, cols: i32, width: i32) -> Self {
+    pub(super) fn new(name: String, cols: i32) -> Self {
         let label = cascade! {
             gtk::Label::new(Some(&name));
             ..set_halign(gtk::Align::Start);
@@ -31,7 +29,6 @@ impl PickerGroup {
 
         Self {
             cols,
-            width,
             keys: Vec::new(),
             vbox,
             hbox_opt: None,

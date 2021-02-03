@@ -14,7 +14,6 @@ members = [ "tools", "ffi" ]
 anyhow = "1"
 cascade = "0.1"
 cairo-rs = { git = "https://github.com/pop-os/gtk-rs" }
-csv = "1.1"
 derive_more = "0.99"
 gdk = { git = "https://github.com/pop-os/gtk-rs" }
 gio = { git = "https://github.com/pop-os/gtk-rs" }
