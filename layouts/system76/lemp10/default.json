@@ -1,73 +1,81 @@
 {
-  "board": "system76/launch_1",
+  "board": "system76/lemp10",
   "map": {
     "K00": [
       "ESC",
-      "RESET"
+      "ESC"
     ],
     "K01": [
       "F1",
-      "F1"
+      "TOUCHPAD"
     ],
     "K02": [
       "F2",
-      "F2"
+      "DISPLAY_TOGGLE"
     ],
     "K03": [
       "F3",
-      "F3"
+      "MUTE"
     ],
     "K04": [
       "F4",
-      "F4"
+      "KBD_BKL"
     ],
     "K05": [
       "F5",
-      "F5"
+      "VOLUME_DOWN"
     ],
     "K06": [
       "F6",
-      "F6"
+      "VOLUME_UP"
     ],
     "K07": [
       "F7",
-      "F7"
+      "DISPLAY_MODE"
     ],
     "K08": [
       "F8",
-      "F8"
+      "BRIGHTNESS_DOWN"
     ],
     "K09": [
       "F9",
-      "F9"
+      "BRIGHTNESS_UP"
     ],
     "K0A": [
       "F10",
-      "F10"
+      "CAMERA_TOGGLE"
     ],
     "K0B": [
       "F11",
-      "F11"
+      "AIRPLANE_MODE"
     ],
     "K0C": [
       "F12",
-      "F12"
+      "SUSPEND"
     ],
     "K0D": [
-      "DEL",
-      "DEL"
-    ],
-    "K0E": [
       "HOME",
       "HOME"
     ],
+    "K0E": [
+      "END",
+      "END"
+    ],
+    "K0F": [
+      "PRINT_SCREEN",
+      "PRINT_SCREEN"
+    ],
+    "K0G": [
+      "DEL",
+      "DEL"
+    ],
     "K10": [
-      "GRV",
-      "GRV"
+      "TICK",
+      "PLAY_PAUSE"
     ],
     "K11": [
       "1",
-      "1"
+      "FAN_TOGGLE"
     ],
     "K12": [
       "2",
@@ -106,20 +114,16 @@
       "0"
     ],
     "K1B": [
-      "MINS",
-      "MINS"
+      "MINUS",
+      "MINUS"
     ],
     "K1C": [
-      "EQL",
-      "EQL"
+      "EQUALS",
+      "EQUALS"
     ],
     "K1D": [
-      "BSPC",
-      "BSPC"
-    ],
-    "K1E": [
-      "PGUP",
-      "PGUP"
+      "BKSP",
+      "BKSP"
     ],
     "K20": [
       "TAB",
@@ -166,20 +170,16 @@
       "P"
     ],
     "K2B": [
-      "LBRC",
-      "LBRC"
+      "BRACE_OPEN",
+      "BRACE_OPEN"
     ],
     "K2C": [
-      "RBRC",
-      "RBRC"
+      "BRACE_CLOSE",
+      "BRACE_CLOSE"
     ],
     "K2D": [
-      "BSLS",
-      "BSLS"
-    ],
-    "K2E": [
-      "PGDN",
-      "PGDN"
+      "BACKSLASH",
+      "BACKSLASH"
     ],
     "K30": [
       "CAPS",
@@ -222,24 +222,20 @@
       "L"
     ],
     "K3A": [
-      "SCLN",
-      "SCLN"
+      "SEMICOLON",
+      "SEMICOLON"
     ],
     "K3B": [
-      "QUOT",
-      "QUOT"
+      "QUOTE",
+      "QUOTE"
     ],
     "K3C": [
-      "ENT",
-      "ENT"
-    ],
-    "K3D": [
-      "END",
-      "END"
+      "ENTER",
+      "ENTER"
     ],
     "K40": [
-      "LSFT",
-      "LSFT"
+      "LEFT_SHIFT",
+      "LEFT_SHIFT"
     ],
     "K41": [
       "Z",
@@ -270,72 +266,72 @@
       "M"
     ],
     "K48": [
-      "COMM",
-      "COMM"
+      "COMMA",
+      "COMMA"
     ],
     "K49": [
       "PERIOD",
       "PERIOD"
     ],
     "K4A": [
-      "SLSH",
-      "SLSH"
+      "SLASH",
+      "SLASH"
     ],
     "K4B": [
-      "RSFT",
-      "RSFT"
-    ],
-    "K4C": [
-      "UP",
-      "PGUP"
+      "RIGHT_SHIFT",
+      "RIGHT_SHIFT"
     ],
     "K50": [
-      "LCTL",
-      "LCTL"
+      "LEFT_CTRL",
+      "LEFT_CTRL"
     ],
     "K51": [
-      "LEFT_ALT",
-      "LEFT_ALT"
-    ],
-    "K52": [
       "FN",
       "FN"
     ],
-    "K53": [
+    "K52": [
       "LEFT_SUPER",
       "LEFT_SUPER"
     ],
+    "K53": [
+      "LEFT_ALT",
+      "LEFT_ALT"
+    ],
     "K54": [
-      "SPC",
-      "SPC"
+      "SPACE",
+      "SPACE"
     ],
     "K55": [
-      "SPC",
-      "SPC"
-    ],
-    "K56": [
-      "RCTL",
-      "RCTL"
-    ],
-    "K57": [
       "RIGHT_ALT",
       "RIGHT_ALT"
     ],
+    "K56": [
+      "RIGHT_CTRL",
+      "APP"
+    ],
+    "K57": [
+      "PGUP",
+      "PGUP"
+    ],
     "K58": [
-      "FN",
-      "FN"
+      "UP",
+      "UP"
     ],
     "K59": [
-      "LEFT",
-      "HOME"
-    ],
-    "K5A": [
-      "DOWN",
+      "PGDN",
       "PGDN"
     ],
-    "K5B": [
+    "K60": [
+      "LEFT",
+      "LEFT"
+    ],
+    "K61": [
+      "DOWN",
+      "DOWN"
+    ],
+    "K62": [
       "RIGHT",
-      "END"
+      "RIGHT"
     ]
   }
 }

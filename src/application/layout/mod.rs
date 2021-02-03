@@ -11,12 +11,12 @@ use super::key::Key;
 use super::rect::Rect;
 use physical_layout::{PhysicalKeyEnum, PhysicalLayoutEntry};
 
-pub(super) struct Layout<'a> {
+pub(super) struct Layout {
     pub default: KeyMap,
     pub keymap: HashMap<String, u16>,
-    pub scancode_names: HashMap<u16, &'a str>,
+    pub scancode_names: HashMap<u16, String>,
     physical: PhysicalLayout,
-    layout: HashMap<&'a str, (u8, u8)>,
+    layout: HashMap<String, (u8, u8)>,
 }
 
 macro_rules! keyboards {
@@ -27,13 +27,13 @@ macro_rules! keyboards {
                 $board => {
                     let default_json =
                         include_str!(concat!("../../../layouts/", $board, "/default.json"));
-                    let keymap_csv =
-                        include_str!(concat!("../../../layouts/", $board, "/keymap.csv"));
-                    let layout_csv =
-                        include_str!(concat!("../../../layouts/", $board, "/layout.csv"));
+                    let keymap_json =
+                        include_str!(concat!("../../../layouts/", $board, "/keymap.json"));
+                    let layout_json =
+                        include_str!(concat!("../../../layouts/", $board, "/layout.json"));
                     let physical_json =
                         include_str!(concat!("../../../layouts/", $board, "/physical.json"));
-                    Some((default_json, keymap_csv, layout_csv, physical_json))
+                    Some((default_json, keymap_json, layout_json, physical_json))
                 }
                 )*
                 _ => None
@@ -61,11 +61,11 @@ keyboards![
     "system76/oryp6",
 ];
 
-impl<'a> Layout<'a> {
-    pub fn from_data(default_json: &'a str, keymap_csv: &'a str, layout_csv: &'a str, physical_json: &'a str) -> Self {
+impl Layout {
+    pub fn from_data(default_json: &str, keymap_json: &str, layout_json: &str, physical_json: &str) -> Self {
         let default = KeyMap::from_str(default_json).unwrap();
-        let (keymap, scancode_names) = parse_keymap_csv(keymap_csv);
-        let layout = parse_layout_csv(layout_csv);
+        let (keymap, scancode_names) = parse_keymap_json(keymap_json);
+        let layout = parse_layout_json(layout_json);
         let physical = parse_physical_json(&physical_json);
         Self {
             default,
@@ -76,9 +76,9 @@ impl<'a> Layout<'a> {
         }
     }
 
-    pub fn from_board(board: &'a str) -> Option<Self> {
-        layout_data(board).map(|(default_json, keymap_csv, layout_csv, physical_json)| {
-            Self::from_data(default_json, keymap_csv, layout_csv, physical_json)
+    pub fn from_board(board: &str) -> Option<Self> {
+        layout_data(board).map(|(default_json, keymap_json, layout_json, physical_json)| {
+            Self::from_data(default_json, keymap_json, layout_json, physical_json)
         })
     }
 
@@ -171,35 +171,19 @@ impl<'a> Layout<'a> {
     }
 }
 
-fn parse_keymap_csv(keymap_csv: &str) -> (HashMap<String, u16>, HashMap<u16, &str>) {
+fn parse_keymap_json(keymap_json: &str) -> (HashMap<String, u16>, HashMap<u16, String>) {
     let mut keymap = HashMap::new();
     let mut scancode_names = HashMap::new();
-    for line in keymap_csv.lines() {
-        let mut parts = line.split(',');
-        let scancode_name = parts.next().expect("Failed to read scancode name");
-        let scancode_str = parts.next().expect("Failed to read scancode");
-        let scancode_trim = scancode_str.trim_start_matches("0x");
-        let scancode = u16::from_str_radix(scancode_trim, 16).expect("Failed to parse scancode");
-        keymap.insert(scancode_name.to_string(), scancode);
+    let l: Vec<(String, u16)> = serde_json::from_str(keymap_json).unwrap();
+    for (scancode_name, scancode) in l {
+        keymap.insert(scancode_name.clone(), scancode);
         scancode_names.insert(scancode, scancode_name);
     }
     (keymap, scancode_names)
 }
 
-fn parse_layout_csv(layout_csv: &str) -> HashMap<&str, (u8, u8)> {
-    let mut layout = HashMap::new();
-    for line in layout_csv.lines() {
-        let mut parts = line.split(',');
-        let logical_name = parts.next().expect("Failed to read logical name");
-        let output_str = parts.next().expect("Failed to read electrical output");
-        let output = output_str
-            .parse()
-            .expect("Failed to parse electrical output");
-        let input_str = parts.next().expect("Failed to read electrical input");
-        let input = input_str.parse().expect("Failed to parse electrical input");
-        layout.insert(logical_name, (output, input));
-    }
-    layout
+fn parse_layout_json(layout_json: &str) -> HashMap<String, (u8, u8)> {
+    serde_json::from_str(layout_json).unwrap()
 }
 
 fn parse_physical_json(physical_json: &str) -> PhysicalLayout {

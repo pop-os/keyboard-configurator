@@ -162,22 +162,24 @@ def parse_keymap(keymap_c: str, physical: List[str], is_qmk: bool) -> Dict[str, 
     return keymap
 
 
-def gen_layout_csv(path: str, physical: List[str], physical2: List[List[str]]) -> None:
-    "Generate layout.csv file"
+def gen_layout_json(path: str, physical: List[str], physical2: List[List[str]]) -> None:
+    "Generate layout.json file"
+
+    layout = {}
+    for p in physical:
+        x, y = next((x, y) for x, i in enumerate(physical2)
+                    for y, j in enumerate(i) if j == p)
+        layout[p] = (x, y)
 
     with open(path, 'w') as f:
-        for p in physical:
-            x, y = next((x, y) for x, i in enumerate(physical2)
-                        for y, j in enumerate(i) if j == p)
-            f.write(f'{p},{x},{y}\n')
+        json.dump(layout, f, indent=2)
 
 
-def gen_keymap_csv(path: str, scancodes: List[Tuple[str, int]]) -> None:
-    "Generate keymap.csv file"
+def gen_keymap_json(path: str, scancodes: List[Tuple[str, int]]) -> None:
+    "Generate keymap.json file"
 
     with open(path, 'w') as f:
-        for name, code in scancodes:
-            f.write(f"{name},0x{code:04X}\n")
+       json.dump(scancodes, f, indent=2)
 
 
 def gen_default_json(path: str, board: str, keymap: Dict[str, List[str]]) -> None:
@@ -211,8 +213,8 @@ def generate_layout_dir(ecdir: str, board: str, is_qmk: bool) -> None:
     physical, physical2 = parse_layout_define(keymap_h, is_qmk)
     scancodes = extract_scancodes(includedir, common_keymap_h, is_qmk)
     default_keymap = parse_keymap(default_c, physical, is_qmk)
-    gen_layout_csv(f'{layoutdir}/layout.csv', physical, physical2)
-    gen_keymap_csv(f'{layoutdir}/keymap.csv', scancodes)
+    gen_layout_json(f'{layoutdir}/layout.json', physical, physical2)
+    gen_keymap_json(f'{layoutdir}/keymap.json', scancodes)
     gen_default_json(f'{layoutdir}/default.json', board, default_keymap)
 
 

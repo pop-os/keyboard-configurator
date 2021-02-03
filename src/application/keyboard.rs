@@ -180,14 +180,14 @@ impl Keyboard {
         let dir = dir.as_ref();
 
         let default_json = fs::read_to_string(dir.join("default_json"))
-            .expect("Failed to load keymap.csv");
-        let keymap_csv = fs::read_to_string(dir.join("keymap.csv"))
-            .expect("Failed to load keymap.csv");
-        let layout_csv = fs::read_to_string(dir.join("layout.csv"))
-            .expect("Failed to load layout.csv");
+            .expect("Failed to load keymap.json");
+        let keymap_json = fs::read_to_string(dir.join("keymap.json"))
+            .expect("Failed to load keymap.json");
+        let layout_json = fs::read_to_string(dir.join("layout.json"))
+            .expect("Failed to load layout.json");
         let physical_json = fs::read_to_string(dir.join("physical.json"))
             .expect("Failed to load physical.json");
-        Self::new_data(board, &default_json, &keymap_csv, &layout_csv, &physical_json, daemon, daemon_board)
+        Self::new_data(board, &default_json, &keymap_json, &layout_json, &physical_json, daemon, daemon_board)
     }
 
     fn new_layout(board: &str, layout: Layout, daemon: Rc<dyn Daemon>, daemon_board: usize) -> Self {
@@ -217,7 +217,6 @@ impl Keyboard {
         }
 
         let _ = keyboard.inner().keys.set(keys.into_boxed_slice().into());
-
         let _ = keyboard.inner().board.set(board.to_string());
         let _ = keyboard.inner().daemon.set(daemon);
         let _ = keyboard.inner().daemon_board.set(daemon_board);
@@ -257,8 +256,8 @@ impl Keyboard {
     }
 
     #[allow(dead_code)]
-    fn new_data(board: &str, default_json: &str, keymap_csv: &str, layout_csv: &str, physical_json: &str, daemon: Rc<dyn Daemon>, daemon_board: usize) -> Self {
-        let layout = Layout::from_data(default_json, keymap_csv, layout_csv, physical_json);
+    fn new_data(board: &str, default_json: &str, keymap_json: &str, layout_json: &str, physical_json: &str, daemon: Rc<dyn Daemon>, daemon_board: usize) -> Self {
+        let layout = Layout::from_data(default_json, keymap_json, layout_json, physical_json);
         Self::new_layout(board, layout, daemon, daemon_board)
     }
 
