@@ -4,12 +4,12 @@ use glib::subclass;
 use gtk::prelude::*;
 use gtk::subclass::prelude::*;
 use once_cell::unsync::OnceCell;
-use std::{cell::{Cell, RefCell}, iter, rc::Rc};
+use std::{cell::{Cell, RefCell}, iter};
 
 use crate::choose_color::choose_color;
 use crate::color::Rgb;
 use crate::color_circle::ColorCircle;
-use crate::daemon::Daemon;
+use crate::daemon::DaemonBoard;
 
 #[derive(Default, gtk::CompositeTemplate)]
 pub struct KeyboardColorButtonInner {
@@ -27,8 +27,7 @@ pub struct KeyboardColorButtonInner {
     edit_button: TemplateChild<gtk::Button>,
     #[template_child]
     popover: TemplateChild<gtk::Popover>,
-    daemon: OnceCell<Rc<dyn Daemon>>,
-    daemon_board: OnceCell<usize>,
+    board: OnceCell<DaemonBoard>,
     rgb: Cell<Rgb>,
 }
 
@@ -124,19 +123,17 @@ glib::wrapper! {
 }
 
 impl KeyboardColorButton {
-    pub fn new(daemon: Rc<dyn Daemon>, daemon_board: usize) -> Self {
+    pub fn new(board: DaemonBoard) -> Self {
         let keyboard_color_button: Self = glib::Object::new(&[]).unwrap();
 
-        let color = daemon.color(daemon_board);
-        keyboard_color_button.set_rgb(match color {
+        keyboard_color_button.set_rgb(match board.color() {
             Ok(ok) => ok,
             Err(err) => {
                 eprintln!("{}", err);
                 Rgb::new(0, 0, 0)
             }
         });
-        let _ = keyboard_color_button.inner().daemon.set(daemon);
-        let _ = keyboard_color_button.inner().daemon_board.set(daemon_board);
+        let _ = keyboard_color_button.inner().board.set(board);
 
         // TODO: Signal handler for color change?
 
@@ -190,8 +187,7 @@ impl KeyboardColorButton {
 
     fn add_clicked(&self) {
         if let Some(color) = choose_color(
-            self.daemon().clone(),
-            self.daemon_board(),
+            self.board().clone(),
             self,
             "Add Color",
             None,
@@ -201,7 +197,7 @@ impl KeyboardColorButton {
             self.populate_grid();
         } else {
             if let Some(circle) = &*self.inner().current_circle.borrow() {
-                if let Err(err) = self.daemon().set_color(self.daemon_board(), circle.rgb()) {
+                if let Err(err) = self.board().set_color(circle.rgb()) {
                     eprintln!("Failed to set keyboard color: {}", err);
                 }
             }
@@ -224,15 +220,14 @@ impl KeyboardColorButton {
     fn edit_clicked(&self) {
         if let Some(circle) = &*self.inner().current_circle.borrow() {
             if let Some(color) = choose_color(
-                self.daemon().clone(),
-                self.daemon_board(),
+                self.board().clone(),
                 self,
                 "Edit Color",
                 Some(circle.rgb()),
             ) {
                 circle.set_rgb(color);
             } else {
-                if let Err(err) = self.daemon().set_color(self.daemon_board(), circle.rgb()) {
+                if let Err(err) = self.board().set_color(circle.rgb()) {
                     eprintln!("Failed to set keyboard color: {}", err);
                 }
             }
@@ -241,7 +236,7 @@ impl KeyboardColorButton {
 
     fn circle_clicked(&self, circle: &ColorCircle) {
         let color = circle.rgb();
-        if let Err(err) = self.daemon().set_color(self.daemon_board(), color) {
+        if let Err(err) = self.board().set_color(color) {
             eprintln!("Failed to set keyboard color: {}", err);
         }
         self.set_rgb(color);
@@ -254,12 +249,8 @@ impl KeyboardColorButton {
         *current = Some(circle.clone());
     }
 
-    fn daemon(&self) -> &Rc<dyn Daemon> {
-        self.inner().daemon.get().unwrap()
-    }
-
-    fn daemon_board(&self) -> usize {
-        *self.inner().daemon_board.get().unwrap()
+    fn board(&self) -> &DaemonBoard {
+        self.inner().board.get().unwrap()
     }
 
     fn set_rgb(&self, rgb: Rgb) {

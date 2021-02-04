@@ -20,7 +20,7 @@ use std::{
     str,
 };
 
-use crate::daemon::Daemon;
+use crate::daemon::DaemonBoard;
 use crate::keyboard_color_button::KeyboardColorButton;
 use crate::keymap::KeyMap;
 use super::error_dialog::error_dialog;
@@ -34,9 +34,8 @@ use super::picker::Picker;
 pub struct KeyboardInner {
     #[template_child]
     action_group: TemplateChild<gio::SimpleActionGroup>,
-    board: OnceCell<String>,
-    daemon: OnceCell<Rc<dyn Daemon>>,
-    daemon_board: OnceCell<usize>,
+    board: OnceCell<DaemonBoard>,
+    board_name: OnceCell<String>,
     default_layout: OnceCell<KeyMap>,
     keymap: OnceCell<HashMap<String, u16>>,
     keys: OnceCell<Rc<[Key]>>,
@@ -117,7 +116,7 @@ impl ObjectImpl for KeyboardInner {
         self.brightness_scale.connect_value_changed(
             clone!(@weak keyboard => move |this| {
                 let value = this.get_value() as i32;
-                if let Err(err) = keyboard.daemon().set_brightness(keyboard.daemon_board(), value) {
+                if let Err(err) = keyboard.board().set_brightness(value) {
                     eprintln!("{}", err);
                 }
                 println!("{}", value);
@@ -176,7 +175,7 @@ glib::wrapper! {
 
 impl Keyboard {
     #[allow(dead_code)]
-    pub fn new<P: AsRef<Path>>(dir: P, board: &str, daemon: Rc<dyn Daemon>, daemon_board: usize) -> Self {
+    pub fn new<P: AsRef<Path>>(dir: P, board_name: &str, board: DaemonBoard) -> Self {
         let dir = dir.as_ref();
 
         let default_json = fs::read_to_string(dir.join("default_json"))
@@ -187,17 +186,17 @@ impl Keyboard {
             .expect("Failed to load layout.json");
         let physical_json = fs::read_to_string(dir.join("physical.json"))
             .expect("Failed to load physical.json");
-        Self::new_data(board, &default_json, &keymap_json, &layout_json, &physical_json, daemon, daemon_board)
+        Self::new_data(board_name, &default_json, &keymap_json, &layout_json, &physical_json, board)
     }
 
-    fn new_layout(board: &str, layout: Layout, daemon: Rc<dyn Daemon>, daemon_board: usize) -> Self {
+    fn new_layout(board_name: &str, layout: Layout, board: DaemonBoard) -> Self {
         let keyboard: Self = glib::Object::new(&[]).unwrap();
 
         let mut keys = layout.keys();
         for key in keys.iter_mut() {
             for layer in 0..2 {
                 println!("  Layer {}", layer);
-                let scancode = match daemon.keymap_get(daemon_board, layer, key.electrical.0, key.electrical.1) {
+                let scancode = match board.keymap_get(layer, key.electrical.0, key.electrical.1) {
                     Ok(value) => value,
                     Err(err) => {
                         eprintln!("Failed to read scancode: {:?}", err);
@@ -217,16 +216,15 @@ impl Keyboard {
         }
 
         let _ = keyboard.inner().keys.set(keys.into_boxed_slice().into());
-        let _ = keyboard.inner().board.set(board.to_string());
-        let _ = keyboard.inner().daemon.set(daemon);
-        let _ = keyboard.inner().daemon_board.set(daemon_board);
+        let _ = keyboard.inner().board.set(board);
+        let _ = keyboard.inner().board_name.set(board_name.to_string());
         let _ = keyboard.inner().keymap.set(layout.keymap);
         let _ = keyboard.inner().default_layout.set(layout.default);
 
-        let color_button = KeyboardColorButton::new(keyboard.daemon().clone(), keyboard.daemon_board());
+        let color_button = KeyboardColorButton::new(keyboard.board().clone());
         keyboard.inner().color_button_bin.add(&color_button);
 
-        let max_brightness = match keyboard.daemon().max_brightness(keyboard.daemon_board()) {
+        let max_brightness = match keyboard.board().max_brightness() {
             Ok(value) => value as f64,
             Err(err) => {
                 eprintln!("{}", err);
@@ -235,7 +233,7 @@ impl Keyboard {
         };
         keyboard.inner().brightness_scale.set_range(0.0, max_brightness);
 
-        let brightness = match keyboard.daemon().brightness(keyboard.daemon_board()) {
+        let brightness = match keyboard.board().brightness() {
             Ok(value) => value as f64,
             Err(err) => {
                 eprintln!("{}", err);
@@ -249,16 +247,16 @@ impl Keyboard {
         keyboard
     }
 
-    pub fn new_board(board: &str, daemon: Rc<dyn Daemon>, daemon_board: usize) -> Option<Self> {
-        Layout::from_board(board).map(|layout|
-            Self::new_layout(board, layout, daemon, daemon_board)
+    pub fn new_board(board_name: &str, board: DaemonBoard) -> Option<Self> {
+        Layout::from_board(board_name).map(|layout|
+            Self::new_layout(board_name, layout, board)
         )
     }
 
     #[allow(dead_code)]
-    fn new_data(board: &str, default_json: &str, keymap_json: &str, layout_json: &str, physical_json: &str, daemon: Rc<dyn Daemon>, daemon_board: usize) -> Self {
+    fn new_data(board_name: &str, default_json: &str, keymap_json: &str, layout_json: &str, physical_json: &str, board: DaemonBoard) -> Self {
         let layout = Layout::from_data(default_json, keymap_json, layout_json, physical_json);
-        Self::new_layout(board, layout, daemon, daemon_board)
+        Self::new_layout(board_name, layout, board)
     }
 
     fn inner(&self) -> &KeyboardInner {
@@ -269,16 +267,12 @@ impl Keyboard {
         self.inner().action_group.upcast_ref()
     }
 
-    fn board(&self) -> &str {
+    fn board_name(&self) -> &str {
+        self.inner().board_name.get().unwrap()
+    }
+
+    fn board(&self) -> &DaemonBoard {
         self.inner().board.get().unwrap()
-    }
-
-    fn daemon(&self) -> &Rc<dyn Daemon> {
-        self.inner().daemon.get().unwrap()
-    }
-
-    fn daemon_board(&self) -> usize {
-        *self.inner().daemon_board.get().unwrap()
     }
 
     fn keymap(&self) -> &HashMap<String, u16> {
@@ -331,8 +325,7 @@ impl Keyboard {
             "  set {}, {}, {} to {:04X}",
             layer, k.electrical.0, k.electrical.1, k.scancodes.borrow()[layer].0
         );
-        if let Err(err) = self.daemon().keymap_set(
-            self.daemon_board(),
+        if let Err(err) = self.board().keymap_set(
             layer as u8,
             k.electrical.0,
             k.electrical.1,
@@ -352,7 +345,7 @@ impl Keyboard {
             map.insert(key.logical_name.clone(), scancodes);
         }
         KeyMap {
-            board: self.board().to_string(),
+            board: self.board_name().to_string(),
             map: map,
         }
     }
@@ -361,7 +354,7 @@ impl Keyboard {
         // TODO: don't block UI thread
         // TODO: Ideally don't want this function to be O(Keys^2)
 
-        if &keymap.board != self.board() {
+        if &keymap.board != self.board_name() {
             error_dialog(&self.window().unwrap(),
                          "Failed to import keymap",
                          format!("Keymap is for board '{}'", keymap.board));

@@ -5,7 +5,7 @@ use glib::clone;
 use gtk::prelude::*;
 use std::rc::Rc;
 
-use crate::daemon::{Daemon, DaemonS76Power};
+use crate::daemon::{Daemon, DaemonBoard, DaemonS76Power};
 use crate::keyboard_color_button::KeyboardColorButton;
 
 pub fn keyboard_backlight_widget() -> gtk::Widget {
@@ -38,22 +38,23 @@ fn add_boards(stack: &gtk::Stack) -> Result<(), String> {
     let boards = daemon.boards()?;
 
     for (i, title) in boards.iter().enumerate() {
-        stack.add_titled(&page(&daemon, i), &title, &title);
+        let board = DaemonBoard(daemon.clone(), i);
+        stack.add_titled(&page(board), &title, &title);
     }
 
     Ok(())
 }
 
-fn page(daemon: &Rc<DaemonS76Power>, daemon_board: usize) -> gtk::Widget {
-    let max_brightness = daemon.max_brightness(daemon_board).unwrap_or(100) as f64;
-    let brightness = daemon.brightness(daemon_board).unwrap_or(0) as f64;
+fn page(board: DaemonBoard) -> gtk::Widget {
+    let max_brightness = board.max_brightness().unwrap_or(100) as f64;
+    let brightness = board.brightness().unwrap_or(0) as f64;
     let brightness_scale = cascade! {
         gtk::Scale::with_range(gtk::Orientation::Horizontal, 0., max_brightness, 1.);
         ..set_hexpand(true);
         ..set_draw_value(false);
         ..set_value(brightness);
-        ..connect_change_value(clone!(@weak daemon => @default-panic, move |_scale, _, value| {
-            if let Err(err) = daemon.set_brightness(daemon_board, value as i32) {
+        ..connect_change_value(clone!(@strong board => move |_scale, _, value| {
+            if let Err(err) = board.set_brightness(value as i32) {
                 eprintln!("Failed to set keyboard brightness: {}", err);
             }
             Inhibit(false)
@@ -62,7 +63,7 @@ fn page(daemon: &Rc<DaemonS76Power>, daemon_board: usize) -> gtk::Widget {
 
     // TODO detect when brightness changed in daemon
 
-    let button = KeyboardColorButton::new(daemon.clone(), daemon_board);
+    let button = KeyboardColorButton::new(board);
 
     let listbox = cascade! {
         gtk::ListBox::new();

@@ -1,15 +1,13 @@
 use cascade::cascade;
 use glib::clone;
 use gtk::prelude::*;
-use std::rc::Rc;
 
 use crate::color::Rgb;
 use crate::color_wheel::ColorWheel;
-use crate::daemon::Daemon;
+use crate::daemon::DaemonBoard;
 
 pub fn choose_color<W: IsA<gtk::Widget>>(
-    daemon: Rc<dyn Daemon>,
-    daemon_board: usize,
+    board: DaemonBoard,
     w: &W,
     title: &'static str,
     color: Option<Rgb>,
@@ -36,7 +34,7 @@ pub fn choose_color<W: IsA<gtk::Widget>>(
     };
 
     color_wheel.connect_hs_changed(clone!(@weak preview => @default-panic, move |wheel| {
-        if let Err(err) = daemon.set_color(daemon_board, wheel.hs().to_rgb()) {
+        if let Err(err) = board.set_color(wheel.hs().to_rgb()) {
             eprintln!("Failed to set keyboard color: {}", err);
         }
         preview.queue_draw();

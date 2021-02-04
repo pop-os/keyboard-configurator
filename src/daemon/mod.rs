@@ -14,6 +14,9 @@ mod dummy;
 pub use self::s76power::DaemonS76Power;
 mod s76power;
 
+pub use self::board::DaemonBoard;
+mod board;
+
 pub trait DaemonClientTrait {
     fn send_command(&self, command: DaemonCommand) -> Result<DaemonResponse, String>;
 }

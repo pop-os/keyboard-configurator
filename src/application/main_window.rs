@@ -4,7 +4,7 @@ use gtk::subclass::prelude::*;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::rc::Rc;
 
-use crate::daemon::{Daemon, DaemonClient, DaemonDummy, DaemonServer};
+use crate::daemon::{Daemon, DaemonBoard, DaemonClient, DaemonDummy, DaemonServer};
 use super::keyboard::Keyboard;
 use super::picker::Picker;
 use super::shortcuts_window::shortcuts_window;
@@ -120,19 +120,20 @@ impl MainWindow {
         MainWindowInner::from_instance(self)
     }
 
-    fn add_keyboard(&self, daemon: Rc<dyn Daemon>, board: &str, i: usize) {
-        if let Some(keyboard) = Keyboard::new_board(board, daemon.clone(), i) {
+    fn add_keyboard(&self, daemon: Rc<dyn Daemon>, board_name: &str, i: usize) {
+        let board = DaemonBoard(daemon, i);
+        if let Some(keyboard) = Keyboard::new_board(board_name, board) {
             keyboard.show_all();
 
             // Generate unique ID for board, even with multiple of same model
             let mut num = 1;
-            let mut board_id = format!("{}1", board);
+            let mut board_id = format!("{}1", board_name);
             while self.inner().stack.get_child_by_name(&board_id).is_some() {
                 num += 1;
-                board_id = format!("{}{}", board, num);
+                board_id = format!("{}{}", board_name, num);
             }
 
-            self.inner().board_dropdown.append(Some(&board_id), &board);
+            self.inner().board_dropdown.append(Some(&board_id), &board_name);
             self.inner().stack.add_named(&keyboard, &board_id);
 
             if self.inner().count.fetch_add(1, Ordering::Relaxed) == 0 {
@@ -142,7 +143,7 @@ impl MainWindow {
                 self.insert_action_group("kbd", Some(keyboard.action_group()));
             }
         } else {
-            eprintln!("Failed to locate layout for '{}'", board);
+            eprintln!("Failed to locate layout for '{}'", board_name);
         }
     }
 }
