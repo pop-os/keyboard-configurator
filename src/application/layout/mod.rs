@@ -193,11 +193,26 @@ fn parse_physical_json(physical_json: &str) -> PhysicalLayout {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::collections::HashSet;
 
     #[test]
     fn layout_from_board() {
         for i in layouts() {
             Layout::from_board(i).unwrap();
         }
+    }
+
+    #[test]
+    fn default_keys_exist() {
+        let mut missing = HashSet::new();
+        for i in layouts() {
+            let layout = Layout::from_board(i).unwrap();
+            for j in layout.default.map.values().flatten() {
+                if layout.keymap.keys().find(|x| x == &j).is_none() {
+                    missing.insert(j.to_owned());
+                }
+            }
+        }
+        assert_eq!(missing, HashSet::new());
     }
 }

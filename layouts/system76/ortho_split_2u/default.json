@@ -66,8 +66,8 @@
       "INS"
     ],
     "LB1": [
-      "GRV",
-      "GRV"
+      "TICK",
+      "TICK"
     ],
     "LB2": [
       "1",
@@ -110,16 +110,16 @@
       "0"
     ],
     "RB5": [
-      "MINS",
-      "MINS"
+      "MINUS",
+      "MINUS"
     ],
     "RB6": [
-      "EQL",
-      "EQL"
+      "EQUALS",
+      "EQUALS"
     ],
     "RB7": [
-      "BSPC",
-      "BSPC"
+      "BKSP",
+      "BKSP"
     ],
     "RB9": [
       "HOME",
@@ -170,16 +170,16 @@
       "P"
     ],
     "RC6": [
-      "LBRC",
-      "LBRC"
+      "BRACE_OPEN",
+      "BRACE_OPEN"
     ],
     "RC7": [
-      "RBRC",
-      "RBRC"
+      "BRACE_CLOSE",
+      "BRACE_CLOSE"
     ],
     "RC8": [
-      "BSLS",
-      "BSLS"
+      "BACKSLASH",
+      "BACKSLASH"
     ],
     "RC9": [
       "PGUP",
@@ -226,24 +226,24 @@
       "L"
     ],
     "RD5": [
-      "SCLN",
-      "SCLN"
+      "SEMICOLON",
+      "SEMICOLON"
     ],
     "RD6": [
-      "QUOT",
-      "QUOT"
+      "QUOTE",
+      "QUOTE"
     ],
     "RD7": [
-      "ENT",
-      "ENT"
+      "ENTER",
+      "ENTER"
     ],
     "RD9": [
       "PGDN",
       "PGDN"
     ],
     "LE2": [
-      "LSFT",
-      "LSFT"
+      "LEFT_SHIFT",
+      "LEFT_SHIFT"
     ],
     "LE3": [
       "Z",
@@ -274,20 +274,20 @@
       "M"
     ],
     "RE3": [
-      "COMM",
-      "COMM"
+      "COMMA",
+      "COMMA"
     ],
     "RE4": [
       "PERIOD",
       "PERIOD"
     ],
     "RE5": [
-      "SLSH",
-      "SLSH"
+      "SLASH",
+      "SLASH"
     ],
     "RE6": [
-      "RSFT",
-      "RSFT"
+      "RIGHT_SHIFT",
+      "RIGHT_SHIFT"
     ],
     "RE8": [
       "UP",
@@ -298,8 +298,8 @@
       "END"
     ],
     "LF2": [
-      "LCTL",
-      "LCTL"
+      "LEFT_CTRL",
+      "LEFT_CTRL"
     ],
     "LF3": [
       "FN",
@@ -314,12 +314,12 @@
       "LEFT_SUPER"
     ],
     "LF7": [
-      "SPC",
-      "SPC"
+      "SPACE",
+      "SPACE"
     ],
     "RF1": [
-      "SPC",
-      "SPC"
+      "SPACE",
+      "SPACE"
     ],
     "RF3": [
       "RIGHT_ALT",
@@ -330,8 +330,8 @@
       "FN"
     ],
     "RF5": [
-      "RCTL",
-      "RCTL"
+      "RIGHT_CTRL",
+      "RIGHT_CTRL"
     ],
     "RF7": [
       "LEFT",

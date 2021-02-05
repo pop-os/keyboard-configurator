@@ -62,8 +62,8 @@
       "HOME"
     ],
     "K10": [
-      "GRV",
-      "GRV"
+      "TICK",
+      "TICK"
     ],
     "K11": [
       "1",
@@ -106,16 +106,16 @@
       "0"
     ],
     "K1B": [
-      "MINS",
-      "MINS"
+      "MINUS",
+      "MINUS"
     ],
     "K1C": [
-      "EQL",
-      "EQL"
+      "EQUALS",
+      "EQUALS"
     ],
     "K1D": [
-      "BSPC",
-      "BSPC"
+      "BKSP",
+      "BKSP"
     ],
     "K1E": [
       "PGUP",
@@ -166,16 +166,16 @@
       "P"
     ],
     "K2B": [
-      "LBRC",
-      "LBRC"
+      "BRACE_OPEN",
+      "BRACE_OPEN"
     ],
     "K2C": [
-      "RBRC",
-      "RBRC"
+      "BRACE_CLOSE",
+      "BRACE_CLOSE"
     ],
     "K2D": [
-      "BSLS",
-      "BSLS"
+      "BACKSLASH",
+      "BACKSLASH"
     ],
     "K2E": [
       "PGDN",
@@ -222,24 +222,24 @@
       "L"
     ],
     "K3A": [
-      "SCLN",
-      "SCLN"
+      "SEMICOLON",
+      "SEMICOLON"
     ],
     "K3B": [
-      "QUOT",
-      "QUOT"
+      "QUOTE",
+      "QUOTE"
     ],
     "K3C": [
-      "ENT",
-      "ENT"
+      "ENTER",
+      "ENTER"
     ],
     "K3D": [
       "END",
       "END"
     ],
     "K40": [
-      "LSFT",
-      "LSFT"
+      "LEFT_SHIFT",
+      "LEFT_SHIFT"
     ],
     "K41": [
       "Z",
@@ -270,28 +270,28 @@
       "M"
     ],
     "K48": [
-      "COMM",
-      "COMM"
+      "COMMA",
+      "COMMA"
     ],
     "K49": [
       "PERIOD",
       "PERIOD"
     ],
     "K4A": [
-      "SLSH",
-      "SLSH"
+      "SLASH",
+      "SLASH"
     ],
     "K4B": [
-      "RSFT",
-      "RSFT"
+      "RIGHT_SHIFT",
+      "RIGHT_SHIFT"
     ],
     "K4C": [
       "UP",
       "PGUP"
     ],
     "K50": [
-      "LCTL",
-      "LCTL"
+      "LEFT_CTRL",
+      "LEFT_CTRL"
     ],
     "K51": [
       "FN",
@@ -306,16 +306,16 @@
       "LEFT_ALT"
     ],
     "K54": [
-      "SPC",
-      "SPC"
+      "SPACE",
+      "SPACE"
     ],
     "K55": [
-      "SPC",
-      "SPC"
+      "SPACE",
+      "SPACE"
     ],
     "K56": [
-      "RCTL",
-      "RCTL"
+      "RIGHT_CTRL",
+      "RIGHT_CTRL"
     ],
     "K57": [
       "RIGHT_ALT",
