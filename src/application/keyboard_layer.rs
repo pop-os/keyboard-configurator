@@ -10,9 +10,8 @@ use std::{
 };
 use once_cell::unsync::OnceCell;
 
-use crate::color::Rgb;
-use super::key::Key;
-use super::page::Page;
+use crate::Rgb;
+use super::{Key, Page};
 
 const SCALE: f64 = 64.0;
 const MARGIN: f64 = 2.;

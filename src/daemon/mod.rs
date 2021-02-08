@@ -2,20 +2,19 @@ use serde::{Deserialize, Serialize};
 
 use crate::color::Rgb;
 
-pub use self::client::DaemonClient;
+mod board;
 mod client;
-
-pub use self::server::DaemonServer;
+mod dummy;
+mod s76power;
 mod server;
 
-pub use self::dummy::DaemonDummy;
-mod dummy;
-
-pub use self::s76power::DaemonS76Power;
-mod s76power;
-
-pub use self::board::DaemonBoard;
-mod board;
+pub use self::{
+    board::*,
+    client::*,
+    dummy::*,
+    s76power::*,
+    server::*,
+};
 
 pub trait DaemonClientTrait {
     fn send_command(&self, command: DaemonCommand) -> Result<DaemonResponse, String>;

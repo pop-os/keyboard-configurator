@@ -1,6 +1,6 @@
 use std::rc::Rc;
 
-use crate::color::Rgb;
+use crate::Rgb;
 use super::Daemon;
 
 #[derive(Clone, glib::GBoxed)]

@@ -4,10 +4,18 @@ use gtk::subclass::prelude::*;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::rc::Rc;
 
-use crate::daemon::{Daemon, DaemonBoard, DaemonClient, DaemonDummy, DaemonServer};
-use super::keyboard::Keyboard;
-use super::picker::Picker;
-use super::shortcuts_window::shortcuts_window;
+use crate::{
+    Daemon,
+    DaemonBoard,
+    DaemonClient,
+    DaemonDummy,
+    DaemonServer,
+};
+use super::{
+    Keyboard,
+    Picker,
+    shortcuts_window,
+};
 
 #[derive(Default, gtk::CompositeTemplate)]
 pub struct MainWindowInner {

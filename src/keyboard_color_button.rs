@@ -6,10 +6,12 @@ use gtk::subclass::prelude::*;
 use once_cell::unsync::OnceCell;
 use std::{cell::{Cell, RefCell}, iter};
 
-use crate::choose_color::choose_color;
-use crate::color::Rgb;
-use crate::color_circle::ColorCircle;
-use crate::daemon::DaemonBoard;
+use crate::{
+    choose_color,
+    ColorCircle,
+    DaemonBoard,
+    Rgb,
+};
 
 #[derive(Default, gtk::CompositeTemplate)]
 pub struct KeyboardColorButtonInner {

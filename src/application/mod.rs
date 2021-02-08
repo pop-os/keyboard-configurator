@@ -1,12 +1,8 @@
 use cascade::cascade;
-use gio::prelude::*;
 use glib::subclass;
-use glib::subclass::prelude::*;
 use gtk::prelude::*;
 use gtk::subclass::prelude::*;
 use once_cell::unsync::OnceCell;
-
-use main_window::MainWindow;
 
 mod about_dialog;
 mod error_dialog;
@@ -19,6 +15,19 @@ mod page;
 mod picker;
 mod rect;
 mod shortcuts_window;
+
+use self::{
+    error_dialog::*,
+    key::*,
+    keyboard::*,
+    keyboard_layer::*,
+    layout::*,
+    main_window::*,
+    page::*,
+    picker::*,
+    rect::*,
+    shortcuts_window::*,
+};
 
 pub struct ConfiguratorAppInner {
     phony_board_names: OnceCell<Vec<String>>,

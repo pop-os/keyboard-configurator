@@ -5,8 +5,12 @@ use glib::clone;
 use gtk::prelude::*;
 use std::rc::Rc;
 
-use crate::daemon::{Daemon, DaemonBoard, DaemonS76Power};
-use crate::keyboard_color_button::KeyboardColorButton;
+use crate::{
+    Daemon,
+    DaemonBoard,
+    DaemonS76Power,
+    KeyboardColorButton,
+};
 
 pub fn keyboard_backlight_widget() -> gtk::Widget {
     let stack = cascade! {

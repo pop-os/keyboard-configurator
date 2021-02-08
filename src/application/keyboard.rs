@@ -20,15 +20,19 @@ use std::{
     str,
 };
 
-use crate::daemon::DaemonBoard;
-use crate::keyboard_color_button::KeyboardColorButton;
-use crate::keymap::KeyMap;
-use super::error_dialog::error_dialog;
-use super::key::Key;
-use super::keyboard_layer::KeyboardLayer;
-use super::layout::Layout;
-use super::page::Page;
-use super::picker::Picker;
+use crate::{
+    DaemonBoard,
+    KeyboardColorButton,
+    KeyMap,
+};
+use super::{
+    error_dialog,
+    Key,
+    KeyboardLayer,
+    Layout,
+    Page,
+    Picker,
+};
 
 #[derive(Default, gtk::CompositeTemplate)]
 pub struct KeyboardInner {

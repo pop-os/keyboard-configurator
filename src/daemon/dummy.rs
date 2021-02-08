@@ -6,7 +6,7 @@ use std::{
     collections::HashMap,
 };
 
-use crate::color::Rgb;
+use crate::Rgb;
 use super::Daemon;
 
 #[derive(Default)]

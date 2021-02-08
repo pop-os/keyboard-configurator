@@ -5,10 +5,8 @@ use std::collections::HashMap;
 mod physical_layout;
 pub(super) use physical_layout::PhysicalLayout;
 
-use crate::color::Rgb;
-use crate::keymap::KeyMap;
-use super::key::Key;
-use super::rect::Rect;
+use crate::{KeyMap, Rgb};
+use super::{Key, Rect};
 use physical_layout::{PhysicalKeyEnum, PhysicalLayoutEntry};
 
 pub(super) struct Layout {

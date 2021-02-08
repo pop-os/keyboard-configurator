@@ -1,8 +1,6 @@
-use super::keyboard::Keyboard;
 use cascade::cascade;
 use glib::clone;
 use glib::subclass;
-use glib::subclass::prelude::*;
 use gtk::prelude::*;
 use gtk::subclass::prelude::*;
 use once_cell::sync::Lazy;
@@ -11,6 +9,8 @@ use std::{
     collections::HashMap,
     rc::Rc,
 };
+
+use super::Keyboard;
 
 mod picker_group;
 mod picker_json;

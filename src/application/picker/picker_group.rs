@@ -2,7 +2,7 @@ use cascade::cascade;
 use gtk::prelude::*;
 use std::rc::Rc;
 
-use super::picker_key::PickerKey;
+use super::PickerKey;
 
 pub(super) struct PickerGroup {
     /// Number of keys to show in each row

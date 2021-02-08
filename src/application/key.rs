@@ -1,9 +1,11 @@
 use std::cell::RefCell;
 
-use crate::color::Rgb;
-use super::page::Page;
-use super::picker::SCANCODE_LABELS;
-use super::rect::Rect;
+use crate::Rgb;
+use super::{
+    Page,
+    Rect,
+    SCANCODE_LABELS,
+};
 
 #[derive(Clone, Debug)]
 pub struct Key {
