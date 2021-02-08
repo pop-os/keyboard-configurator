@@ -18,10 +18,12 @@ const SCALE: f64 = 64.0;
 const MARGIN: f64 = 2.;
 const RADIUS: f64 = 4.;
 
+#[derive(Default)]
 pub struct KeyboardLayerInner {
     page: Cell<Page>,
     keys: OnceCell<Rc<[Key]>>,
     selected: Cell<Option<usize>>,
+    selectable: Cell<bool>,
 }
 
 impl ObjectSubclass for KeyboardLayerInner {
@@ -38,9 +40,8 @@ impl ObjectSubclass for KeyboardLayerInner {
 
     fn new() -> Self {
         Self {
-            page: Cell::new(Page::Layer1),
-            keys: OnceCell::new(),
-            selected: Cell::new(None),
+            selectable: Cell::new(true),
+            ..Self::default()
         }
     }
 }
@@ -143,6 +144,10 @@ impl WidgetImpl for KeyboardLayerInner {
     fn button_press_event(&self, widget: &KeyboardLayer, evt: &gdk::EventButton) -> Inhibit {
         self.parent_button_press_event(widget, evt);
 
+        if !self.selectable.get() {
+            return Inhibit(false);
+        }
+
         let pos = evt.get_position();
         for (i, k) in widget.keys().iter().enumerate() {
             let x = (k.physical.x * SCALE) + MARGIN;
@@ -207,5 +212,12 @@ impl KeyboardLayer {
         self.inner().selected.set(i);
         self.queue_draw();
         self.notify("selected");
+    }
+
+    pub fn set_selectable(&self, selectable: bool) {
+        self.inner().selectable.set(selectable);
+        if !selectable {
+            self.set_selected(None);
+        }
     }
 }
