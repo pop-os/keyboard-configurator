@@ -131,6 +131,8 @@ impl ObjectImpl for PickerInner {
                 picker_hbox_opt = Some(picker_hbox);
             }
         }
+
+        picker.connect_signals();
     }
 }
 
@@ -145,11 +147,7 @@ glib::wrapper! {
 
 impl Picker {
     pub fn new() -> Self {
-        let picker: Self = glib::Object::new(&[]).unwrap();
-
-        picker.connect_signals();
-
-        picker
+        glib::Object::new(&[]).unwrap()
     }
 
     fn inner(&self) -> &PickerInner {
