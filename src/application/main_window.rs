@@ -1,3 +1,4 @@
+use cascade::cascade;
 use glib::subclass;
 use gtk::prelude::*;
 use gtk::subclass::prelude::*;
@@ -10,6 +11,7 @@ use crate::{
     DaemonClient,
     DaemonDummy,
     DaemonServer,
+    DerefCell,
 };
 use super::{
     Keyboard,
@@ -17,21 +19,13 @@ use super::{
     shortcuts_window,
 };
 
-#[derive(Default, gtk::CompositeTemplate)]
+#[derive(Default)]
 pub struct MainWindowInner {
-    #[template_child]
-    board_dropdown: TemplateChild<gtk::ComboBoxText>,
+    board_dropdown: DerefCell<gtk::ComboBoxText>,
     count: AtomicUsize,
-    #[template_child]
-    header_bar: TemplateChild<gtk::HeaderBar>,
-    #[template_child]
-    vbox: TemplateChild<gtk::Box>,
-    #[template_child]
-    layer_switcher: TemplateChild<gtk::StackSwitcher>,
-    #[template_child]
-    picker: TemplateChild<Picker>,
-    #[template_child]
-    stack: TemplateChild<gtk::Stack>,
+    layer_switcher: DerefCell<gtk::StackSwitcher>,
+    picker: DerefCell<Picker>,
+    stack: DerefCell<gtk::Stack>,
 }
 
 impl ObjectSubclass for MainWindowInner {
@@ -46,12 +40,6 @@ impl ObjectSubclass for MainWindowInner {
 
     glib::object_subclass!();
 
-    fn class_init(klass: &mut Self::Class) {
-        Picker::static_type();
-        klass.set_template(include_bytes!("main_window.ui"));
-        Self::bind_template_children(klass);
-    }
-
     fn new() -> Self {
         Self::default()
     }
@@ -59,10 +47,40 @@ impl ObjectSubclass for MainWindowInner {
 
 impl ObjectImpl for MainWindowInner {
     fn constructed(&self, window: &MainWindow) {
-        window.init_template();
         self.parent_constructed(window);
 
-        self.board_dropdown.connect_changed(clone!(@weak window => @default-panic, move |combobox| {
+        let layer_switcher = gtk::StackSwitcher::new();
+
+        let menu = cascade! {
+            gio::Menu::new();
+            ..append_section(None, &cascade! {
+                gio::Menu::new();
+                ..append(Some("Load Layout"), Some("kbd.load"));
+                ..append(Some("Save Layout"), Some("kbd.save"));
+                ..append(Some("Reset Layout"), Some("kbd.reset"));
+            });
+            ..append_section(None, &cascade! {
+                gio::Menu::new();
+                ..append(Some("Keyboard Shortcuts"), Some("win.show-help-overlay"));
+                ..append(Some("About Keyboard Configurator"), Some("app.about"));
+            });
+        };
+
+        let header_bar = cascade! {
+            gtk::HeaderBar::new();
+            ..set_show_close_button(true);
+            ..set_custom_title(Some(&layer_switcher));
+            ..pack_end(&cascade! {
+                gtk::MenuButton::new();
+                ..set_menu_model(Some(&menu));
+                ..add(&cascade! {
+                    gtk::Image::from_icon_name(Some("open-menu-symbolic"), gtk::IconSize::Button);
+                });
+            });
+        };
+
+        let board_dropdown = gtk::ComboBoxText::new();
+        board_dropdown.connect_changed(clone!(@weak window => @default-panic, move |combobox| {
             let self_ = window.inner();
             if let Some(id) = combobox.get_active_id() {
                 self_.stack.set_visible_child_name(&id);
@@ -73,10 +91,37 @@ impl ObjectImpl for MainWindowInner {
             }
         }));
 
-        window.set_help_overlay(Some(&shortcuts_window()));
+        let stack = gtk::Stack::new();
+        let picker = Picker::new();
 
-        window.set_focus::<gtk::Widget>(None);
-        window.show_all();
+        let vbox = cascade! {
+            gtk::Box::new(gtk::Orientation::Vertical, 32);
+            ..set_property_margin(10);
+            ..set_halign(gtk::Align::Center);
+            ..add(&board_dropdown);
+            ..add(&stack);
+            ..add(&picker);
+        };
+
+        cascade! {
+            window;
+            ..set_title("System76 Keyboard Configurator");
+            ..set_position(gtk::WindowPosition::Center);
+            ..set_default_size(1024, 768);
+            ..set_titlebar(Some(&header_bar));
+            ..add(&cascade! {
+                gtk::ScrolledWindow::new::<gtk::Adjustment, gtk::Adjustment>(None, None);
+                ..add(&vbox);
+            });
+            ..set_help_overlay(Some(&shortcuts_window()));
+            ..set_focus(None::<&gtk::Widget>);
+            ..show_all();
+        };
+
+        self.board_dropdown.set(board_dropdown);
+        self.layer_switcher.set(layer_switcher);
+        self.picker.set(picker);
+        self.stack.set(stack);
     }
 }
 impl WidgetImpl for MainWindowInner {
