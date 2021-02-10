@@ -2,7 +2,6 @@ use cascade::cascade;
 use glib::subclass;
 use gtk::prelude::*;
 use gtk::subclass::prelude::*;
-use once_cell::unsync::OnceCell;
 
 mod about_dialog;
 mod error_dialog;
@@ -15,6 +14,8 @@ mod page;
 mod picker;
 mod rect;
 mod shortcuts_window;
+
+use crate::DerefCell;
 
 use self::{
     error_dialog::*,
@@ -29,8 +30,9 @@ use self::{
     shortcuts_window::*,
 };
 
+#[derive(Default)]
 pub struct ConfiguratorAppInner {
-    phony_board_names: OnceCell<Vec<String>>,
+    phony_board_names: DerefCell<Vec<String>>,
 }
 
 impl ObjectSubclass for ConfiguratorAppInner {
@@ -46,9 +48,7 @@ impl ObjectSubclass for ConfiguratorAppInner {
     glib::object_subclass!();
 
     fn new() -> Self {
-        Self {
-            phony_board_names: OnceCell::new(),
-        }
+        Self::default()
     }
 }
 
@@ -76,7 +76,7 @@ impl ApplicationImpl for ConfiguratorAppInner {
             vec![]
         };
 
-        let _ = self.phony_board_names.set(board_names);
+        self.phony_board_names.set(board_names);
         -1
     }
 
@@ -105,7 +105,7 @@ impl ApplicationImpl for ConfiguratorAppInner {
             eprintln!("Focusing current window");
             window.present();
         } else {
-            let phony_board_names = self.phony_board_names.get().unwrap();
+            let phony_board_names = &*self.phony_board_names;
             let window = MainWindow::new(phony_board_names.clone());
             app.add_window(&window);
         }

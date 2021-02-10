@@ -8,9 +8,8 @@ use std::{
     f64::consts::PI,
     rc::Rc,
 };
-use once_cell::unsync::OnceCell;
 
-use crate::Rgb;
+use crate::{DerefCell, Rgb};
 use super::{Key, Page};
 
 const SCALE: f64 = 64.0;
@@ -20,7 +19,7 @@ const RADIUS: f64 = 4.;
 #[derive(Default)]
 pub struct KeyboardLayerInner {
     page: Cell<Page>,
-    keys: OnceCell<Rc<[Key]>>,
+    keys: DerefCell<Rc<[Key]>>,
     selected: Cell<Option<usize>>,
     selectable: Cell<bool>,
 }
@@ -186,7 +185,7 @@ impl KeyboardLayer {
         obj.set_size_request(width, height);
 
         obj.inner().page.set(page);
-        obj.inner().keys.set(keys).unwrap();
+        obj.inner().keys.set(keys);
 
         obj
     }
@@ -200,7 +199,7 @@ impl KeyboardLayer {
     }
 
     pub fn keys(&self) -> &[Key] {
-        self.inner().keys.get().unwrap()
+        &self.inner().keys
     }
 
     pub fn selected(&self) -> Option<usize> {

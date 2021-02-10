@@ -3,13 +3,13 @@ use glib::clone;
 use glib::subclass;
 use gtk::prelude::*;
 use gtk::subclass::prelude::*;
-use once_cell::unsync::OnceCell;
 use std::{cell::{Cell, RefCell}, iter};
 
 use crate::{
     choose_color,
     ColorCircle,
     DaemonBoard,
+    DerefCell,
     Rgb,
 };
 
@@ -29,7 +29,7 @@ pub struct KeyboardColorButtonInner {
     edit_button: TemplateChild<gtk::Button>,
     #[template_child]
     popover: TemplateChild<gtk::Popover>,
-    board: OnceCell<DaemonBoard>,
+    board: DerefCell<DaemonBoard>,
     rgb: Cell<Rgb>,
 }
 
@@ -135,7 +135,7 @@ impl KeyboardColorButton {
                 Rgb::new(0, 0, 0)
             }
         });
-        let _ = keyboard_color_button.inner().board.set(board);
+        keyboard_color_button.inner().board.set(board);
 
         // TODO: Signal handler for color change?
 
@@ -252,7 +252,7 @@ impl KeyboardColorButton {
     }
 
     fn board(&self) -> &DaemonBoard {
-        self.inner().board.get().unwrap()
+        &self.inner().board
     }
 
     fn set_rgb(&self, rgb: Rgb) {
