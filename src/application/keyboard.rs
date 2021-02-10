@@ -3,7 +3,6 @@ use glib::object::WeakRef;
 use glib::subclass;
 use gtk::prelude::*;
 use gtk::subclass::prelude::*;
-use once_cell::unsync::OnceCell;
 use std::{
     cell::{
         Cell,
@@ -22,6 +21,7 @@ use std::{
 
 use crate::{
     DaemonBoard,
+    DerefCell,
     KeyboardColorButton,
     KeyMap,
 };
@@ -34,24 +34,20 @@ use super::{
     Picker,
 };
 
-#[derive(Default, gtk::CompositeTemplate)]
+#[derive(Default)]
 pub struct KeyboardInner {
-    #[template_child]
-    action_group: TemplateChild<gio::SimpleActionGroup>,
-    board: OnceCell<DaemonBoard>,
-    board_name: OnceCell<String>,
-    default_layout: OnceCell<KeyMap>,
-    keymap: OnceCell<HashMap<String, u16>>,
-    keys: OnceCell<Rc<[Key]>>,
+    action_group: DerefCell<gio::SimpleActionGroup>,
+    board: DerefCell<DaemonBoard>,
+    board_name: DerefCell<String>,
+    default_layout: DerefCell<KeyMap>,
+    keymap: DerefCell<HashMap<String, u16>>,
+    keys: DerefCell<Rc<[Key]>>,
     page: Cell<Page>,
     picker: RefCell<WeakRef<Picker>>,
     selected: Cell<Option<usize>>,
-    #[template_child]
-    color_button_bin: TemplateChild<gtk::Frame>,
-    #[template_child]
-    brightness_scale: TemplateChild<gtk::Scale>,
-    #[template_child]
-    stack: TemplateChild<gtk::Stack>,
+    color_button_bin: DerefCell<gtk::Frame>,
+    brightness_scale: DerefCell<gtk::Scale>,
+    stack: DerefCell<gtk::Stack>,
 }
 
 impl ObjectSubclass for KeyboardInner {
@@ -66,11 +62,6 @@ impl ObjectSubclass for KeyboardInner {
 
     glib::object_subclass!();
 
-    fn class_init(klass: &mut Self::Class) {
-        klass.set_template(include_bytes!("keyboard.ui"));
-        Self::bind_template_children(klass);
-    }
-
     fn new() -> Self {
         Self::default()
     }
@@ -78,46 +69,33 @@ impl ObjectSubclass for KeyboardInner {
 
 impl ObjectImpl for KeyboardInner {
     fn constructed(&self, keyboard: &Keyboard) {
-        keyboard.init_template();
         self.parent_constructed(keyboard);
 
-        self.action_group.add_action(&cascade! {
-            gio::SimpleAction::new("load", None);
-            ..connect_activate(clone!(@weak keyboard => move |_, _| {
-                keyboard.load();
-            }));
-        });
+        let stack = cascade! {
+            gtk::Stack::new();
+            ..set_transition_duration(0);
+            ..connect_property_visible_child_notify(
+                clone!(@weak keyboard => move |stack| {
+                    let page = stack
+                        .get_visible_child()
+                        .map(|c| c.downcast_ref::<KeyboardLayer>().unwrap().page());
 
-        self.action_group.add_action(&cascade! {
-            gio::SimpleAction::new("save", None);
-            ..connect_activate(clone!(@weak keyboard => move |_, _| {
-                keyboard.save();
-            }));
-        });
+                    println!("{:?}", page);
+                    let last_layer = keyboard.layer();
+                    keyboard.inner().page.set(page.unwrap_or(Page::Layer1));
+                    if keyboard.layer() != last_layer {
+                        keyboard.set_selected(keyboard.selected());
+                    }
+                })
+            );
+        };
 
-        self.action_group.add_action(&cascade! {
-            gio::SimpleAction::new("reset", None);
-            ..connect_activate(clone!(@weak keyboard => move |_, _| {
-                keyboard.reset();
-            }));
-        });
-
-        self.stack.connect_property_visible_child_notify(
-            clone!(@weak keyboard => move |stack| {
-                let page = stack
-                    .get_visible_child()
-                    .map(|c| c.downcast_ref::<KeyboardLayer>().unwrap().page());
-
-                println!("{:?}", page);
-                let last_layer = keyboard.layer();
-                keyboard.inner().page.set(page.unwrap_or(Page::Layer1));
-                if keyboard.layer() != last_layer {
-                    keyboard.set_selected(keyboard.selected());
-                }
-            })
-        );
-
-        self.brightness_scale.connect_value_changed(
+        let brightness_scale = cascade! {
+            gtk::Scale::with_range(gtk::Orientation::Horizontal, 0., 100., 1.);
+            ..set_halign(gtk::Align::Fill);
+            ..set_size_request(200, 0);
+        };
+        brightness_scale.connect_value_changed(
             clone!(@weak keyboard => move |this| {
                 let value = this.get_value() as i32;
                 if let Err(err) = keyboard.board().set_brightness(value) {
@@ -126,6 +104,58 @@ impl ObjectImpl for KeyboardInner {
                 println!("{}", value);
             })
         );
+
+        // XXX add support to ColorButton for changing keyboard
+        let color_button_bin = cascade! {
+            gtk::Frame::new(None);
+            ..set_shadow_type(gtk::ShadowType::None);
+            ..set_valign(gtk::Align::Center);
+        };
+
+        cascade! {
+            keyboard;
+            ..set_orientation(gtk::Orientation::Vertical);
+            ..set_spacing(8);
+            ..add(&cascade! {
+                gtk::Box::new(gtk::Orientation::Horizontal, 8);
+                ..add(&cascade! {
+                    gtk::Label::new(Some("Brightness:"));
+                    ..set_halign(gtk::Align::Start);
+                });
+                ..add(&brightness_scale);
+                ..add(&cascade! {
+                    gtk::Label::new(Some("Color:"));
+                    ..set_halign(gtk::Align::Start);
+                });
+                ..add(&color_button_bin);
+            });
+            ..add(&stack);
+        };
+
+        let action_group = gio::SimpleActionGroup::new();
+        action_group.add_action(&cascade! {
+            gio::SimpleAction::new("load", None);
+            ..connect_activate(clone!(@weak keyboard => move |_, _| {
+                keyboard.load();
+            }));
+        });
+        action_group.add_action(&cascade! {
+            gio::SimpleAction::new("save", None);
+            ..connect_activate(clone!(@weak keyboard => move |_, _| {
+                keyboard.save();
+            }));
+        });
+        action_group.add_action(&cascade! {
+            gio::SimpleAction::new("reset", None);
+            ..connect_activate(clone!(@weak keyboard => move |_, _| {
+                keyboard.reset();
+            }));
+        });
+
+        self.action_group.set(action_group);
+        self.color_button_bin.set(color_button_bin);
+        self.brightness_scale.set(brightness_scale);
+        self.stack.set(stack);
     }
 
     fn properties() -> &'static [glib::ParamSpec] {
@@ -219,11 +249,11 @@ impl Keyboard {
             }
         }
 
-        let _ = keyboard.inner().keys.set(keys.into_boxed_slice().into());
-        let _ = keyboard.inner().board.set(board);
-        let _ = keyboard.inner().board_name.set(board_name.to_string());
-        let _ = keyboard.inner().keymap.set(layout.keymap);
-        let _ = keyboard.inner().default_layout.set(layout.default);
+        keyboard.inner().keys.set(keys.into_boxed_slice().into());
+        keyboard.inner().board.set(board);
+        keyboard.inner().board_name.set(board_name.to_string());
+        keyboard.inner().keymap.set(layout.keymap);
+        keyboard.inner().default_layout.set(layout.default);
 
         let color_button = KeyboardColorButton::new(keyboard.board().clone());
         keyboard.inner().color_button_bin.add(&color_button);
@@ -272,19 +302,19 @@ impl Keyboard {
     }
 
     fn board_name(&self) -> &str {
-        self.inner().board_name.get().unwrap()
+        &self.inner().board_name
     }
 
     fn board(&self) -> &DaemonBoard {
-        self.inner().board.get().unwrap()
+        &self.inner().board
     }
 
     fn keymap(&self) -> &HashMap<String, u16> {
-        self.inner().keymap.get().unwrap()
+        &self.inner().keymap
     }
 
     fn default_layout(&self) -> &KeyMap {
-        self.inner().default_layout.get().unwrap()
+        &self.inner().default_layout
     }
 
     fn window(&self) -> Option<gtk::Window> {
@@ -311,8 +341,8 @@ impl Keyboard {
         self.keymap().contains_key(scancode_name)
     }
 
-    fn keys(&self) -> &[Key] {
-        self.inner().keys.get().unwrap()
+    pub fn keys(&self) -> &Rc<[Key]> {
+        &self.inner().keys
     }
 
     pub fn keymap_set(&self, key_index: usize, layer: usize, scancode_name: &str) {
@@ -343,7 +373,7 @@ impl Keyboard {
 
     pub fn export_keymap(&self) -> KeyMap {
         let mut map = HashMap::new();
-        for key in self.keys() {
+        for key in self.keys().iter() {
             let scancodes = key.scancodes.borrow();
             let scancodes = scancodes.iter().map(|s| s.1.clone()).collect();
             map.insert(key.logical_name.clone(), scancodes);
@@ -441,11 +471,10 @@ impl Keyboard {
     }
 
     fn add_pages(&self) {
-        let keys = self.inner().keys.get().unwrap();
         let stack = &*self.inner().stack;
 
         for (i, page) in Page::iter_all().enumerate() {
-            let keyboard_layer = KeyboardLayer::new(page, keys.clone());
+            let keyboard_layer = KeyboardLayer::new(page, self.keys().clone());
             self.bind_property("selected", &keyboard_layer, "selected")
                 .flags(glib::BindingFlags::BIDIRECTIONAL)
                 .build();
