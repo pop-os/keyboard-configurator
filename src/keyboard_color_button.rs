@@ -13,22 +13,13 @@ use crate::{
     Rgb,
 };
 
-#[derive(Default, gtk::CompositeTemplate)]
+#[derive(Default)]
 pub struct KeyboardColorButtonInner {
-    #[template_child]
-    button: TemplateChild<ColorCircle>,
     circles: RefCell<Vec<ColorCircle>>,
-    #[template_child]
-    grid: TemplateChild<gtk::Grid>,
+    grid: DerefCell<gtk::Grid>,
     current_circle: RefCell<Option<ColorCircle>>,
-    #[template_child]
-    add_circle: TemplateChild<ColorCircle>,
-    #[template_child]
-    remove_button: TemplateChild<gtk::Button>,
-    #[template_child]
-    edit_button: TemplateChild<gtk::Button>,
-    #[template_child]
-    popover: TemplateChild<gtk::Popover>,
+    add_circle: DerefCell<ColorCircle>,
+    remove_button: DerefCell<gtk::Button>,
     board: DerefCell<DaemonBoard>,
     rgb: Cell<Rgb>,
 }
@@ -45,12 +36,6 @@ impl ObjectSubclass for KeyboardColorButtonInner {
 
     glib::object_subclass!();
 
-    fn class_init(klass: &mut Self::Class) {
-        ColorCircle::static_type();
-        klass.set_template(include_bytes!("keyboard_color_button.ui"));
-        Self::bind_template_children(klass);
-    }
-
     fn new() -> Self {
         Self::default()
     }
@@ -58,23 +43,61 @@ impl ObjectSubclass for KeyboardColorButtonInner {
 
 impl ObjectImpl for KeyboardColorButtonInner {
     fn constructed(&self, obj: &KeyboardColorButton) {
-        obj.init_template();
         self.parent_constructed(obj);
 
-        let popover: &gtk::Popover = &*&self.popover;
-        self.button
-            .connect_clicked(clone!(@weak popover => move |_| popover.popup()));
+        let button = ColorCircle::new(30);
 
-        self.add_circle.set_alpha(0.);
-        self.add_circle.set_symbol("+");
-        self.add_circle
-            .connect_clicked(clone!(@weak obj => move |_| obj.add_clicked()));
+        let grid = cascade! {
+            gtk::Grid::new();
+            ..set_column_spacing(6);
+            ..set_row_spacing(6);
+            ..set_halign(gtk::Align::Center);
+        };
 
-        self.remove_button
-            .connect_clicked(clone!(@weak obj => move |_| obj.remove_clicked()));
+        let remove_button = cascade! {
+            gtk::Button::with_label("Remove");
+            ..connect_clicked(clone!(@weak obj => move |_| obj.remove_clicked()));
+        };
 
-        self.edit_button
-            .connect_clicked(clone!(@weak obj => move |_| obj.edit_clicked()));
+        let edit_button = cascade! {
+            gtk::Button::with_label("Edit");
+            ..connect_clicked(clone!(@weak obj => move |_| obj.edit_clicked()));
+        };
+
+        let popover = cascade! {
+            gtk::Popover::new(Some(obj));
+            ..add(&cascade! {
+                gtk::Box::new(gtk::Orientation::Vertical, 0);
+                ..add(&grid);
+                ..add(&gtk::Separator::new(gtk::Orientation::Horizontal));
+                ..add(&cascade! {
+                    gtk::Box::new(gtk::Orientation::Horizontal, 0);
+                    ..add(&remove_button);
+                    ..add(&edit_button);
+                });
+            });
+            ..show_all();
+            ..hide();
+        };
+        button.connect_clicked(clone!(@weak popover => move |_| popover.popup()));
+
+        let add_circle = cascade! {
+            ColorCircle::new(45);
+            ..set_alpha(0.);
+            ..set_symbol("+");
+            ..connect_clicked(clone!(@weak obj => move |_| obj.add_clicked()));
+        };
+
+        cascade! {
+            obj;
+            ..bind_property("rgb", &button, "rgb").flags(glib::BindingFlags::SYNC_CREATE).build();
+            ..add(&button);
+            ..show_all();
+        }
+        
+        self.grid.set(grid);
+        self.add_circle.set(add_circle);
+        self.remove_button.set(remove_button);
     }
 
     fn properties() -> &'static [glib::ParamSpec] {
@@ -176,7 +199,7 @@ impl KeyboardColorButton {
         let circles = self.inner().circles.borrow();
         for (i, circle) in circles
             .iter()
-            .chain(iter::once(&self.inner().add_circle.get()))
+            .chain(iter::once(&*self.inner().add_circle))
             .enumerate()
         {
             let x = i as i32 % 3;
