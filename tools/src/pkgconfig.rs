@@ -22,5 +22,9 @@ fn main() -> io::Result<()> {
     let target = ["target/", &app, ".pc"].concat();
     let mut file = File::create(&target).expect("unable to create pkgconfig file");
 
-    writeln!(&mut file, "libdir={}\nincludedir={}\nname={}\n{}", libdir, includedir, app, PKGCONFIG)
+    writeln!(
+        &mut file,
+        "libdir={}\nincludedir={}\nname={}\n{}",
+        libdir, includedir, app, PKGCONFIG
+    )
 }

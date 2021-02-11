@@ -3,15 +3,12 @@ use glib::clone;
 use glib::subclass;
 use gtk::prelude::*;
 use gtk::subclass::prelude::*;
-use std::{cell::{Cell, RefCell}, iter};
-
-use crate::{
-    choose_color,
-    ColorCircle,
-    DaemonBoard,
-    DerefCell,
-    Rgb,
+use std::{
+    cell::{Cell, RefCell},
+    iter,
 };
+
+use crate::{choose_color, ColorCircle, DaemonBoard, DerefCell, Rgb};
 
 #[derive(Default)]
 pub struct KeyboardColorButtonInner {
@@ -94,7 +91,7 @@ impl ObjectImpl for KeyboardColorButtonInner {
             ..add(&button);
             ..show_all();
         }
-        
+
         self.grid.set(grid);
         self.add_circle.set(add_circle);
         self.remove_button.set(remove_button);
@@ -103,21 +100,25 @@ impl ObjectImpl for KeyboardColorButtonInner {
     fn properties() -> &'static [glib::ParamSpec] {
         use once_cell::sync::Lazy;
         static PROPERTIES: Lazy<Vec<glib::ParamSpec>> = Lazy::new(|| {
-            vec![
-                glib::ParamSpec::boxed(
-                    "rgb",
-                    "rgb",
-                    "rgb",
-                    Rgb::get_type(),
-                    glib::ParamFlags::READWRITE,
-                )
-            ]
+            vec![glib::ParamSpec::boxed(
+                "rgb",
+                "rgb",
+                "rgb",
+                Rgb::get_type(),
+                glib::ParamFlags::READWRITE,
+            )]
         });
 
         PROPERTIES.as_ref()
     }
 
-    fn set_property(&self, widget: &KeyboardColorButton, _id: usize, value: &glib::Value, pspec: &glib::ParamSpec) {
+    fn set_property(
+        &self,
+        widget: &KeyboardColorButton,
+        _id: usize,
+        value: &glib::Value,
+        pspec: &glib::ParamSpec,
+    ) {
         match pspec.get_name() {
             "rgb" => {
                 let rgb: &Rgb = value.get_some().unwrap();
@@ -128,11 +129,14 @@ impl ObjectImpl for KeyboardColorButtonInner {
         }
     }
 
-    fn get_property(&self, _widget: &KeyboardColorButton, _id: usize, pspec: &glib::ParamSpec) -> glib::Value {
+    fn get_property(
+        &self,
+        _widget: &KeyboardColorButton,
+        _id: usize,
+        pspec: &glib::ParamSpec,
+    ) -> glib::Value {
         match pspec.get_name() {
-            "rgb" => {
-                self.rgb.get().to_value()
-            }
+            "rgb" => self.rgb.get().to_value(),
             _ => unimplemented!(),
         }
     }
@@ -211,12 +215,7 @@ impl KeyboardColorButton {
     }
 
     fn add_clicked(&self) {
-        if let Some(color) = choose_color(
-            self.board().clone(),
-            self,
-            "Add Color",
-            None,
-        ) {
+        if let Some(color) = choose_color(self.board().clone(), self, "Add Color", None) {
             self.add_color(color);
             self.inner().remove_button.set_visible(true);
             self.populate_grid();
@@ -244,12 +243,9 @@ impl KeyboardColorButton {
 
     fn edit_clicked(&self) {
         if let Some(circle) = &*self.inner().current_circle.borrow() {
-            if let Some(color) = choose_color(
-                self.board().clone(),
-                self,
-                "Edit Color",
-                Some(circle.rgb()),
-            ) {
+            if let Some(color) =
+                choose_color(self.board().clone(), self, "Edit Color", Some(circle.rgb()))
+            {
                 circle.set_rgb(color);
             } else {
                 if let Err(err) = self.board().set_color(circle.rgb()) {

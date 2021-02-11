@@ -14,18 +14,19 @@ impl Page {
             Self::Layer2 => "Layer 2",
             Self::Keycaps => "Keycaps",
             Self::Logical => "Logical",
-            Self::Electrical => "Electrical"
+            Self::Electrical => "Electrical",
         }
     }
 
-    pub fn iter_all() -> impl Iterator<Item=Self> {
+    pub fn iter_all() -> impl Iterator<Item = Self> {
         vec![
             Self::Layer1,
             Self::Layer2,
             Self::Keycaps,
             Self::Logical,
             Self::Electrical,
-        ].into_iter()
+        ]
+        .into_iter()
     }
 }
 

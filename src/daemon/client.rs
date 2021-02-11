@@ -1,28 +1,12 @@
 use std::{
     cell::RefCell,
     env,
-    io::{
-        BufRead,
-        BufReader,
-        Write,
-    },
+    io::{BufRead, BufReader, Write},
     path::PathBuf,
-    process::{
-        Child,
-        ChildStdin,
-        ChildStdout,
-        Command,
-        Stdio,
-    },
+    process::{Child, ChildStdin, ChildStdout, Command, Stdio},
 };
 
-use super::{
-    err_str,
-    Daemon,
-    DaemonClientTrait,
-    DaemonCommand,
-    DaemonResponse,
-};
+use super::{err_str, Daemon, DaemonClientTrait, DaemonCommand, DaemonResponse};
 
 pub struct DaemonClient {
     child: Child,
@@ -71,10 +55,16 @@ impl DaemonClientTrait for DaemonClient {
     fn send_command(&self, command: DaemonCommand) -> Result<DaemonResponse, String> {
         let mut command_json = serde_json::to_string(&command).map_err(err_str)?;
         command_json.push('\n');
-        self.write.borrow_mut().write_all(command_json.as_bytes()).map_err(err_str)?;
+        self.write
+            .borrow_mut()
+            .write_all(command_json.as_bytes())
+            .map_err(err_str)?;
 
         let mut response_json = String::new();
-        self.read.borrow_mut().read_line(&mut response_json).map_err(err_str)?;
+        self.read
+            .borrow_mut()
+            .read_line(&mut response_json)
+            .map_err(err_str)?;
         serde_json::from_str(&response_json).map_err(err_str)?
     }
 }

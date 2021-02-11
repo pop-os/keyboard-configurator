@@ -59,8 +59,8 @@ impl ObjectImpl for ColorCircleInner {
         context.add_class("circular");
         context.add_class("keyboard_color_button");
 
-        self.drawing_area.connect_draw(
-            clone!(@weak obj => @default-panic, move |w, cr| {
+        self.drawing_area
+            .connect_draw(clone!(@weak obj => @default-panic, move |w, cr| {
                 obj.draw(w, cr);
                 Inhibit(false)
             }));
@@ -71,21 +71,25 @@ impl ObjectImpl for ColorCircleInner {
     fn properties() -> &'static [glib::ParamSpec] {
         use once_cell::sync::Lazy;
         static PROPERTIES: Lazy<Vec<glib::ParamSpec>> = Lazy::new(|| {
-            vec![
-                glib::ParamSpec::boxed(
-                    "rgb",
-                    "rgb",
-                    "rgb",
-                    Rgb::get_type(),
-                    glib::ParamFlags::READWRITE,
-                )
-            ]
+            vec![glib::ParamSpec::boxed(
+                "rgb",
+                "rgb",
+                "rgb",
+                Rgb::get_type(),
+                glib::ParamFlags::READWRITE,
+            )]
         });
 
         PROPERTIES.as_ref()
     }
 
-    fn set_property(&self, widget: &ColorCircle, _id: usize, value: &glib::Value, pspec: &glib::ParamSpec) {
+    fn set_property(
+        &self,
+        widget: &ColorCircle,
+        _id: usize,
+        value: &glib::Value,
+        pspec: &glib::ParamSpec,
+    ) {
         match pspec.get_name() {
             "rgb" => {
                 let rgb: &Rgb = value.get_some().unwrap();
@@ -95,11 +99,14 @@ impl ObjectImpl for ColorCircleInner {
         }
     }
 
-    fn get_property(&self, widget: &ColorCircle, _id: usize, pspec: &glib::ParamSpec) -> glib::Value {
+    fn get_property(
+        &self,
+        widget: &ColorCircle,
+        _id: usize,
+        pspec: &glib::ParamSpec,
+    ) -> glib::Value {
         match pspec.get_name() {
-            "rgb" => {
-                widget.rgb().to_value()
-            }
+            "rgb" => widget.rgb().to_value(),
             _ => unimplemented!(),
         }
     }

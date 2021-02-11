@@ -8,13 +8,7 @@ mod dummy;
 mod s76power;
 mod server;
 
-pub use self::{
-    board::*,
-    client::*,
-    dummy::*,
-    s76power::*,
-    server::*,
-};
+pub use self::{board::*, client::*, dummy::*, s76power::*, server::*};
 
 pub trait DaemonClientTrait {
     fn send_command(&self, command: DaemonCommand) -> Result<DaemonResponse, String>;

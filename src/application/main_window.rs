@@ -2,22 +2,11 @@ use cascade::cascade;
 use glib::subclass;
 use gtk::prelude::*;
 use gtk::subclass::prelude::*;
-use std::sync::atomic::{AtomicUsize, Ordering};
 use std::rc::Rc;
+use std::sync::atomic::{AtomicUsize, Ordering};
 
-use crate::{
-    Daemon,
-    DaemonBoard,
-    DaemonClient,
-    DaemonDummy,
-    DaemonServer,
-    DerefCell,
-};
-use super::{
-    Keyboard,
-    Picker,
-    shortcuts_window,
-};
+use super::{shortcuts_window, Keyboard, Picker};
+use crate::{Daemon, DaemonBoard, DaemonClient, DaemonDummy, DaemonServer, DerefCell};
 
 #[derive(Default)]
 pub struct MainWindowInner {
@@ -162,7 +151,9 @@ impl MainWindow {
         } else if window.inner().count.load(Ordering::Relaxed) == 0 {
             eprintln!("Failed to locate any keyboards, showing demo");
 
-            let daemon = Rc::new(DaemonDummy::new(vec!["system76/launch_alpha_2".to_string()]));
+            let daemon = Rc::new(DaemonDummy::new(
+                vec!["system76/launch_alpha_2".to_string()],
+            ));
             window.add_keyboard(daemon, "system76/launch_alpha_2", 0);
         }
 
@@ -186,12 +177,16 @@ impl MainWindow {
                 board_id = format!("{}{}", board_name, num);
             }
 
-            self.inner().board_dropdown.append(Some(&board_id), &board_name);
+            self.inner()
+                .board_dropdown
+                .append(Some(&board_id), &board_name);
             self.inner().stack.add_named(&keyboard, &board_id);
 
             if self.inner().count.fetch_add(1, Ordering::Relaxed) == 0 {
                 self.inner().board_dropdown.set_active_id(Some(&board_id));
-                self.inner().layer_switcher.set_stack(Some(keyboard.stack()));
+                self.inner()
+                    .layer_switcher
+                    .set_stack(Some(keyboard.stack()));
                 self.inner().picker.set_keyboard(Some(keyboard.clone()));
                 self.insert_action_group("kbd", Some(keyboard.action_group()));
             }

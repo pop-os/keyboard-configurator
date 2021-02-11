@@ -32,9 +32,6 @@ impl PickerKey {
             ..add(&label);
         };
 
-        Rc::new(Self {
-            name,
-            gtk: button,
-        })
+        Rc::new(Self { name, gtk: button })
     }
 }

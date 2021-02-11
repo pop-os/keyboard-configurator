@@ -4,11 +4,7 @@ use glib::subclass;
 use gtk::prelude::*;
 use gtk::subclass::prelude::*;
 use once_cell::sync::Lazy;
-use std::{
-    cell::RefCell,
-    collections::HashMap,
-    rc::Rc,
-};
+use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 use super::Keyboard;
 
@@ -16,8 +12,8 @@ mod picker_group;
 mod picker_json;
 mod picker_key;
 
-use picker_json::picker_json;
 use picker_group::PickerGroup;
+use picker_json::picker_json;
 use picker_key::PickerKey;
 
 const DEFAULT_COLS: i32 = 3;
@@ -139,7 +135,7 @@ impl ObjectImpl for PickerInner {
 impl WidgetImpl for PickerInner {}
 impl ContainerImpl for PickerInner {}
 impl BoxImpl for PickerInner {}
- 
+
 glib::wrapper! {
     pub struct Picker(ObjectSubclass<PickerInner>)
         @extends gtk::Box, gtk::Container, gtk::Widget, @implements gtk::Orientable;

@@ -14,12 +14,7 @@ mod keyboard_color_button;
 mod keymap;
 
 use crate::{
-    color::*,
-    color_circle::*,
-    choose_color::*,
-    daemon::*,
-    deref_cell::*,
-    keyboard_color_button::*,
+    choose_color::*, color::*, color_circle::*, daemon::*, deref_cell::*, keyboard_color_button::*,
     keymap::*,
 };
 pub use keyboard_backlight_widget::keyboard_backlight_widget;

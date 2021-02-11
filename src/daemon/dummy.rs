@@ -1,13 +1,10 @@
 use std::{
-    cell::{
-        Cell,
-        RefCell,
-    },
+    cell::{Cell, RefCell},
     collections::HashMap,
 };
 
-use crate::Rgb;
 use super::Daemon;
+use crate::Rgb;
 
 #[derive(Default)]
 struct BoardDummy {
@@ -47,7 +44,14 @@ impl Daemon for DaemonDummy {
         Ok(keymap.get(&(layer, output, input)).copied().unwrap_or(0))
     }
 
-    fn keymap_set(&self, board: usize, layer: u8, output: u8, input: u8, value: u16) -> Result<(), String> {
+    fn keymap_set(
+        &self,
+        board: usize,
+        layer: u8,
+        output: u8,
+        input: u8,
+        value: u16,
+    ) -> Result<(), String> {
         let mut keymap = self.board(board)?.keymap.borrow_mut();
         keymap.insert((layer, output, input), value);
         Ok(())

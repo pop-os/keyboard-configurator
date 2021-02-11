@@ -18,16 +18,8 @@ mod shortcuts_window;
 use crate::DerefCell;
 
 use self::{
-    error_dialog::*,
-    key::*,
-    keyboard::*,
-    keyboard_layer::*,
-    layout::*,
-    main_window::*,
-    page::*,
-    picker::*,
-    rect::*,
-    shortcuts_window::*,
+    error_dialog::*, key::*, keyboard::*, keyboard_layer::*, layout::*, main_window::*, page::*,
+    picker::*, rect::*, shortcuts_window::*,
 };
 
 #[derive(Default)]
@@ -58,7 +50,14 @@ impl ObjectImpl for ConfiguratorAppInner {
 
         self.parent_constructed(app);
 
-        app.add_main_option("fake-keyboard", glib::Char::new('k').unwrap(), glib::OptionFlags::NONE, glib::OptionArg::String, "", None);
+        app.add_main_option(
+            "fake-keyboard",
+            glib::Char::new('k').unwrap(),
+            glib::OptionFlags::NONE,
+            glib::OptionArg::String,
+            "",
+            None,
+        );
     }
 }
 
@@ -92,8 +91,7 @@ impl ApplicationImpl for ConfiguratorAppInner {
         app.set_accels_for_action("kbd.load", &["<Primary>o"]);
         app.set_accels_for_action("kbd.save", &["<Primary>s"]);
         for (i, _) in page::Page::iter_all().enumerate() {
-            app.set_accels_for_action(&format!("kbd.page{}", i),
-                &[&format!("<Primary>{}", i + 1)]);
+            app.set_accels_for_action(&format!("kbd.page{}", i), &[&format!("<Primary>{}", i + 1)]);
         }
     }
 
@@ -155,7 +153,9 @@ fn windows_init() {
     use winreg::RegKey;
     let mut prefer_dark = false;
     let hkcu = RegKey::predef(winreg::enums::HKEY_CURRENT_USER);
-    if let Ok(subkey) = hkcu.open_subkey("Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize") {
+    if let Ok(subkey) =
+        hkcu.open_subkey("Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize")
+    {
         if let Ok(dword) = subkey.get_value::<u32, _>("AppsUseLightTheme") {
             prefer_dark = (dword == 0);
         }

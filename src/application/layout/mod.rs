@@ -5,8 +5,8 @@ use std::collections::HashMap;
 mod physical_layout;
 pub(super) use physical_layout::PhysicalLayout;
 
-use crate::{KeyMap, Rgb};
 use super::{Key, Rect};
+use crate::{KeyMap, Rgb};
 use physical_layout::{PhysicalKeyEnum, PhysicalLayoutEntry};
 
 pub(super) struct Layout {
@@ -60,7 +60,12 @@ keyboards![
 ];
 
 impl Layout {
-    pub fn from_data(default_json: &str, keymap_json: &str, layout_json: &str, physical_json: &str) -> Self {
+    pub fn from_data(
+        default_json: &str,
+        keymap_json: &str,
+        layout_json: &str,
+        physical_json: &str,
+    ) -> Self {
         let default = KeyMap::from_str(default_json).unwrap();
         let (keymap, scancode_names) = parse_keymap_json(keymap_json);
         let layout = parse_layout_json(layout_json);
@@ -102,10 +107,14 @@ impl Layout {
                             y -= meta.y;
                             w = meta.w.unwrap_or(w);
                             h = meta.h.unwrap_or(h);
-                            background_color = meta.c.as_ref().map(|c| {
-                                let err = format!("Failed to parse color {}", c);
-                                Rgb::parse(&c[1..]).expect(&err)
-                            }).unwrap_or(background_color);
+                            background_color = meta
+                                .c
+                                .as_ref()
+                                .map(|c| {
+                                    let err = format!("Failed to parse color {}", c);
+                                    Rgb::parse(&c[1..]).expect(&err)
+                                })
+                                .unwrap_or(background_color);
                             if let Some(t) = &meta.t {
                                 //TODO: support using different color per line?
                                 //Is this even possible in GTK?
@@ -190,8 +199,8 @@ fn parse_physical_json(physical_json: &str) -> PhysicalLayout {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::super::picker::SCANCODE_LABELS;
+    use super::*;
     use std::collections::HashSet;
 
     #[test]

@@ -2,15 +2,10 @@ use cascade::cascade;
 use glib::subclass;
 use gtk::prelude::*;
 use gtk::subclass::prelude::*;
-use std::{
-    cell::Cell,
-    convert::TryFrom,
-    f64::consts::PI,
-    rc::Rc,
-};
+use std::{cell::Cell, convert::TryFrom, f64::consts::PI, rc::Rc};
 
-use crate::{DerefCell, Rgb};
 use super::{Key, Page};
+use crate::{DerefCell, Rgb};
 
 const SCALE: f64 = 64.0;
 const MARGIN: f64 = 2.;
@@ -54,23 +49,27 @@ impl ObjectImpl for KeyboardLayerInner {
     fn properties() -> &'static [glib::ParamSpec] {
         use once_cell::sync::Lazy;
         static PROPERTIES: Lazy<Vec<glib::ParamSpec>> = Lazy::new(|| {
-            vec![
-                glib::ParamSpec::int(
-                    "selected",
-                    "selected",
-                    "selected",
-                    -1,
-                    i32::MAX,
-                    -1,
-                    glib::ParamFlags::READWRITE,
-                )
-            ]
+            vec![glib::ParamSpec::int(
+                "selected",
+                "selected",
+                "selected",
+                -1,
+                i32::MAX,
+                -1,
+                glib::ParamFlags::READWRITE,
+            )]
         });
 
         PROPERTIES.as_ref()
     }
 
-    fn set_property(&self, widget: &KeyboardLayer, _id: usize, value: &glib::Value, pspec: &glib::ParamSpec) {
+    fn set_property(
+        &self,
+        widget: &KeyboardLayer,
+        _id: usize,
+        value: &glib::Value,
+        pspec: &glib::ParamSpec,
+    ) {
         match pspec.get_name() {
             "selected" => {
                 let v: i32 = value.get_some().unwrap();
@@ -81,11 +80,14 @@ impl ObjectImpl for KeyboardLayerInner {
         }
     }
 
-    fn get_property(&self, widget: &KeyboardLayer, _id: usize, pspec: &glib::ParamSpec) -> glib::Value {
+    fn get_property(
+        &self,
+        widget: &KeyboardLayer,
+        _id: usize,
+        pspec: &glib::ParamSpec,
+    ) -> glib::Value {
         match pspec.get_name() {
-            "selected" => {
-                widget.selected().map(|v| v as i32).unwrap_or(-1).to_value()
-            }
+            "selected" => widget.selected().map(|v| v as i32).unwrap_or(-1).to_value(),
             _ => unimplemented!(),
         }
     }
@@ -153,7 +155,7 @@ impl WidgetImpl for KeyboardLayerInner {
             let w = (k.physical.w * SCALE) - MARGIN * 2.;
             let h = (k.physical.h * SCALE) - MARGIN * 2.;
 
-            if (x..=x+w).contains(&pos.0) && (y..=y+h).contains(&pos.1) {
+            if (x..=x + w).contains(&pos.0) && (y..=y + h).contains(&pos.1) {
                 if widget.selected() == Some(i) {
                     widget.set_selected(None);
                 } else {
@@ -177,11 +179,15 @@ impl KeyboardLayer {
     pub fn new(page: Page, keys: Rc<[Key]>) -> Self {
         let obj: Self = glib::Object::new(&[]).unwrap();
 
-        let (width, height) = keys.iter().map(|k| {
-            let w = (k.physical.w + k.physical.x) * SCALE - MARGIN;
-            let h = (k.physical.h - k.physical.y) * SCALE - MARGIN;
-            (w as i32, h as i32)
-        }).max().unwrap();
+        let (width, height) = keys
+            .iter()
+            .map(|k| {
+                let w = (k.physical.w + k.physical.x) * SCALE - MARGIN;
+                let h = (k.physical.h - k.physical.y) * SCALE - MARGIN;
+                (w as i32, h as i32)
+            })
+            .max()
+            .unwrap();
         obj.set_size_request(width, height);
 
         obj.inner().page.set(page);

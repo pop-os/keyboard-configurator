@@ -1,7 +1,7 @@
 use std::rc::Rc;
 
-use crate::Rgb;
 use super::Daemon;
+use crate::Rgb;
 
 #[derive(Clone, glib::GBoxed)]
 #[gboxed(type_name = "S76DaemonBoard")]

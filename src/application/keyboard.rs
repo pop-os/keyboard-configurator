@@ -4,35 +4,18 @@ use glib::subclass;
 use gtk::prelude::*;
 use gtk::subclass::prelude::*;
 use std::{
-    cell::{
-        Cell,
-        RefCell,
-    },
+    cell::{Cell, RefCell},
     collections::HashMap,
     convert::TryFrom,
     ffi::OsStr,
     fs::{self, File},
-    path::{
-        Path,
-    },
+    path::Path,
     rc::Rc,
     str,
 };
 
-use crate::{
-    DaemonBoard,
-    DerefCell,
-    KeyboardColorButton,
-    KeyMap,
-};
-use super::{
-    error_dialog,
-    Key,
-    KeyboardLayer,
-    Layout,
-    Page,
-    Picker,
-};
+use super::{error_dialog, Key, KeyboardLayer, Layout, Page, Picker};
+use crate::{DaemonBoard, DerefCell, KeyMap, KeyboardColorButton};
 
 #[derive(Default)]
 pub struct KeyboardInner {
@@ -95,15 +78,13 @@ impl ObjectImpl for KeyboardInner {
             ..set_halign(gtk::Align::Fill);
             ..set_size_request(200, 0);
         };
-        brightness_scale.connect_value_changed(
-            clone!(@weak keyboard => move |this| {
-                let value = this.get_value() as i32;
-                if let Err(err) = keyboard.board().set_brightness(value) {
-                    eprintln!("{}", err);
-                }
-                println!("{}", value);
-            })
-        );
+        brightness_scale.connect_value_changed(clone!(@weak keyboard => move |this| {
+            let value = this.get_value() as i32;
+            if let Err(err) = keyboard.board().set_brightness(value) {
+                eprintln!("{}", err);
+            }
+            println!("{}", value);
+        }));
 
         // XXX add support to ColorButton for changing keyboard
         let color_button_bin = cascade! {
@@ -161,23 +142,27 @@ impl ObjectImpl for KeyboardInner {
     fn properties() -> &'static [glib::ParamSpec] {
         use once_cell::sync::Lazy;
         static PROPERTIES: Lazy<Vec<glib::ParamSpec>> = Lazy::new(|| {
-            vec![
-                glib::ParamSpec::int(
-                    "selected",
-                    "selected",
-                    "selected",
-                    -1,
-                    i32::MAX,
-                    -1,
-                    glib::ParamFlags::READWRITE,
-                )
-            ]
+            vec![glib::ParamSpec::int(
+                "selected",
+                "selected",
+                "selected",
+                -1,
+                i32::MAX,
+                -1,
+                glib::ParamFlags::READWRITE,
+            )]
         });
 
         PROPERTIES.as_ref()
     }
 
-    fn set_property(&self, keyboard: &Keyboard, _id: usize, value: &glib::Value, pspec: &glib::ParamSpec) {
+    fn set_property(
+        &self,
+        keyboard: &Keyboard,
+        _id: usize,
+        value: &glib::Value,
+        pspec: &glib::ParamSpec,
+    ) {
         match pspec.get_name() {
             "selected" => {
                 let v: i32 = value.get_some().unwrap();
@@ -188,11 +173,18 @@ impl ObjectImpl for KeyboardInner {
         }
     }
 
-    fn get_property(&self, keyboard: &Keyboard, _id: usize, pspec: &glib::ParamSpec) -> glib::Value {
+    fn get_property(
+        &self,
+        keyboard: &Keyboard,
+        _id: usize,
+        pspec: &glib::ParamSpec,
+    ) -> glib::Value {
         match pspec.get_name() {
-            "selected" => {
-                keyboard.selected().map(|v| v as i32).unwrap_or(-1).to_value()
-            }
+            "selected" => keyboard
+                .selected()
+                .map(|v| v as i32)
+                .unwrap_or(-1)
+                .to_value(),
             _ => unimplemented!(),
         }
     }
@@ -212,15 +204,22 @@ impl Keyboard {
     pub fn new<P: AsRef<Path>>(dir: P, board_name: &str, board: DaemonBoard) -> Self {
         let dir = dir.as_ref();
 
-        let default_json = fs::read_to_string(dir.join("default_json"))
-            .expect("Failed to load keymap.json");
-        let keymap_json = fs::read_to_string(dir.join("keymap.json"))
-            .expect("Failed to load keymap.json");
-        let layout_json = fs::read_to_string(dir.join("layout.json"))
-            .expect("Failed to load layout.json");
-        let physical_json = fs::read_to_string(dir.join("physical.json"))
-            .expect("Failed to load physical.json");
-        Self::new_data(board_name, &default_json, &keymap_json, &layout_json, &physical_json, board)
+        let default_json =
+            fs::read_to_string(dir.join("default_json")).expect("Failed to load keymap.json");
+        let keymap_json =
+            fs::read_to_string(dir.join("keymap.json")).expect("Failed to load keymap.json");
+        let layout_json =
+            fs::read_to_string(dir.join("layout.json")).expect("Failed to load layout.json");
+        let physical_json =
+            fs::read_to_string(dir.join("physical.json")).expect("Failed to load physical.json");
+        Self::new_data(
+            board_name,
+            &default_json,
+            &keymap_json,
+            &layout_json,
+            &physical_json,
+            board,
+        )
     }
 
     fn new_layout(board_name: &str, layout: Layout, board: DaemonBoard) -> Self {
@@ -265,7 +264,10 @@ impl Keyboard {
                 100.0
             }
         };
-        keyboard.inner().brightness_scale.set_range(0.0, max_brightness);
+        keyboard
+            .inner()
+            .brightness_scale
+            .set_range(0.0, max_brightness);
 
         let brightness = match keyboard.board().brightness() {
             Ok(value) => value as f64,
@@ -282,13 +284,18 @@ impl Keyboard {
     }
 
     pub fn new_board(board_name: &str, board: DaemonBoard) -> Option<Self> {
-        Layout::from_board(board_name).map(|layout|
-            Self::new_layout(board_name, layout, board)
-        )
+        Layout::from_board(board_name).map(|layout| Self::new_layout(board_name, layout, board))
     }
 
     #[allow(dead_code)]
-    fn new_data(board_name: &str, default_json: &str, keymap_json: &str, layout_json: &str, physical_json: &str, board: DaemonBoard) -> Self {
+    fn new_data(
+        board_name: &str,
+        default_json: &str,
+        keymap_json: &str,
+        layout_json: &str,
+        physical_json: &str,
+        board: DaemonBoard,
+    ) -> Self {
         let layout = Layout::from_data(default_json, keymap_json, layout_json, physical_json);
         Self::new_layout(board_name, layout, board)
     }
@@ -325,7 +332,7 @@ impl Keyboard {
         match self.inner().page.get() {
             Page::Layer1 => Some(0),
             Page::Layer2 => Some(1),
-            _ => None
+            _ => None,
         }
     }
 
@@ -357,7 +364,10 @@ impl Keyboard {
         }
         println!(
             "  set {}, {}, {} to {:04X}",
-            layer, k.electrical.0, k.electrical.1, k.scancodes.borrow()[layer].0
+            layer,
+            k.electrical.0,
+            k.electrical.1,
+            k.scancodes.borrow()[layer].0
         );
         if let Err(err) = self.board().keymap_set(
             layer as u8,
@@ -389,9 +399,11 @@ impl Keyboard {
         // TODO: Ideally don't want this function to be O(Keys^2)
 
         if &keymap.board != self.board_name() {
-            error_dialog(&self.window().unwrap(),
-                         "Failed to import keymap",
-                         format!("Keymap is for board '{}'", keymap.board));
+            error_dialog(
+                &self.window().unwrap(),
+                "Failed to import keymap",
+                format!("Keymap is for board '{}'", keymap.board),
+            );
             return;
         }
 
@@ -424,8 +436,10 @@ impl Keyboard {
             match File::open(&path) {
                 Ok(file) => match KeyMap::from_reader(file) {
                     Ok(keymap) => self.import_keymap(&keymap),
-                    Err(err) => error_dialog(&self.window().unwrap(), "Failed to import keymap", err),
-                }
+                    Err(err) => {
+                        error_dialog(&self.window().unwrap(), "Failed to import keymap", err)
+                    }
+                },
                 Err(err) => error_dialog(&self.window().unwrap(), "Failed to open file", err),
             }
         }
@@ -446,7 +460,9 @@ impl Keyboard {
         if chooser.run() == gtk::ResponseType::Accept {
             let mut path = chooser.get_filename().unwrap();
             match path.extension() {
-                None => { path.set_extension(OsStr::new("json")); }
+                None => {
+                    path.set_extension(OsStr::new("json"));
+                }
                 Some(ext) if ext == OsStr::new("json") => {}
                 Some(ext) => {
                     let mut ext = ext.to_owned();
@@ -458,9 +474,11 @@ impl Keyboard {
 
             match File::create(&path) {
                 Ok(file) => match keymap.to_writer_pretty(file) {
-                    Ok(()) => {},
-                    Err(err) => error_dialog(&self.window().unwrap(), "Failed to export keymap", err),
-                }
+                    Ok(()) => {}
+                    Err(err) => {
+                        error_dialog(&self.window().unwrap(), "Failed to export keymap", err)
+                    }
+                },
                 Err(err) => error_dialog(&self.window().unwrap(), "Failed to open file", err),
             }
         }
@@ -495,7 +513,7 @@ impl Keyboard {
             Some(picker) => {
                 picker.set_sensitive(self.selected().is_some() && self.layer() != None);
                 picker.downgrade()
-            },
+            }
             None => WeakRef::new(),
         };
     }
@@ -503,7 +521,9 @@ impl Keyboard {
     fn set_selected(&self, i: Option<usize>) {
         let picker = match self.inner().picker.borrow().upgrade() {
             Some(picker) => picker,
-            None => { return; },
+            None => {
+                return;
+            }
         };
         let keys = self.keys();
 

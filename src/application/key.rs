@@ -1,11 +1,7 @@
 use std::cell::RefCell;
 
+use super::{Page, Rect, SCANCODE_LABELS};
 use crate::Rgb;
-use super::{
-    Page,
-    Rect,
-    SCANCODE_LABELS,
-};
 
 #[derive(Clone, Debug)]
 pub struct Key {
@@ -35,12 +31,18 @@ impl Key {
         match page {
             Page::Layer1 => {
                 let scancode_name = &scancodes[0].1;
-                SCANCODE_LABELS.get(scancode_name).unwrap_or(scancode_name).into()
-            },
+                SCANCODE_LABELS
+                    .get(scancode_name)
+                    .unwrap_or(scancode_name)
+                    .into()
+            }
             Page::Layer2 => {
                 let scancode_name = &scancodes[1].1;
-                SCANCODE_LABELS.get(scancode_name).unwrap_or(scancode_name).into()
-            },
+                SCANCODE_LABELS
+                    .get(scancode_name)
+                    .unwrap_or(scancode_name)
+                    .into()
+            }
             Page::Keycaps => self.physical_name.clone(),
             Page::Logical => self.logical_name.clone(),
             Page::Electrical => self.electrical_name.clone(),

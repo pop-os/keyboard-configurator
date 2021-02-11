@@ -21,7 +21,7 @@ impl<T> Default for DerefCell<T> {
     }
 }
 
-impl <T> std::ops::Deref for DerefCell<T> {
+impl<T> std::ops::Deref for DerefCell<T> {
     type Target = T;
 
     fn deref(&self) -> &T {

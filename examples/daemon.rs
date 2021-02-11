@@ -1,14 +1,5 @@
-use std::{
-    env,
-    io,
-};
-use system76_keyboard_configurator::{
-    daemon::{
-        Daemon,
-        DaemonClient,
-        DaemonServer,
-    },
-};
+use std::{env, io};
+use system76_keyboard_configurator::daemon::{Daemon, DaemonClient, DaemonServer};
 
 fn daemon_server() -> Result<DaemonServer<io::Stdin, io::Stdout>, String> {
     DaemonServer::new(io::stdin(), io::stdout())

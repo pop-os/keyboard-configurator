@@ -12,7 +12,7 @@ pub struct PickerJsonGroup {
     pub cols: i32,
     pub width: i32,
     pub keys: Vec<PickerJsonKey>,
-} 
+}
 
 pub fn picker_json() -> Vec<PickerJsonGroup> {
     let picker_json = include_str!("../../../layouts/picker.json");
