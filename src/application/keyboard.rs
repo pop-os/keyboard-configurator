@@ -316,6 +316,14 @@ impl Keyboard {
         &self.inner().board
     }
 
+    pub fn display_name(&self) -> String {
+        if self.board().0.is_fake() {
+            format!("{} (fake)", self.board_name())
+        } else {
+            self.board_name().to_string()
+        }
+    }
+
     fn keymap(&self) -> &HashMap<String, u16> {
         &self.inner().keymap
     }

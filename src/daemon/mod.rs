@@ -22,6 +22,10 @@ macro_rules! commands {
             fn $func(&self, $( $arg: $type ),*) -> Result<$ret, String>;
         )*
 
+            fn is_fake(&self) -> bool {
+                false
+            }
+
             fn dispatch_command_to_method(&self, command: DaemonCommand) -> Result<DaemonResponse, String> {
                 match command {
                 $(

@@ -179,7 +179,7 @@ impl MainWindow {
 
             self.inner()
                 .board_dropdown
-                .append(Some(&board_id), &board_name);
+                .append(Some(&board_id), &keyboard.display_name());
             self.inner().stack.add_named(&keyboard, &board_id);
 
             if self.inner().count.fetch_add(1, Ordering::Relaxed) == 0 {

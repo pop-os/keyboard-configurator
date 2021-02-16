@@ -39,6 +39,10 @@ impl Daemon for DaemonDummy {
         Ok(self.board_names.clone())
     }
 
+    fn is_fake(&self) -> bool {
+        true
+    }
+
     fn keymap_get(&self, board: usize, layer: u8, output: u8, input: u8) -> Result<u16, String> {
         let keymap = self.board(board)?.keymap.borrow();
         Ok(keymap.get(&(layer, output, input)).copied().unwrap_or(0))
