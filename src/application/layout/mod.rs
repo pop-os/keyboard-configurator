@@ -149,7 +149,7 @@ impl Layout {
                                 logical_name,
                                 physical: Rect::new(x, y, w, h),
                                 physical_name: name.clone(),
-                                electrical: electrical.clone(),
+                                electrical: *electrical,
                                 electrical_name: format!("{}, {}", electrical.0, electrical.1),
                                 scancodes: RefCell::new(Vec::new()),
                                 background_color,

@@ -17,7 +17,7 @@ use picker_json::picker_json;
 use picker_key::PickerKey;
 
 const DEFAULT_COLS: i32 = 3;
-const PICKER_CSS: &'static str = r#"
+const PICKER_CSS: &str = r#"
 button {
     margin: 0;
     padding: 0;

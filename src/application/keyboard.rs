@@ -392,7 +392,7 @@ impl Keyboard {
         }
         KeyMap {
             board: self.board_name().to_string(),
-            map: map,
+            map,
         }
     }
 
@@ -400,7 +400,7 @@ impl Keyboard {
         // TODO: don't block UI thread
         // TODO: Ideally don't want this function to be O(Keys^2)
 
-        if &keymap.board != self.board_name() {
+        if keymap.board != self.board_name() {
             error_dialog(
                 &self.window().unwrap(),
                 "Failed to import keymap",

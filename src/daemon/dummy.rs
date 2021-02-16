@@ -20,7 +20,7 @@ pub struct DaemonDummy {
 
 impl DaemonDummy {
     fn board(&self, board: usize) -> Result<&BoardDummy, String> {
-        self.boards.get(board).ok_or("No board".to_string())
+        self.boards.get(board).ok_or_else(|| "No board".to_string())
     }
 }
 

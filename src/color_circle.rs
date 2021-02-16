@@ -93,7 +93,7 @@ impl ObjectImpl for ColorCircleInner {
         match pspec.get_name() {
             "rgb" => {
                 let rgb: &Rgb = value.get_some().unwrap();
-                widget.set_rgb(rgb.clone());
+                widget.set_rgb(*rgb);
             }
             _ => unimplemented!(),
         }

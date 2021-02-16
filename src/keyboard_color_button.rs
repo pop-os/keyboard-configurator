@@ -122,7 +122,7 @@ impl ObjectImpl for KeyboardColorButtonInner {
         match pspec.get_name() {
             "rgb" => {
                 let rgb: &Rgb = value.get_some().unwrap();
-                widget.set_rgb(rgb.clone());
+                widget.set_rgb(*rgb);
                 widget.notify("rgb");
             }
             _ => unimplemented!(),
@@ -219,11 +219,9 @@ impl KeyboardColorButton {
             self.add_color(color);
             self.inner().remove_button.set_visible(true);
             self.populate_grid();
-        } else {
-            if let Some(circle) = &*self.inner().current_circle.borrow() {
-                if let Err(err) = self.board().set_color(circle.rgb()) {
-                    eprintln!("Failed to set keyboard color: {}", err);
-                }
+        } else if let Some(circle) = &*self.inner().current_circle.borrow() {
+            if let Err(err) = self.board().set_color(circle.rgb()) {
+                eprintln!("Failed to set keyboard color: {}", err);
             }
         }
     }
@@ -247,10 +245,8 @@ impl KeyboardColorButton {
                 choose_color(self.board().clone(), self, "Edit Color", Some(circle.rgb()))
             {
                 circle.set_rgb(color);
-            } else {
-                if let Err(err) = self.board().set_color(circle.rgb()) {
-                    eprintln!("Failed to set keyboard color: {}", err);
-                }
+            } else if let Err(err) = self.board().set_color(circle.rgb()) {
+                eprintln!("Failed to set keyboard color: {}", err);
             }
         }
     }

@@ -141,7 +141,7 @@ impl ColorWheel {
                 let Rgb { r, g, b } = Hs::new(angle, distance / radius).to_rgb();
 
                 let offset = (row * stride + col * 4) as usize;
-                data[offset + 0] = b;
+                data[offset] = b;
                 data[offset + 1] = g;
                 data[offset + 2] = r;
             }

@@ -8,8 +8,8 @@ use std::{cell::Cell, iter::Iterator};
 use super::{err_str, Daemon};
 use crate::color::Rgb;
 
-const DBUS_NAME: &'static str = "com.system76.PowerDaemon";
-const DBUS_KEYBOARD_IFACE: &'static str = "com.system76.PowerDaemon.Keyboard";
+const DBUS_NAME: &str = "com.system76.PowerDaemon";
+const DBUS_KEYBOARD_IFACE: &str = "com.system76.PowerDaemon.Keyboard";
 
 struct Keyboard {
     proxy: gio::DBusProxy,
@@ -79,7 +79,7 @@ pub struct DaemonS76Power {
 
 impl DaemonS76Power {
     fn board(&self, board: usize) -> Result<&Keyboard, String> {
-        self.boards.get(board).ok_or("No board".to_string())
+        self.boards.get(board).ok_or_else(|| "No board".to_string())
     }
 }
 
@@ -158,7 +158,7 @@ impl Daemon for DaemonS76Power {
         let color = self.board(board)?.prop::<String>("color")?;
         Ok(color
             .and_then(|c| Rgb::parse(&c))
-            .unwrap_or(Rgb::new(0, 0, 0)))
+            .unwrap_or_else(|| Rgb::new(0, 0, 0)))
     }
 
     fn set_color(&self, board: usize, color: Rgb) -> Result<(), String> {
