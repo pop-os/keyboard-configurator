@@ -76,14 +76,14 @@ impl ObjectImpl for KeyboardInner {
             gtk::Scale::with_range(gtk::Orientation::Horizontal, 0., 100., 1.);
             ..set_halign(gtk::Align::Fill);
             ..set_size_request(200, 0);
+            ..connect_value_changed(clone!(@weak keyboard => move |this| {
+                let value = this.get_value() as i32;
+                if let Err(err) = keyboard.board().set_brightness(value) {
+                    eprintln!("{}", err);
+                }
+                println!("{}", value);
+            }));
         };
-        brightness_scale.connect_value_changed(clone!(@weak keyboard => move |this| {
-            let value = this.get_value() as i32;
-            if let Err(err) = keyboard.board().set_brightness(value) {
-                eprintln!("{}", err);
-            }
-            println!("{}", value);
-        }));
 
         // XXX add support to ColorButton for changing keyboard
         let color_button_bin = cascade! {
@@ -112,25 +112,27 @@ impl ObjectImpl for KeyboardInner {
             ..add(&stack);
         };
 
-        let action_group = gio::SimpleActionGroup::new();
-        action_group.add_action(&cascade! {
-            gio::SimpleAction::new("load", None);
-            ..connect_activate(clone!(@weak keyboard => move |_, _| {
-                keyboard.load();
-            }));
-        });
-        action_group.add_action(&cascade! {
-            gio::SimpleAction::new("save", None);
-            ..connect_activate(clone!(@weak keyboard => move |_, _| {
-                keyboard.save();
-            }));
-        });
-        action_group.add_action(&cascade! {
-            gio::SimpleAction::new("reset", None);
-            ..connect_activate(clone!(@weak keyboard => move |_, _| {
-                keyboard.reset();
-            }));
-        });
+        let action_group = cascade! {
+            gio::SimpleActionGroup::new();
+            ..add_action(&cascade! {
+                gio::SimpleAction::new("load", None);
+                ..connect_activate(clone!(@weak keyboard => move |_, _| {
+                    keyboard.load();
+                }));
+            });
+            ..add_action(&cascade! {
+                gio::SimpleAction::new("save", None);
+                ..connect_activate(clone!(@weak keyboard => move |_, _| {
+                    keyboard.save();
+                }));
+            });
+            ..add_action(&cascade! {
+                gio::SimpleAction::new("reset", None);
+                ..connect_activate(clone!(@weak keyboard => move |_, _| {
+                    keyboard.reset();
+                }));
+            });
+        };
 
         self.action_group.set(action_group);
         self.color_button_bin.set(color_button_bin);
