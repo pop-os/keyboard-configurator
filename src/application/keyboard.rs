@@ -22,9 +22,8 @@ pub struct KeyboardInner {
     action_group: DerefCell<gio::SimpleActionGroup>,
     board: DerefCell<DaemonBoard>,
     board_name: DerefCell<String>,
-    default_layout: DerefCell<KeyMap>,
-    keymap: DerefCell<HashMap<String, u16>>,
     keys: DerefCell<Rc<[Key]>>,
+    layout: DerefCell<Layout>,
     page: Cell<Page>,
     picker: RefCell<WeakRef<Picker>>,
     selected: Cell<Option<usize>>,
@@ -251,8 +250,7 @@ impl Keyboard {
         keyboard.inner().keys.set(keys.into_boxed_slice().into());
         keyboard.inner().board.set(board);
         keyboard.inner().board_name.set(board_name.to_string());
-        keyboard.inner().keymap.set(layout.keymap);
-        keyboard.inner().default_layout.set(layout.default);
+        keyboard.inner().layout.set(layout);
 
         let color_button = KeyboardColorButton::new(keyboard.board().clone());
         keyboard.inner().color_button_bin.add(&color_button);
@@ -324,12 +322,8 @@ impl Keyboard {
         }
     }
 
-    fn keymap(&self) -> &HashMap<String, u16> {
-        &self.inner().keymap
-    }
-
-    fn default_layout(&self) -> &KeyMap {
-        &self.inner().default_layout
+    fn layout(&self) -> &Layout {
+        &self.inner().layout
     }
 
     fn window(&self) -> Option<gtk::Window> {
@@ -353,7 +347,7 @@ impl Keyboard {
     }
 
     pub fn has_scancode(&self, scancode_name: &str) -> bool {
-        self.keymap().contains_key(scancode_name)
+        self.layout().keymap.contains_key(scancode_name)
     }
 
     pub fn keys(&self) -> &Rc<[Key]> {
@@ -363,7 +357,7 @@ impl Keyboard {
     pub fn keymap_set(&self, key_index: usize, layer: usize, scancode_name: &str) {
         let k = &self.keys()[key_index];
         let mut found = false;
-        if let Some(scancode) = self.keymap().get(scancode_name) {
+        if let Some(scancode) = self.layout().keymap.get(scancode_name) {
             k.scancodes.borrow_mut()[layer] = (*scancode, scancode_name.to_string());
             found = true;
         }
@@ -493,7 +487,7 @@ impl Keyboard {
     }
 
     fn reset(&self) {
-        self.import_keymap(self.default_layout());
+        self.import_keymap(&self.layout().default);
     }
 
     fn add_pages(&self) {
