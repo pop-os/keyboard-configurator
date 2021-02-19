@@ -79,32 +79,35 @@ QMK_MAPPING = {
     'SYSTEM_SLEEP': 'SUSPEND'
 }
 
-def extract_scancodes(includedir: str, common_keymap_h: str, is_qmk: bool) -> List[Tuple[str, int]]:
+def extract_scancodes(ecdir: str, is_qmk: bool) -> List[Tuple[str, int]]:
     "Extract mapping from scancode names to numbers"
 
     if is_qmk:
-        include = "common/keycode.h"
-    else:
-        include = "common/keymap.h"
-
-    if is_qmk:
+        includes = [f"{ecdir}/tmk_core/common/keycode.h"]
+        common_keymap_h = open(includes[0]).read()
         scancode_defines = re.findall(
             '    (KC_[^,\s]+)', common_keymap_h)
     else:
+        includes = [f"{ecdir}/src/common/include/common/keymap.h"]
+        common_keymap_h = open(includes[0]).read()
         scancode_defines = re.findall(
             '#define.*((?:K_\S+)|(?:KT_FN))', common_keymap_h)
 
     tmpdir = tempfile.mkdtemp()
     with open(f'{tmpdir}/keysym-extract.c', 'w') as f:
         f.write('#include <stdio.h>\n')
-        f.write(f'#include "{include}"\n')
         f.write('int main() {\n')
         for i in scancode_defines:
             f.write(f'printf("%d ", {i});\n')
         f.write('}\n')
 
-    subprocess.check_call(['gcc', f'-I{includedir}',
-                           '-o', f'{tmpdir}/keysym-extract', f'{tmpdir}/keysym-extract.c'])
+    cmd = ['gcc']
+    for i in includes:
+        cmd.append('-include')
+        cmd.append(i)
+    cmd += ['-o', f'{tmpdir}/keysym-extract', f'{tmpdir}/keysym-extract.c']
+    subprocess.check_call(cmd)
+
     output = subprocess.check_output(
         f'{tmpdir}/keysym-extract', universal_newlines=True)
 
@@ -112,7 +115,7 @@ def extract_scancodes(includedir: str, common_keymap_h: str, is_qmk: bool) -> Li
 
     scancode_names = (i.split('_', 1)[1] for i in scancode_defines)
     if is_qmk:
-        scancode_names = (QMK_MAPPING.get(i, i) for i in scancode_names)
+        scancode_names = [QMK_MAPPING.get(i, i) for i in scancode_names]
     scancodes = (int(i) for i in output.split())
     scancode_list = list(zip(scancode_names, scancodes))
     
@@ -211,24 +214,19 @@ def generate_layout_dir(ecdir: str, board: str, is_qmk: bool) -> None:
     print(f'Generating {layoutdir}...')
 
     if is_qmk:
-        common_keymap_h = open(f"{ecdir}/tmk_core/common/keycode.h").read()
         keymap_h = open(
             f"{ecdir}/keyboards/{board}/{board.split('/')[-1]}.h").read()
         default_c = open(
             f"{ecdir}/keyboards/{board}/keymaps/default/keymap.c").read()
-        includedir = f'{ecdir}/tmk_core'
     else:
-        common_keymap_h = open(
-            f"{ecdir}/src/common/include/common/keymap.h").read()
         keymap_h = open(
             f"{ecdir}/src/board/{board}/include/board/keymap.h").read()
         default_c = open(f"{ecdir}/src/board/{board}/keymap/default.c").read()
-        includedir = f'{ecdir}/src/common/include'
 
     os.makedirs(f'{layoutdir}', exist_ok=True)
 
     physical, physical2 = parse_layout_define(keymap_h, is_qmk)
-    scancodes = extract_scancodes(includedir, common_keymap_h, is_qmk)
+    scancodes = extract_scancodes(ecdir, is_qmk)
     default_keymap = parse_keymap(default_c, physical, is_qmk)
     gen_layout_json(f'{layoutdir}/layout.json', physical, physical2)
     gen_keymap_json(f'{layoutdir}/keymap.json', scancodes)
