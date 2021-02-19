@@ -2,7 +2,7 @@
   "board": "system76/launch_test",
   "map": {
     "K00": [
-      "RGB_TOG"
+      "KBD_TOGGLE"
     ],
     "K01": [
       "RGB_RMOD"

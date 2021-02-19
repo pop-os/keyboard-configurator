@@ -69,6 +69,10 @@ QMK_MAPPING = {
     'RBRC': 'BRACE_CLOSE',
     'RCTRL': 'RIGHT_CTRL',
     'RCTL': 'RIGHT_CTRL',
+    'RGB_TOG': 'KBD_TOGGLE',
+    # TODO: These aren't working?
+    # 'RGB_VAD': 'KBD_DOWN',
+    # 'RGB_VAI': 'KBD_UP',
     'RGUI': 'RIGHT_SUPER',
     'RSHIFT': 'RIGHT_SHIFT',
     'RSFT': 'RIGHT_SHIFT',
@@ -83,10 +87,13 @@ def extract_scancodes(ecdir: str, is_qmk: bool) -> List[Tuple[str, int]]:
     "Extract mapping from scancode names to numbers"
 
     if is_qmk:
-        includes = [f"{ecdir}/tmk_core/common/keycode.h"]
+        includes = [f"{ecdir}/tmk_core/common/keycode.h", f"{ecdir}/quantum/quantum_keycodes.h"]
         common_keymap_h = open(includes[0]).read()
+        quantum_keycode_h = open(includes[1]).read()
         scancode_defines = re.findall(
             '    (KC_[^,\s]+)', common_keymap_h)
+        scancode_defines += re.findall(
+            '    (RGB_[^,\s]+)', quantum_keycode_h)
     else:
         includes = [f"{ecdir}/src/common/include/common/keymap.h"]
         common_keymap_h = open(includes[0]).read()
@@ -113,7 +120,13 @@ def extract_scancodes(ecdir: str, is_qmk: bool) -> List[Tuple[str, int]]:
 
     shutil.rmtree(tmpdir)
 
-    scancode_names = (i.split('_', 1)[1] for i in scancode_defines)
+    scancode_names = []
+    for i in scancode_defines:
+        a, b = i.split('_', 1)
+        if a in ['RGB']:
+            scancode_names.append(i)
+        else:
+            scancode_names.append(b)
     if is_qmk:
         scancode_names = [QMK_MAPPING.get(i, i) for i in scancode_names]
     scancodes = (int(i) for i in output.split())
