@@ -80,7 +80,8 @@ QMK_MAPPING = {
     'SCLN': 'SEMICOLON',
     'SLSH': 'SLASH',
     'SPC': 'SPACE',
-    'SYSTEM_SLEEP': 'SUSPEND'
+    'SYSTEM_SLEEP': 'SUSPEND',
+    'TRNS': 'ROLL_OVER',
 }
 
 def extract_scancodes(ecdir: str, is_qmk: bool) -> List[Tuple[str, int]]:
@@ -178,10 +179,6 @@ def parse_keymap(keymap_c: str, physical: List[str], is_qmk: bool) -> Dict[str, 
 
             if is_qmk:
                 code = QMK_MAPPING.get(code, code)
-
-                # Handle TRNS
-                if layer_scancodes and code == 'TRNS':
-                    code = layer_scancodes[-1][x]
 
             return code
 
