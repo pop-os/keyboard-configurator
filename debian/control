@@ -7,7 +7,7 @@ Build-Depends:
   cargo,
   rustc (>=1.36.0),
   libgtk-3-dev,
-  libusb-1.0-0-dev,
+  libudev-dev,
   pkg-config,
 Standards-Version: 4.3.0
 Homepage: https://github.com/pop-os/keyboard-configurator
@@ -15,8 +15,6 @@ Homepage: https://github.com/pop-os/keyboard-configurator
 Package: system76-keyboard-configurator
 Architecture: amd64
 Depends:
-  libgtk-3-0,
-  libusb-1.0-0,
   ${misc:Depends},
   ${shlibs:Depends}
 Description: System76 Keyboard Configurator
@@ -25,8 +23,6 @@ Description: System76 Keyboard Configurator
 Package: libsystem76-keyboard-configurator
 Architecture: amd64
 Depends:
-  libgtk-3-0,
-  libusb-1.0-0,
   ${misc:Depends},
   ${shlibs:Depends}
 Description: Pop keyboard backlight library
