@@ -1,5 +1,5 @@
 use cascade::cascade;
-use glib::subclass;
+use glib::{clone, subclass};
 use gtk::prelude::*;
 use gtk::subclass::prelude::*;
 use std::rc::Rc;

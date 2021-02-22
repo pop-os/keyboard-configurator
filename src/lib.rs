@@ -1,6 +1,3 @@
-#[macro_use]
-extern crate glib;
-
 pub mod application;
 pub mod daemon;
 

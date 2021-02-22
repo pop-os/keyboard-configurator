@@ -1,6 +1,6 @@
 use cascade::cascade;
 use glib::object::WeakRef;
-use glib::subclass;
+use glib::{clone, subclass};
 use gtk::prelude::*;
 use gtk::subclass::prelude::*;
 use std::{
