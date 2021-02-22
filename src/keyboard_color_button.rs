@@ -158,7 +158,7 @@ impl KeyboardColorButton {
         keyboard_color_button.set_rgb(match board.color() {
             Ok(ok) => ok,
             Err(err) => {
-                eprintln!("{}", err);
+                error!("{}", err);
                 Rgb::new(0, 0, 0)
             }
         });
@@ -221,7 +221,7 @@ impl KeyboardColorButton {
             self.populate_grid();
         } else if let Some(circle) = &*self.inner().current_circle.borrow() {
             if let Err(err) = self.board().set_color(circle.rgb()) {
-                eprintln!("Failed to set keyboard color: {}", err);
+                error!("Failed to set keyboard color: {}", err);
             }
         }
     }
@@ -246,7 +246,7 @@ impl KeyboardColorButton {
             {
                 circle.set_rgb(color);
             } else if let Err(err) = self.board().set_color(circle.rgb()) {
-                eprintln!("Failed to set keyboard color: {}", err);
+                error!("Failed to set keyboard color: {}", err);
             }
         }
     }
@@ -254,7 +254,7 @@ impl KeyboardColorButton {
     fn circle_clicked(&self, circle: &ColorCircle) {
         let color = circle.rgb();
         if let Err(err) = self.board().set_color(color) {
-            eprintln!("Failed to set keyboard color: {}", err);
+            error!("Failed to set keyboard color: {}", err);
         }
         self.set_rgb(color);
 

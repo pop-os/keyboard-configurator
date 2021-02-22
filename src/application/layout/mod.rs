@@ -102,7 +102,7 @@ impl Layout {
                 for i in &row.0 {
                     match i {
                         PhysicalKeyEnum::Meta(meta) => {
-                            println!("Key metadata {:?}", meta);
+                            debug!("Key metadata {:?}", meta);
                             x += meta.x;
                             y -= meta.y;
                             w = meta.w.unwrap_or(w);
@@ -125,24 +125,24 @@ impl Layout {
                             }
                         }
                         PhysicalKeyEnum::Name(name) => {
-                            println!("Key {}, {} = {:?}", x, y, name);
+                            debug!("Key {}, {} = {:?}", x, y, name);
 
                             let logical = (row_i as u8, col_i as u8);
-                            println!("  Logical: {:?}", logical);
+                            debug!("  Logical: {:?}", logical);
 
                             let row_char = char::from_digit(logical.0 as u32, 36)
                                 .expect("Failed to convert row to char");
                             let col_char = char::from_digit(logical.1 as u32, 36)
                                 .expect("Failed to convert col to char");
                             let logical_name = format!("K{}{}", row_char, col_char).to_uppercase();
-                            println!("  Logical Name: {}", logical_name);
+                            debug!("  Logical Name: {}", logical_name);
 
                             let electrical = self
                                 .layout
                                 .get(logical_name.as_str())
                                 //.expect("Failed to find electrical mapping");
                                 .unwrap_or(&(0, 0));
-                            println!("  Electrical: {:?}", electrical);
+                            debug!("  Electrical: {:?}", electrical);
 
                             keys.push(Key {
                                 logical,

@@ -99,8 +99,7 @@ impl ApplicationImpl for ConfiguratorAppInner {
         self.parent_activate(app);
 
         if let Some(window) = app.get_active_window() {
-            //TODO
-            eprintln!("Focusing current window");
+            info!("Focusing current window");
             window.present();
         } else {
             let phony_board_names = &*self.phony_board_names;

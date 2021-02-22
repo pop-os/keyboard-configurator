@@ -165,7 +165,7 @@ impl Picker {
                     };
                     let layer = kb.layer();
 
-                    println!("Clicked {} layer {:?}", name, layer);
+                    info!("Clicked {} layer {:?}", name, layer);
                     if let Some(i) = kb.selected() {
                         if let Some(layer) = layer {
                             kb.keymap_set(i, layer, &name);

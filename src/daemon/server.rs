@@ -35,15 +35,15 @@ impl<R: Read, W: Write> DaemonServer<R, W> {
         match unsafe { AccessLpcLinux::new(Duration::new(1, 0)) } {
             Ok(access) => match unsafe { Ec::new(access) } {
                 Ok(ec) => {
-                    eprintln!("Adding LPC EC");
+                    info!("Adding LPC EC");
                     lpc.push(ec.into_dyn());
                 }
                 Err(err) => {
-                    eprintln!("Failed to probe LPC EC: {:?}", err);
+                    error!("Failed to probe LPC EC: {:?}", err);
                 }
             },
             Err(err) => {
-                eprintln!("Failed to access LPC EC: {:?}", err);
+                error!("Failed to access LPC EC: {:?}", err);
             }
         }
 
@@ -60,11 +60,11 @@ impl<R: Read, W: Write> DaemonServer<R, W> {
                                 Ok(device) => match AccessHid::new(device, 10, 100) {
                                     Ok(access) => match unsafe { Ec::new(access) } {
                                         Ok(ec) => {
-                                            eprintln!("Adding USB HID EC at {:?}", info.path());
+                                            info!("Adding USB HID EC at {:?}", info.path());
                                             hid.push(ec.into_dyn());
                                         }
                                         Err(err) => {
-                                            eprintln!(
+                                            error!(
                                                 "Failed to probe USB HID EC at {:?}: {:?}",
                                                 info.path(),
                                                 err
@@ -72,7 +72,7 @@ impl<R: Read, W: Write> DaemonServer<R, W> {
                                         }
                                     },
                                     Err(err) => {
-                                        eprintln!(
+                                        error!(
                                             "Failed to access USB HID EC at {:?}: {:?}",
                                             info.path(),
                                             err
@@ -80,7 +80,7 @@ impl<R: Read, W: Write> DaemonServer<R, W> {
                                     }
                                 },
                                 Err(err) => {
-                                    eprintln!(
+                                    error!(
                                         "Failed to open USB HID EC at {:?}: {:?}",
                                         info.path(),
                                         err
@@ -94,7 +94,7 @@ impl<R: Read, W: Write> DaemonServer<R, W> {
                 }
             }
             Err(err) => {
-                eprintln!("Failed to list USB HID ECs: {:?}", err);
+                error!("Failed to list USB HID ECs: {:?}", err);
             }
         }
 

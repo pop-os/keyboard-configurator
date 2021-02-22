@@ -62,7 +62,7 @@ impl ObjectImpl for KeyboardInner {
                         .get_visible_child()
                         .map(|c| c.downcast_ref::<KeyboardLayer>().unwrap().page());
 
-                    println!("{:?}", page);
+                    debug!("{:?}", page);
                     let last_layer = keyboard.layer();
                     keyboard.inner().page.set(page.unwrap_or(Page::Layer1));
                     if keyboard.layer() != last_layer {
@@ -79,9 +79,9 @@ impl ObjectImpl for KeyboardInner {
             ..connect_value_changed(clone!(@weak keyboard => move |this| {
                 let value = this.get_value() as i32;
                 if let Err(err) = keyboard.board().set_brightness(value) {
-                    eprintln!("{}", err);
+                    error!("{}", err);
                 }
-                println!("{}", value);
+                info!("{}", value);
             }));
         };
 
@@ -229,21 +229,21 @@ impl Keyboard {
         let mut keys = layout.keys();
         for key in keys.iter_mut() {
             for layer in 0..2 {
-                println!("  Layer {}", layer);
+                debug!("  Layer {}", layer);
                 let scancode = match board.keymap_get(layer, key.electrical.0, key.electrical.1) {
                     Ok(value) => value,
                     Err(err) => {
-                        eprintln!("Failed to read scancode: {:?}", err);
+                        error!("Failed to read scancode: {:?}", err);
                         0
                     }
                 };
-                println!("    Scancode: {:04X}", scancode);
+                debug!("    Scancode: {:04X}", scancode);
 
                 let scancode_name = match layout.scancode_names.get(&scancode) {
                     Some(some) => some.to_string(),
                     None => String::new(),
                 };
-                println!("    Scancode Name: {}", scancode_name);
+                debug!("    Scancode Name: {}", scancode_name);
 
                 key.scancodes.borrow_mut().push((scancode, scancode_name));
             }
@@ -260,7 +260,7 @@ impl Keyboard {
         let max_brightness = match keyboard.board().max_brightness() {
             Ok(value) => value as f64,
             Err(err) => {
-                eprintln!("{}", err);
+                error!("{}", err);
                 100.0
             }
         };
@@ -272,7 +272,7 @@ impl Keyboard {
         let brightness = match keyboard.board().brightness() {
             Ok(value) => value as f64,
             Err(err) => {
-                eprintln!("{}", err);
+                error!("{}", err);
                 0.0
             }
         };
@@ -366,7 +366,7 @@ impl Keyboard {
         if !found {
             return;
         }
-        println!(
+        info!(
             "  set {}, {}, {} to {:04X}",
             layer,
             k.electrical.0,
@@ -379,7 +379,7 @@ impl Keyboard {
             k.electrical.1,
             k.scancodes.borrow_mut()[layer].0,
         ) {
-            eprintln!("Failed to set keymap: {:?}", err);
+            error!("Failed to set keymap: {:?}", err);
         }
 
         self.set_selected(self.selected());
@@ -535,7 +535,7 @@ impl Keyboard {
 
         if let Some(i) = i {
             let k = &keys[i];
-            println!("{:#?}", k);
+            debug!("{:#?}", k);
             if let Some(layer) = self.layer() {
                 if let Some((_scancode, scancode_name)) = keys[i].scancodes.borrow().get(layer) {
                     picker.set_selected(Some(scancode_name.to_string()));

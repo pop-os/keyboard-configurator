@@ -116,7 +116,7 @@ impl ObjectImpl for MainWindowInner {
 impl WidgetImpl for MainWindowInner {
     fn destroy(&self, window: &MainWindow) {
         self.parent_destroy(window);
-        eprintln!("Window close");
+        info!("Window close");
     }
 }
 impl ContainerImpl for MainWindowInner {}
@@ -149,7 +149,7 @@ impl MainWindow {
                 window.add_keyboard(daemon.clone(), board, i);
             }
         } else if window.inner().count.load(Ordering::Relaxed) == 0 {
-            eprintln!("Failed to locate any keyboards, showing demo");
+            error!("Failed to locate any keyboards, showing demo");
 
             let daemon = Rc::new(DaemonDummy::new(
                 vec!["system76/launch_alpha_2".to_string()],
@@ -191,7 +191,7 @@ impl MainWindow {
                 self.insert_action_group("kbd", Some(keyboard.action_group()));
             }
         } else {
-            eprintln!("Failed to locate layout for '{}'", board_name);
+            error!("Failed to locate layout for '{}'", board_name);
         }
     }
 }
@@ -199,10 +199,10 @@ impl MainWindow {
 #[cfg(target_os = "linux")]
 fn daemon() -> Rc<dyn Daemon> {
     if unsafe { libc::geteuid() == 0 } {
-        eprintln!("Already running as root");
+        info!("Already running as root");
         Rc::new(DaemonServer::new_stdio().expect("Failed to create server"))
     } else {
-        eprintln!("Not running as root, spawning daemon with pkexec");
+        info!("Not running as root, spawning daemon with pkexec");
         Rc::new(DaemonClient::new_pkexec())
     }
 }

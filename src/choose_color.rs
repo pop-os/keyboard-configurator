@@ -35,7 +35,7 @@ pub fn choose_color<W: IsA<gtk::Widget>>(
 
     color_wheel.connect_hs_changed(clone!(@weak preview => @default-panic, move |wheel| {
         if let Err(err) = board.set_color(wheel.hs().to_rgb()) {
-            eprintln!("Failed to set keyboard color: {}", err);
+            error!("Failed to set keyboard color: {}", err);
         }
         preview.queue_draw();
     }));
