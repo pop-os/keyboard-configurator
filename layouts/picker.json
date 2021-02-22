@@ -248,6 +248,10 @@
       {
         "keysym": "ROLL_OVER",
         "label": "Reuse"
+      },
+      {
+        "keysym": "NONE",
+        "label": "None"
       }
     ]
   },
