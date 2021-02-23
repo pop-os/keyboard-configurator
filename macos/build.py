@@ -2,6 +2,7 @@
 
 import argparse
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -50,8 +51,12 @@ with tempfile.TemporaryDirectory('.iconset') as d:
 subprocess.check_call([f"strip", '-o', f"keyboard-configurator", f"{TARGET_DIR}/system76-keyboard-configurator"])
 
 # Build .app bundle
+if os.path.exists("System76KeyboardConfigurator.app"):
+    shutil.rmtree("System76KeyboardConfigurator.app")
 subprocess.check_call(["gtk-mac-bundler", "keyboard-configurator.bundle"])
 subprocess.check_call(["jdupes", "-R", "-l", "System76KeyboardConfigurator.app"])
 
 # Build .dmg
+if os.path.exists("keyboard-configurator.dmg"):
+    os.remove("keyboard-configurator.dmg")
 subprocess.check_call(["appdmg", "appdmg.json", "keyboard-configurator.dmg"])
