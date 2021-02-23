@@ -16,9 +16,7 @@ pub struct DaemonServer<R: Read, W: Write> {
     running: Cell<bool>,
     read: BufReader<R>,
     write: W,
-    hid: RefCell<Vec<Ec<Box<dyn Access>>>>,
-    #[cfg(target_os = "linux")]
-    lpc: RefCell<Vec<Ec<Box<dyn Access>>>>,
+    boards: RefCell<Vec<Ec<Box<dyn Access>>>>,
 }
 
 impl DaemonServer<io::Stdin, io::Stdout> {
@@ -29,14 +27,13 @@ impl DaemonServer<io::Stdin, io::Stdout> {
 
 impl<R: Read, W: Write> DaemonServer<R, W> {
     pub fn new(read: R, write: W) -> Result<Self, String> {
-        #[cfg(target_os = "linux")]
-        let mut lpc = Vec::new();
-        #[cfg(target_os = "linux")]
+        let mut boards = Vec::new();
+
         match unsafe { AccessLpcLinux::new(Duration::new(1, 0)) } {
             Ok(access) => match unsafe { Ec::new(access) } {
                 Ok(ec) => {
                     info!("Adding LPC EC");
-                    lpc.push(ec.into_dyn());
+                    boards.push(ec.into_dyn());
                 }
                 Err(err) => {
                     error!("Failed to probe LPC EC: {:?}", err);
@@ -47,7 +44,6 @@ impl<R: Read, W: Write> DaemonServer<R, W> {
             }
         }
 
-        let mut hid = Vec::new();
         //TODO: should we continue through HID errors?
         match HidApi::new() {
             Ok(api) => {
@@ -61,7 +57,7 @@ impl<R: Read, W: Write> DaemonServer<R, W> {
                                     Ok(access) => match unsafe { Ec::new(access) } {
                                         Ok(ec) => {
                                             info!("Adding USB HID EC at {:?}", info.path());
-                                            hid.push(ec.into_dyn());
+                                            boards.push(ec.into_dyn());
                                         }
                                         Err(err) => {
                                             error!(
@@ -102,9 +98,7 @@ impl<R: Read, W: Write> DaemonServer<R, W> {
             running: Cell::new(true),
             read: BufReader::new(read),
             write,
-            hid: RefCell::new(hid),
-            #[cfg(target_os = "linux")]
-            lpc: RefCell::new(lpc),
+            boards: RefCell::new(boards),
         })
     }
 
@@ -129,22 +123,13 @@ impl<R: Read, W: Write> DaemonServer<R, W> {
         Ok(())
     }
 
-    fn board(&self, mut board: usize) -> Result<RefMut<Ec<Box<dyn Access>>>, String> {
-        #[cfg(target_os = "linux")]
-        {
-            let mut lpc = self.lpc.borrow_mut();
-            if lpc.get_mut(board).is_some() {
-                return Ok(RefMut::map(lpc, |x| x.get_mut(board).unwrap()));
-            }
-            board -= lpc.len();
+    fn board(&self, board: usize) -> Result<RefMut<Ec<Box<dyn Access>>>, String> {
+        let mut boards = self.boards.borrow_mut();
+        if boards.get_mut(board).is_some() {
+            Ok(RefMut::map(boards, |x| x.get_mut(board).unwrap()))
+        } else {
+            Err("failed to find board".to_string())
         }
-
-        let mut hid = self.hid.borrow_mut();
-        if hid.get_mut(board).is_some() {
-            return Ok(RefMut::map(hid, |x| x.get_mut(board).unwrap()));
-        }
-
-        Err("failed to find board".to_string())
     }
 }
 
@@ -152,16 +137,7 @@ impl<R: Read, W: Write> Daemon for DaemonServer<R, W> {
     fn boards(&self) -> Result<Vec<String>, String> {
         let mut boards = Vec::new();
 
-        #[cfg(target_os = "linux")]
-        for ec in self.lpc.borrow_mut().iter_mut() {
-            let data_size = unsafe { ec.access().data_size() };
-            let mut data = vec![0; data_size];
-            let len = unsafe { ec.board(&mut data).map_err(err_str)? };
-            let board = str::from_utf8(&data[..len]).map_err(err_str)?;
-            boards.push(board.to_string());
-        }
-
-        for ec in self.hid.borrow_mut().iter_mut() {
+        for ec in self.boards.borrow_mut().iter_mut() {
             let data_size = unsafe { ec.access().data_size() };
             let mut data = vec![0; data_size];
             let len = unsafe { ec.board(&mut data).map_err(err_str)? };
