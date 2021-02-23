@@ -4,10 +4,12 @@ use ectool::{Access, AccessHid, Ec};
 use hidapi::HidApi;
 use std::{
     cell::{Cell, RefCell, RefMut},
+    collections::HashMap,
     io::{self, BufRead, BufReader, Read, Write},
     str,
     time::Duration,
 };
+use uuid::Uuid;
 
 use super::{err_str, BoardId, Daemon, DaemonCommand};
 use crate::color::Rgb;
@@ -16,7 +18,7 @@ pub struct DaemonServer<R: Read, W: Write> {
     running: Cell<bool>,
     read: BufReader<R>,
     write: W,
-    boards: RefCell<Vec<Ec<Box<dyn Access>>>>,
+    boards: RefCell<HashMap<BoardId, Ec<Box<dyn Access>>>>,
 }
 
 impl DaemonServer<io::Stdin, io::Stdout> {
@@ -27,13 +29,15 @@ impl DaemonServer<io::Stdin, io::Stdout> {
 
 impl<R: Read, W: Write> DaemonServer<R, W> {
     pub fn new(read: R, write: W) -> Result<Self, String> {
-        let mut boards = Vec::new();
+        let mut boards = HashMap::new();
 
+        #[cfg(target_os = "linux")]
         match unsafe { AccessLpcLinux::new(Duration::new(1, 0)) } {
             Ok(access) => match unsafe { Ec::new(access) } {
                 Ok(ec) => {
                     info!("Adding LPC EC");
-                    boards.push(ec.into_dyn());
+                    let id = BoardId(Uuid::new_v4().as_u128());
+                    boards.insert(id, ec.into_dyn());
                 }
                 Err(err) => {
                     error!("Failed to probe LPC EC: {:?}", err);
@@ -57,7 +61,8 @@ impl<R: Read, W: Write> DaemonServer<R, W> {
                                     Ok(access) => match unsafe { Ec::new(access) } {
                                         Ok(ec) => {
                                             info!("Adding USB HID EC at {:?}", info.path());
-                                            boards.push(ec.into_dyn());
+                                            let id = BoardId(Uuid::new_v4().as_u128());
+                                            boards.insert(id, ec.into_dyn());
                                         }
                                         Err(err) => {
                                             error!(
@@ -125,8 +130,8 @@ impl<R: Read, W: Write> DaemonServer<R, W> {
 
     fn board(&self, board: BoardId) -> Result<RefMut<Ec<Box<dyn Access>>>, String> {
         let mut boards = self.boards.borrow_mut();
-        if boards.get_mut(board.0).is_some() {
-            Ok(RefMut::map(boards, |x| x.get_mut(board.0).unwrap()))
+        if boards.get_mut(&board).is_some() {
+            Ok(RefMut::map(boards, |x| x.get_mut(&board).unwrap()))
         } else {
             Err("failed to find board".to_string())
         }
@@ -135,7 +140,7 @@ impl<R: Read, W: Write> DaemonServer<R, W> {
 
 impl<R: Read, W: Write> Daemon for DaemonServer<R, W> {
     fn boards(&self) -> Result<Vec<BoardId>, String> {
-        Ok((0..self.boards.borrow().len()).map(BoardId).collect())
+        Ok(self.boards.borrow().keys().cloned().collect())
     }
 
     fn model(&self, board: BoardId) -> Result<String, String> {

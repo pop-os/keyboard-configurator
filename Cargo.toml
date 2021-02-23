@@ -31,6 +31,7 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 log = "0.4.0"
 env_logger = "0.8.3"
+uuid = { version = "0.8.2", features = ["v4"] }
 
 [build-dependencies]
 gio = { git = "https://github.com/pop-os/gtk-rs" }

@@ -11,7 +11,7 @@ mod server;
 pub use self::{board::*, client::*, dummy::*, s76power::*, server::*};
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Deserialize, Serialize)]
-pub struct BoardId(usize);
+pub struct BoardId(u128);
 
 pub trait DaemonClientTrait {
     fn send_command(&self, command: DaemonCommand) -> Result<DaemonResponse, String>;

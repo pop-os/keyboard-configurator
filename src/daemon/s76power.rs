@@ -1,5 +1,6 @@
 // Note: Linux only
 // Need to watch properties of each object?
+// TODO: Hotplug detection support
 
 use gio::prelude::*;
 use glib::variant::{FromVariant, ToVariant};
@@ -80,7 +81,7 @@ pub struct DaemonS76Power {
 impl DaemonS76Power {
     fn board(&self, board: BoardId) -> Result<&Keyboard, String> {
         self.boards
-            .get(board.0)
+            .get(board.0 as usize)
             .ok_or_else(|| "No board".to_string())
     }
 }
@@ -122,7 +123,7 @@ impl DaemonS76Power {
 
 impl Daemon for DaemonS76Power {
     fn boards(&self) -> Result<Vec<BoardId>, String> {
-        Ok((0..self.boards.len()).map(BoardId).collect())
+        Ok((0..self.boards.len() as u128).map(BoardId).collect())
     }
 
     fn model(&self, board: BoardId) -> Result<String, String> {

@@ -21,7 +21,7 @@ pub struct DaemonDummy {
 impl DaemonDummy {
     fn board(&self, board: BoardId) -> Result<&BoardDummy, String> {
         self.boards
-            .get(board.0)
+            .get(board.0 as usize)
             .ok_or_else(|| "No board".to_string())
     }
 }
@@ -41,7 +41,7 @@ impl DaemonDummy {
 
 impl Daemon for DaemonDummy {
     fn boards(&self) -> Result<Vec<BoardId>, String> {
-        Ok((0..self.boards.len()).map(BoardId).collect())
+        Ok((0..self.boards.len() as u128).map(BoardId).collect())
     }
 
     fn model(&self, board: BoardId) -> Result<String, String> {
