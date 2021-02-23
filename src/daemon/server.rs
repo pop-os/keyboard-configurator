@@ -9,7 +9,7 @@ use std::{
     time::Duration,
 };
 
-use super::{err_str, Daemon, DaemonCommand};
+use super::{err_str, BoardId, Daemon, DaemonCommand};
 use crate::color::Rgb;
 
 pub struct DaemonServer<R: Read, W: Write> {
@@ -123,10 +123,10 @@ impl<R: Read, W: Write> DaemonServer<R, W> {
         Ok(())
     }
 
-    fn board(&self, board: usize) -> Result<RefMut<Ec<Box<dyn Access>>>, String> {
+    fn board(&self, board: BoardId) -> Result<RefMut<Ec<Box<dyn Access>>>, String> {
         let mut boards = self.boards.borrow_mut();
-        if boards.get_mut(board).is_some() {
-            Ok(RefMut::map(boards, |x| x.get_mut(board).unwrap()))
+        if boards.get_mut(board.0).is_some() {
+            Ok(RefMut::map(boards, |x| x.get_mut(board.0).unwrap()))
         } else {
             Err("failed to find board".to_string())
         }
@@ -134,28 +134,27 @@ impl<R: Read, W: Write> DaemonServer<R, W> {
 }
 
 impl<R: Read, W: Write> Daemon for DaemonServer<R, W> {
-    fn boards(&self) -> Result<Vec<String>, String> {
-        let mut boards = Vec::new();
-
-        for ec in self.boards.borrow_mut().iter_mut() {
-            let data_size = unsafe { ec.access().data_size() };
-            let mut data = vec![0; data_size];
-            let len = unsafe { ec.board(&mut data).map_err(err_str)? };
-            let board = str::from_utf8(&data[..len]).map_err(err_str)?;
-            boards.push(board.to_string());
-        }
-
-        Ok(boards)
+    fn boards(&self) -> Result<Vec<BoardId>, String> {
+        Ok((0..self.boards.borrow().len()).map(BoardId).collect())
     }
 
-    fn keymap_get(&self, board: usize, layer: u8, output: u8, input: u8) -> Result<u16, String> {
+    fn model(&self, board: BoardId) -> Result<String, String> {
+        let mut ec = self.board(board)?;
+        let data_size = unsafe { ec.access().data_size() };
+        let mut data = vec![0; data_size];
+        let len = unsafe { ec.board(&mut data).map_err(err_str)? };
+        let board = str::from_utf8(&data[..len]).map_err(err_str)?;
+        Ok(board.to_string())
+    }
+
+    fn keymap_get(&self, board: BoardId, layer: u8, output: u8, input: u8) -> Result<u16, String> {
         let mut ec = self.board(board)?;
         unsafe { ec.keymap_get(layer, output, input).map_err(err_str) }
     }
 
     fn keymap_set(
         &self,
-        board: usize,
+        board: BoardId,
         layer: u8,
         output: u8,
         input: u8,
@@ -165,7 +164,7 @@ impl<R: Read, W: Write> Daemon for DaemonServer<R, W> {
         unsafe { ec.keymap_set(layer, output, input, value).map_err(err_str) }
     }
 
-    fn color(&self, board: usize) -> Result<Rgb, String> {
+    fn color(&self, board: BoardId) -> Result<Rgb, String> {
         let mut ec = self.board(board)?;
         unsafe {
             ec.led_get_color(0xFF)
@@ -174,7 +173,7 @@ impl<R: Read, W: Write> Daemon for DaemonServer<R, W> {
         }
     }
 
-    fn set_color(&self, board: usize, color: Rgb) -> Result<(), String> {
+    fn set_color(&self, board: BoardId, color: Rgb) -> Result<(), String> {
         let mut ec = self.board(board)?;
         unsafe {
             ec.led_set_color(0xFF, color.r, color.g, color.b)
@@ -182,17 +181,17 @@ impl<R: Read, W: Write> Daemon for DaemonServer<R, W> {
         }
     }
 
-    fn max_brightness(&self, board: usize) -> Result<i32, String> {
+    fn max_brightness(&self, board: BoardId) -> Result<i32, String> {
         let mut ec = self.board(board)?;
         unsafe { ec.led_get_value(0xFF).map(|x| x.1 as i32).map_err(err_str) }
     }
 
-    fn brightness(&self, board: usize) -> Result<i32, String> {
+    fn brightness(&self, board: BoardId) -> Result<i32, String> {
         let mut ec = self.board(board)?;
         unsafe { ec.led_get_value(0xFF).map(|x| x.0 as i32).map_err(err_str) }
     }
 
-    fn set_brightness(&self, board: usize, brightness: i32) -> Result<(), String> {
+    fn set_brightness(&self, board: BoardId, brightness: i32) -> Result<(), String> {
         let mut ec = self.board(board)?;
         unsafe { ec.led_set_value(0xFF, brightness as u8).map_err(err_str) }
     }

@@ -170,18 +170,18 @@ impl MainWindow {
         let window: Self = glib::Object::new(&[]).unwrap();
 
         let daemon = daemon();
-        let boards = daemon.boards().expect("Failed to load boards");
 
-        for (i, board) in boards.iter().enumerate() {
-            window.add_keyboard(daemon.clone(), board, i);
+        for i in daemon.boards().expect("Failed to load boards") {
+            let board = DaemonBoard(daemon.clone(), i);
+            window.add_keyboard(board);
         }
 
         if !phony_board_names.is_empty() {
             let daemon = Rc::new(DaemonDummy::new(phony_board_names));
-            let boards = daemon.boards().unwrap();
 
-            for (i, board) in boards.iter().enumerate() {
-                window.add_keyboard(daemon.clone(), board, i);
+            for i in daemon.boards().unwrap() {
+                let board = DaemonBoard(daemon.clone(), i);
+                window.add_keyboard(board);
             }
         }
 
@@ -232,9 +232,16 @@ impl MainWindow {
         inner.picker.show_all();
     }
 
-    fn add_keyboard(&self, daemon: Rc<dyn Daemon>, board_name: &str, i: usize) {
-        let board = DaemonBoard(daemon, i);
-        if let Some(keyboard) = Keyboard::new_board(board_name, board) {
+    fn add_keyboard(&self, board: DaemonBoard) {
+        let model = match board.model() {
+            Ok(model) => model,
+            Err(err) => {
+                error!("Failed to get board model: {}", err);
+                return;
+            }
+        };
+
+        if let Some(keyboard) = Keyboard::new_board(&model, board) {
             keyboard.set_halign(gtk::Align::Center);
             keyboard.show_all();
 
@@ -286,7 +293,7 @@ impl MainWindow {
             // XXX if only one keyboard, show that with no back button
             self.inner().count.fetch_add(1, Ordering::Relaxed);
         } else {
-            error!("Failed to locate layout for '{}'", board_name);
+            error!("Failed to locate layout for '{}'", model);
         }
     }
 }

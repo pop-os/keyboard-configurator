@@ -5,7 +5,7 @@ use gio::prelude::*;
 use glib::variant::{FromVariant, ToVariant};
 use std::{cell::Cell, iter::Iterator};
 
-use super::{err_str, Daemon};
+use super::{err_str, BoardId, Daemon};
 use crate::color::Rgb;
 
 const DBUS_NAME: &str = "com.system76.PowerDaemon";
@@ -78,8 +78,10 @@ pub struct DaemonS76Power {
 }
 
 impl DaemonS76Power {
-    fn board(&self, board: usize) -> Result<&Keyboard, String> {
-        self.boards.get(board).ok_or_else(|| "No board".to_string())
+    fn board(&self, board: BoardId) -> Result<&Keyboard, String> {
+        self.boards
+            .get(board.0)
+            .ok_or_else(|| "No board".to_string())
     }
 }
 
@@ -119,23 +121,20 @@ impl DaemonS76Power {
 }
 
 impl Daemon for DaemonS76Power {
-    fn boards(&self) -> Result<Vec<String>, String> {
+    fn boards(&self) -> Result<Vec<BoardId>, String> {
+        Ok((0..self.boards.len()).map(BoardId).collect())
+    }
+
+    fn model(&self, board: BoardId) -> Result<String, String> {
         Ok(self
-            .boards
-            .iter()
-            .map(|b| {
-                if let Ok(Some(value)) = b.prop("name") {
-                    value
-                } else {
-                    "".to_string()
-                }
-            })
-            .collect())
+            .board(board)?
+            .prop::<String>("name")?
+            .unwrap_or_else(|| "".to_string()))
     }
 
     fn keymap_get(
         &self,
-        _board: usize,
+        _board: BoardId,
         _layer: u8,
         _output: u8,
         _input: u8,
@@ -145,7 +144,7 @@ impl Daemon for DaemonS76Power {
 
     fn keymap_set(
         &self,
-        _board: usize,
+        _board: BoardId,
         _layer: u8,
         _output: u8,
         _input: u8,
@@ -154,28 +153,28 @@ impl Daemon for DaemonS76Power {
         Err("Unimplemented".to_string())
     }
 
-    fn color(&self, board: usize) -> Result<Rgb, String> {
+    fn color(&self, board: BoardId) -> Result<Rgb, String> {
         let color = self.board(board)?.prop::<String>("color")?;
         Ok(color
             .and_then(|c| Rgb::parse(&c))
             .unwrap_or_else(|| Rgb::new(0, 0, 0)))
     }
 
-    fn set_color(&self, board: usize, color: Rgb) -> Result<(), String> {
+    fn set_color(&self, board: BoardId, color: Rgb) -> Result<(), String> {
         let board = self.board(board)?;
         board.set_prop("color", color.to_string(), &board.color_set_cancellable)?;
         Ok(())
     }
 
-    fn max_brightness(&self, board: usize) -> Result<i32, String> {
+    fn max_brightness(&self, board: BoardId) -> Result<i32, String> {
         Ok(self.board(board)?.prop("max_brightness")?.unwrap_or(100))
     }
 
-    fn brightness(&self, board: usize) -> Result<i32, String> {
+    fn brightness(&self, board: BoardId) -> Result<i32, String> {
         Ok(self.board(board)?.prop("brightness")?.unwrap_or(0))
     }
 
-    fn set_brightness(&self, board: usize, brightness: i32) -> Result<(), String> {
+    fn set_brightness(&self, board: BoardId, brightness: i32) -> Result<(), String> {
         let board = self.board(board)?;
         board.set_prop("brightness", brightness, &board.brightness_set_cancellable)?;
         Ok(())
