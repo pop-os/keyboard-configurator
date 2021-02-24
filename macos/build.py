@@ -47,6 +47,9 @@ with tempfile.TemporaryDirectory('.iconset') as d:
 
     subprocess.check_call(["iconutil", "--convert", "icns", "--output", "keyboard-configurator.icns", d])
 
+# Generate background png
+subprocess.check_call(["rsvg-convert", "--width", "640", "--height", "480", "-o", "background.png", "background.svg"])
+
 # Copy executable
 subprocess.check_call([f"strip", '-o', f"keyboard-configurator", f"{TARGET_DIR}/system76-keyboard-configurator"])
 
