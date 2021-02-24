@@ -54,10 +54,10 @@ subprocess.check_call(["rsvg-convert", "--width", "640", "--height", "480", "-o"
 subprocess.check_call([f"strip", '-o', f"keyboard-configurator", f"{TARGET_DIR}/system76-keyboard-configurator"])
 
 # Build .app bundle
-if os.path.exists("System76KeyboardConfigurator.app"):
-    shutil.rmtree("System76KeyboardConfigurator.app")
+if os.path.exists("System76 Keyboard Configurator.app"):
+    shutil.rmtree("System76 Keyboard Configurator.app")
 subprocess.check_call(["gtk-mac-bundler", "keyboard-configurator.bundle"])
-subprocess.check_call(["jdupes", "-R", "-l", "System76KeyboardConfigurator.app"])
+subprocess.check_call(["jdupes", "-R", "-l", "System76 Keyboard Configurator.app"])
 
 # Build .dmg
 if os.path.exists("keyboard-configurator.dmg"):
