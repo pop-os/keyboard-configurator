@@ -10,7 +10,7 @@ mod server;
 
 pub use self::{board::*, client::*, dummy::*, s76power::*, server::*};
 
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Deserialize, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Deserialize, Serialize)]
 pub struct BoardId(u128);
 
 pub trait DaemonClientTrait {
