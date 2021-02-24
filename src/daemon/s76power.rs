@@ -126,6 +126,11 @@ impl Daemon for DaemonS76Power {
         Ok((0..self.boards.len() as u128).map(BoardId).collect())
     }
 
+    fn refresh(&self) -> Result<(), String> {
+        // TODO
+        Ok(())
+    }
+
     fn model(&self, board: BoardId) -> Result<String, String> {
         Ok(self
             .board(board)?

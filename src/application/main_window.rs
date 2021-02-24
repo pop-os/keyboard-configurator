@@ -2,8 +2,11 @@ use cascade::cascade;
 use glib::{clone, subclass};
 use gtk::prelude::*;
 use gtk::subclass::prelude::*;
-use std::rc::Rc;
-use std::sync::atomic::{AtomicUsize, Ordering};
+use std::{
+    cell::RefCell,
+    rc::Rc,
+    sync::atomic::{AtomicUsize, Ordering},
+};
 
 use super::{shortcuts_window, Keyboard, KeyboardLayer, Page, Picker};
 use crate::{Daemon, DaemonBoard, DaemonClient, DaemonDummy, DaemonServer, DerefCell};
@@ -17,6 +20,7 @@ pub struct MainWindowInner {
     layer_switcher: DerefCell<gtk::StackSwitcher>,
     picker: DerefCell<Picker>,
     stack: DerefCell<gtk::Stack>,
+    keyboards: RefCell<Vec<Keyboard>>,
 }
 
 impl ObjectSubclass for MainWindowInner {
@@ -140,6 +144,26 @@ impl ObjectImpl for MainWindowInner {
         };
         back_button.set_visible(false);
 
+        glib::timeout_add_seconds_local(
+            5,
+            clone!(@weak window => @default-return glib::Continue(false), move || {
+                println!("Foo");
+                // needs to refresh all daemons, if multiple
+                // for keyboard
+                //     remove if not connected
+                // check for new keyboards
+                //     foreach
+                //         add if not already
+                // Have BTreeMap of Keyboard
+                // XXX
+                for keyboard in window.inner().keyboards.borrow().iter() {
+                    keyboard.board().0.refresh();
+                }
+                println!("Bar");
+                glib::Continue(true)
+            }),
+        );
+
         self.back_button.set(back_button);
         self.header_bar.set(header_bar);
         self.keyboard_list_box.set(keyboard_list_box);
@@ -242,6 +266,8 @@ impl MainWindow {
         };
 
         if let Some(keyboard) = Keyboard::new_board(&model, board) {
+            self.inner().keyboards.borrow_mut().push(keyboard.clone());
+
             keyboard.set_halign(gtk::Align::Center);
             keyboard.show_all();
 

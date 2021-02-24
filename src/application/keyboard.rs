@@ -312,7 +312,7 @@ impl Keyboard {
         &self.inner().board_name
     }
 
-    fn board(&self) -> &DaemonBoard {
+    pub fn board(&self) -> &DaemonBoard {
         &self.inner().board
     }
 

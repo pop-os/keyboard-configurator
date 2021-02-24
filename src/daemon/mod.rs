@@ -75,6 +75,7 @@ macro_rules! commands {
 
 commands! {
     fn boards(&self) -> Result<Vec<BoardId>, String>;
+    fn refresh(&self) -> Result<(), String>;
     fn model(&self, board: BoardId) -> Result<String, String>;
     fn keymap_get(&self, board: BoardId, layer: u8, output: u8, input: u8) -> Result<u16, String>;
     fn keymap_set(&self, board: BoardId, layer: u8, output: u8, input: u8, value: u16) -> Result<(), String>;
