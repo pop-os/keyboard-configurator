@@ -154,24 +154,22 @@ def parse_layout_define(keymap_h: str, is_qmk) -> Tuple[List[str], List[List[str
         r'LAYOUT\((.*?)\)[\s\\]*({[^{}]*({[^{}]*}[^{}]*)+)[^{}]*}', keymap_h, re.MULTILINE | re.DOTALL)
     assert m is not None
     physical = m.group(1).replace(',', ' ').replace('\\', '').split()
-    print(physical)
     # XXX name?
     physical2 = [i.replace('\\', '').replace(',', '').split()
                  for i in m.group(2).replace('{', '').split('}')[:-1]]
     assert is_qmk or all(len(i) == len(physical2[0]) for i in physical2)
     return physical, physical2
 
-def parse_led_config(led_c: str, physical: List[str]) -> Dict[str, List[str]]:
+def parse_led_config(led_c: str, physical: List[str]) -> Dict[str, List[int]]:
     led_c = re.sub(r'//.*', '', led_c)
     led_c = re.sub(r'/\*.*?\*/', '', led_c)
     m = re.search(r'LAYOUT\((.*?)\)', led_c, re.MULTILINE | re.DOTALL)
-    leds = {}
+    leds: Dict[str, List[int]] = {}
     if m is None:
         return leds
     led_indexes = m.group(1).replace(',', ' ').replace('\\', '').split()
     for i, physical_name in enumerate(physical):
         leds[physical_name] = [int(led_indexes[i])]
-    print(leds)
     return leds
 
 def parse_keymap(keymap_c: str, physical: List[str], is_qmk: bool) -> Dict[str, List[str]]:
@@ -223,7 +221,7 @@ def gen_keymap_json(path: str, scancodes: List[Tuple[str, int]]) -> None:
     with open(path, 'w') as f:
        json.dump(scancodes, f, indent=2)
 
-def gen_leds_json(path: str, leds: Dict[str, List[str]]) -> None:
+def gen_leds_json(path: str, leds: Dict[str, List[int]]) -> None:
     "Generate leds.json file"
 
     with open(path, 'w') as f:
