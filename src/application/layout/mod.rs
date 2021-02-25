@@ -15,11 +15,12 @@ pub(super) struct Layout {
     pub scancode_names: HashMap<u16, String>,
     physical: PhysicalLayout,
     layout: HashMap<String, (u8, u8)>,
+    leds: HashMap<String, Vec<u8>>,
 }
 
 macro_rules! keyboards {
     ($( $board:expr ),* $(,)?) => {
-        fn layout_data(board: &str) -> Option<(&'static str, &'static str, &'static str, &'static str)> {
+        fn layout_data(board: &str) -> Option<(&'static str, &'static str, &'static str, &'static str, &'static str)> {
             match board {
                 $(
                 $board => {
@@ -29,9 +30,11 @@ macro_rules! keyboards {
                         include_str!(concat!("../../../layouts/", $board, "/keymap.json"));
                     let layout_json =
                         include_str!(concat!("../../../layouts/", $board, "/layout.json"));
+                    let leds_json =
+                        include_str!(concat!("../../../layouts/", $board, "/leds.json"));
                     let physical_json =
                         include_str!(concat!("../../../layouts/", $board, "/physical.json"));
-                    Some((default_json, keymap_json, layout_json, physical_json))
+                    Some((default_json, keymap_json, layout_json, leds_json, physical_json))
                 }
                 )*
                 _ => None
@@ -64,11 +67,13 @@ impl Layout {
         default_json: &str,
         keymap_json: &str,
         layout_json: &str,
+        leds_json: &str,
         physical_json: &str,
     ) -> Self {
         let default = KeyMap::from_str(default_json).unwrap();
         let (keymap, scancode_names) = parse_keymap_json(keymap_json);
         let layout = parse_layout_json(layout_json);
+        let leds = parse_leds_json(leds_json);
         let physical = parse_physical_json(&physical_json);
         Self {
             default,
@@ -76,12 +81,13 @@ impl Layout {
             scancode_names,
             physical,
             layout,
+            leds,
         }
     }
 
     pub fn from_board(board: &str) -> Option<Self> {
-        layout_data(board).map(|(default_json, keymap_json, layout_json, physical_json)| {
-            Self::from_data(default_json, keymap_json, layout_json, physical_json)
+        layout_data(board).map(|(default_json, keymap_json, layout_json, leds_json, physical_json)| {
+            Self::from_data(default_json, keymap_json, layout_json, leds_json, physical_json)
         })
     }
 
@@ -144,6 +150,19 @@ impl Layout {
                                 .unwrap_or(&(0, 0));
                             debug!("  Electrical: {:?}", electrical);
 
+                            let leds = self
+                                .leds
+                                .get(logical_name.as_str())
+                                .map_or(Vec::new(), |x| x.clone());
+                            let mut led_name = String::new();
+                            for led in leds.iter() {
+                                if ! led_name.is_empty() {
+                                    led_name.push_str(", ");
+                                }
+                                led_name.push_str(&led.to_string());
+                            }
+                            debug!("  LEDs: {:?}", leds);
+
                             keys.push(Key {
                                 logical,
                                 logical_name,
@@ -151,6 +170,8 @@ impl Layout {
                                 physical_name: name.clone(),
                                 electrical: *electrical,
                                 electrical_name: format!("{}, {}", electrical.0, electrical.1),
+                                leds,
+                                led_name,
                                 scancodes: RefCell::new(Vec::new()),
                                 background_color,
                                 foreground_color,
@@ -191,6 +212,10 @@ fn parse_keymap_json(keymap_json: &str) -> (HashMap<String, u16>, HashMap<u16, S
 
 fn parse_layout_json(layout_json: &str) -> HashMap<String, (u8, u8)> {
     serde_json::from_str(layout_json).unwrap()
+}
+
+fn parse_leds_json(leds_json: &str) -> HashMap<String, Vec<u8>> {
+    serde_json::from_str(leds_json).unwrap()
 }
 
 fn parse_physical_json(physical_json: &str) -> PhysicalLayout {

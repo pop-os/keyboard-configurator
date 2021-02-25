@@ -17,6 +17,10 @@ pub struct Key {
     pub(crate) electrical: (u8, u8),
     // Electrical name (output, input)
     pub(crate) electrical_name: String,
+    /// LED indexes
+    pub (crate) leds: Vec<u8>,
+    /// LED name
+    pub (crate) led_name: String,
     // Currently loaded scancodes and their names
     pub(crate) scancodes: RefCell<Vec<(u16, String)>>,
     // Background color
@@ -46,6 +50,7 @@ impl Key {
             Page::Keycaps => self.physical_name.clone(),
             Page::Logical => self.logical_name.clone(),
             Page::Electrical => self.electrical_name.clone(),
+            Page::Leds => self.led_name.clone(),
         }
     }
 }
