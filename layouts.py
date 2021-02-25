@@ -165,9 +165,10 @@ def parse_led_config(led_c: str, physical: List[str]) -> Dict[str, List[str]]:
     led_c = re.sub(r'//.*', '', led_c)
     led_c = re.sub(r'/\*.*?\*/', '', led_c)
     m = re.search(r'LAYOUT\((.*?)\)', led_c, re.MULTILINE | re.DOTALL)
-    assert m is not None
-    led_indexes = m.group(1).replace(',', ' ').replace('\\', '').split()
     leds = {}
+    if m is None:
+        return leds
+    led_indexes = m.group(1).replace(',', ' ').replace('\\', '').split()
     for i, physical_name in enumerate(physical):
         leds[physical_name] = [int(led_indexes[i])]
     print(leds)
