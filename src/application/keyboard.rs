@@ -81,7 +81,7 @@ impl ObjectImpl for KeyboardInner {
                 if let Err(err) = keyboard.board().set_brightness(value) {
                     error!("{}", err);
                 }
-                info!("{}", value);
+                debug!("Brightness: {}", value);
             }));
         };
 
