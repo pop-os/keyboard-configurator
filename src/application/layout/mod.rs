@@ -60,6 +60,7 @@ keyboards![
     "system76/lemp9",
     "system76/oryp5",
     "system76/oryp6",
+    "system76/oryp7",
 ];
 
 impl Layout {
