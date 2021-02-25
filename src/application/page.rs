@@ -5,6 +5,7 @@ pub enum Page {
     Keycaps,
     Logical,
     Electrical,
+    Leds,
 }
 
 impl Page {
@@ -15,6 +16,7 @@ impl Page {
             Self::Keycaps => "Keycaps",
             Self::Logical => "Logical",
             Self::Electrical => "Electrical",
+            Self::Leds => "LEDs",
         }
     }
 
@@ -25,6 +27,7 @@ impl Page {
             Self::Keycaps,
             Self::Logical,
             Self::Electrical,
+            Self::Leds,
         ]
         .into_iter()
     }

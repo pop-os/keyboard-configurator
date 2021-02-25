@@ -211,6 +211,8 @@ impl Keyboard {
             fs::read_to_string(dir.join("keymap.json")).expect("Failed to load keymap.json");
         let layout_json =
             fs::read_to_string(dir.join("layout.json")).expect("Failed to load layout.json");
+        let leds_json =
+            fs::read_to_string(dir.join("leds.json")).expect("Failed to load leds.json");
         let physical_json =
             fs::read_to_string(dir.join("physical.json")).expect("Failed to load physical.json");
         Self::new_data(
@@ -218,6 +220,7 @@ impl Keyboard {
             &default_json,
             &keymap_json,
             &layout_json,
+            &leds_json,
             &physical_json,
             board,
         )
@@ -293,10 +296,11 @@ impl Keyboard {
         default_json: &str,
         keymap_json: &str,
         layout_json: &str,
+        leds_json: &str,
         physical_json: &str,
         board: DaemonBoard,
     ) -> Self {
-        let layout = Layout::from_data(default_json, keymap_json, layout_json, physical_json);
+        let layout = Layout::from_data(default_json, keymap_json, layout_json, leds_json, physical_json);
         Self::new_layout(board_name, layout, board)
     }
 
