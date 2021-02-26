@@ -95,8 +95,8 @@ impl ObjectImpl for KeyboardInner {
             ..append(Some("SOLID_COLOR"), "Solid Color");
             ..append(Some("PER_KEY"), "Per Key");
             ..append(Some("CYCLE_ALL"), "Cosmic Background");
-            ..append(Some("CYCLE_LEFT_RIGHT"), "Vertical Scan");
-            ..append(Some("CYCLE_UP_DOWN"), "Horizontal Scan");
+            ..append(Some("CYCLE_LEFT_RIGHT"), "Horizonal Scan");
+            ..append(Some("CYCLE_UP_DOWN"), "Vertical Scan");
             ..append(Some("CYCLE_OUT_IN"), "Event Horizon");
             ..append(Some("CYCLE_OUT_IN_DUAL"), "Binary Galaxies");
             ..append(Some("RAINBOW_MOVING_CHEVRON"), "Spacetime");
