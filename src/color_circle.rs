@@ -8,7 +8,7 @@ use std::cell::Cell;
 use std::f64::consts::PI;
 use std::ptr;
 
-use crate::color::Rgb;
+use crate::color::Hs;
 
 // The standard "circular" class includes padding, so disable that
 const CSS: &[u8] = b"
@@ -20,7 +20,7 @@ const CSS: &[u8] = b"
 #[derive(Default)]
 pub struct ColorCircleInner {
     drawing_area: gtk::DrawingArea,
-    rgb: Cell<Rgb>,
+    hs: Cell<Hs>,
     alpha: Cell<f64>,
     symbol: Cell<&'static str>,
 }
@@ -72,10 +72,10 @@ impl ObjectImpl for ColorCircleInner {
         use once_cell::sync::Lazy;
         static PROPERTIES: Lazy<Vec<glib::ParamSpec>> = Lazy::new(|| {
             vec![glib::ParamSpec::boxed(
-                "rgb",
-                "rgb",
-                "rgb",
-                Rgb::get_type(),
+                "hs",
+                "hs",
+                "hs",
+                Hs::get_type(),
                 glib::ParamFlags::READWRITE,
             )]
         });
@@ -91,9 +91,9 @@ impl ObjectImpl for ColorCircleInner {
         pspec: &glib::ParamSpec,
     ) {
         match pspec.get_name() {
-            "rgb" => {
-                let rgb: &Rgb = value.get_some().unwrap();
-                widget.set_rgb(*rgb);
+            "hs" => {
+                let hs: &Hs = value.get_some().unwrap();
+                widget.set_hs(*hs);
             }
             _ => unimplemented!(),
         }
@@ -106,7 +106,7 @@ impl ObjectImpl for ColorCircleInner {
         pspec: &glib::ParamSpec,
     ) -> glib::Value {
         match pspec.get_name() {
-            "rgb" => widget.rgb().to_value(),
+            "hs" => widget.hs().to_value(),
             _ => unimplemented!(),
         }
     }
@@ -143,7 +143,7 @@ impl ColorCircle {
         let fg = style.get_color(gtk::StateFlags::NORMAL);
 
         let radius = width.min(height) / 2.;
-        let (r, g, b) = self.rgb().to_floats();
+        let (r, g, b) = self.hs().to_rgb().to_floats();
         let alpha = self.inner().alpha.get();
 
         cr.arc(radius, radius, radius, 0., 2. * PI);
@@ -170,14 +170,14 @@ impl ColorCircle {
         cr.stroke();
     }
 
-    pub fn set_rgb(&self, color: Rgb) {
-        self.inner().rgb.set(color);
-        self.notify("rgb");
+    pub fn set_hs(&self, color: Hs) {
+        self.inner().hs.set(color);
+        self.notify("hs");
         self.queue_draw();
     }
 
-    pub fn rgb(&self) -> Rgb {
-        self.inner().rgb.get()
+    pub fn hs(&self) -> Hs {
+        self.inner().hs.get()
     }
 
     pub fn set_symbol(&self, symbol: &'static str) {

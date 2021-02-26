@@ -342,9 +342,7 @@ impl Keyboard {
             }
         };
 
-        println!("mode: {:?}", mode);
         let mode = MODE_MAP.get(mode as usize).cloned();
-        println!("mode: {:?}", mode);
         keyboard.inner().mode_combobox.set_active_id(mode);
         keyboard.inner().speed_scale.set_value(speed.into());
 

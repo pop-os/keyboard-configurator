@@ -1,7 +1,7 @@
 use std::rc::Rc;
 
 use super::{BoardId, Daemon};
-use crate::Rgb;
+use crate::Hs;
 
 #[derive(Clone, glib::GBoxed)]
 #[gboxed(type_name = "S76DaemonBoard")]
@@ -20,11 +20,11 @@ impl DaemonBoard {
         self.0.keymap_set(self.1, layer, output, input, value)
     }
 
-    pub fn color(&self, index: u8) -> Result<Rgb, String> {
+    pub fn color(&self, index: u8) -> Result<Hs, String> {
         self.0.color(self.1, index)
     }
 
-    pub fn set_color(&self, index: u8, color: Rgb) -> Result<(), String> {
+    pub fn set_color(&self, index: u8, color: Hs) -> Result<(), String> {
         self.0.set_color(self.1, index, color)
     }
 

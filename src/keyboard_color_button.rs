@@ -8,7 +8,7 @@ use std::{
     iter,
 };
 
-use crate::{choose_color, ColorCircle, DaemonBoard, DerefCell, Rgb};
+use crate::{choose_color, ColorCircle, DaemonBoard, DerefCell, Hs, Rgb};
 
 #[derive(Default)]
 pub struct KeyboardColorButtonInner {
@@ -18,7 +18,7 @@ pub struct KeyboardColorButtonInner {
     add_circle: DerefCell<ColorCircle>,
     remove_button: DerefCell<gtk::Button>,
     board: DerefCell<DaemonBoard>,
-    rgb: Cell<Rgb>,
+    hs: Cell<Hs>,
     index: Cell<u8>,
 }
 
@@ -88,7 +88,7 @@ impl ObjectImpl for KeyboardColorButtonInner {
 
         cascade! {
             obj;
-            ..bind_property("rgb", &button, "rgb").flags(glib::BindingFlags::SYNC_CREATE).build();
+            ..bind_property("hs", &button, "hs").flags(glib::BindingFlags::SYNC_CREATE).build();
             ..add(&button);
             ..show_all();
         }
@@ -102,10 +102,10 @@ impl ObjectImpl for KeyboardColorButtonInner {
         use once_cell::sync::Lazy;
         static PROPERTIES: Lazy<Vec<glib::ParamSpec>> = Lazy::new(|| {
             vec![glib::ParamSpec::boxed(
-                "rgb",
-                "rgb",
-                "rgb",
-                Rgb::get_type(),
+                "hs",
+                "hs",
+                "hs",
+                Hs::get_type(),
                 glib::ParamFlags::READWRITE,
             )]
         });
@@ -121,10 +121,10 @@ impl ObjectImpl for KeyboardColorButtonInner {
         pspec: &glib::ParamSpec,
     ) {
         match pspec.get_name() {
-            "rgb" => {
-                let rgb: &Rgb = value.get_some().unwrap();
-                widget.set_rgb(*rgb);
-                widget.notify("rgb");
+            "hs" => {
+                let hs: &Hs = value.get_some().unwrap();
+                widget.set_hs(*hs);
+                widget.notify("hs");
             }
             _ => unimplemented!(),
         }
@@ -137,7 +137,7 @@ impl ObjectImpl for KeyboardColorButtonInner {
         pspec: &glib::ParamSpec,
     ) -> glib::Value {
         match pspec.get_name() {
-            "rgb" => self.rgb.get().to_value(),
+            "hs" => self.hs.get().to_value(),
             _ => unimplemented!(),
         }
     }
@@ -156,11 +156,11 @@ impl KeyboardColorButton {
     pub fn new(board: DaemonBoard, index: u8) -> Self {
         let widget: Self = glib::Object::new(&[]).unwrap();
 
-        widget.set_rgb(match board.color(widget.index()) {
+        widget.set_hs(match board.color(widget.index()) {
             Ok(ok) => ok,
             Err(err) => {
                 error!("{}", err);
-                Rgb::new(0, 0, 0)
+                Hs::new(0., 0.)
             }
         });
         widget.inner().board.set(board);
@@ -169,15 +169,15 @@ impl KeyboardColorButton {
         // TODO: Signal handler for color change?
 
         let colors = vec![
-            Rgb::new(255, 255, 255),
-            Rgb::new(0, 0, 255),
-            Rgb::new(255, 0, 0),
-            Rgb::new(255, 255, 0),
-            Rgb::new(0, 255, 0),
+            Rgb::new(255, 255, 255).to_hs_lossy(),
+            Rgb::new(0, 0, 255).to_hs_lossy(),
+            Rgb::new(255, 0, 0).to_hs_lossy(),
+            Rgb::new(255, 255, 0).to_hs_lossy(),
+            Rgb::new(0, 255, 0).to_hs_lossy(),
         ];
 
-        for rgb in colors.iter() {
-            widget.add_color(*rgb);
+        for hs in colors.iter() {
+            widget.add_color(*hs);
         }
 
         widget.populate_grid();
@@ -189,12 +189,12 @@ impl KeyboardColorButton {
         KeyboardColorButtonInner::from_instance(self)
     }
 
-    fn add_color(&self, color: Rgb) {
+    fn add_color(&self, color: Hs) {
         let self_ = self;
         let circle = cascade! {
             ColorCircle::new(45);
             ..connect_clicked(clone!(@weak self_ => move |c| self_.circle_clicked(c)));
-            ..set_rgb(color);
+            ..set_hs(color);
         };
         self.inner().circles.borrow_mut().push(circle);
     }
@@ -224,7 +224,7 @@ impl KeyboardColorButton {
             self.inner().remove_button.set_visible(true);
             self.populate_grid();
         } else if let Some(circle) = &*self.inner().current_circle.borrow() {
-            if let Err(err) = self.board().set_color(self.index(), circle.rgb()) {
+            if let Err(err) = self.board().set_color(self.index(), circle.hs()) {
                 error!("Failed to set keyboard color: {}", err);
             }
         }
@@ -250,21 +250,21 @@ impl KeyboardColorButton {
                 self.index(),
                 self,
                 "Edit Color",
-                Some(circle.rgb()),
+                Some(circle.hs()),
             ) {
-                circle.set_rgb(color);
-            } else if let Err(err) = self.board().set_color(self.index(), circle.rgb()) {
+                circle.set_hs(color);
+            } else if let Err(err) = self.board().set_color(self.index(), circle.hs()) {
                 error!("Failed to set keyboard color: {}", err);
             }
         }
     }
 
     fn circle_clicked(&self, circle: &ColorCircle) {
-        let color = circle.rgb();
+        let color = circle.hs();
         if let Err(err) = self.board().set_color(self.index(), color) {
             error!("Failed to set keyboard color: {}", err);
         }
-        self.set_rgb(color);
+        self.set_hs(color);
 
         let mut current = self.inner().current_circle.borrow_mut();
         if let Some(c) = &*current {
@@ -278,9 +278,9 @@ impl KeyboardColorButton {
         &self.inner().board
     }
 
-    fn set_rgb(&self, rgb: Rgb) {
-        self.inner().rgb.set(rgb);
-        self.notify("rgb");
+    fn set_hs(&self, hs: Hs) {
+        self.inner().hs.set(hs);
+        self.notify("hs");
     }
 
     fn index(&self) -> u8 {

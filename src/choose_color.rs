@@ -2,7 +2,7 @@ use cascade::cascade;
 use glib::clone;
 use gtk::prelude::*;
 
-use crate::color::Rgb;
+use crate::color::Hs;
 use crate::color_wheel::ColorWheel;
 use crate::daemon::DaemonBoard;
 
@@ -11,15 +11,15 @@ pub fn choose_color<W: IsA<gtk::Widget>>(
     index: u8,
     w: &W,
     title: &'static str,
-    color: Option<Rgb>,
-) -> Option<Rgb> {
+    color: Option<Hs>,
+) -> Option<Hs> {
     let color_wheel = cascade! {
         ColorWheel::new();
         ..set_size_request(300, 300);
     };
 
     if let Some(color) = color {
-        color_wheel.set_hs(color.to_hs_lossy());
+        color_wheel.set_hs(color);
     }
 
     let preview = cascade! {
@@ -35,7 +35,7 @@ pub fn choose_color<W: IsA<gtk::Widget>>(
     };
 
     color_wheel.connect_hs_changed(clone!(@weak preview => @default-panic, move |wheel| {
-        if let Err(err) = board.set_color(index, wheel.hs().to_rgb()) {
+        if let Err(err) = board.set_color(index, wheel.hs()) {
             error!("Failed to set keyboard color: {}", err);
         }
         preview.queue_draw();
@@ -68,11 +68,11 @@ pub fn choose_color<W: IsA<gtk::Widget>>(
     dialog.set_transient_for(window.as_ref());
 
     let response = dialog.run();
-    let rgb = color_wheel.hs().to_rgb();
+    let hs = color_wheel.hs();
     dialog.close();
 
     if response == gtk::ResponseType::Ok {
-        Some(rgb)
+        Some(hs)
     } else {
         None
     }

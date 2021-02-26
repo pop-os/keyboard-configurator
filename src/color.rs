@@ -1,7 +1,9 @@
 use palette::{Component, IntoColor, RgbHue};
 use serde::{Deserialize, Serialize};
+use std::f64::consts::PI;
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, Default, glib::GBoxed)]
+#[gboxed(type_name = "S76Hs")]
 pub struct Hs {
     /// Hue, in radians
     pub h: f64,
@@ -12,6 +14,18 @@ pub struct Hs {
 impl Hs {
     pub fn new(h: f64, s: f64) -> Self {
         Self { h, s }
+    }
+
+    pub fn from_ints(h: u8, s: u8) -> Self {
+        Hs {
+            h: h.convert::<f64>() * (2. * PI),
+            s: s.convert(),
+        }
+    }
+
+    pub fn to_ints(self) -> (u8, u8) {
+        let h = (self.h / (2. * PI)).rem_euclid(1.);
+        (h.convert(), self.s.convert())
     }
 
     pub fn to_rgb(self) -> Rgb {

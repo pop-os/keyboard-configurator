@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::color::Rgb;
+use crate::color::Hs;
 
 mod board;
 mod client;
@@ -78,8 +78,8 @@ commands! {
     fn model(&self, board: BoardId) -> Result<String, String>;
     fn keymap_get(&self, board: BoardId, layer: u8, output: u8, input: u8) -> Result<u16, String>;
     fn keymap_set(&self, board: BoardId, layer: u8, output: u8, input: u8, value: u16) -> Result<(), String>;
-    fn color(&self, board: BoardId, index: u8) -> Result<Rgb, String>;
-    fn set_color(&self, board: BoardId, index: u8, color: Rgb) -> Result<(), String>;
+    fn color(&self, board: BoardId, index: u8) -> Result<Hs, String>;
+    fn set_color(&self, board: BoardId, index: u8, color: Hs) -> Result<(), String>;
     fn max_brightness(&self, board: BoardId) -> Result<i32, String>;
     fn brightness(&self, board: BoardId, index: u8) -> Result<i32, String>;
     fn set_brightness(&self, board: BoardId, index: u8, brightness: i32) -> Result<(), String>;
