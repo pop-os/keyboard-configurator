@@ -17,6 +17,22 @@ use std::{
 use super::{error_dialog, Key, KeyboardLayer, Layout, Page, Picker};
 use crate::{DaemonBoard, DerefCell, KeyMap, KeyboardColorButton};
 
+static MODE_MAP: &[&str] = &[
+    "SOLID_COLOR",
+    "PER_KEY",
+    "CYCLE_ALL",
+    "CYCLE_LEFT_RIGHT",
+    "CYCLE_UP_DOWN",
+    "CYCLE_OUT_IN",
+    "CYCLE_OUT_IN_DUAL",
+    "RAINBOW_MOVING_CHEVRON",
+    "CYCLE_PINWHEEL",
+    "CYCLE_SPIRAL",
+    "RAINDROPS",
+    "SPLASH",
+    "MULTISPLASH",
+];
+
 #[derive(Default)]
 pub struct KeyboardInner {
     action_group: DerefCell<gio::SimpleActionGroup>,
@@ -30,6 +46,8 @@ pub struct KeyboardInner {
     color_button_bin: DerefCell<gtk::Frame>,
     brightness_scale: DerefCell<gtk::Scale>,
     stack: DerefCell<gtk::Stack>,
+    mode_combobox: DerefCell<gtk::ComboBoxText>,
+    speed_scale: DerefCell<gtk::Scale>,
 }
 
 impl ObjectSubclass for KeyboardInner {
@@ -72,6 +90,50 @@ impl ObjectImpl for KeyboardInner {
             );
         };
 
+        let mode_combobox = cascade! {
+            gtk::ComboBoxText::new();
+            ..append(Some("SOLID_COLOR"), "Solid Color");
+            ..append(Some("PER_KEY"), "Per Key");
+            ..append(Some("CYCLE_ALL"), "Cosmic Background");
+            ..append(Some("CYCLE_LEFT_RIGHT"), "Vertical Scan");
+            ..append(Some("CYCLE_UP_DOWN"), "Horizontal Scan");
+            ..append(Some("CYCLE_OUT_IN"), "Event Horizon");
+            ..append(Some("CYCLE_OUT_IN_DUAL"), "Binary Galaxies");
+            ..append(Some("RAINBOW_MOVING_CHEVRON"), "Spacetime");
+            ..append(Some("CYCLE_PINWHEEL"), "Pinwheel Galaxy");
+            ..append(Some("CYCLE_SPIRAL"), "Spiral Galaxy");
+            ..append(Some("RAINDROPS"), "Elements");
+            ..append(Some("SPLASH"), "Splashdown");
+            ..append(Some("MULTISPLASH"), "Meteor Shower");
+            ..connect_changed(clone!(@weak keyboard => move |_| {
+                if let Some(id) = keyboard.inner().mode_combobox.get_active_id() {
+                    if let Some(mode) = MODE_MAP.iter().position(|i| id == **i) {
+                        println!("set {}", mode);
+                        let speed = keyboard.inner().speed_scale.get_value();
+                        if let Err(err) = keyboard.board().set_mode(mode as u8, speed as u8) {
+                            error!("Error setting keyboard mode: {}", err);
+                        }
+                    }
+                }
+            }));
+        };
+
+        let speed_scale = cascade! {
+            gtk::Scale::with_range(gtk::Orientation::Horizontal, 0., 256., 1.);
+            ..set_halign(gtk::Align::Fill);
+            ..set_size_request(200, 0);
+            ..connect_value_changed(clone!(@weak keyboard => move |_| {
+                if let Some(id) = keyboard.inner().mode_combobox.get_active_id() {
+                    if let Some(mode) = MODE_MAP.iter().position(|i| id == **i) {
+                        let speed = keyboard.inner().speed_scale.get_value();
+                        if let Err(err) = keyboard.board().set_mode(mode as u8, speed as u8) {
+                            error!("Error setting keyboard mode: {}", err);
+                        }
+                    }
+                }
+            }));
+        };
+
         let brightness_scale = cascade! {
             gtk::Scale::with_range(gtk::Orientation::Horizontal, 0., 100., 1.);
             ..set_halign(gtk::Align::Fill);
@@ -98,6 +160,16 @@ impl ObjectImpl for KeyboardInner {
             ..set_spacing(8);
             ..add(&cascade! {
                 gtk::Box::new(gtk::Orientation::Horizontal, 8);
+                ..add(&cascade! {
+                    gtk::Label::new(Some("Mode:"));
+                    ..set_halign(gtk::Align::Start);
+                });
+                ..add(&mode_combobox);
+                ..add(&cascade! {
+                    gtk::Label::new(Some("Speed:"));
+                    ..set_halign(gtk::Align::Start);
+                });
+                ..add(&speed_scale);
                 ..add(&cascade! {
                     gtk::Label::new(Some("Brightness:"));
                     ..set_halign(gtk::Align::Start);
@@ -138,6 +210,8 @@ impl ObjectImpl for KeyboardInner {
         self.color_button_bin.set(color_button_bin);
         self.brightness_scale.set(brightness_scale);
         self.stack.set(stack);
+        self.mode_combobox.set(mode_combobox);
+        self.speed_scale.set(speed_scale);
     }
 
     fn properties() -> &'static [glib::ParamSpec] {
@@ -259,6 +333,20 @@ impl Keyboard {
 
         let color_button = KeyboardColorButton::new(keyboard.board().clone(), 0xff);
         keyboard.inner().color_button_bin.add(&color_button);
+
+        let (mode, speed) = match keyboard.board().mode() {
+            Ok(value) => value,
+            Err(err) => {
+                error!("Error getting keyboard mode: {}", err);
+                (0, 128)
+            }
+        };
+
+        println!("mode: {:?}", mode);
+        let mode = MODE_MAP.get(mode as usize).cloned();
+        println!("mode: {:?}", mode);
+        keyboard.inner().mode_combobox.set_active_id(mode);
+        keyboard.inner().speed_scale.set_value(speed.into());
 
         let max_brightness = match keyboard.board().max_brightness() {
             Ok(value) => value as f64,

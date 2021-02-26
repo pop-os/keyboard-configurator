@@ -83,6 +83,8 @@ commands! {
     fn max_brightness(&self, board: BoardId) -> Result<i32, String>;
     fn brightness(&self, board: BoardId, index: u8) -> Result<i32, String>;
     fn set_brightness(&self, board: BoardId, index: u8, brightness: i32) -> Result<(), String>;
+    fn mode(&self, board: BoardId) -> Result<(u8, u8), String>;
+    fn set_mode(&self, board: BoardId, mode: u8, speed: u8) -> Result<(), String>;
     fn exit(&self) -> Result<(), String>;
 }
 

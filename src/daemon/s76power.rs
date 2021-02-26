@@ -193,6 +193,14 @@ impl Daemon for DaemonS76Power {
         Ok(())
     }
 
+    fn mode(&self, _board: BoardId) -> Result<(u8, u8), String> {
+        Err("Unimplemented".to_string())
+    }
+
+    fn set_mode(&self, _board: BoardId, _mode: u8, _speed: u8) -> Result<(), String> {
+        Err("Unimplemented".to_string())
+    }
+
     fn exit(&self) -> Result<(), String> {
         Ok(())
     }

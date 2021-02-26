@@ -39,4 +39,12 @@ impl DaemonBoard {
     pub fn set_brightness(&self, index: u8, brightness: i32) -> Result<(), String> {
         self.0.set_brightness(self.1, index, brightness)
     }
+
+    pub fn mode(&self) -> Result<(u8, u8), String> {
+        self.0.mode(self.1)
+    }
+
+    pub fn set_mode(&self, mode: u8, speed: u8) -> Result<(), String> {
+        self.0.set_mode(self.1, mode, speed)
+    }
 }
