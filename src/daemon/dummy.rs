@@ -70,11 +70,18 @@ impl Daemon for DaemonDummy {
         Ok(())
     }
 
-    fn color(&self, board: BoardId) -> Result<Rgb, String> {
+    fn color(&self, board: BoardId, index: u8) -> Result<Rgb, String> {
+        // TODO implement support for per-led
+        if index != 0xFF {
+            return Err(format!("Can't set color index {}", index));
+        }
         Ok(self.board(board)?.color.get())
     }
 
-    fn set_color(&self, board: BoardId, color: Rgb) -> Result<(), String> {
+    fn set_color(&self, board: BoardId, index: u8, color: Rgb) -> Result<(), String> {
+        if index != 0xFF {
+            return Err(format!("Can't set color index {}", index));
+        }
         self.board(board)?.color.set(color);
         Ok(())
     }
@@ -83,11 +90,17 @@ impl Daemon for DaemonDummy {
         Ok(100)
     }
 
-    fn brightness(&self, board: BoardId) -> Result<i32, String> {
+    fn brightness(&self, board: BoardId, index: u8) -> Result<i32, String> {
+        if index != 0xFF {
+            return Err(format!("Can't set color index {}", index));
+        }
         Ok(self.board(board)?.brightness.get())
     }
 
-    fn set_brightness(&self, board: BoardId, brightness: i32) -> Result<(), String> {
+    fn set_brightness(&self, board: BoardId, index: u8, brightness: i32) -> Result<(), String> {
+        if index != 0xFF {
+            return Err(format!("Can't set color index {}", index));
+        }
         self.board(board)?.brightness.set(brightness);
         Ok(())
     }

@@ -20,23 +20,23 @@ impl DaemonBoard {
         self.0.keymap_set(self.1, layer, output, input, value)
     }
 
-    pub fn color(&self) -> Result<Rgb, String> {
-        self.0.color(self.1)
+    pub fn color(&self, index: u8) -> Result<Rgb, String> {
+        self.0.color(self.1, index)
     }
 
-    pub fn set_color(&self, color: Rgb) -> Result<(), String> {
-        self.0.set_color(self.1, color)
+    pub fn set_color(&self, index: u8, color: Rgb) -> Result<(), String> {
+        self.0.set_color(self.1, index, color)
     }
 
     pub fn max_brightness(&self) -> Result<i32, String> {
         self.0.max_brightness(self.1)
     }
 
-    pub fn brightness(&self) -> Result<i32, String> {
-        self.0.brightness(self.1)
+    pub fn brightness(&self, index: u8) -> Result<i32, String> {
+        self.0.brightness(self.1, index)
     }
 
-    pub fn set_brightness(&self, brightness: i32) -> Result<(), String> {
-        self.0.set_brightness(self.1, brightness)
+    pub fn set_brightness(&self, index: u8, brightness: i32) -> Result<(), String> {
+        self.0.set_brightness(self.1, index, brightness)
     }
 }

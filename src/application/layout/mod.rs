@@ -87,9 +87,17 @@ impl Layout {
     }
 
     pub fn from_board(board: &str) -> Option<Self> {
-        layout_data(board).map(|(default_json, keymap_json, layout_json, leds_json, physical_json)| {
-            Self::from_data(default_json, keymap_json, layout_json, leds_json, physical_json)
-        })
+        layout_data(board).map(
+            |(default_json, keymap_json, layout_json, leds_json, physical_json)| {
+                Self::from_data(
+                    default_json,
+                    keymap_json,
+                    layout_json,
+                    leds_json,
+                    physical_json,
+                )
+            },
+        )
     }
 
     pub fn keys(&self) -> Vec<Key> {
@@ -157,7 +165,7 @@ impl Layout {
                                 .map_or(Vec::new(), |x| x.clone());
                             let mut led_name = String::new();
                             for led in leds.iter() {
-                                if ! led_name.is_empty() {
+                                if !led_name.is_empty() {
                                     led_name.push_str(", ");
                                 }
                                 led_name.push_str(&led.to_string());

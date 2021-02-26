@@ -19,6 +19,7 @@ pub struct KeyboardColorButtonInner {
     remove_button: DerefCell<gtk::Button>,
     board: DerefCell<DaemonBoard>,
     rgb: Cell<Rgb>,
+    index: Cell<u8>,
 }
 
 impl ObjectSubclass for KeyboardColorButtonInner {
@@ -152,17 +153,18 @@ glib::wrapper! {
 }
 
 impl KeyboardColorButton {
-    pub fn new(board: DaemonBoard) -> Self {
-        let keyboard_color_button: Self = glib::Object::new(&[]).unwrap();
+    pub fn new(board: DaemonBoard, index: u8) -> Self {
+        let widget: Self = glib::Object::new(&[]).unwrap();
 
-        keyboard_color_button.set_rgb(match board.color() {
+        widget.set_rgb(match board.color(widget.index()) {
             Ok(ok) => ok,
             Err(err) => {
                 error!("{}", err);
                 Rgb::new(0, 0, 0)
             }
         });
-        keyboard_color_button.inner().board.set(board);
+        widget.inner().board.set(board);
+        widget.inner().index.set(index);
 
         // TODO: Signal handler for color change?
 
@@ -175,12 +177,12 @@ impl KeyboardColorButton {
         ];
 
         for rgb in colors.iter() {
-            keyboard_color_button.add_color(*rgb);
+            widget.add_color(*rgb);
         }
 
-        keyboard_color_button.populate_grid();
+        widget.populate_grid();
 
-        keyboard_color_button
+        widget
     }
 
     fn inner(&self) -> &KeyboardColorButtonInner {
@@ -215,12 +217,14 @@ impl KeyboardColorButton {
     }
 
     fn add_clicked(&self) {
-        if let Some(color) = choose_color(self.board().clone(), self, "Add Color", None) {
+        if let Some(color) =
+            choose_color(self.board().clone(), self.index(), self, "Add Color", None)
+        {
             self.add_color(color);
             self.inner().remove_button.set_visible(true);
             self.populate_grid();
         } else if let Some(circle) = &*self.inner().current_circle.borrow() {
-            if let Err(err) = self.board().set_color(circle.rgb()) {
+            if let Err(err) = self.board().set_color(self.index(), circle.rgb()) {
                 error!("Failed to set keyboard color: {}", err);
             }
         }
@@ -241,11 +245,15 @@ impl KeyboardColorButton {
 
     fn edit_clicked(&self) {
         if let Some(circle) = &*self.inner().current_circle.borrow() {
-            if let Some(color) =
-                choose_color(self.board().clone(), self, "Edit Color", Some(circle.rgb()))
-            {
+            if let Some(color) = choose_color(
+                self.board().clone(),
+                self.index(),
+                self,
+                "Edit Color",
+                Some(circle.rgb()),
+            ) {
                 circle.set_rgb(color);
-            } else if let Err(err) = self.board().set_color(circle.rgb()) {
+            } else if let Err(err) = self.board().set_color(self.index(), circle.rgb()) {
                 error!("Failed to set keyboard color: {}", err);
             }
         }
@@ -253,7 +261,7 @@ impl KeyboardColorButton {
 
     fn circle_clicked(&self, circle: &ColorCircle) {
         let color = circle.rgb();
-        if let Err(err) = self.board().set_color(color) {
+        if let Err(err) = self.board().set_color(self.index(), color) {
             error!("Failed to set keyboard color: {}", err);
         }
         self.set_rgb(color);
@@ -273,5 +281,9 @@ impl KeyboardColorButton {
     fn set_rgb(&self, rgb: Rgb) {
         self.inner().rgb.set(rgb);
         self.notify("rgb");
+    }
+
+    fn index(&self) -> u8 {
+        self.inner().index.get()
     }
 }

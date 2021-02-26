@@ -8,6 +8,7 @@ use crate::daemon::DaemonBoard;
 
 pub fn choose_color<W: IsA<gtk::Widget>>(
     board: DaemonBoard,
+    index: u8,
     w: &W,
     title: &'static str,
     color: Option<Rgb>,
@@ -34,7 +35,7 @@ pub fn choose_color<W: IsA<gtk::Widget>>(
     };
 
     color_wheel.connect_hs_changed(clone!(@weak preview => @default-panic, move |wheel| {
-        if let Err(err) = board.set_color(wheel.hs().to_rgb()) {
+        if let Err(err) = board.set_color(index, wheel.hs().to_rgb()) {
             error!("Failed to set keyboard color: {}", err);
         }
         preview.queue_draw();

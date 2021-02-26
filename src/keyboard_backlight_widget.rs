@@ -48,14 +48,14 @@ fn add_boards(stack: &gtk::Stack) -> Result<(), String> {
 
 fn page(board: DaemonBoard) -> gtk::Widget {
     let max_brightness = board.max_brightness().unwrap_or(100) as f64;
-    let brightness = board.brightness().unwrap_or(0) as f64;
+    let brightness = board.brightness(0xff).unwrap_or(0) as f64;
     let brightness_scale = cascade! {
         gtk::Scale::with_range(gtk::Orientation::Horizontal, 0., max_brightness, 1.);
         ..set_hexpand(true);
         ..set_draw_value(false);
         ..set_value(brightness);
         ..connect_change_value(clone!(@strong board => move |_scale, _, value| {
-            if let Err(err) = board.set_brightness(value as i32) {
+            if let Err(err) = board.set_brightness(0xff, value as i32) {
                 eprintln!("Failed to set keyboard brightness: {}", err);
             }
             Inhibit(false)
@@ -64,7 +64,7 @@ fn page(board: DaemonBoard) -> gtk::Widget {
 
     // TODO detect when brightness changed in daemon
 
-    let button = KeyboardColorButton::new(board);
+    let button = KeyboardColorButton::new(board, 0xff);
 
     let listbox = cascade! {
         gtk::ListBox::new();

@@ -169,19 +169,19 @@ impl<R: Read, W: Write> Daemon for DaemonServer<R, W> {
         unsafe { ec.keymap_set(layer, output, input, value).map_err(err_str) }
     }
 
-    fn color(&self, board: BoardId) -> Result<Rgb, String> {
+    fn color(&self, board: BoardId, index: u8) -> Result<Rgb, String> {
         let mut ec = self.board(board)?;
         unsafe {
-            ec.led_get_color(0xFF)
+            ec.led_get_color(index)
                 .map(|x| Rgb::new(x.0, x.1, x.2))
                 .map_err(err_str)
         }
     }
 
-    fn set_color(&self, board: BoardId, color: Rgb) -> Result<(), String> {
+    fn set_color(&self, board: BoardId, index: u8, color: Rgb) -> Result<(), String> {
         let mut ec = self.board(board)?;
         unsafe {
-            ec.led_set_color(0xFF, color.r, color.g, color.b)
+            ec.led_set_color(index, color.r, color.g, color.b)
                 .map_err(err_str)
         }
     }
@@ -191,14 +191,14 @@ impl<R: Read, W: Write> Daemon for DaemonServer<R, W> {
         unsafe { ec.led_get_value(0xFF).map(|x| x.1 as i32).map_err(err_str) }
     }
 
-    fn brightness(&self, board: BoardId) -> Result<i32, String> {
+    fn brightness(&self, board: BoardId, index: u8) -> Result<i32, String> {
         let mut ec = self.board(board)?;
-        unsafe { ec.led_get_value(0xFF).map(|x| x.0 as i32).map_err(err_str) }
+        unsafe { ec.led_get_value(index).map(|x| x.0 as i32).map_err(err_str) }
     }
 
-    fn set_brightness(&self, board: BoardId, brightness: i32) -> Result<(), String> {
+    fn set_brightness(&self, board: BoardId, index: u8, brightness: i32) -> Result<(), String> {
         let mut ec = self.board(board)?;
-        unsafe { ec.led_set_value(0xFF, brightness as u8).map_err(err_str) }
+        unsafe { ec.led_set_value(index, brightness as u8).map_err(err_str) }
     }
 
     fn exit(&self) -> Result<(), String> {

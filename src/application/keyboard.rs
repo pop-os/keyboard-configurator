@@ -78,7 +78,7 @@ impl ObjectImpl for KeyboardInner {
             ..set_size_request(200, 0);
             ..connect_value_changed(clone!(@weak keyboard => move |this| {
                 let value = this.get_value() as i32;
-                if let Err(err) = keyboard.board().set_brightness(value) {
+                if let Err(err) = keyboard.board().set_brightness(0xff, value) {
                     error!("{}", err);
                 }
                 debug!("Brightness: {}", value);
@@ -257,7 +257,7 @@ impl Keyboard {
         keyboard.inner().board_name.set(board_name.to_string());
         keyboard.inner().layout.set(layout);
 
-        let color_button = KeyboardColorButton::new(keyboard.board().clone());
+        let color_button = KeyboardColorButton::new(keyboard.board().clone(), 0xff);
         keyboard.inner().color_button_bin.add(&color_button);
 
         let max_brightness = match keyboard.board().max_brightness() {
@@ -272,7 +272,7 @@ impl Keyboard {
             .brightness_scale
             .set_range(0.0, max_brightness);
 
-        let brightness = match keyboard.board().brightness() {
+        let brightness = match keyboard.board().brightness(0xff) {
             Ok(value) => value as f64,
             Err(err) => {
                 error!("{}", err);
@@ -300,7 +300,13 @@ impl Keyboard {
         physical_json: &str,
         board: DaemonBoard,
     ) -> Self {
-        let layout = Layout::from_data(default_json, keymap_json, layout_json, leds_json, physical_json);
+        let layout = Layout::from_data(
+            default_json,
+            keymap_json,
+            layout_json,
+            leds_json,
+            physical_json,
+        );
         Self::new_layout(board_name, layout, board)
     }
 

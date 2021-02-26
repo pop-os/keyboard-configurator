@@ -18,9 +18,9 @@ pub struct Key {
     // Electrical name (output, input)
     pub(crate) electrical_name: String,
     /// LED indexes
-    pub (crate) leds: Vec<u8>,
+    pub(crate) leds: Vec<u8>,
     /// LED name
-    pub (crate) led_name: String,
+    pub(crate) led_name: String,
     // Currently loaded scancodes and their names
     pub(crate) scancodes: RefCell<Vec<(u16, String)>>,
     // Background color

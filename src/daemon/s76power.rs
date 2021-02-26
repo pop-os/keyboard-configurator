@@ -154,14 +154,20 @@ impl Daemon for DaemonS76Power {
         Err("Unimplemented".to_string())
     }
 
-    fn color(&self, board: BoardId) -> Result<Rgb, String> {
+    fn color(&self, board: BoardId, index: u8) -> Result<Rgb, String> {
+        if index != 0xFF {
+            return Err(format!("Can't set color index {}", index));
+        }
         let color = self.board(board)?.prop::<String>("color")?;
         Ok(color
             .and_then(|c| Rgb::parse(&c))
             .unwrap_or_else(|| Rgb::new(0, 0, 0)))
     }
 
-    fn set_color(&self, board: BoardId, color: Rgb) -> Result<(), String> {
+    fn set_color(&self, board: BoardId, index: u8, color: Rgb) -> Result<(), String> {
+        if index != 0xFF {
+            return Err(format!("Can't set color index {}", index));
+        }
         let board = self.board(board)?;
         board.set_prop("color", color.to_string(), &board.color_set_cancellable)?;
         Ok(())
@@ -171,11 +177,17 @@ impl Daemon for DaemonS76Power {
         Ok(self.board(board)?.prop("max_brightness")?.unwrap_or(100))
     }
 
-    fn brightness(&self, board: BoardId) -> Result<i32, String> {
+    fn brightness(&self, board: BoardId, index: u8) -> Result<i32, String> {
+        if index != 0xFF {
+            return Err(format!("Can't set brightness index {}", index));
+        }
         Ok(self.board(board)?.prop("brightness")?.unwrap_or(0))
     }
 
-    fn set_brightness(&self, board: BoardId, brightness: i32) -> Result<(), String> {
+    fn set_brightness(&self, board: BoardId, index: u8, brightness: i32) -> Result<(), String> {
+        if index != 0xFF {
+            return Err(format!("Can't set brightness index {}", index));
+        }
         let board = self.board(board)?;
         board.set_prop("brightness", brightness, &board.brightness_set_cancellable)?;
         Ok(())
