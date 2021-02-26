@@ -119,7 +119,7 @@ impl ObjectImpl for KeyboardInner {
         };
 
         let speed_scale = cascade! {
-            gtk::Scale::with_range(gtk::Orientation::Horizontal, 0., 256., 1.);
+            gtk::Scale::with_range(gtk::Orientation::Horizontal, 0., 255., 1.);
             ..set_halign(gtk::Align::Fill);
             ..set_size_request(200, 0);
             ..connect_value_changed(clone!(@weak keyboard => move |_| {
