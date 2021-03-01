@@ -1,4 +1,4 @@
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 
 use super::{Page, Rect, SCANCODE_LABELS};
 use crate::Rgb;
@@ -21,6 +21,8 @@ pub struct Key {
     pub(crate) leds: Vec<u8>,
     /// LED name
     pub(crate) led_name: String,
+    // Key is currently pressed
+    pub(crate) pressed: Cell<bool>,
     // Currently loaded scancodes and their names
     pub(crate) scancodes: RefCell<Vec<(u16, String)>>,
     // Background color

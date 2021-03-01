@@ -12,6 +12,7 @@ use std::{
     path::Path,
     rc::Rc,
     str,
+    time,
 };
 
 use super::{error_dialog, Backlight, Key, KeyboardLayer, Layout, Page, Picker};
@@ -223,6 +224,13 @@ impl Keyboard {
         keyboard.inner().layout.set(layout);
 
         keyboard.add_pages();
+
+        glib::timeout_add_local(
+            time::Duration::from_millis(50),
+            clone!(@weak keyboard => @default-return glib::Continue(false), move || {
+                glib::Continue(keyboard.refresh())
+            })
+        );
 
         keyboard
     }
@@ -500,5 +508,45 @@ impl Keyboard {
 
         self.queue_draw();
         self.notify("selected");
+    }
+
+    fn refresh(&self) -> bool {
+        let focused = match self.window() {
+            Some(window) => window.is_active(),
+            None => false,
+        };
+        match self.board().matrix_get() {
+            Ok(matrix) => {
+                let mut changed = false;
+                for key in self.keys().iter() {
+                    let pressed = if focused {
+                        matrix.get(
+                            key.electrical.0 as usize,
+                            key.electrical.1 as usize
+                        ).unwrap_or(false)
+                    } else {
+                        false
+                    };
+                    if key.pressed.replace(pressed) != pressed {
+                        changed = true;
+                    }
+                }
+                if changed {
+                    self.queue_draw();
+                    // TODO: clean up this hack to redraw keyboard on main page
+                    if let Some(parent) = self.get_parent() {
+                        parent.queue_draw();
+                        if let Some(grandparent) = parent.get_parent() {
+                            grandparent.queue_draw();
+                        }
+                    }
+                }
+                true
+            },
+            Err(err) => {
+                error!("Failed to get matrix: {}", err);
+                false
+            }
+        }
     }
 }

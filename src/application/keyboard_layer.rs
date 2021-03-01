@@ -104,8 +104,18 @@ impl WidgetImpl for KeyboardLayerInner {
             let w = (k.physical.w * SCALE) - MARGIN * 2.;
             let h = (k.physical.h * SCALE) - MARGIN * 2.;
 
-            let bg = k.background_color.to_floats();
-            let fg = k.foreground_color.to_floats();
+            let mut bg = k.background_color.to_floats();
+            let mut fg = k.foreground_color.to_floats();
+
+            if k.pressed.get() {
+                // Invert colors if pressed
+                bg.0 = 1.0 - bg.0;
+                bg.1 = 1.0 - bg.1;
+                bg.2 = 1.0 - bg.2;
+                fg.0 = 1.0 - fg.0;
+                fg.1 = 1.0 - fg.1;
+                fg.2 = 1.0 - fg.2;
+            }
 
             // Rounded rectangle
             cr.new_sub_path();
