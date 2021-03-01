@@ -3,7 +3,7 @@ use std::{
     collections::HashMap,
 };
 
-use super::{BoardId, Daemon};
+use super::{BoardId, Daemon, Matrix};
 use crate::Hs;
 
 #[derive(Default)]
@@ -69,6 +69,10 @@ impl Daemon for DaemonDummy {
         let mut keymap = self.board(board)?.keymap.borrow_mut();
         keymap.insert((layer, output, input), value);
         Ok(())
+    }
+
+    fn matrix_get(&self, board: BoardId) -> Result<Matrix, String> {
+        Ok(Matrix::new(0, 0, Vec::new().into_boxed_slice()))
     }
 
     fn color(&self, board: BoardId, index: u8) -> Result<Hs, String> {

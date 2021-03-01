@@ -6,7 +6,7 @@ use gio::prelude::*;
 use glib::variant::{FromVariant, ToVariant};
 use std::{cell::Cell, iter::Iterator};
 
-use super::{err_str, BoardId, Daemon};
+use super::{err_str, BoardId, Daemon, Matrix};
 use crate::color::{Hs, Rgb};
 
 const DBUS_NAME: &str = "com.system76.PowerDaemon";
@@ -151,6 +151,10 @@ impl Daemon for DaemonS76Power {
         _input: u8,
         _value: u16,
     ) -> Result<(), String> {
+        Err("Unimplemented".to_string())
+    }
+
+    fn matrix_get(&self, board: BoardId) -> Result<Matrix, String> {
         Err("Unimplemented".to_string())
     }
 
