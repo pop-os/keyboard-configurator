@@ -64,27 +64,19 @@ impl ObjectImpl for BacklightInner {
             ..append(Some("RAINDROPS"), "Elements");
             ..append(Some("SPLASH"), "Splashdown");
             ..append(Some("MULTISPLASH"), "Meteor Shower");
-            ..connect_changed(clone!(@weak obj => move |_|
-                obj.mode_speed_changed();
-            ));
         };
 
         let speed_scale = cascade! {
             gtk::Scale::with_range(gtk::Orientation::Horizontal, 0., 255., 1.);
             ..set_halign(gtk::Align::Fill);
             ..set_size_request(200, 0);
-            ..connect_value_changed(clone!(@weak obj => move |_|
-                obj.mode_speed_changed();
-            ));
         };
 
         let brightness_scale = cascade! {
             gtk::Scale::with_range(gtk::Orientation::Horizontal, 0., 100., 1.);
             ..set_halign(gtk::Align::Fill);
             ..set_size_request(200, 0);
-            ..connect_value_changed(clone!(@weak obj => move |_|
-                obj.brightness_changed();
-            ));
+
         };
 
         // XXX add support to ColorButton for changing keyboard
@@ -139,7 +131,6 @@ glib::wrapper! {
 impl Backlight {
     pub fn new(board: DaemonBoard) -> Self {
         let obj: Self = glib::Object::new(&[]).unwrap();
-        obj.inner().board.set(board.clone());
 
         let color_button = KeyboardColorButton::new(board.clone(), 0xff);
         obj.inner().color_button_bin.add(&color_button);
@@ -153,8 +144,20 @@ impl Backlight {
         };
 
         let mode = MODE_MAP.get(mode as usize).cloned();
+
         obj.inner().mode_combobox.set_active_id(mode);
+        obj.inner()
+            .mode_combobox
+            .connect_changed(clone!(@weak obj => move |_|
+                obj.mode_speed_changed();
+            ));
+
         obj.inner().speed_scale.set_value(speed.into());
+        obj.inner()
+            .speed_scale
+            .connect_value_changed(clone!(@weak obj => move |_|
+                obj.mode_speed_changed();
+            ));
 
         let max_brightness = match board.max_brightness() {
             Ok(value) => value as f64,
@@ -172,7 +175,15 @@ impl Backlight {
                 0.0
             }
         };
+
         obj.inner().brightness_scale.set_value(brightness);
+        obj.inner()
+            .brightness_scale
+            .connect_value_changed(clone!(@weak obj => move |_|
+                obj.brightness_changed();
+            ));
+
+        obj.inner().board.set(board.clone());
 
         obj
     }
