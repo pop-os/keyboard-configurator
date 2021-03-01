@@ -11,7 +11,7 @@ use std::{
 };
 use uuid::Uuid;
 
-use super::{err_str, BoardId, Daemon, DaemonCommand};
+use super::{err_str, BoardId, Daemon, DaemonCommand, Matrix};
 use crate::color::{Hs, Rgb};
 
 pub struct DaemonServer<R: Read, W: Write> {
@@ -167,6 +167,18 @@ impl<R: Read, W: Write> Daemon for DaemonServer<R, W> {
     ) -> Result<(), String> {
         let mut ec = self.board(board)?;
         unsafe { ec.keymap_set(layer, output, input, value).map_err(err_str) }
+    }
+
+    fn matrix_get(&self, board: BoardId) -> Result<Matrix, String> {
+        let mut ec = self.board(board)?;
+
+        let data_size = unsafe { ec.access().data_size() };
+        let mut data = vec![0; data_size];
+        unsafe { ec.matrix_get(&mut data).map_err(err_str)? };
+
+        let rows = data.remove(0) as usize;
+        let cols = data.remove(0) as usize;
+        Ok(Matrix::new(rows, cols, data.into_boxed_slice()))
     }
 
     fn color(&self, board: BoardId, index: u8) -> Result<Hs, String> {
