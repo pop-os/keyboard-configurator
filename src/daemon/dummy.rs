@@ -71,7 +71,7 @@ impl Daemon for DaemonDummy {
         Ok(())
     }
 
-    fn matrix_get(&self, board: BoardId) -> Result<Matrix, String> {
+    fn matrix_get(&self, _board: BoardId) -> Result<Matrix, String> {
         Ok(Matrix::new(0, 0, Vec::new().into_boxed_slice()))
     }
 

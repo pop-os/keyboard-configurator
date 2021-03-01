@@ -154,7 +154,7 @@ impl Daemon for DaemonS76Power {
         Err("Unimplemented".to_string())
     }
 
-    fn matrix_get(&self, board: BoardId) -> Result<Matrix, String> {
+    fn matrix_get(&self, _board: BoardId) -> Result<Matrix, String> {
         Err("Unimplemented".to_string())
     }
 
