@@ -1,4 +1,4 @@
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 use std::char;
 use std::collections::HashMap;
 
@@ -181,6 +181,7 @@ impl Layout {
                                 electrical_name: format!("{}, {}", electrical.0, electrical.1),
                                 leds,
                                 led_name,
+                                pressed: Cell::new(false),
                                 scancodes: RefCell::new(Vec::new()),
                                 background_color,
                                 foreground_color,
