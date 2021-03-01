@@ -37,7 +37,7 @@ uuid = { version = "0.8.2", features = ["v4"] }
 gio = { git = "https://github.com/pop-os/gtk-rs" }
 
 [dependencies.system76_ectool]
-version = "0.3.2"
+version = "0.3.3"
 features = ["hidapi", "std"]
 
 [target.'cfg(target_os = "windows")'.dependencies]
