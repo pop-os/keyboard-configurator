@@ -88,28 +88,39 @@ impl ObjectImpl for BacklightInner {
 
         cascade! {
             obj;
-            ..set_orientation(gtk::Orientation::Horizontal);
-            ..set_spacing(8);
+            ..set_orientation(gtk::Orientation::Vertical);
             ..add(&cascade! {
-                gtk::Label::new(Some("Mode:"));
-                ..set_halign(gtk::Align::Start);
+                gtk::Box::new(gtk::Orientation::Horizontal, 8);
+                ..add(&cascade! {
+                    gtk::Label::new(Some("Mode:"));
+                    ..set_halign(gtk::Align::Start);
+                });
+                ..add(&mode_combobox);
             });
-            ..add(&mode_combobox);
             ..add(&cascade! {
-                gtk::Label::new(Some("Speed:"));
-                ..set_halign(gtk::Align::Start);
+                gtk::Box::new(gtk::Orientation::Horizontal, 8);
+                ..add(&cascade! {
+                    gtk::Label::new(Some("Speed:"));
+                    ..set_halign(gtk::Align::Start);
+                });
+                ..add(&speed_scale);
             });
-            ..add(&speed_scale);
             ..add(&cascade! {
-                gtk::Label::new(Some("Brightness:"));
-                ..set_halign(gtk::Align::Start);
+                gtk::Box::new(gtk::Orientation::Horizontal, 8);
+                ..add(&cascade! {
+                    gtk::Label::new(Some("Brightness:"));
+                    ..set_halign(gtk::Align::Start);
+                });
+                ..add(&brightness_scale);
             });
-            ..add(&brightness_scale);
             ..add(&cascade! {
-                gtk::Label::new(Some("Color:"));
-                ..set_halign(gtk::Align::Start);
+                gtk::Box::new(gtk::Orientation::Horizontal, 8);
+                ..add(&cascade! {
+                    gtk::Label::new(Some("Color:"));
+                    ..set_halign(gtk::Align::Start);
+                });
+                ..add(&color_button_bin);
             });
-            ..add(&color_button_bin);
         };
 
         self.color_button_bin.set(color_button_bin);

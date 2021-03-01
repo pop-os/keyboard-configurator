@@ -28,6 +28,7 @@ pub struct KeyboardInner {
     picker: RefCell<WeakRef<Picker>>,
     selected: Cell<Option<usize>>,
     layer_stack: DerefCell<gtk::Stack>,
+    stack: DerefCell<gtk::Stack>,
 }
 
 impl ObjectSubclass for KeyboardInner {
@@ -70,11 +71,29 @@ impl ObjectImpl for KeyboardInner {
             );
         };
 
+        let stack = cascade! {
+            gtk::Stack::new();
+            ..add_titled(&layer_stack, "keymap", "Keymap");
+            ..connect_property_visible_child_notify(clone!(@weak keyboard => move |stack| {
+                if let Some(picker) = keyboard.inner().picker.borrow().upgrade() {
+                    picker.set_visible(stack.get_visible_child_name().unwrap() == "keymap")
+                }
+            }));
+        };
+
+        let stack_switcher = cascade! {
+            gtk::StackSwitcher::new();
+            ..set_halign(gtk::Align::Center);
+            ..set_margin_top(8);
+            ..set_stack(Some(&stack));
+        };
+
         cascade! {
             keyboard;
             ..set_orientation(gtk::Orientation::Vertical);
             ..set_spacing(8);
-            ..pack_end(&layer_stack, false, false, 0);
+            ..add(&stack_switcher);
+            ..add(&stack);
         };
 
         let action_group = cascade! {
@@ -101,6 +120,7 @@ impl ObjectImpl for KeyboardInner {
 
         self.action_group.set(action_group);
         self.layer_stack.set(layer_stack);
+        self.stack.set(stack);
     }
 
     fn properties() -> &'static [glib::ParamSpec] {
@@ -215,7 +235,10 @@ impl Keyboard {
             }
         }
 
-        keyboard.pack_start(&Backlight::new(board.clone()), false, false, 0);
+        keyboard
+            .inner()
+            .stack
+            .add_titled(&Backlight::new(board.clone()), "leds", "LEDs");
 
         keyboard.inner().keys.set(keys.into_boxed_slice().into());
         keyboard.inner().board.set(board);
