@@ -4,6 +4,7 @@ use gtk::prelude::*;
 use gtk::subclass::prelude::*;
 
 mod about_dialog;
+mod backlight;
 mod error_dialog;
 mod key;
 mod keyboard;
@@ -18,8 +19,8 @@ mod shortcuts_window;
 use crate::DerefCell;
 
 use self::{
-    error_dialog::*, key::*, keyboard::*, keyboard_layer::*, layout::*, main_window::*, page::*,
-    picker::*, rect::*, shortcuts_window::*,
+    backlight::*, error_dialog::*, key::*, keyboard::*, keyboard_layer::*, layout::*,
+    main_window::*, page::*, picker::*, rect::*, shortcuts_window::*,
 };
 
 #[derive(Default)]
