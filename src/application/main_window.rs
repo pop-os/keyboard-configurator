@@ -223,7 +223,7 @@ impl MainWindow {
         inner
             .header_bar
             .set_custom_title(Some(&*inner.layer_switcher));
-        inner.layer_switcher.set_stack(Some(keyboard.stack()));
+        inner.layer_switcher.set_stack(Some(keyboard.layer_stack()));
         self.insert_action_group("kbd", Some(keyboard.action_group()));
         inner.back_button.set_visible(true);
 

@@ -27,7 +27,7 @@ pub struct KeyboardInner {
     page: Cell<Page>,
     picker: RefCell<WeakRef<Picker>>,
     selected: Cell<Option<usize>>,
-    stack: DerefCell<gtk::Stack>,
+    layer_stack: DerefCell<gtk::Stack>,
 }
 
 impl ObjectSubclass for KeyboardInner {
@@ -51,7 +51,7 @@ impl ObjectImpl for KeyboardInner {
     fn constructed(&self, keyboard: &Keyboard) {
         self.parent_constructed(keyboard);
 
-        let stack = cascade! {
+        let layer_stack = cascade! {
             gtk::Stack::new();
             ..set_transition_duration(0);
             ..connect_property_visible_child_notify(
@@ -74,7 +74,7 @@ impl ObjectImpl for KeyboardInner {
             keyboard;
             ..set_orientation(gtk::Orientation::Vertical);
             ..set_spacing(8);
-            ..pack_end(&stack, false, false, 0);
+            ..pack_end(&layer_stack, false, false, 0);
         };
 
         let action_group = cascade! {
@@ -100,7 +100,7 @@ impl ObjectImpl for KeyboardInner {
         };
 
         self.action_group.set(action_group);
-        self.stack.set(stack);
+        self.layer_stack.set(layer_stack);
     }
 
     fn properties() -> &'static [glib::ParamSpec] {
@@ -295,8 +295,8 @@ impl Keyboard {
         self.inner().selected.get()
     }
 
-    pub fn stack(&self) -> &gtk::Stack {
-        &self.inner().stack
+    pub fn layer_stack(&self) -> &gtk::Stack {
+        &self.inner().layer_stack
     }
 
     pub fn has_scancode(&self, scancode_name: &str) -> bool {
@@ -444,20 +444,20 @@ impl Keyboard {
     }
 
     fn add_pages(&self) {
-        let stack = &*self.inner().stack;
+        let layer_stack = &*self.inner().layer_stack;
 
         for (i, page) in Page::iter_all().enumerate() {
             let keyboard_layer = KeyboardLayer::new(page, self.keys().clone());
             self.bind_property("selected", &keyboard_layer, "selected")
                 .flags(glib::BindingFlags::BIDIRECTIONAL)
                 .build();
-            stack.add_titled(&keyboard_layer, page.name(), page.name());
+            layer_stack.add_titled(&keyboard_layer, page.name(), page.name());
 
             self.inner().action_group.add_action(&cascade! {
                 gio::SimpleAction::new(&format!("page{}", i), None);
-                ..connect_activate(clone!(@weak stack, @weak keyboard_layer => move |_, _| {
-                    stack.set_visible_child(&keyboard_layer);
-                }));
+                ..connect_activate(clone!(@weak layer_stack, @weak keyboard_layer => move |_, _|
+                    layer_stack.set_visible_child(&keyboard_layer);
+                ));
             });
         }
     }
