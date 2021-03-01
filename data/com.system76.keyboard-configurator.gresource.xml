@@ -8,5 +8,7 @@
       <file>icons/16x16/actions/open-menu-symbolic.symbolic.png</file>
       <file>icons/scalable/apps/com.system76.keyboard-configurator.svg</file>
       <file>icons/scalable/devices/input-keyboard-symbolic.svg</file>
+      <file>icons/scalable/actions/edit-delete-symbolic.svg</file>
+      <file>icons/scalable/actions/edit-symbolic.svg</file>
     </gresource>
 </gresources>

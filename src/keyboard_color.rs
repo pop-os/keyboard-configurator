@@ -3,17 +3,14 @@ use glib::clone;
 use glib::subclass;
 use gtk::prelude::*;
 use gtk::subclass::prelude::*;
-use std::{
-    cell::{Cell, RefCell},
-    iter,
-};
+use std::cell::{Cell, RefCell};
 
 use crate::{choose_color, ColorCircle, DaemonBoard, DerefCell, Hs, Rgb};
 
 #[derive(Default)]
-pub struct KeyboardColorButtonInner {
+pub struct KeyboardColorInner {
     circles: RefCell<Vec<ColorCircle>>,
-    grid: DerefCell<gtk::Grid>,
+    circle_box: DerefCell<gtk::Box>,
     current_circle: RefCell<Option<ColorCircle>>,
     add_circle: DerefCell<ColorCircle>,
     remove_button: DerefCell<gtk::Button>,
@@ -22,11 +19,11 @@ pub struct KeyboardColorButtonInner {
     index: Cell<u8>,
 }
 
-impl ObjectSubclass for KeyboardColorButtonInner {
-    const NAME: &'static str = "S76KeyboardColorButton";
+impl ObjectSubclass for KeyboardColorInner {
+    const NAME: &'static str = "S76KeyboardColor";
 
-    type ParentType = gtk::Bin;
-    type Type = KeyboardColorButton;
+    type ParentType = gtk::Box;
+    type Type = KeyboardColor;
     type Interfaces = ();
 
     type Instance = subclass::simple::InstanceStruct<Self>;
@@ -39,48 +36,28 @@ impl ObjectSubclass for KeyboardColorButtonInner {
     }
 }
 
-impl ObjectImpl for KeyboardColorButtonInner {
-    fn constructed(&self, obj: &KeyboardColorButton) {
+impl ObjectImpl for KeyboardColorInner {
+    fn constructed(&self, obj: &KeyboardColor) {
         self.parent_constructed(obj);
 
-        let button = ColorCircle::new(30);
-
-        let grid = cascade! {
-            gtk::Grid::new();
-            ..set_column_spacing(6);
-            ..set_row_spacing(6);
-            ..set_halign(gtk::Align::Center);
+        let circle_box = cascade! {
+            gtk::Box::new(gtk::Orientation::Horizontal, 6);
         };
 
         let remove_button = cascade! {
-            gtk::Button::with_label("Remove");
+            gtk::Button::new();
+            ..add(&gtk::Image::from_icon_name(Some("edit-delete"), gtk::IconSize::Button));
             ..connect_clicked(clone!(@weak obj => move |_| obj.remove_clicked()));
         };
 
         let edit_button = cascade! {
-            gtk::Button::with_label("Edit");
+            gtk::Button::new();
+            ..add(&gtk::Image::from_icon_name(Some("edit"), gtk::IconSize::Button));
             ..connect_clicked(clone!(@weak obj => move |_| obj.edit_clicked()));
         };
 
-        let popover = cascade! {
-            gtk::Popover::new(Some(obj));
-            ..add(&cascade! {
-                gtk::Box::new(gtk::Orientation::Vertical, 0);
-                ..add(&grid);
-                ..add(&gtk::Separator::new(gtk::Orientation::Horizontal));
-                ..add(&cascade! {
-                    gtk::Box::new(gtk::Orientation::Horizontal, 0);
-                    ..add(&remove_button);
-                    ..add(&edit_button);
-                });
-            });
-            ..show_all();
-            ..hide();
-        };
-        button.connect_clicked(clone!(@weak popover => move |_| popover.popup()));
-
         let add_circle = cascade! {
-            ColorCircle::new(45);
+            ColorCircle::new(30);
             ..set_alpha(0.);
             ..set_symbol("+");
             ..connect_clicked(clone!(@weak obj => move |_| obj.add_clicked()));
@@ -88,12 +65,18 @@ impl ObjectImpl for KeyboardColorButtonInner {
 
         cascade! {
             obj;
-            ..bind_property("hs", &button, "hs").flags(glib::BindingFlags::SYNC_CREATE).build();
-            ..add(&button);
+            ..set_spacing(8);
+            ..add(&circle_box);
+            ..add(&gtk::Separator::new(gtk::Orientation::Horizontal));
+            ..add(&cascade! {
+                gtk::Box::new(gtk::Orientation::Horizontal, 8);
+                ..add(&remove_button);
+                ..add(&edit_button);
+            });
             ..show_all();
         }
 
-        self.grid.set(grid);
+        self.circle_box.set(circle_box);
         self.add_circle.set(add_circle);
         self.remove_button.set(remove_button);
     }
@@ -115,7 +98,7 @@ impl ObjectImpl for KeyboardColorButtonInner {
 
     fn set_property(
         &self,
-        widget: &KeyboardColorButton,
+        widget: &KeyboardColor,
         _id: usize,
         value: &glib::Value,
         pspec: &glib::ParamSpec,
@@ -132,7 +115,7 @@ impl ObjectImpl for KeyboardColorButtonInner {
 
     fn get_property(
         &self,
-        _widget: &KeyboardColorButton,
+        _widget: &KeyboardColor,
         _id: usize,
         pspec: &glib::ParamSpec,
     ) -> glib::Value {
@@ -143,16 +126,16 @@ impl ObjectImpl for KeyboardColorButtonInner {
     }
 }
 
-impl WidgetImpl for KeyboardColorButtonInner {}
-impl ContainerImpl for KeyboardColorButtonInner {}
-impl BinImpl for KeyboardColorButtonInner {}
+impl WidgetImpl for KeyboardColorInner {}
+impl ContainerImpl for KeyboardColorInner {}
+impl BoxImpl for KeyboardColorInner {}
 
 glib::wrapper! {
-    pub struct KeyboardColorButton(ObjectSubclass<KeyboardColorButtonInner>)
-        @extends gtk::Bin, gtk::Container, gtk::Widget;
+    pub struct KeyboardColor(ObjectSubclass<KeyboardColorInner>)
+        @extends gtk::Box, gtk::Container, gtk::Widget;
 }
 
-impl KeyboardColorButton {
+impl KeyboardColor {
     pub fn new(board: DaemonBoard, index: u8) -> Self {
         let widget: Self = glib::Object::new(&[]).unwrap();
 
@@ -176,44 +159,40 @@ impl KeyboardColorButton {
             Rgb::new(0, 255, 0).to_hs_lossy(),
         ];
 
-        for hs in colors.iter() {
-            widget.add_color(*hs);
+        for hs in colors {
+            widget.add_color(hs);
         }
 
-        widget.populate_grid();
+        widget.populate_circles();
 
         widget
     }
 
-    fn inner(&self) -> &KeyboardColorButtonInner {
-        KeyboardColorButtonInner::from_instance(self)
+    fn inner(&self) -> &KeyboardColorInner {
+        KeyboardColorInner::from_instance(self)
     }
 
     fn add_color(&self, color: Hs) {
         let self_ = self;
         let circle = cascade! {
-            ColorCircle::new(45);
+            ColorCircle::new(30);
             ..connect_clicked(clone!(@weak self_ => move |c| self_.circle_clicked(c)));
             ..set_hs(color);
         };
         self.inner().circles.borrow_mut().push(circle);
     }
 
-    fn populate_grid(&self) {
-        self.inner().grid.foreach(|w| self.inner().grid.remove(w));
+    fn populate_circles(&self) {
+        self.inner()
+            .circle_box
+            .foreach(|w| self.inner().circle_box.remove(w));
 
-        let circles = self.inner().circles.borrow();
-        for (i, circle) in circles
-            .iter()
-            .chain(iter::once(&*self.inner().add_circle))
-            .enumerate()
-        {
-            let x = i as i32 % 3;
-            let y = i as i32 / 3;
-            self.inner().grid.attach(circle, x, y, 1, 1);
+        for circle in &*self.inner().circles.borrow() {
+            self.inner().circle_box.add(circle);
         }
+        self.inner().circle_box.add(&*self.inner().add_circle);
 
-        self.inner().grid.show_all();
+        self.inner().circle_box.show_all();
     }
 
     fn add_clicked(&self) {
@@ -222,7 +201,7 @@ impl KeyboardColorButton {
         {
             self.add_color(color);
             self.inner().remove_button.set_visible(true);
-            self.populate_grid();
+            self.populate_circles();
         } else if let Some(circle) = &*self.inner().current_circle.borrow() {
             if let Err(err) = self.board().set_color(self.index(), circle.hs()) {
                 error!("Failed to set keyboard color: {}", err);
@@ -240,7 +219,7 @@ impl KeyboardColorButton {
             }
             self.inner().remove_button.set_visible(circles.len() > 1);
         }
-        self.populate_grid();
+        self.populate_circles();
     }
 
     fn edit_clicked(&self) {

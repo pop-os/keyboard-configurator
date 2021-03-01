@@ -5,7 +5,7 @@ use glib::clone;
 use gtk::prelude::*;
 use std::rc::Rc;
 
-use crate::{Daemon, DaemonBoard, DaemonS76Power, KeyboardColorButton};
+use crate::{Daemon, DaemonBoard, DaemonS76Power, KeyboardColor};
 
 pub fn keyboard_backlight_widget() -> gtk::Widget {
     let stack = cascade! {
@@ -64,7 +64,7 @@ fn page(board: DaemonBoard) -> gtk::Widget {
 
     // TODO detect when brightness changed in daemon
 
-    let button = KeyboardColorButton::new(board, 0xff);
+    let button = KeyboardColor::new(board, 0xff);
 
     let listbox = cascade! {
         gtk::ListBox::new();

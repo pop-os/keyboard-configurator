@@ -3,7 +3,7 @@ use glib::{clone, subclass};
 use gtk::prelude::*;
 use gtk::subclass::prelude::*;
 
-use crate::{DaemonBoard, DerefCell, KeyboardColorButton};
+use crate::{DaemonBoard, DerefCell, KeyboardColor};
 
 static MODE_MAP: &[&str] = &[
     "SOLID_COLOR",
@@ -143,7 +143,7 @@ impl Backlight {
     pub fn new(board: DaemonBoard) -> Self {
         let obj: Self = glib::Object::new(&[]).unwrap();
 
-        let color_button = KeyboardColorButton::new(board.clone(), 0xff);
+        let color_button = KeyboardColor::new(board.clone(), 0xff);
         obj.inner().color_button_bin.add(&color_button);
 
         let (mode, speed) = match board.mode() {
