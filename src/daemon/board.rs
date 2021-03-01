@@ -1,6 +1,6 @@
 use std::rc::Rc;
 
-use super::{BoardId, Daemon};
+use super::{BoardId, Daemon, Matrix};
 use crate::Hs;
 
 #[derive(Clone, glib::GBoxed)]
@@ -18,6 +18,10 @@ impl DaemonBoard {
 
     pub fn keymap_set(&self, layer: u8, output: u8, input: u8, value: u16) -> Result<(), String> {
         self.0.keymap_set(self.1, layer, output, input, value)
+    }
+
+    pub fn matrix_get(&self) -> Result<Matrix, String> {
+        self.0.matrix_get(self.1)
     }
 
     pub fn color(&self, index: u8) -> Result<Hs, String> {
