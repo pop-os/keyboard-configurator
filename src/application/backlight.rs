@@ -145,19 +145,21 @@ impl Backlight {
 
         let mode = MODE_MAP.get(mode as usize).cloned();
 
-        obj.inner().mode_combobox.set_active_id(mode);
-        obj.inner()
-            .mode_combobox
-            .connect_changed(clone!(@weak obj => move |_|
+        cascade! {
+            &obj.inner().mode_combobox;
+            ..set_active_id(mode);
+            ..connect_changed(clone!(@weak obj => move |_|
                 obj.mode_speed_changed();
             ));
+        };
 
-        obj.inner().speed_scale.set_value(speed.into());
-        obj.inner()
-            .speed_scale
-            .connect_value_changed(clone!(@weak obj => move |_|
+        cascade! {
+            &obj.inner().speed_scale;
+            ..set_value(speed.into());
+            ..connect_value_changed(clone!(@weak obj => move |_|
                 obj.mode_speed_changed();
             ));
+        };
 
         let max_brightness = match board.max_brightness() {
             Ok(value) => value as f64,
@@ -166,7 +168,6 @@ impl Backlight {
                 100.0
             }
         };
-        obj.inner().brightness_scale.set_range(0.0, max_brightness);
 
         let brightness = match board.brightness(0xff) {
             Ok(value) => value as f64,
@@ -176,12 +177,14 @@ impl Backlight {
             }
         };
 
-        obj.inner().brightness_scale.set_value(brightness);
-        obj.inner()
-            .brightness_scale
-            .connect_value_changed(clone!(@weak obj => move |_|
+        cascade! {
+            &obj.inner().brightness_scale;
+            ..set_range(0.0, max_brightness);
+            ..set_value(brightness);
+            ..connect_value_changed(clone!(@weak obj => move |_|
                 obj.brightness_changed();
             ));
+        };
 
         obj.inner().board.set(board.clone());
 
