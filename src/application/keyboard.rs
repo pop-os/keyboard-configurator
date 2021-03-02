@@ -533,11 +533,23 @@ impl Keyboard {
         self.notify("selected");
     }
 
+    fn redraw(&self) {
+        self.queue_draw();
+        // TODO: clean up this hack to only redraw keyboard on main page
+        if let Some(parent) = self.get_parent() {
+            parent.queue_draw();
+            if let Some(grandparent) = parent.get_parent() {
+                grandparent.queue_draw();
+            }
+        }
+    }
+
     fn refresh(&self) -> bool {
-        let focused = match self.window() {
-            Some(window) => window.is_active(),
-            None => false,
+        let window = match self.window() {
+            Some(some) => some,
+            None => return true,
         };
+        let focused = window.is_active();
         match self.board().matrix_get() {
             Ok(matrix) => {
                 let mut changed = false;
@@ -555,14 +567,16 @@ impl Keyboard {
                     }
                 }
                 if changed {
-                    self.queue_draw();
-                    // TODO: clean up this hack to redraw keyboard on main page
-                    if let Some(parent) = self.get_parent() {
-                        parent.queue_draw();
-                        if let Some(grandparent) = parent.get_parent() {
-                            grandparent.queue_draw();
-                        }
-                    }
+                    let keyboard = self;
+                    keyboard.redraw();
+                    // Sometimes the redraw is missed, so send it again in 10ms
+                    glib::timeout_add_local(
+                        time::Duration::from_millis(10),
+                        clone!(@weak keyboard => @default-return glib::Continue(false), move || {
+                            keyboard.redraw();
+                            glib::Continue(false)
+                        })
+                    );
                 }
                 true
             },
