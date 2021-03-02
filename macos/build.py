@@ -8,6 +8,8 @@ import subprocess
 import sys
 import tempfile
 
+from install_name_tool import run_install_name_tool
+
 # Handle commandline arguments
 parser = argparse.ArgumentParser()
 parser.add_argument('--release', action='store_true')
@@ -57,7 +59,7 @@ subprocess.check_call([f"strip", '-o', f"keyboard-configurator", f"{TARGET_DIR}/
 if os.path.exists("System76 Keyboard Configurator.app"):
     shutil.rmtree("System76 Keyboard Configurator.app")
 subprocess.check_call(["gtk-mac-bundler", "keyboard-configurator.bundle"])
-subprocess.check_call(["jdupes", "-R", "-l", "System76 Keyboard Configurator.app"])
+run_install_name_tool()
 
 # Build .dmg
 if os.path.exists("keyboard-configurator.dmg"):
