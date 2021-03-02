@@ -1,5 +1,4 @@
 use cascade::cascade;
-use glib::clone;
 use glib::subclass;
 use glib::subclass::prelude::*;
 use gtk::prelude::*;
@@ -10,16 +9,8 @@ use std::ptr;
 
 use crate::color::Hs;
 
-// The standard "circular" class includes padding, so disable that
-const CSS: &[u8] = b"
-    button.keyboard_color_button {
-        padding: 0px;
-    }
-";
-
 #[derive(Default)]
 pub struct ColorCircleInner {
-    drawing_area: gtk::DrawingArea,
     hs: Cell<Hs>,
     alpha: Cell<f64>,
     symbol: Cell<&'static str>,
@@ -46,28 +37,6 @@ impl ObjectSubclass for ColorCircleInner {
 }
 
 impl ObjectImpl for ColorCircleInner {
-    fn constructed(&self, obj: &ColorCircle) {
-        self.parent_constructed(obj);
-
-        let provider = cascade! {
-            gtk::CssProvider::new();
-            ..load_from_data(CSS).unwrap();
-        };
-
-        let context = obj.get_style_context();
-        context.add_provider(&provider, gtk::STYLE_PROVIDER_PRIORITY_APPLICATION);
-        context.add_class("circular");
-        context.add_class("keyboard_color_button");
-
-        self.drawing_area
-            .connect_draw(clone!(@weak obj => @default-panic, move |w, cr| {
-                obj.draw(w, cr);
-                Inhibit(false)
-            }));
-
-        obj.add(&self.drawing_area);
-    }
-
     fn properties() -> &'static [glib::ParamSpec] {
         use once_cell::sync::Lazy;
         static PROPERTIES: Lazy<Vec<glib::ParamSpec>> = Lazy::new(|| {
@@ -112,7 +81,48 @@ impl ObjectImpl for ColorCircleInner {
     }
 }
 
-impl WidgetImpl for ColorCircleInner {}
+impl WidgetImpl for ColorCircleInner {
+    fn draw(&self, widget: &ColorCircle, cr: &cairo::Context) -> Inhibit {
+        let width = f64::from(widget.get_allocated_width());
+        let height = f64::from(widget.get_allocated_height());
+
+        let style = widget.get_style_context();
+        let fg = style.get_color(gtk::StateFlags::NORMAL);
+
+        let radius = width.min(height) / 2.;
+        let (r, g, b) = widget.hs().to_rgb().to_floats();
+        let alpha = self.alpha.get();
+
+        cr.arc(radius, radius, radius, 0., 2. * PI);
+        cr.set_source_rgba(r, g, b, alpha);
+        cr.fill_preserve();
+        cr.set_line_width(1.);
+        cr.set_source_rgb(0.5, 0.5, 0.5);
+        cr.stroke();
+
+        let text = self.symbol.get();
+        let attrs = cascade! {
+            pango::AttrList::new();
+            ..insert(pango::Attribute::new_size(14 * pango::SCALE));
+        };
+        let layout = cascade! {
+            widget.create_pango_layout(Some(text));
+            ..set_width((width * pango::SCALE as f64) as i32);
+            ..set_alignment(pango::Alignment::Center);
+            ..set_attributes(Some(&attrs));
+        };
+        let text_height = layout.get_pixel_size().1 as f64;
+        cr.new_path();
+        cr.move_to(0., (height - text_height) / 2.);
+        cr.set_source_rgb(fg.red, fg.green, fg.blue);
+        pangocairo::show_layout(cr, &layout);
+
+        cr.stroke();
+
+        Inhibit(false)
+    }
+}
+
 impl ContainerImpl for ColorCircleInner {}
 impl BinImpl for ColorCircleInner {}
 impl ButtonImpl for ColorCircleInner {}
@@ -133,41 +143,6 @@ impl ColorCircle {
 
     fn inner(&self) -> &ColorCircleInner {
         ColorCircleInner::from_instance(self)
-    }
-
-    fn draw(&self, w: &gtk::DrawingArea, cr: &cairo::Context) {
-        let width = f64::from(w.get_allocated_width());
-        let height = f64::from(w.get_allocated_height());
-
-        let style = w.get_style_context();
-        let fg = style.get_color(gtk::StateFlags::NORMAL);
-
-        let radius = width.min(height) / 2.;
-        let (r, g, b) = self.hs().to_rgb().to_floats();
-        let alpha = self.inner().alpha.get();
-
-        cr.arc(radius, radius, radius, 0., 2. * PI);
-        cr.set_source_rgba(r, g, b, alpha);
-        cr.fill_preserve();
-
-        let text = self.inner().symbol.get();
-        let attrs = cascade! {
-            pango::AttrList::new();
-            ..insert(pango::Attribute::new_size(14 * pango::SCALE));
-        };
-        let layout = cascade! {
-            w.create_pango_layout(Some(text));
-            ..set_width((width * pango::SCALE as f64) as i32);
-            ..set_alignment(pango::Alignment::Center);
-            ..set_attributes(Some(&attrs));
-        };
-        let text_height = layout.get_pixel_size().1 as f64;
-        cr.new_path();
-        cr.move_to(0., (height - text_height) / 2.);
-        cr.set_source_rgb(fg.red, fg.green, fg.blue);
-        pangocairo::show_layout(cr, &layout);
-
-        cr.stroke();
     }
 
     pub fn set_hs(&self, color: Hs) {
