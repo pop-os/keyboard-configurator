@@ -14,6 +14,7 @@ pub struct ColorCircleInner {
     hs: Cell<Hs>,
     alpha: Cell<f64>,
     symbol: Cell<&'static str>,
+    mouseover: Cell<bool>,
 }
 
 impl ObjectSubclass for ColorCircleInner {
@@ -37,6 +38,24 @@ impl ObjectSubclass for ColorCircleInner {
 }
 
 impl ObjectImpl for ColorCircleInner {
+    fn constructed(&self, widget: &ColorCircle) {
+        self.parent_constructed(widget);
+
+        widget.connect_enter_notify_event(|widget, _| {
+            widget.inner().mouseover.set(true);
+            widget.queue_draw();
+            Inhibit(false)
+        });
+
+        widget.connect_leave_notify_event(|widget, _| {
+            widget.inner().mouseover.set(false);
+            widget.queue_draw();
+            Inhibit(false)
+        });
+
+        widget.add_events(gdk::EventMask::POINTER_MOTION_MASK);
+    }
+
     fn properties() -> &'static [glib::ParamSpec] {
         use once_cell::sync::Lazy;
         static PROPERTIES: Lazy<Vec<glib::ParamSpec>> = Lazy::new(|| {
@@ -96,6 +115,10 @@ impl WidgetImpl for ColorCircleInner {
         cr.arc(radius, radius, radius, 0., 2. * PI);
         cr.set_source_rgba(r, g, b, alpha);
         cr.fill_preserve();
+        if self.mouseover.get() {
+            cr.set_source_rgba(0., 0., 0., 0.2);
+            cr.fill_preserve();
+        }
         cr.set_line_width(1.);
         cr.set_source_rgb(0.5, 0.5, 0.5);
         cr.stroke();
@@ -118,6 +141,20 @@ impl WidgetImpl for ColorCircleInner {
         pangocairo::show_layout(cr, &layout);
 
         cr.stroke();
+
+        Inhibit(false)
+    }
+
+    fn motion_notify_event(&self, widget: &ColorCircle, evt: &gdk::EventMotion) -> Inhibit {
+        let width = f64::from(widget.get_allocated_width());
+        let height = f64::from(widget.get_allocated_height());
+        let radius = width.min(height) / 2.;
+        let (x, y) = evt.get_position();
+
+        let mouseover = (x - radius).hypot(y - radius) < radius;
+        if self.mouseover.replace(mouseover) != mouseover {
+            widget.queue_draw();
+        }
 
         Inhibit(false)
     }
