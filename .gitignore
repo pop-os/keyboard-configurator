@@ -3,8 +3,15 @@
 /windows/out
 /windows/libraries.wxi
 /macos/Info.plist
+/macos/background.png
+/macos/keyboard-configurator
 *.AppDir
 *.AppImage
 *.msi
 *.wixobj
 *.wixpdb
+*.dmg
+*.icns
+*.app
+.DS_Store
+__pycache__
