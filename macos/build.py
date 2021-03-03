@@ -61,6 +61,10 @@ if os.path.exists("System76 Keyboard Configurator.app"):
 subprocess.check_call(["gtk-mac-bundler", "keyboard-configurator.bundle"])
 run_install_name_tool()
 
+# Copy other files
+shutil.copy('../data/com.system76.keyboardconfigurator.gschema.xml', 'System76 Keyboard Configurator.app/Contents/Resources')
+shutil.copy('../data/gschemas.compiled', 'System76 Keyboard Configurator.app/Contents/Resources')
+
 # Build .dmg
 if os.path.exists("keyboard-configurator.dmg"):
     os.remove("keyboard-configurator.dmg")

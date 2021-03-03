@@ -27,6 +27,7 @@ use self::{
 pub struct ConfiguratorAppInner {
     phony_board_names: DerefCell<Vec<String>>,
     debug_layers: Cell<bool>,
+    settings: DerefCell<gio::Settings>,
 }
 
 #[glib::object_subclass]
@@ -41,6 +42,8 @@ impl ObjectImpl for ConfiguratorAppInner {
         app.set_application_id(Some("com.system76.keyboardconfigurator"));
 
         self.parent_constructed(app);
+
+        self.settings.set(crate::settings());
 
         app.add_main_option(
             "fake-keyboard",

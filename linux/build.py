@@ -48,9 +48,11 @@ if not os.path.exists(LINUXDEPLOY):
             f.write(u.read())
     os.chmod(LINUXDEPLOY, os.stat(LINUXDEPLOY).st_mode | 0o111)
 
-# Copy appdata
+# Copy additional files
 os.makedirs(f"{PKG}.AppDir/usr/share/metainfo")
+os.makedirs(f"{PKG}.AppDir/usr/share/glib-2.0/schemas")
 shutil.copy("com.system76.keyboardconfigurator.appdata.xml", f"{PKG}.AppDir/usr/share/metainfo")
+shutil.copy('../data/com.system76.keyboardconfigurator.gschema.xml', f"{PKG}.AppDir/usr/share/glib-2.0/schemas")
 
 # Build appimage
 subprocess.check_call([f"./{LINUXDEPLOY}",

@@ -99,6 +99,8 @@ for i in ('share/glib-2.0/schemas/org.gtk.Settings.FileChooser.gschema.xml', 'sh
     else:
         shutil.copy(src, dest)
 subprocess.check_call(["glib-compile-schemas", "out/share/glib-2.0/schemas"])
+shutil.copy('../data/com.system76.keyboardconfigurator.gschema.xml', 'out')
+shutil.copy('../data/gschemas.compiled', 'out')
 
 # Extract crate version from cargo
 meta_str = subprocess.check_output(CARGO + ["metadata", "--format-version", "1", "--no-deps"])
