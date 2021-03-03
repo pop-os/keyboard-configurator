@@ -92,8 +92,8 @@ jobs:
       with:
         name: keyboard-configurator-macos-${{ github.sha }}
     - run: mkdir mnt && hdiutil attach keyboard-configurator.dmg -mountpoint $PWD/mnt
-    - run: ./mnt/System76KeyboardConfigurator.app/Contents/MacOS/keyboard-configurator --help-gtk
-    - run: open mnt/System76KeyboardConfigurator.app --args --help-gtk
+    - run: '"./mnt/System76 Keyboard Configurator.app/Contents/MacOS/keyboard-configurator" --help-gtk'
+    - run: 'open "mnt/System76 Keyboard Configurator.app" --args --help-gtk'
 
   upload-to-release:
     if: github.event_name == 'release'
