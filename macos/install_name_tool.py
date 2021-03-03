@@ -33,7 +33,7 @@ def run_install_name_tool():
                     os.remove(path)
                     duplicates[relpath] = shasums[sum]
                 else:
-                    shasums[sum] = path
+                    shasums[sum] = relpath
                     libs.append(relpath)
 
     def install_name_tool(path):
