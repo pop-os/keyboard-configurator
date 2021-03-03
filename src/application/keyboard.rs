@@ -11,8 +11,7 @@ use std::{
     fs::{self, File},
     path::Path,
     rc::Rc,
-    str,
-    time,
+    str, time,
 };
 
 use super::{error_dialog, Backlight, Key, KeyboardLayer, Layout, Page, Picker};
@@ -252,7 +251,7 @@ impl Keyboard {
             time::Duration::from_millis(50),
             clone!(@weak keyboard => @default-return glib::Continue(false), move || {
                 glib::Continue(keyboard.refresh())
-            })
+            }),
         );
 
         keyboard
@@ -555,10 +554,9 @@ impl Keyboard {
                 let mut changed = false;
                 for key in self.keys().iter() {
                     let pressed = if focused {
-                        matrix.get(
-                            key.electrical.0 as usize,
-                            key.electrical.1 as usize
-                        ).unwrap_or(false)
+                        matrix
+                            .get(key.electrical.0 as usize, key.electrical.1 as usize)
+                            .unwrap_or(false)
                     } else {
                         false
                     };
@@ -575,11 +573,11 @@ impl Keyboard {
                         clone!(@weak keyboard => @default-return glib::Continue(false), move || {
                             keyboard.redraw();
                             glib::Continue(false)
-                        })
+                        }),
                     );
                 }
                 true
-            },
+            }
             Err(err) => {
                 error!("Failed to get matrix: {}", err);
                 false
