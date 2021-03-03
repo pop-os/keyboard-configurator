@@ -15,11 +15,11 @@ args = parser.parse_args()
 
 # Executables to install
 TARGET_DIR = "../target/" + ('release' if args.release else 'debug')
-ICON = "../data/icons/scalable/apps/com.system76.keyboard-configurator.svg"
+ICON = "../data/icons/scalable/apps/com.system76.keyboardconfigurator.svg"
 
 # Appimage packaging
 PKG = "keyboard-configurator"
-APPID = "com.system76.KeyboardConfigurator"
+APPID = "com.system76.keyboardconfigurator"
 ARCH = "x86_64"
 
 # Remove previous build
@@ -50,7 +50,7 @@ if not os.path.exists(LINUXDEPLOY):
 
 # Copy appdata
 os.makedirs(f"{PKG}.AppDir/usr/share/metainfo")
-shutil.copy("com.system76.KeyboardConfigurator.appdata.xml", f"{PKG}.AppDir/usr/share/metainfo")
+shutil.copy("com.system76.keyboardconfigurator.appdata.xml", f"{PKG}.AppDir/usr/share/metainfo")
 
 # Build appimage
 subprocess.check_call([f"./{LINUXDEPLOY}",

@@ -11,7 +11,7 @@
   <key>CFBundleIconFile</key>
   <string>keyboard-configurator</string>
   <key>CFBundleIdentifier</key>
-  <string>com.system76.keyboard-configurator</string>
+  <string>com.system76.keyboardconfigurator</string>
   <key>CFBundleSignature</key>
   <string>????</string>
   <key>CFBundleDisplayName</key>

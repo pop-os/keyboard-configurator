@@ -23,7 +23,7 @@ TARGET_DIR = "../target/" + ('release' if args.release else 'debug')
 EXES = {
     f"{TARGET_DIR}/system76-keyboard-configurator.exe",
 }
-ICON = "../data/icons/scalable/apps/com.system76.keyboard-configurator.svg"
+ICON = "../data/icons/scalable/apps/com.system76.keyboardconfigurator.svg"
 
 DLL_RE = r"(?<==> )(.*\\mingw32)\\bin\\(\S+.dll)"
 

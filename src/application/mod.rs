@@ -47,7 +47,7 @@ impl ObjectSubclass for ConfiguratorAppInner {
 
 impl ObjectImpl for ConfiguratorAppInner {
     fn constructed(&self, app: &ConfiguratorApp) {
-        app.set_application_id(Some("com.system76.keyboard-configurator"));
+        app.set_application_id(Some("com.system76.keyboardconfigurator"));
 
         self.parent_constructed(app);
 
@@ -176,7 +176,7 @@ pub fn run(args: Vec<String>) -> i32 {
     windows_init();
 
     gio::resources_register_include!("compiled.gresource").unwrap();
-    gtk::Window::set_default_icon_name("com.system76.keyboard-configurator");
+    gtk::Window::set_default_icon_name("com.system76.keyboardconfigurator");
 
     let application = ConfiguratorApp::new();
     application.run(&args)

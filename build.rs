@@ -1,7 +1,7 @@
 fn main() {
     gio::compile_resources(
         "data",
-        "data/com.system76.keyboard-configurator.gresource.xml",
+        "data/com.system76.keyboardconfigurator.gresource.xml",
         "compiled.gresource",
     );
 }

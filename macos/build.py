@@ -17,7 +17,7 @@ args = parser.parse_args()
 
 # Executables to install
 TARGET_DIR = "../target/" + ('release' if args.release else 'debug')
-ICON = "../data/icons/scalable/apps/com.system76.keyboard-configurator.svg"
+ICON = "../data/icons/scalable/apps/com.system76.keyboardconfigurator.svg"
 
 # Build the application
 cmd = ["cargo", "build"]

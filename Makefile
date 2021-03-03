@@ -18,7 +18,7 @@ ifneq ($(VENDOR),0)
 endif
 
 PACKAGE = system76_keyboard_configurator
-APPID = "com.system76.KeyboardConfigurator"
+APPID = "com.system76.keyboardconfigurator"
 PKGCONFIG = $(PACKAGE).pc
 BIN = system76-keyboard-configurator
 FFI = lib$(PACKAGE).so
