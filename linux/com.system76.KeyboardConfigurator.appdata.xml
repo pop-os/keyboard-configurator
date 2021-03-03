@@ -10,12 +10,14 @@
 	<name>System76 Keyboard Configurator</name>
 	<summary>Configure System76 keyboards</summary>
 	<description>
+		<p>
 		Configures keymap and backlight of System76 keyboards.
+		</p>
 	</description>
 	<categories>
 		<category>Utility</category>
 	</categories>
-	<launchable type="desktop-id">keyboard-configurator.desktop</launchable>
+	<launchable type="desktop-id">com.system76.KeyboardConfigurator.desktop</launchable>
 	<project_group>Pop!_OS</project_group>
 	<content_rating type="oars-1.0" />
 </component>

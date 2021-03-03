@@ -49,9 +49,8 @@ if not os.path.exists(LINUXDEPLOY):
     os.chmod(LINUXDEPLOY, os.stat(LINUXDEPLOY).st_mode | 0o111)
 
 # Copy appdata
-# Not working due to https://github.com/pop-os/popsicle/pull/106#issuecomment-694310715
-# os.makedirs(f"{PKG}.AppDir/usr/share/metainfo")
-# shutil.copy("com.system76.KeyboardConfigurator.appdata.xml", f"{PKG}.AppDir/usr/share/metainfo")
+os.makedirs(f"{PKG}.AppDir/usr/share/metainfo")
+shutil.copy("com.system76.KeyboardConfigurator.appdata.xml", f"{PKG}.AppDir/usr/share/metainfo")
 
 # Build appimage
 subprocess.check_call([f"./{LINUXDEPLOY}",
