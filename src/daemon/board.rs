@@ -44,11 +44,11 @@ impl DaemonBoard {
         self.0.set_brightness(self.1, index, brightness)
     }
 
-    pub fn mode(&self) -> Result<(u8, u8), String> {
-        self.0.mode(self.1)
+    pub fn mode(&self, layer: u8) -> Result<(u8, u8), String> {
+        self.0.mode(self.1, layer)
     }
 
-    pub fn set_mode(&self, mode: u8, speed: u8) -> Result<(), String> {
-        self.0.set_mode(self.1, mode, speed)
+    pub fn set_mode(&self, layer: u8, mode: u8, speed: u8) -> Result<(), String> {
+        self.0.set_mode(self.1, layer, mode, speed)
     }
 }

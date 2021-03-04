@@ -986,9 +986,9 @@ dependencies = [
 
 [[package]]
 name = "system76_ectool"
-version = "0.3.3"
+version = "0.3.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a3451d8d2e26cf8fbfa88d25d71a58232ac8840658416e62e542b6308d47997e"
+checksum = "7e674d3dbd7afb1c123381d151313f02c8097b6a5749b1b81c4e18d8136231f4"
 dependencies = [
  "clap",
  "downcast-rs",

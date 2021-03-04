@@ -79,7 +79,7 @@ impl ObjectImpl for BacklightInner {
 
         };
 
-        let keyboard_color = KeyboardColor::new(None, 0xff);
+        let keyboard_color = KeyboardColor::new(None, 0xf0);
 
         cascade! {
             obj;
@@ -140,7 +140,7 @@ impl Backlight {
 
         obj.inner().keyboard_color.set_board(Some(board.clone()));
 
-        let (mode, speed) = board.mode().unwrap_or_else(|err| {
+        let (mode, speed) = board.mode(0).unwrap_or_else(|err| {
             error!("Error getting keyboard mode: {}", err);
             (0, 128)
         });
@@ -171,7 +171,7 @@ impl Backlight {
             }
         };
 
-        let brightness = match board.brightness(0xff) {
+        let brightness = match board.brightness(0xf0) {
             Ok(value) => value as f64,
             Err(err) => {
                 error!("{}", err);
@@ -205,7 +205,7 @@ impl Backlight {
         if let Some(id) = self.inner().mode_combobox.get_active_id() {
             if let Some(mode) = MODE_MAP.iter().position(|i| id == **i) {
                 let speed = self.inner().speed_scale.get_value();
-                if let Err(err) = self.board().set_mode(mode as u8, speed as u8) {
+                if let Err(err) = self.board().set_mode(0, mode as u8, speed as u8) {
                     error!("Error setting keyboard mode: {}", err);
                 }
             }
@@ -214,7 +214,7 @@ impl Backlight {
 
     fn brightness_changed(&self) {
         let value = self.inner().brightness_scale.get_value() as i32;
-        if let Err(err) = self.board().set_brightness(0xff, value) {
+        if let Err(err) = self.board().set_brightness(0xf0, value) {
             error!("{}", err);
         }
         debug!("Brightness: {}", value)

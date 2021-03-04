@@ -202,11 +202,11 @@ impl Daemon for DaemonS76Power {
         Ok(())
     }
 
-    fn mode(&self, _board: BoardId) -> Result<(u8, u8), String> {
+    fn mode(&self, _board: BoardId, _layer: u8) -> Result<(u8, u8), String> {
         Err("Unimplemented".to_string())
     }
 
-    fn set_mode(&self, _board: BoardId, _mode: u8, _speed: u8) -> Result<(), String> {
+    fn set_mode(&self, _board: BoardId, _layer: u8, _mode: u8, _speed: u8) -> Result<(), String> {
         Err("Unimplemented".to_string())
     }
 

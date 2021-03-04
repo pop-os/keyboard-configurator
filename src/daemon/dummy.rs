@@ -110,11 +110,12 @@ impl Daemon for DaemonDummy {
         Ok(())
     }
 
-    fn mode(&self, board: BoardId) -> Result<(u8, u8), String> {
+    fn mode(&self, board: BoardId, _layer: u8) -> Result<(u8, u8), String> {
+        // TODO layer
         Ok(self.board(board)?.mode.get())
     }
 
-    fn set_mode(&self, board: BoardId, mode: u8, speed: u8) -> Result<(), String> {
+    fn set_mode(&self, board: BoardId, _layer: u8, mode: u8, speed: u8) -> Result<(), String> {
         self.board(board)?.mode.set((mode, speed));
         Ok(())
     }

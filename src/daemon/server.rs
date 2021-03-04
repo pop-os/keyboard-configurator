@@ -195,7 +195,7 @@ impl<R: Read, W: Write> Daemon for DaemonServer<R, W> {
     fn set_color(&self, board: BoardId, index: u8, color: Hs) -> Result<(), String> {
         let mut ec = self.board(board)?;
 
-        if unsafe { ec.access().is::<AccessHid>() } && index == 0xff {
+        if unsafe { ec.access().is::<AccessHid>() } && index >= 0xf0 {
             let (h, s) = color.to_ints();
             unsafe { ec.led_set_color(index, h, s, 0).map_err(err_str) }
         } else {
@@ -206,7 +206,7 @@ impl<R: Read, W: Write> Daemon for DaemonServer<R, W> {
 
     fn max_brightness(&self, board: BoardId) -> Result<i32, String> {
         let mut ec = self.board(board)?;
-        unsafe { ec.led_get_value(0xFF).map(|x| x.1 as i32).map_err(err_str) }
+        unsafe { ec.led_get_value(0xF0).map(|x| x.1 as i32).map_err(err_str) }
     }
 
     fn brightness(&self, board: BoardId, index: u8) -> Result<i32, String> {
@@ -219,14 +219,14 @@ impl<R: Read, W: Write> Daemon for DaemonServer<R, W> {
         unsafe { ec.led_set_value(index, brightness as u8).map_err(err_str) }
     }
 
-    fn mode(&self, board: BoardId) -> Result<(u8, u8), String> {
+    fn mode(&self, board: BoardId, layer: u8) -> Result<(u8, u8), String> {
         let mut ec = self.board(board)?;
-        unsafe { ec.led_get_mode().map_err(err_str) }
+        unsafe { ec.led_get_mode(layer).map_err(err_str) }
     }
 
-    fn set_mode(&self, board: BoardId, mode: u8, speed: u8) -> Result<(), String> {
+    fn set_mode(&self, board: BoardId, layer: u8, mode: u8, speed: u8) -> Result<(), String> {
         let mut ec = self.board(board)?;
-        unsafe { ec.led_set_mode(mode, speed).map_err(err_str) }
+        unsafe { ec.led_set_mode(layer, mode, speed).map_err(err_str) }
     }
 
     fn exit(&self) -> Result<(), String> {
