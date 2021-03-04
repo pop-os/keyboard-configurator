@@ -291,7 +291,7 @@ impl KeyboardColor {
         self.inner().index.get()
     }
 
-    fn set_index(&self, value: u8) {
+    pub fn set_index(&self, value: u8) {
         self.inner().index.set(value);
         self.notify("index");
     }

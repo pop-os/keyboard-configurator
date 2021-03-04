@@ -2,6 +2,7 @@ use cascade::cascade;
 use glib::{clone, subclass};
 use gtk::prelude::*;
 use gtk::subclass::prelude::*;
+use std::cell::Cell;
 
 use crate::{DaemonBoard, DerefCell, KeyboardColor};
 
@@ -28,6 +29,8 @@ pub struct BacklightInner {
     brightness_scale: DerefCell<gtk::Scale>,
     mode_combobox: DerefCell<gtk::ComboBoxText>,
     speed_scale: DerefCell<gtk::Scale>,
+    layer: Cell<u8>,
+    do_not_set: Cell<bool>,
 }
 
 impl ObjectSubclass for BacklightInner {
@@ -64,19 +67,27 @@ impl ObjectImpl for BacklightInner {
             ..append(Some("RAINDROPS"), "Elements");
             ..append(Some("SPLASH"), "Splashdown");
             ..append(Some("MULTISPLASH"), "Meteor Shower");
+            ..connect_changed(clone!(@weak obj => move |_|
+                obj.mode_speed_changed();
+            ));
         };
 
         let speed_scale = cascade! {
             gtk::Scale::with_range(gtk::Orientation::Horizontal, 0., 255., 1.);
             ..set_halign(gtk::Align::Fill);
             ..set_size_request(200, 0);
+            ..connect_value_changed(clone!(@weak obj => move |_|
+                obj.mode_speed_changed();
+            ));
         };
 
         let brightness_scale = cascade! {
             gtk::Scale::with_range(gtk::Orientation::Horizontal, 0., 100., 1.);
             ..set_halign(gtk::Align::Fill);
             ..set_size_request(200, 0);
-
+            ..connect_value_changed(clone!(@weak obj => move |_|
+                obj.brightness_changed();
+            ));
         };
 
         let keyboard_color = KeyboardColor::new(None, 0xf0);
@@ -136,33 +147,6 @@ glib::wrapper! {
 
 impl Backlight {
     pub fn new(board: DaemonBoard) -> Self {
-        let obj: Self = glib::Object::new(&[]).unwrap();
-
-        obj.inner().keyboard_color.set_board(Some(board.clone()));
-
-        let (mode, speed) = board.mode(0).unwrap_or_else(|err| {
-            error!("Error getting keyboard mode: {}", err);
-            (0, 128)
-        });
-
-        let mode = MODE_MAP.get(mode as usize).cloned();
-
-        cascade! {
-            &obj.inner().mode_combobox;
-            ..set_active_id(mode);
-            ..connect_changed(clone!(@weak obj => move |_|
-                obj.mode_speed_changed();
-            ));
-        };
-
-        cascade! {
-            &obj.inner().speed_scale;
-            ..set_value(speed.into());
-            ..connect_value_changed(clone!(@weak obj => move |_|
-                obj.mode_speed_changed();
-            ));
-        };
-
         let max_brightness = match board.max_brightness() {
             Ok(value) => value as f64,
             Err(err) => {
@@ -171,25 +155,11 @@ impl Backlight {
             }
         };
 
-        let brightness = match board.brightness(0xf0) {
-            Ok(value) => value as f64,
-            Err(err) => {
-                error!("{}", err);
-                0.0
-            }
-        };
-
-        cascade! {
-            &obj.inner().brightness_scale;
-            ..set_range(0.0, max_brightness);
-            ..set_value(brightness);
-            ..connect_value_changed(clone!(@weak obj => move |_|
-                obj.brightness_changed();
-            ));
-        };
-
+        let obj: Self = glib::Object::new(&[]).unwrap();
+        obj.inner().keyboard_color.set_board(Some(board.clone()));
+        obj.inner().brightness_scale.set_range(0.0, max_brightness);
         obj.inner().board.set(board.clone());
-
+        obj.set_layer(0);
         obj
     }
 
@@ -202,10 +172,14 @@ impl Backlight {
     }
 
     fn mode_speed_changed(&self) {
+        if self.inner().do_not_set.get() {
+            return;
+        }
         if let Some(id) = self.inner().mode_combobox.get_active_id() {
             if let Some(mode) = MODE_MAP.iter().position(|i| id == **i) {
                 let speed = self.inner().speed_scale.get_value();
-                if let Err(err) = self.board().set_mode(0, mode as u8, speed as u8) {
+                let layer = self.inner().layer.get();
+                if let Err(err) = self.board().set_mode(layer, mode as u8, speed as u8) {
                     error!("Error setting keyboard mode: {}", err);
                 }
             }
@@ -213,10 +187,41 @@ impl Backlight {
     }
 
     fn brightness_changed(&self) {
+        if self.inner().do_not_set.get() {
+            return;
+        }
         let value = self.inner().brightness_scale.get_value() as i32;
-        if let Err(err) = self.board().set_brightness(0xf0, value) {
+        let layer = self.inner().layer.get();
+        if let Err(err) = self.board().set_brightness(0xf0 + layer, value) {
             error!("{}", err);
         }
         debug!("Brightness: {}", value)
+    }
+
+    pub fn set_layer(&self, layer: u8) {
+        let (mode, speed) = self.board().mode(layer).unwrap_or_else(|err| {
+            error!("Error getting keyboard mode: {}", err);
+            (0, 128)
+        });
+
+        let mode = MODE_MAP.get(mode as usize).cloned();
+
+        let brightness = match self.board().brightness(0xf0 + layer) {
+            Ok(value) => value as f64,
+            Err(err) => {
+                error!("{}", err);
+                0.0
+            }
+        };
+
+        self.inner().do_not_set.set(true);
+
+        self.inner().layer.set(layer);
+        self.inner().mode_combobox.set_active_id(mode);
+        self.inner().speed_scale.set_value(speed.into());
+        self.inner().brightness_scale.set_value(brightness);
+        self.inner().keyboard_color.set_index(0xf0 + layer);
+
+        self.inner().do_not_set.set(false);
     }
 }

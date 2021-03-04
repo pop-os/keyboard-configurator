@@ -30,6 +30,7 @@ pub struct KeyboardInner {
     layer_stack: DerefCell<gtk::Stack>,
     stack: DerefCell<gtk::Stack>,
     picker_box: DerefCell<gtk::Box>,
+    backlight: DerefCell<Backlight>,
 }
 
 impl ObjectSubclass for KeyboardInner {
@@ -65,8 +66,13 @@ impl ObjectImpl for KeyboardInner {
                     debug!("{:?}", page);
                     let last_layer = keyboard.layer();
                     keyboard.inner().page.set(page.unwrap_or(Page::Layer1));
-                    if keyboard.layer() != last_layer {
+                    let layer = keyboard.layer();
+                    if layer != last_layer {
                         keyboard.set_selected(keyboard.selected());
+                        keyboard.inner().backlight.set_sensitive(layer.is_some());
+                        if let Some(layer) = layer {
+                            keyboard.inner().backlight.set_layer(layer as u8);
+                        }
                     }
                 })
             );
@@ -235,15 +241,17 @@ impl Keyboard {
             }
         }
 
+        let backlight = Backlight::new(board.clone());
         keyboard
             .inner()
             .stack
-            .add_titled(&Backlight::new(board.clone()), "leds", "LEDs");
+            .add_titled(&backlight, "leds", "LEDs");
 
         keyboard.inner().keys.set(keys.into_boxed_slice().into());
         keyboard.inner().board.set(board);
         keyboard.inner().board_name.set(board_name.to_string());
         keyboard.inner().layout.set(layout);
+        keyboard.inner().backlight.set(backlight);
 
         keyboard.add_pages();
 
