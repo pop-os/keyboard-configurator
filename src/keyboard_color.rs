@@ -84,13 +84,24 @@ impl ObjectImpl for KeyboardColorInner {
     fn properties() -> &'static [glib::ParamSpec] {
         use once_cell::sync::Lazy;
         static PROPERTIES: Lazy<Vec<glib::ParamSpec>> = Lazy::new(|| {
-            vec![glib::ParamSpec::boxed(
-                "hs",
-                "hs",
-                "hs",
-                Hs::get_type(),
-                glib::ParamFlags::READWRITE,
-            )]
+            vec![
+                glib::ParamSpec::boxed(
+                    "hs",
+                    "hs",
+                    "hs",
+                    Hs::get_type(),
+                    glib::ParamFlags::READWRITE,
+                ),
+                glib::ParamSpec::uchar(
+                    "index",
+                    "index",
+                    "index",
+                    0x00,
+                    0xff,
+                    0xff,
+                    glib::ParamFlags::READWRITE,
+                ),
+            ]
         });
 
         PROPERTIES.as_ref()
@@ -107,7 +118,10 @@ impl ObjectImpl for KeyboardColorInner {
             "hs" => {
                 let hs: &Hs = value.get_some().unwrap();
                 widget.set_hs(*hs);
-                widget.notify("hs");
+            }
+            "index" => {
+                let index: u8 = value.get_some().unwrap();
+                widget.set_index(index);
             }
             _ => unimplemented!(),
         }
@@ -121,6 +135,7 @@ impl ObjectImpl for KeyboardColorInner {
     ) -> glib::Value {
         match pspec.get_name() {
             "hs" => self.hs.get().to_value(),
+            "index" => self.index.get().to_value(),
             _ => unimplemented!(),
         }
     }
@@ -264,5 +279,10 @@ impl KeyboardColor {
 
     fn index(&self) -> u8 {
         self.inner().index.get()
+    }
+
+    fn set_index(&self, value: u8) {
+        self.inner().index.set(value);
+        self.notify("index");
     }
 }
