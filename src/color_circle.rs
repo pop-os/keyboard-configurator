@@ -111,15 +111,16 @@ impl WidgetImpl for ColorCircleInner {
         let radius = width.min(height) / 2.;
         let (r, g, b) = widget.hs().to_rgb().to_floats();
         let alpha = self.alpha.get();
+        let border = 1.;
 
-        cr.arc(radius, radius, radius, 0., 2. * PI);
+        cr.arc(radius, radius, radius - 2. * border, 0., 2. * PI);
         cr.set_source_rgba(r, g, b, alpha);
         cr.fill_preserve();
         if self.mouseover.get() {
             cr.set_source_rgba(0., 0., 0., 0.2);
             cr.fill_preserve();
         }
-        cr.set_line_width(1.);
+        cr.set_line_width(border);
         cr.set_source_rgb(0.5, 0.5, 0.5);
         cr.stroke();
 
