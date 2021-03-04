@@ -87,17 +87,21 @@ impl WidgetImpl for ColorCircleInner {
         let height = f64::from(widget.get_allocated_height());
 
         let style = widget.get_style_context();
+        let flags = widget.get_state_flags();
         let fg = style.get_color(gtk::StateFlags::NORMAL);
 
         let radius = width.min(height) / 2.;
         let (r, g, b) = widget.hs().to_rgb().to_floats();
-        let alpha = self.alpha.get();
+        let mut alpha = self.alpha.get();
+        if flags.contains(gtk::StateFlags::INSENSITIVE) {
+            alpha -= 0.5;
+        }
         let border = 1.;
 
         cr.arc(radius, radius, radius - 2. * border, 0., 2. * PI);
         cr.set_source_rgba(r, g, b, alpha);
         cr.fill_preserve();
-        if widget.get_state_flags().contains(gtk::StateFlags::PRELIGHT) {
+        if flags.contains(gtk::StateFlags::PRELIGHT) {
             cr.set_source_rgba(0., 0., 0., 0.2);
             cr.fill_preserve();
         }
