@@ -98,10 +98,6 @@ impl ObjectImpl for PickerInner {
     fn constructed(&self, picker: &Picker) {
         self.parent_constructed(picker);
 
-        picker.set_orientation(gtk::Orientation::Vertical);
-        picker.set_halign(gtk::Align::Center);
-        picker.set_spacing(32);
-
         let mut picker_hbox_opt: Option<gtk::Box> = None;
         let mut picker_col = 0;
         let picker_cols = DEFAULT_COLS;
@@ -128,7 +124,14 @@ impl ObjectImpl for PickerInner {
             }
         }
 
-        picker.connect_signals();
+        cascade! {
+            picker;
+            ..set_orientation(gtk::Orientation::Vertical);
+            ..set_halign(gtk::Align::Center);
+            ..set_spacing(32);
+            ..connect_signals();
+            ..show_all();
+        };
     }
 }
 

@@ -29,6 +29,7 @@ pub struct KeyboardInner {
     selected: Cell<Option<usize>>,
     layer_stack: DerefCell<gtk::Stack>,
     stack: DerefCell<gtk::Stack>,
+    picker_box: DerefCell<gtk::Box>,
 }
 
 impl ObjectSubclass for KeyboardInner {
@@ -71,14 +72,11 @@ impl ObjectImpl for KeyboardInner {
             );
         };
 
+        let picker_box = gtk::Box::new(gtk::Orientation::Vertical, 0);
+
         let stack = cascade! {
             gtk::Stack::new();
-            ..add_titled(&layer_stack, "keymap", "Keymap");
-            ..connect_property_visible_child_notify(clone!(@weak keyboard => move |stack| {
-                if let Some(picker) = keyboard.inner().picker.borrow().upgrade() {
-                    picker.set_visible(stack.get_visible_child_name().unwrap() == "keymap")
-                }
-            }));
+            ..add_titled(&picker_box, "keymap", "Keymap");
         };
 
         let stack_switcher = cascade! {
@@ -93,6 +91,7 @@ impl ObjectImpl for KeyboardInner {
             ..set_orientation(gtk::Orientation::Vertical);
             ..set_spacing(8);
             ..add(&stack_switcher);
+            ..add(&layer_stack);
             ..add(&stack);
         };
 
@@ -121,6 +120,7 @@ impl ObjectImpl for KeyboardInner {
         self.action_group.set(action_group);
         self.layer_stack.set(layer_stack);
         self.stack.set(stack);
+        self.picker_box.set(picker_box);
     }
 
     fn properties() -> &'static [glib::ParamSpec] {
@@ -496,6 +496,10 @@ impl Keyboard {
         // This function is called by Picker::set_keyboard()
         *self.inner().picker.borrow_mut() = match picker {
             Some(picker) => {
+                if let Some(widget) = picker.get_parent() {
+                    widget.downcast::<gtk::Container>().unwrap().remove(picker);
+                }
+                self.inner().picker_box.add(picker);
                 picker.set_sensitive(self.selected().is_some() && self.layer() != None);
                 picker.downgrade()
             }

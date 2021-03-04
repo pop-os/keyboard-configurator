@@ -200,12 +200,6 @@ impl MainWindow {
         inner.stack.set_visible_child(&*inner.keyboard_list_box);
         inner.header_bar.set_custom_title::<gtk::Widget>(None);
         inner.back_button.set_visible(false);
-        if let Some(widget) = inner.picker.get_parent() {
-            widget
-                .downcast::<gtk::Container>()
-                .unwrap()
-                .remove(&*inner.picker);
-        }
     }
 
     fn show_keyboard(&self, keyboard: &Keyboard) {
@@ -227,9 +221,7 @@ impl MainWindow {
         self.insert_action_group("kbd", Some(keyboard.action_group()));
         inner.back_button.set_visible(true);
 
-        keyboard_box.add(&*inner.picker);
         inner.picker.set_keyboard(Some(keyboard.clone()));
-        inner.picker.show_all();
     }
 
     fn add_keyboard(&self, board: DaemonBoard) {
