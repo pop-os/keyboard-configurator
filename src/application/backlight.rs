@@ -20,6 +20,7 @@ static MODE_MAP: &[&str] = &[
     "RAINDROPS",
     "SPLASH",
     "MULTISPLASH",
+    "ACTIVE_KEYS",
 ];
 
 #[derive(Default)]
@@ -67,6 +68,7 @@ impl ObjectImpl for BacklightInner {
             ..append(Some("RAINDROPS"), "Elements");
             ..append(Some("SPLASH"), "Splashdown");
             ..append(Some("MULTISPLASH"), "Meteor Shower");
+            ..append(Some("ACTIVE_KEYS"), "Active Keys");
             ..connect_changed(clone!(@weak obj => move |_|
                 obj.mode_speed_changed();
             ));
