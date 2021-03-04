@@ -64,7 +64,7 @@ fn page(board: DaemonBoard) -> gtk::Widget {
 
     // TODO detect when brightness changed in daemon
 
-    let button = KeyboardColor::new(board, 0xff);
+    let button = KeyboardColor::new(Some(board), 0xff);
 
     let listbox = cascade! {
         gtk::ListBox::new();

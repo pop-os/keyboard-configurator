@@ -3,7 +3,7 @@ use glib::clone;
 use glib::subclass;
 use gtk::prelude::*;
 use gtk::subclass::prelude::*;
-use std::cell::{Cell, RefCell};
+use std::cell::{Cell, Ref, RefCell};
 
 use crate::{choose_color, ColorCircle, DaemonBoard, DerefCell, Hs, Rgb};
 
@@ -14,7 +14,7 @@ pub struct KeyboardColorInner {
     current_circle: RefCell<Option<ColorCircle>>,
     add_circle: DerefCell<ColorCircle>,
     remove_button: DerefCell<gtk::Button>,
-    board: DerefCell<DaemonBoard>,
+    board: RefCell<Option<DaemonBoard>>,
     hs: Cell<Hs>,
     index: Cell<u8>,
 }
@@ -151,18 +151,11 @@ glib::wrapper! {
 }
 
 impl KeyboardColor {
-    pub fn new(board: DaemonBoard, index: u8) -> Self {
+    pub fn new(board: Option<DaemonBoard>, index: u8) -> Self {
         let widget: Self = glib::Object::new(&[]).unwrap();
 
-        widget.set_hs(match board.color(widget.index()) {
-            Ok(ok) => ok,
-            Err(err) => {
-                error!("{}", err);
-                Hs::new(0., 0.)
-            }
-        });
-        widget.inner().board.set(board);
-        widget.inner().index.set(index);
+        widget.set_board(board);
+        widget.set_index(index);
 
         // TODO: Signal handler for color change?
 
@@ -211,14 +204,13 @@ impl KeyboardColor {
     }
 
     fn add_clicked(&self) {
-        if let Some(color) =
-            choose_color(self.board().clone(), self.index(), self, "Add Color", None)
-        {
+        let board = self.board().unwrap();
+        if let Some(color) = choose_color(board.clone(), self.index(), self, "Add Color", None) {
             self.add_color(color);
             self.inner().remove_button.set_visible(true);
             self.populate_circles();
         } else if let Some(circle) = &*self.inner().current_circle.borrow() {
-            if let Err(err) = self.board().set_color(self.index(), circle.hs()) {
+            if let Err(err) = board.set_color(self.index(), circle.hs()) {
                 error!("Failed to set keyboard color: {}", err);
             }
         }
@@ -238,24 +230,26 @@ impl KeyboardColor {
     }
 
     fn edit_clicked(&self) {
+        let board = self.board().unwrap();
         if let Some(circle) = &*self.inner().current_circle.borrow() {
             if let Some(color) = choose_color(
-                self.board().clone(),
+                board.clone(),
                 self.index(),
                 self,
                 "Edit Color",
                 Some(circle.hs()),
             ) {
                 circle.set_hs(color);
-            } else if let Err(err) = self.board().set_color(self.index(), circle.hs()) {
+            } else if let Err(err) = board.set_color(self.index(), circle.hs()) {
                 error!("Failed to set keyboard color: {}", err);
             }
         }
     }
 
     fn circle_clicked(&self, circle: &ColorCircle) {
+        let board = self.board().unwrap();
         let color = circle.hs();
-        if let Err(err) = self.board().set_color(self.index(), color) {
+        if let Err(err) = board.set_color(self.index(), color) {
             error!("Failed to set keyboard color: {}", err);
         }
         self.set_hs(color);
@@ -268,8 +262,24 @@ impl KeyboardColor {
         *current = Some(circle.clone());
     }
 
-    fn board(&self) -> &DaemonBoard {
-        &self.inner().board
+    fn board(&self) -> Option<Ref<DaemonBoard>> {
+        let board = self.inner().board.borrow();
+        if board.is_some() {
+            Some(Ref::map(board, |x| x.as_ref().unwrap()))
+        } else {
+            None
+        }
+    }
+
+    pub fn set_board(&self, board: Option<DaemonBoard>) {
+        self.set_sensitive(board.is_some());
+        if let Some(board) = &board {
+            self.set_hs(board.color(self.index()).unwrap_or_else(|err| {
+                error!("{}", err);
+                Hs::new(0., 0.)
+            }));
+        }
+        *self.inner().board.borrow_mut() = board;
     }
 
     fn set_hs(&self, hs: Hs) {

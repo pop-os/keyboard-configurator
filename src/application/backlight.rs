@@ -24,7 +24,7 @@ static MODE_MAP: &[&str] = &[
 #[derive(Default)]
 pub struct BacklightInner {
     board: DerefCell<DaemonBoard>,
-    color_button_bin: DerefCell<gtk::Frame>,
+    keyboard_color: DerefCell<KeyboardColor>,
     brightness_scale: DerefCell<gtk::Scale>,
     mode_combobox: DerefCell<gtk::ComboBoxText>,
     speed_scale: DerefCell<gtk::Scale>,
@@ -79,12 +79,7 @@ impl ObjectImpl for BacklightInner {
 
         };
 
-        // XXX add support to ColorButton for changing keyboard
-        let color_button_bin = cascade! {
-            gtk::Frame::new(None);
-            ..set_shadow_type(gtk::ShadowType::None);
-            ..set_valign(gtk::Align::Center);
-        };
+        let keyboard_color = KeyboardColor::new(None, 0xff);
 
         cascade! {
             obj;
@@ -119,11 +114,11 @@ impl ObjectImpl for BacklightInner {
                     gtk::Label::new(Some("Color:"));
                     ..set_halign(gtk::Align::Start);
                 });
-                ..add(&color_button_bin);
+                ..add(&keyboard_color);
             });
         };
 
-        self.color_button_bin.set(color_button_bin);
+        self.keyboard_color.set(keyboard_color);
         self.brightness_scale.set(brightness_scale);
         self.mode_combobox.set(mode_combobox);
         self.speed_scale.set(speed_scale);
@@ -143,16 +138,12 @@ impl Backlight {
     pub fn new(board: DaemonBoard) -> Self {
         let obj: Self = glib::Object::new(&[]).unwrap();
 
-        let color_button = KeyboardColor::new(board.clone(), 0xff);
-        obj.inner().color_button_bin.add(&color_button);
+        obj.inner().keyboard_color.set_board(Some(board.clone()));
 
-        let (mode, speed) = match board.mode() {
-            Ok(value) => value,
-            Err(err) => {
-                error!("Error getting keyboard mode: {}", err);
-                (0, 128)
-            }
-        };
+        let (mode, speed) = board.mode().unwrap_or_else(|err| {
+            error!("Error getting keyboard mode: {}", err);
+            (0, 128)
+        });
 
         let mode = MODE_MAP.get(mode as usize).cloned();
 
