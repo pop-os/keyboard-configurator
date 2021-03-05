@@ -205,15 +205,10 @@ impl MainWindow {
     fn show_keyboard(&self, keyboard: &Keyboard) {
         let inner = self.inner();
 
-        let keyboard_box = keyboard
-            .get_parent()
-            .unwrap()
-            .downcast::<gtk::Box>()
-            .unwrap();
         inner
             .stack
             .set_transition_type(gtk::StackTransitionType::SlideLeft);
-        inner.stack.set_visible_child(&keyboard_box);
+        inner.stack.set_visible_child(keyboard);
         inner
             .header_bar
             .set_custom_title(Some(&*inner.layer_switcher));
@@ -275,12 +270,7 @@ impl MainWindow {
             };
             self.inner().keyboard_list_box.add(&row);
 
-            let keyboard_box = cascade! {
-                gtk::Box::new(gtk::Orientation::Vertical, 12);
-                ..set_visible(true);
-                ..add(&keyboard);
-            };
-            self.inner().stack.add(&keyboard_box);
+            self.inner().stack.add(&keyboard);
 
             // XXX if only one keyboard, show that with no back button
             self.inner().count.fetch_add(1, Ordering::Relaxed);
