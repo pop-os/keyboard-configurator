@@ -241,7 +241,10 @@ impl Keyboard {
             }
         }
 
-        let backlight = Backlight::new(board.clone());
+        let backlight = cascade! {
+            Backlight::new(board.clone());
+            ..set_halign(gtk::Align::Center);
+        };
         keyboard
             .inner()
             .stack

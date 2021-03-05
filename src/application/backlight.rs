@@ -37,7 +37,7 @@ pub struct BacklightInner {
 impl ObjectSubclass for BacklightInner {
     const NAME: &'static str = "S76Backlight";
 
-    type ParentType = gtk::Box;
+    type ParentType = gtk::ListBox;
     type Type = Backlight;
     type Interfaces = ();
 
@@ -94,40 +94,37 @@ impl ObjectImpl for BacklightInner {
 
         let keyboard_color = KeyboardColor::new(None, 0xf0);
 
+        let row = |label, widget: &gtk::Widget| {
+            cascade! {
+                gtk::ListBoxRow::new();
+                ..set_selectable(false);
+                ..set_activatable(false);
+                ..set_margin_start(8);
+                ..set_margin_end(8);
+                ..add(&cascade! {
+                    gtk::Box::new(gtk::Orientation::Horizontal, 8);
+                    ..add(&cascade! {
+                        gtk::Label::new(Some(label));
+                        ..set_halign(gtk::Align::Start);
+                    });
+                    ..add(widget);
+                });
+            }
+        };
+
         cascade! {
             obj;
-            ..set_orientation(gtk::Orientation::Vertical);
+            ..set_valign(gtk::Align::Start);
+            ..get_style_context().add_class("frame");
             ..add(&cascade! {
-                gtk::Box::new(gtk::Orientation::Horizontal, 8);
-                ..add(&cascade! {
-                    gtk::Label::new(Some("Mode:"));
-                    ..set_halign(gtk::Align::Start);
-                });
-                ..add(&mode_combobox);
+                row("Mode:", mode_combobox.upcast_ref());
+                ..set_margin_top(8);
             });
+            ..add(&row("Speed:", speed_scale.upcast_ref()));
+            ..add(&row("Brightness:", brightness_scale.upcast_ref()));
             ..add(&cascade! {
-                gtk::Box::new(gtk::Orientation::Horizontal, 8);
-                ..add(&cascade! {
-                    gtk::Label::new(Some("Speed:"));
-                    ..set_halign(gtk::Align::Start);
-                });
-                ..add(&speed_scale);
-            });
-            ..add(&cascade! {
-                gtk::Box::new(gtk::Orientation::Horizontal, 8);
-                ..add(&cascade! {
-                    gtk::Label::new(Some("Brightness:"));
-                    ..set_halign(gtk::Align::Start);
-                });
-                ..add(&brightness_scale);
-            });
-            ..add(&cascade! {
-                gtk::Box::new(gtk::Orientation::Horizontal, 8);
-                ..add(&cascade! {
-                    gtk::Label::new(Some("Color:"));
-                    ..set_halign(gtk::Align::Start);
-                });
-                ..add(&keyboard_color);
+                row("Color:", keyboard_color.upcast_ref());
+                ..set_margin_bottom(8);
             });
         };
 
@@ -140,11 +137,11 @@ impl ObjectImpl for BacklightInner {
 
 impl WidgetImpl for BacklightInner {}
 impl ContainerImpl for BacklightInner {}
-impl BoxImpl for BacklightInner {}
+impl ListBoxImpl for BacklightInner {}
 
 glib::wrapper! {
     pub struct Backlight(ObjectSubclass<BacklightInner>)
-        @extends gtk::Box, gtk::Container, gtk::Widget, @implements gtk::Orientable;
+        @extends gtk::ListBox, gtk::Container, gtk::Widget;
 }
 
 impl Backlight {
