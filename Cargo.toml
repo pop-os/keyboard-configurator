@@ -12,7 +12,7 @@ members = [ "tools", "ffi" ]
 
 [dependencies]
 anyhow = "1"
-cascade = "0.1"
+cascade = "1"
 cairo-rs = { git = "https://github.com/pop-os/gtk-rs" }
 derive_more = "0.99"
 gdk = { git = "https://github.com/pop-os/gtk-rs" }
@@ -41,7 +41,7 @@ version = "0.3.3"
 features = ["hidapi", "std"]
 
 [target.'cfg(target_os = "windows")'.dependencies]
-winreg = "0.7"
+winreg = "0.8"
 
 [features]
 appimage = []

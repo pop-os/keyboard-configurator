@@ -95,7 +95,7 @@ impl ObjectImpl for BacklightInner {
         let keyboard_color = KeyboardColor::new(None, 0xf0);
 
         fn row(label: &str, widget: &impl IsA<gtk::Widget>) -> gtk::ListBoxRow {
-            return cascade! {
+            cascade! {
                 gtk::ListBoxRow::new();
                 ..set_selectable(false);
                 ..set_activatable(false);
@@ -109,7 +109,7 @@ impl ObjectImpl for BacklightInner {
                     });
                     ..add(widget);
                 });
-            };
+            }
         }
 
         cascade! {

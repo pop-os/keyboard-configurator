@@ -74,7 +74,7 @@ impl ObjectImpl for KeyboardColorInner {
                 ..add(&edit_button);
             });
             ..show_all();
-        }
+        };
 
         self.circle_box.set(circle_box);
         self.add_circle.set(add_circle);
