@@ -94,8 +94,8 @@ impl ObjectImpl for BacklightInner {
 
         let keyboard_color = KeyboardColor::new(None, 0xf0);
 
-        let row = |label, widget: &gtk::Widget| {
-            cascade! {
+        fn row(label: &str, widget: &impl IsA<gtk::Widget>) -> gtk::ListBoxRow {
+            return cascade! {
                 gtk::ListBoxRow::new();
                 ..set_selectable(false);
                 ..set_activatable(false);
@@ -109,21 +109,21 @@ impl ObjectImpl for BacklightInner {
                     });
                     ..add(widget);
                 });
-            }
-        };
+            };
+        }
 
         cascade! {
             obj;
             ..set_valign(gtk::Align::Start);
             ..get_style_context().add_class("frame");
             ..add(&cascade! {
-                row("Mode:", mode_combobox.upcast_ref());
+                row("Mode:", &mode_combobox);
                 ..set_margin_top(8);
             });
-            ..add(&row("Speed:", speed_scale.upcast_ref()));
-            ..add(&row("Brightness:", brightness_scale.upcast_ref()));
+            ..add(&row("Speed:", &speed_scale));
+            ..add(&row("Brightness:", &brightness_scale));
             ..add(&cascade! {
-                row("Color:", keyboard_color.upcast_ref());
+                row("Color:", &keyboard_color);
                 ..set_margin_bottom(8);
             });
         };
