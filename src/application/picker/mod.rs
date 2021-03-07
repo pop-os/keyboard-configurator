@@ -1,6 +1,5 @@
 use cascade::cascade;
 use glib::clone;
-use glib::subclass;
 use gtk::prelude::*;
 use gtk::subclass::prelude::*;
 use once_cell::sync::Lazy;
@@ -46,17 +45,11 @@ pub struct PickerInner {
     selected: RefCell<Option<String>>,
 }
 
+#[glib::object_subclass]
 impl ObjectSubclass for PickerInner {
     const NAME: &'static str = "S76KeyboardPicker";
-
     type ParentType = gtk::Box;
     type Type = Picker;
-    type Interfaces = ();
-
-    type Instance = subclass::simple::InstanceStruct<Self>;
-    type Class = subclass::simple::ClassStruct<Self>;
-
-    glib::object_subclass!();
 
     fn new() -> Self {
         let style_provider = cascade! {

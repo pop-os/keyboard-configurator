@@ -1,5 +1,5 @@
 use cascade::cascade;
-use glib::{clone, subclass};
+use glib::clone;
 use gtk::prelude::*;
 use gtk::subclass::prelude::*;
 use std::rc::Rc;
@@ -19,21 +19,11 @@ pub struct MainWindowInner {
     stack: DerefCell<gtk::Stack>,
 }
 
+#[glib::object_subclass]
 impl ObjectSubclass for MainWindowInner {
     const NAME: &'static str = "S76ConfiguratorMainWindow";
-
     type ParentType = gtk::ApplicationWindow;
     type Type = MainWindow;
-    type Interfaces = ();
-
-    type Instance = subclass::simple::InstanceStruct<Self>;
-    type Class = subclass::simple::ClassStruct<Self>;
-
-    glib::object_subclass!();
-
-    fn new() -> Self {
-        Self::default()
-    }
 }
 
 impl ObjectImpl for MainWindowInner {

@@ -1,5 +1,4 @@
 use cascade::cascade;
-use glib::subclass;
 use gtk::prelude::*;
 use gtk::subclass::prelude::*;
 
@@ -28,21 +27,11 @@ pub struct ConfiguratorAppInner {
     phony_board_names: DerefCell<Vec<String>>,
 }
 
+#[glib::object_subclass]
 impl ObjectSubclass for ConfiguratorAppInner {
     const NAME: &'static str = "S76ConfiguratorApp";
-
     type ParentType = gtk::Application;
     type Type = ConfiguratorApp;
-    type Interfaces = ();
-
-    type Instance = subclass::simple::InstanceStruct<Self>;
-    type Class = subclass::simple::ClassStruct<Self>;
-
-    glib::object_subclass!();
-
-    fn new() -> Self {
-        Self::default()
-    }
 }
 
 impl ObjectImpl for ConfiguratorAppInner {

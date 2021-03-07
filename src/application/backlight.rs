@@ -1,5 +1,5 @@
 use cascade::cascade;
-use glib::{clone, subclass};
+use glib::clone;
 use gtk::prelude::*;
 use gtk::subclass::prelude::*;
 use std::cell::Cell;
@@ -34,21 +34,11 @@ pub struct BacklightInner {
     do_not_set: Cell<bool>,
 }
 
+#[glib::object_subclass]
 impl ObjectSubclass for BacklightInner {
     const NAME: &'static str = "S76Backlight";
-
     type ParentType = gtk::ListBox;
     type Type = Backlight;
-    type Interfaces = ();
-
-    type Instance = subclass::simple::InstanceStruct<Self>;
-    type Class = subclass::simple::ClassStruct<Self>;
-
-    glib::object_subclass!();
-
-    fn new() -> Self {
-        Self::default()
-    }
 }
 
 impl ObjectImpl for BacklightInner {

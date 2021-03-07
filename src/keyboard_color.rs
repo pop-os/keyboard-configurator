@@ -1,6 +1,5 @@
 use cascade::cascade;
 use glib::clone;
-use glib::subclass;
 use gtk::prelude::*;
 use gtk::subclass::prelude::*;
 use std::cell::{Cell, Ref, RefCell};
@@ -19,21 +18,11 @@ pub struct KeyboardColorInner {
     index: Cell<u8>,
 }
 
+#[glib::object_subclass]
 impl ObjectSubclass for KeyboardColorInner {
     const NAME: &'static str = "S76KeyboardColor";
-
     type ParentType = gtk::Box;
     type Type = KeyboardColor;
-    type Interfaces = ();
-
-    type Instance = subclass::simple::InstanceStruct<Self>;
-    type Class = subclass::simple::ClassStruct<Self>;
-
-    glib::object_subclass!();
-
-    fn new() -> Self {
-        Self::default()
-    }
 }
 
 impl ObjectImpl for KeyboardColorInner {

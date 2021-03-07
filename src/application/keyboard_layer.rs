@@ -1,5 +1,4 @@
 use cascade::cascade;
-use glib::subclass;
 use gtk::prelude::*;
 use gtk::subclass::prelude::*;
 use std::{cell::Cell, convert::TryFrom, f64::consts::PI, rc::Rc};
@@ -19,17 +18,11 @@ pub struct KeyboardLayerInner {
     selectable: Cell<bool>,
 }
 
+#[glib::object_subclass]
 impl ObjectSubclass for KeyboardLayerInner {
     const NAME: &'static str = "S76KeyboardLayer";
-
     type ParentType = gtk::DrawingArea;
     type Type = KeyboardLayer;
-
-    type Instance = subclass::simple::InstanceStruct<Self>;
-    type Class = subclass::simple::ClassStruct<Self>;
-    type Interfaces = ();
-
-    glib::object_subclass!();
 
     fn new() -> Self {
         Self {

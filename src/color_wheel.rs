@@ -1,7 +1,5 @@
 // A hue/saturation color wheel that allows a color to be selected.
 
-use glib::subclass;
-use glib::subclass::prelude::*;
 use gtk::prelude::*;
 use gtk::subclass::prelude::*;
 use std::cell::{Cell, RefCell};
@@ -15,17 +13,11 @@ pub struct ColorWheelInner {
     hs_changed_handlers: RefCell<Vec<Box<dyn Fn(&ColorWheel) + 'static>>>,
 }
 
+#[glib::object_subclass]
 impl ObjectSubclass for ColorWheelInner {
     const NAME: &'static str = "S76ColorWheel";
-
     type ParentType = gtk::DrawingArea;
     type Type = ColorWheel;
-    type Interfaces = ();
-
-    type Instance = subclass::simple::InstanceStruct<Self>;
-    type Class = subclass::simple::ClassStruct<Self>;
-
-    glib::object_subclass!();
 
     fn new() -> Self {
         Self {

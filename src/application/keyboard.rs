@@ -1,6 +1,6 @@
 use cascade::cascade;
+use glib::clone;
 use glib::object::WeakRef;
-use glib::{clone, subclass};
 use gtk::prelude::*;
 use gtk::subclass::prelude::*;
 use std::{
@@ -33,21 +33,11 @@ pub struct KeyboardInner {
     backlight: DerefCell<Backlight>,
 }
 
+#[glib::object_subclass]
 impl ObjectSubclass for KeyboardInner {
     const NAME: &'static str = "S76Keyboard";
-
     type ParentType = gtk::Box;
     type Type = Keyboard;
-    type Interfaces = ();
-
-    type Instance = subclass::simple::InstanceStruct<Self>;
-    type Class = subclass::simple::ClassStruct<Self>;
-
-    glib::object_subclass!();
-
-    fn new() -> Self {
-        Self::default()
-    }
 }
 
 impl ObjectImpl for KeyboardInner {

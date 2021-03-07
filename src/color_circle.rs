@@ -1,6 +1,4 @@
 use cascade::cascade;
-use glib::subclass;
-use glib::subclass::prelude::*;
 use gtk::prelude::*;
 use gtk::subclass::prelude::*;
 use std::cell::Cell;
@@ -16,17 +14,11 @@ pub struct ColorCircleInner {
     symbol: Cell<&'static str>,
 }
 
+#[glib::object_subclass]
 impl ObjectSubclass for ColorCircleInner {
     const NAME: &'static str = "S76ColorCircle";
-
     type ParentType = gtk::Button;
     type Type = ColorCircle;
-    type Interfaces = ();
-
-    type Instance = subclass::simple::InstanceStruct<Self>;
-    type Class = subclass::simple::ClassStruct<Self>;
-
-    glib::object_subclass!();
 
     fn new() -> Self {
         Self {
