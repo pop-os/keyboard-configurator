@@ -6,6 +6,7 @@ use once_cell::sync::Lazy;
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 use super::Keyboard;
+use crate::DerefCell;
 
 mod picker_group;
 mod picker_json;
@@ -38,9 +39,10 @@ pub static SCANCODE_LABELS: Lazy<HashMap<String, String>> = Lazy::new(|| {
     labels
 });
 
+#[derive(Default)]
 pub struct PickerInner {
-    groups: Vec<PickerGroup>,
-    keys: HashMap<String, Rc<PickerKey>>,
+    groups: DerefCell<Vec<PickerGroup>>,
+    keys: DerefCell<HashMap<String, Rc<PickerKey>>>,
     keyboard: RefCell<Option<Keyboard>>,
     selected: RefCell<Option<String>>,
 }
@@ -50,8 +52,12 @@ impl ObjectSubclass for PickerInner {
     const NAME: &'static str = "S76KeyboardPicker";
     type ParentType = gtk::Box;
     type Type = Picker;
+}
 
-    fn new() -> Self {
+impl ObjectImpl for PickerInner {
+    fn constructed(&self, picker: &Picker) {
+        self.parent_constructed(picker);
+
         let style_provider = cascade! {
             gtk::CssProvider::new();
             ..load_from_data(&PICKER_CSS.as_bytes()).expect("Failed to parse css");
@@ -78,24 +84,14 @@ impl ObjectSubclass for PickerInner {
             groups.push(group);
         }
 
-        Self {
-            groups,
-            keys,
-            keyboard: RefCell::new(None),
-            selected: RefCell::new(None),
-        }
-    }
-}
-
-impl ObjectImpl for PickerInner {
-    fn constructed(&self, picker: &Picker) {
-        self.parent_constructed(picker);
+        self.keys.set(keys);
+        self.groups.set(groups);
 
         let mut picker_hbox_opt: Option<gtk::Box> = None;
         let mut picker_col = 0;
         let picker_cols = DEFAULT_COLS;
 
-        for group in &picker.inner().groups {
+        for group in &*picker.inner().groups {
             let picker_hbox = match picker_hbox_opt.take() {
                 Some(some) => some,
                 None => {
