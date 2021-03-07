@@ -13,6 +13,7 @@ pub struct KeyboardColorInner {
     current_circle: RefCell<Option<ColorCircle>>,
     add_circle: DerefCell<ColorCircle>,
     remove_button: DerefCell<gtk::Button>,
+    edit_button: DerefCell<gtk::Button>,
     board: RefCell<Option<DaemonBoard>>,
     hs: Cell<Hs>,
     index: Cell<u8>,
@@ -68,6 +69,7 @@ impl ObjectImpl for KeyboardColorInner {
         self.circle_box.set(circle_box);
         self.add_circle.set(add_circle);
         self.remove_button.set(remove_button);
+        self.edit_button.set(edit_button);
     }
 
     fn properties() -> &'static [glib::ParamSpec] {
@@ -261,7 +263,10 @@ impl KeyboardColor {
     }
 
     pub fn set_board(&self, board: Option<DaemonBoard>) {
-        self.set_sensitive(board.is_some());
+        self.inner().circle_box.set_sensitive(board.is_some());
+        self.inner().remove_button.set_sensitive(board.is_some());
+        self.inner().edit_button.set_sensitive(board.is_some());
+
         if let Some(board) = &board {
             self.set_hs(board.color(self.index()).unwrap_or_else(|err| {
                 error!("{}", err);
