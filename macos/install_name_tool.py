@@ -37,6 +37,7 @@ def run_install_name_tool():
                     libs.append(relpath)
 
     def install_name_tool(path):
+        cmd = ['install_name_tool']
         for dep in otool(path):
             relpath = os.path.relpath(dep, '/usr/local')
             if relpath in duplicates:
@@ -44,7 +45,9 @@ def run_install_name_tool():
             elif relpath not in libs:
                 continue
             newpath = '@executable_path/' + os.path.relpath(RESOURCEDIR + '/' + relpath, BINDIR)
-            subprocess.check_call(['install_name_tool', '-change', dep, newpath, path])
+            cmd += ['-change', dep, newpath]
+        cmd += [path]
+        subprocess.check_call(cmd)
 
     install_name_tool(BINDIR + '/keyboard-configurator')
     for i in libs:
