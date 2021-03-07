@@ -5,11 +5,12 @@ use gtk::subclass::prelude::*;
 use std::cell::{Cell, RefCell};
 use std::f64::consts::PI;
 
-use crate::color::{Hs, Rgb};
+use crate::{DerefCell, Hs, Rgb};
 
+#[derive(Default)]
 pub struct ColorWheelInner {
     selected_hs: Cell<Hs>,
-    surface: RefCell<cairo::ImageSurface>,
+    surface: DerefCell<RefCell<cairo::ImageSurface>>,
     hs_changed_handlers: RefCell<Vec<Box<dyn Fn(&ColorWheel) + 'static>>>,
 }
 
@@ -18,19 +19,15 @@ impl ObjectSubclass for ColorWheelInner {
     const NAME: &'static str = "S76ColorWheel";
     type ParentType = gtk::DrawingArea;
     type Type = ColorWheel;
-
-    fn new() -> Self {
-        Self {
-            selected_hs: Cell::new(Hs::new(0., 0.)),
-            surface: RefCell::new(cairo::ImageSurface::create(cairo::Format::Rgb24, 0, 0).unwrap()),
-            hs_changed_handlers: RefCell::new(Vec::new()),
-        }
-    }
 }
 
 impl ObjectImpl for ColorWheelInner {
     fn constructed(&self, wheel: &ColorWheel) {
         self.parent_constructed(wheel);
+
+        self.surface.set(RefCell::new(
+            cairo::ImageSurface::create(cairo::Format::Rgb24, 0, 0).unwrap(),
+        ));
 
         wheel.add_events(gdk::EventMask::POINTER_MOTION_MASK | gdk::EventMask::BUTTON_PRESS_MASK);
     }
