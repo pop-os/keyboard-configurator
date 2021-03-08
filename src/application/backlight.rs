@@ -123,6 +123,28 @@ impl ObjectImpl for BacklightInner {
         self.mode_combobox.set(mode_combobox);
         self.speed_scale.set(speed_scale);
     }
+
+    fn properties() -> &'static [glib::ParamSpec] {
+        use once_cell::sync::Lazy;
+        static PROPERTIES: Lazy<Vec<glib::ParamSpec>> = Lazy::new(|| {
+            vec![glib::ParamSpec::string(
+                "mode",
+                "mode",
+                "mode",
+                None,
+                glib::ParamFlags::READABLE,
+            )]
+        });
+
+        PROPERTIES.as_ref()
+    }
+
+    fn get_property(&self, _obj: &Self::Type, _id: usize, pspec: &glib::ParamSpec) -> glib::Value {
+        match pspec.get_name() {
+            "mode" => self.mode_combobox.get_active_id().to_value(),
+            _ => unimplemented!(),
+        }
+    }
 }
 
 impl WidgetImpl for BacklightInner {}
@@ -161,6 +183,8 @@ impl Backlight {
     }
 
     fn mode_speed_changed(&self) {
+        self.notify("mode");
+
         if self.inner().do_not_set.get() {
             return;
         }
