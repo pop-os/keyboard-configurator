@@ -8,8 +8,7 @@ use std::{
     collections::HashMap,
     convert::TryFrom,
     ffi::OsStr,
-    fs::{self, File},
-    path::Path,
+    fs::File,
     rc::Rc,
     str, time,
 };
@@ -189,31 +188,6 @@ glib::wrapper! {
 }
 
 impl Keyboard {
-    #[allow(dead_code)]
-    pub fn new<P: AsRef<Path>>(dir: P, board_name: &str, board: DaemonBoard) -> Self {
-        let dir = dir.as_ref();
-
-        let default_json =
-            fs::read_to_string(dir.join("default_json")).expect("Failed to load keymap.json");
-        let keymap_json =
-            fs::read_to_string(dir.join("keymap.json")).expect("Failed to load keymap.json");
-        let layout_json =
-            fs::read_to_string(dir.join("layout.json")).expect("Failed to load layout.json");
-        let leds_json =
-            fs::read_to_string(dir.join("leds.json")).expect("Failed to load leds.json");
-        let physical_json =
-            fs::read_to_string(dir.join("physical.json")).expect("Failed to load physical.json");
-        Self::new_data(
-            board_name,
-            &default_json,
-            &keymap_json,
-            &layout_json,
-            &leds_json,
-            &physical_json,
-            board,
-        )
-    }
-
     fn new_layout(board_name: &str, layout: Layout, board: DaemonBoard) -> Self {
         let keyboard: Self = glib::Object::new(&[]).unwrap();
 
@@ -275,26 +249,6 @@ impl Keyboard {
 
     pub fn new_board(board_name: &str, board: DaemonBoard) -> Option<Self> {
         Layout::from_board(board_name).map(|layout| Self::new_layout(board_name, layout, board))
-    }
-
-    #[allow(dead_code)]
-    fn new_data(
-        board_name: &str,
-        default_json: &str,
-        keymap_json: &str,
-        layout_json: &str,
-        leds_json: &str,
-        physical_json: &str,
-        board: DaemonBoard,
-    ) -> Self {
-        let layout = Layout::from_data(
-            default_json,
-            keymap_json,
-            layout_json,
-            leds_json,
-            physical_json,
-        );
-        Self::new_layout(board_name, layout, board)
     }
 
     fn inner(&self) -> &KeyboardInner {

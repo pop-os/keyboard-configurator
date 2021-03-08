@@ -1,6 +1,10 @@
-use std::cell::{Cell, RefCell};
-use std::char;
-use std::collections::HashMap;
+use std::{
+    cell::{Cell, RefCell},
+    char,
+    collections::HashMap,
+    fs,
+    path::Path,
+};
 
 mod physical_layout;
 pub(super) use physical_layout::PhysicalLayout;
@@ -84,6 +88,30 @@ impl Layout {
             layout,
             leds,
         }
+    }
+
+    #[allow(dead_code)]
+    pub fn from_dir<P: AsRef<Path>>(dir: P) -> Self {
+        let dir = dir.as_ref();
+
+        let default_json =
+            fs::read_to_string(dir.join("default.json")).expect("Failed to load keymap.json");
+        let keymap_json =
+            fs::read_to_string(dir.join("keymap.json")).expect("Failed to load keymap.json");
+        let layout_json =
+            fs::read_to_string(dir.join("layout.json")).expect("Failed to load layout.json");
+        let leds_json =
+            fs::read_to_string(dir.join("leds.json")).expect("Failed to load leds.json");
+        let physical_json =
+            fs::read_to_string(dir.join("physical.json")).expect("Failed to load physical.json");
+
+        Self::from_data(
+            &default_json,
+            &keymap_json,
+            &layout_json,
+            &leds_json,
+            &physical_json,
+        )
     }
 
     pub fn from_board(board: &str) -> Option<Self> {
