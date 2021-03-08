@@ -15,7 +15,7 @@ use std::{
 };
 
 use super::{error_dialog, Backlight, Key, KeyboardLayer, Layout, Page, Picker};
-use crate::{DaemonBoard, DerefCell, KeyMap};
+use crate::{DaemonBoard, DerefCell, KeyMap, KeyboardColor};
 
 #[derive(Default)]
 pub struct KeyboardInner {
@@ -31,6 +31,7 @@ pub struct KeyboardInner {
     stack: DerefCell<gtk::Stack>,
     picker_box: DerefCell<gtk::Box>,
     backlight: DerefCell<Backlight>,
+    per_key_color: DerefCell<KeyboardColor>,
 }
 
 #[glib::object_subclass]
@@ -82,12 +83,19 @@ impl ObjectImpl for KeyboardInner {
             ..set_stack(Some(&stack));
         };
 
+        let per_key_color = cascade! {
+            KeyboardColor::new(None, 0xff);
+            ..set_halign(gtk::Align::End);
+            ..set_sensitive(false);
+        };
+
         cascade! {
             keyboard;
             ..set_orientation(gtk::Orientation::Vertical);
             ..set_spacing(8);
             ..add(&stack_switcher);
             ..add(&layer_stack);
+            ..add(&per_key_color);
             ..add(&stack);
         };
 
@@ -117,6 +125,7 @@ impl ObjectImpl for KeyboardInner {
         self.layer_stack.set(layer_stack);
         self.stack.set(stack);
         self.picker_box.set(picker_box);
+        self.per_key_color.set(per_key_color);
     }
 
     fn properties() -> &'static [glib::ParamSpec] {
@@ -234,7 +243,13 @@ impl Keyboard {
         let backlight = cascade! {
             Backlight::new(board.clone());
             ..set_halign(gtk::Align::Center);
+            ..connect_notify_local(Some("mode"), clone!(@weak keyboard => move |_, _|
+                keyboard.set_per_key_sensitive()));
         };
+        keyboard
+            .inner()
+            .per_key_color
+            .set_board(Some(board.clone()));
         keyboard
             .inner()
             .stack
@@ -336,6 +351,12 @@ impl Keyboard {
 
     pub fn keys(&self) -> &Rc<[Key]> {
         &self.inner().keys
+    }
+
+    fn set_per_key_sensitive(&self) {
+        let sensitive = self.selected().is_some()
+            && self.inner().backlight.mode().as_deref() == Some("PER_KEY");
+        self.inner().per_key_color.set_sensitive(sensitive);
     }
 
     pub fn keymap_set(&self, key_index: usize, layer: usize, scancode_name: &str) {
@@ -527,12 +548,15 @@ impl Keyboard {
                     picker.set_selected(Some(scancode_name.to_string()));
                 }
             }
+
+            self.inner().per_key_color.set_index(k.leds[0]);
         }
 
         picker.set_sensitive(i.is_some() && self.layer() != None);
 
         self.inner().selected.set(i);
 
+        self.set_per_key_sensitive();
         self.queue_draw();
         self.notify("selected");
     }

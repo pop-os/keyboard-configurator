@@ -139,9 +139,9 @@ impl ObjectImpl for BacklightInner {
         PROPERTIES.as_ref()
     }
 
-    fn get_property(&self, _obj: &Self::Type, _id: usize, pspec: &glib::ParamSpec) -> glib::Value {
+    fn get_property(&self, obj: &Self::Type, _id: usize, pspec: &glib::ParamSpec) -> glib::Value {
         match pspec.get_name() {
-            "mode" => self.mode_combobox.get_active_id().to_value(),
+            "mode" => obj.mode().to_value(),
             _ => unimplemented!(),
         }
     }
@@ -182,14 +182,21 @@ impl Backlight {
         &self.inner().board
     }
 
+    pub fn mode(&self) -> Option<String> {
+        self.inner()
+            .mode_combobox
+            .get_active_id()
+            .map(|x| x.to_string())
+    }
+
     fn mode_speed_changed(&self) {
         self.notify("mode");
 
         if self.inner().do_not_set.get() {
             return;
         }
-        if let Some(id) = self.inner().mode_combobox.get_active_id() {
-            if let Some(mode) = MODE_MAP.iter().position(|i| id == **i) {
+        if let Some(id) = self.mode() {
+            if let Some(mode) = MODE_MAP.iter().position(|i| id == *i) {
                 let speed = self.inner().speed_scale.get_value();
                 let layer = self.inner().layer.get();
                 if let Err(err) = self.board().set_mode(layer, mode as u8, speed as u8) {
