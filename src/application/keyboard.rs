@@ -22,7 +22,7 @@ pub struct KeyboardInner {
     board: DerefCell<DaemonBoard>,
     board_name: DerefCell<String>,
     keys: DerefCell<Rc<[Key]>>,
-    layout: DerefCell<Layout>,
+    layout: DerefCell<Rc<Layout>>,
     page: Cell<Page>,
     picker: RefCell<WeakRef<Picker>>,
     selected: Cell<Option<usize>>,
@@ -190,6 +190,7 @@ glib::wrapper! {
 impl Keyboard {
     fn new_layout(board_name: &str, layout: Layout, board: DaemonBoard) -> Self {
         let keyboard: Self = glib::Object::new(&[]).unwrap();
+        let layout = Rc::new(layout);
 
         let mut keys = layout.keys();
         for key in keys.iter_mut() {
@@ -215,7 +216,7 @@ impl Keyboard {
         }
 
         let backlight = cascade! {
-            Backlight::new(board.clone());
+            Backlight::new(board.clone(), layout.clone());
             ..set_halign(gtk::Align::Center);
             ..connect_notify_local(Some("mode"), clone!(@weak keyboard => move |_, _|
                 keyboard.set_per_key_sensitive()));

@@ -2,8 +2,9 @@ use cascade::cascade;
 use glib::clone;
 use gtk::prelude::*;
 use gtk::subclass::prelude::*;
-use std::cell::Cell;
+use std::{cell::Cell, rc::Rc};
 
+use super::Layout;
 use crate::{DaemonBoard, DerefCell, KeyboardColor};
 
 static MODE_MAP: &[&str] = &[
@@ -26,10 +27,13 @@ static MODE_MAP: &[&str] = &[
 #[derive(Default)]
 pub struct BacklightInner {
     board: DerefCell<DaemonBoard>,
+    layout: DerefCell<Rc<Layout>>,
     keyboard_color: DerefCell<KeyboardColor>,
     brightness_scale: DerefCell<gtk::Scale>,
     mode_combobox: DerefCell<gtk::ComboBoxText>,
+    mode_row: DerefCell<gtk::ListBoxRow>,
     speed_scale: DerefCell<gtk::Scale>,
+    speed_row: DerefCell<gtk::ListBoxRow>,
     layer: Cell<u8>,
     do_not_set: Cell<bool>,
 }
@@ -102,15 +106,25 @@ impl ObjectImpl for BacklightInner {
             }
         }
 
+        let mode_row = cascade! {
+            row("Mode:", &mode_combobox);
+            ..set_margin_top(8);
+            ..show_all();
+            ..set_no_show_all(true);
+        };
+
+        let speed_row = cascade! {
+            row("Speed:", &speed_scale);
+            ..show_all();
+            ..set_no_show_all(true);
+        };
+
         cascade! {
             obj;
             ..set_valign(gtk::Align::Start);
             ..get_style_context().add_class("frame");
-            ..add(&cascade! {
-                row("Mode:", &mode_combobox);
-                ..set_margin_top(8);
-            });
-            ..add(&row("Speed:", &speed_scale));
+            ..add(&mode_row);
+            ..add(&speed_row);
             ..add(&row("Brightness:", &brightness_scale));
             ..add(&cascade! {
                 row("Color:", &keyboard_color);
@@ -121,7 +135,9 @@ impl ObjectImpl for BacklightInner {
         self.keyboard_color.set(keyboard_color);
         self.brightness_scale.set(brightness_scale);
         self.mode_combobox.set(mode_combobox);
+        self.mode_row.set(mode_row);
         self.speed_scale.set(speed_scale);
+        self.speed_row.set(speed_row);
     }
 
     fn properties() -> &'static [glib::ParamSpec] {
@@ -157,7 +173,7 @@ glib::wrapper! {
 }
 
 impl Backlight {
-    pub fn new(board: DaemonBoard) -> Self {
+    pub fn new(board: DaemonBoard, layout: Rc<Layout>) -> Self {
         let max_brightness = match board.max_brightness() {
             Ok(value) => value as f64,
             Err(err) => {
@@ -170,6 +186,10 @@ impl Backlight {
         obj.inner().keyboard_color.set_board(Some(board.clone()));
         obj.inner().brightness_scale.set_range(0.0, max_brightness);
         obj.inner().board.set(board.clone());
+        obj.inner().layout.set(layout);
+        let has_mode = obj.inner().layout.meta.has_mode;
+        obj.inner().mode_row.set_visible(has_mode);
+        obj.inner().speed_row.set_visible(has_mode);
         obj.set_layer(0);
         obj
     }
@@ -219,10 +239,14 @@ impl Backlight {
     }
 
     pub fn set_layer(&self, layer: u8) {
-        let (mode, speed) = self.board().mode(layer).unwrap_or_else(|err| {
-            error!("Error getting keyboard mode: {}", err);
+        let (mode, speed) = if self.inner().layout.meta.has_mode {
+            self.board().mode(layer).unwrap_or_else(|err| {
+                error!("Error getting keyboard mode: {}", err);
+                (0, 128)
+            })
+        } else {
             (0, 128)
-        });
+        };
 
         let mode = MODE_MAP.get(mode as usize).cloned();
 
