@@ -6,14 +6,17 @@ use std::{
     path::Path,
 };
 
+mod meta;
 mod physical_layout;
-pub(super) use physical_layout::PhysicalLayout;
+pub use self::meta::Meta;
+pub use physical_layout::PhysicalLayout;
 
 use super::{Key, Rect};
 use crate::{KeyMap, Rgb};
 use physical_layout::{PhysicalKeyEnum, PhysicalLayoutEntry};
 
-pub(super) struct Layout {
+pub struct Layout {
+    pub meta: Meta,
     pub default: KeyMap,
     pub keymap: HashMap<String, u16>,
     pub scancode_names: HashMap<u16, String>,
@@ -24,10 +27,12 @@ pub(super) struct Layout {
 
 macro_rules! keyboards {
     ($( $board:expr ),* $(,)?) => {
-        fn layout_data(board: &str) -> Option<(&'static str, &'static str, &'static str, &'static str, &'static str)> {
+        fn layout_data(board: &str) -> Option<(&'static str, &'static str, &'static str, &'static str, &'static str, &'static str)> {
             match board {
                 $(
                 $board => {
+                    let meta_json =
+                        include_str!(concat!("../../../layouts/", $board, "/meta.json"));
                     let default_json =
                         include_str!(concat!("../../../layouts/", $board, "/default.json"));
                     let keymap_json =
@@ -38,14 +43,14 @@ macro_rules! keyboards {
                         include_str!(concat!("../../../layouts/", $board, "/leds.json"));
                     let physical_json =
                         include_str!(concat!("../../../layouts/", $board, "/physical.json"));
-                    Some((default_json, keymap_json, layout_json, leds_json, physical_json))
+                    Some((meta_json, default_json, keymap_json, layout_json, leds_json, physical_json))
                 }
                 )*
                 _ => None
             }
         }
 
-        pub(super) fn layouts() -> &'static [&'static str] {
+        pub fn layouts() -> &'static [&'static str] {
             &[$( $board ),*]
         }
     };
@@ -69,18 +74,21 @@ keyboards![
 
 impl Layout {
     pub fn from_data(
+        meta_json: &str,
         default_json: &str,
         keymap_json: &str,
         layout_json: &str,
         leds_json: &str,
         physical_json: &str,
     ) -> Self {
+        let meta = serde_json::from_str(meta_json).unwrap();
         let default = KeyMap::from_str(default_json).unwrap();
         let (keymap, scancode_names) = parse_keymap_json(keymap_json);
-        let layout = parse_layout_json(layout_json);
-        let leds = parse_leds_json(leds_json);
-        let physical = parse_physical_json(&physical_json);
+        let layout = serde_json::from_str(layout_json).unwrap();
+        let leds = serde_json::from_str(leds_json).unwrap();
+        let physical = serde_json::from_str(physical_json).unwrap();
         Self {
+            meta,
             default,
             keymap,
             scancode_names,
@@ -94,8 +102,10 @@ impl Layout {
     pub fn from_dir<P: AsRef<Path>>(dir: P) -> Self {
         let dir = dir.as_ref();
 
+        let meta_json =
+            fs::read_to_string(dir.join("meta.json")).expect("Failed to load meta.json");
         let default_json =
-            fs::read_to_string(dir.join("default.json")).expect("Failed to load keymap.json");
+            fs::read_to_string(dir.join("default.json")).expect("Failed to load default.json");
         let keymap_json =
             fs::read_to_string(dir.join("keymap.json")).expect("Failed to load keymap.json");
         let layout_json =
@@ -106,6 +116,7 @@ impl Layout {
             fs::read_to_string(dir.join("physical.json")).expect("Failed to load physical.json");
 
         Self::from_data(
+            &meta_json,
             &default_json,
             &keymap_json,
             &layout_json,
@@ -116,8 +127,9 @@ impl Layout {
 
     pub fn from_board(board: &str) -> Option<Self> {
         layout_data(board).map(
-            |(default_json, keymap_json, layout_json, leds_json, physical_json)| {
+            |(meta_json, default_json, keymap_json, layout_json, leds_json, physical_json)| {
                 Self::from_data(
+                    meta_json,
                     default_json,
                     keymap_json,
                     layout_json,
@@ -248,18 +260,6 @@ fn parse_keymap_json(keymap_json: &str) -> (HashMap<String, u16>, HashMap<u16, S
     (keymap, scancode_names)
 }
 
-fn parse_layout_json(layout_json: &str) -> HashMap<String, (u8, u8)> {
-    serde_json::from_str(layout_json).unwrap()
-}
-
-fn parse_leds_json(leds_json: &str) -> HashMap<String, Vec<u8>> {
-    serde_json::from_str(leds_json).unwrap()
-}
-
-fn parse_physical_json(physical_json: &str) -> PhysicalLayout {
-    serde_json::from_str(physical_json).unwrap()
-}
-
 #[cfg(test)]
 mod tests {
     use super::super::picker::SCANCODE_LABELS;
@@ -277,6 +277,7 @@ mod tests {
     fn default_keys_exist() {
         let mut missing = HashSet::new();
         for i in layouts() {
+            println!("Parsing {} layout", i);
             let layout = Layout::from_board(i).unwrap();
             for j in layout.default.map.values().flatten() {
                 if layout.keymap.keys().find(|x| x == &j).is_none() {

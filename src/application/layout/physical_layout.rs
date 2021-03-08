@@ -2,33 +2,33 @@
 use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
-pub(crate) struct PhysicalLayout(pub Vec<PhysicalLayoutEntry>);
+pub struct PhysicalLayout(pub Vec<PhysicalLayoutEntry>);
 
 #[derive(Debug, Deserialize)]
 #[serde(untagged)]
-pub(crate) enum PhysicalLayoutEntry {
+pub enum PhysicalLayoutEntry {
     Meta(PhysicalLayoutMeta),
     Row(PhysicalRow),
 }
 
 #[derive(Debug, Deserialize)]
-pub(crate) struct PhysicalLayoutMeta {
+pub struct PhysicalLayoutMeta {
     pub name: String,
     pub author: String,
 }
 
 #[derive(Debug, Deserialize)]
-pub(crate) struct PhysicalRow(pub Vec<PhysicalKeyEnum>);
+pub struct PhysicalRow(pub Vec<PhysicalKeyEnum>);
 
 #[derive(Debug, Deserialize)]
 #[serde(untagged)]
-pub(crate) enum PhysicalKeyEnum {
+pub enum PhysicalKeyEnum {
     Name(String),
     Meta(PhysicalKeyMeta),
 }
 
 #[derive(Debug, Deserialize)]
-pub(crate) struct PhysicalKeyMeta {
+pub struct PhysicalKeyMeta {
     #[serde(default)]
     pub x: f64,
     #[serde(default)]

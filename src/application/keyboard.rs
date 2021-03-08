@@ -268,10 +268,12 @@ impl Keyboard {
     }
 
     pub fn display_name(&self) -> String {
+        let name = &self.layout().meta.display_name;
+        let board_name = self.board_name().splitn(2, "/").skip(1).next().unwrap();
         if self.board().0.is_fake() {
-            format!("{} (fake)", self.board_name())
+            format!("{} ({}, fake)", name, board_name)
         } else {
-            self.board_name().to_string()
+            format!("{} ({})", name, board_name)
         }
     }
 
