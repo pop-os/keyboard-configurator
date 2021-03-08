@@ -20,6 +20,14 @@ impl Page {
         }
     }
 
+    pub fn layer(&self) -> Option<usize> {
+        match self {
+            Self::Layer1 => Some(0),
+            Self::Layer2 => Some(1),
+            _ => None,
+        }
+    }
+
     pub fn iter_all() -> impl Iterator<Item = Self> {
         vec![
             Self::Layer1,

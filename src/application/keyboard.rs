@@ -330,11 +330,7 @@ impl Keyboard {
     }
 
     pub fn layer(&self) -> Option<usize> {
-        match self.inner().page.get() {
-            Page::Layer1 => Some(0),
-            Page::Layer2 => Some(1),
-            _ => None,
-        }
+        self.inner().page.get().layer()
     }
 
     pub fn selected(&self) -> Option<usize> {
