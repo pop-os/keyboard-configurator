@@ -1,6 +1,7 @@
 use cascade::cascade;
 use gtk::prelude::*;
 use gtk::subclass::prelude::*;
+use std::cell::Cell;
 
 mod about_dialog;
 mod backlight;
@@ -25,6 +26,7 @@ use self::{
 #[derive(Default)]
 pub struct ConfiguratorAppInner {
     phony_board_names: DerefCell<Vec<String>>,
+    debug_layers: Cell<bool>,
 }
 
 #[glib::object_subclass]
@@ -48,6 +50,14 @@ impl ObjectImpl for ConfiguratorAppInner {
             "",
             None,
         );
+        app.add_main_option(
+            "debug-layers",
+            glib::Char::new('\0').unwrap(),
+            glib::OptionFlags::NONE,
+            glib::OptionArg::None,
+            "",
+            None,
+        );
     }
 }
 
@@ -66,6 +76,7 @@ impl ApplicationImpl for ConfiguratorAppInner {
         };
 
         self.phony_board_names.set(board_names);
+        self.debug_layers.set(opts.contains("debug-layers"));
         -1
     }
 
@@ -92,9 +103,7 @@ impl ApplicationImpl for ConfiguratorAppInner {
             info!("Focusing current window");
             window.present();
         } else {
-            let phony_board_names = &*self.phony_board_names;
-            let window = MainWindow::new(phony_board_names.clone());
-            app.add_window(&window);
+            MainWindow::new(app);
         }
     }
 }
@@ -110,6 +119,18 @@ glib::wrapper! {
 impl ConfiguratorApp {
     fn new() -> Self {
         glib::Object::new(&[]).unwrap()
+    }
+
+    fn inner(&self) -> &ConfiguratorAppInner {
+        ConfiguratorAppInner::from_instance(self)
+    }
+
+    pub fn phony_board_names(&self) -> &[String] {
+        &self.inner().phony_board_names
+    }
+
+    pub fn debug_layers(&self) -> bool {
+        self.inner().debug_layers.get()
     }
 }
 

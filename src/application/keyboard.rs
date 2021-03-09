@@ -188,7 +188,12 @@ glib::wrapper! {
 }
 
 impl Keyboard {
-    fn new_layout(board_name: &str, layout: Layout, board: DaemonBoard) -> Self {
+    fn new_layout(
+        board_name: &str,
+        layout: Layout,
+        board: DaemonBoard,
+        debug_layers: bool,
+    ) -> Self {
         let keyboard: Self = glib::Object::new(&[]).unwrap();
         let layout = Rc::new(layout);
 
@@ -236,7 +241,7 @@ impl Keyboard {
         keyboard.inner().layout.set(layout);
         keyboard.inner().backlight.set(backlight);
 
-        keyboard.add_pages();
+        keyboard.add_pages(debug_layers);
 
         glib::timeout_add_local(
             time::Duration::from_millis(50),
@@ -248,8 +253,9 @@ impl Keyboard {
         keyboard
     }
 
-    pub fn new_board(board_name: &str, board: DaemonBoard) -> Option<Self> {
-        Layout::from_board(board_name).map(|layout| Self::new_layout(board_name, layout, board))
+    pub fn new_board(board_name: &str, board: DaemonBoard, debug_layers: bool) -> Option<Self> {
+        Layout::from_board(board_name)
+            .map(|layout| Self::new_layout(board_name, layout, board, debug_layers))
     }
 
     fn inner(&self) -> &KeyboardInner {
@@ -448,10 +454,14 @@ impl Keyboard {
         self.import_keymap(&self.layout().default);
     }
 
-    fn add_pages(&self) {
+    fn add_pages(&self, debug_layers: bool) {
         let layer_stack = &*self.inner().layer_stack;
 
         for (i, page) in Page::iter_all().enumerate() {
+            if !debug_layers && page.is_debug() {
+                continue;
+            }
+
             let keyboard_layer = KeyboardLayer::new(page, self.keys().clone());
             self.bind_property("selected", &keyboard_layer, "selected")
                 .flags(glib::BindingFlags::BIDIRECTIONAL)

@@ -5,7 +5,7 @@ use gtk::subclass::prelude::*;
 use std::rc::Rc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
-use super::{shortcuts_window, Keyboard, KeyboardLayer, Page, Picker};
+use super::{shortcuts_window, ConfiguratorApp, Keyboard, KeyboardLayer, Page, Picker};
 use crate::{Daemon, DaemonBoard, DaemonClient, DaemonDummy, DaemonServer, DerefCell};
 
 #[derive(Default)]
@@ -156,8 +156,9 @@ glib::wrapper! {
 }
 
 impl MainWindow {
-    pub fn new(phony_board_names: Vec<String>) -> Self {
+    pub fn new(app: &ConfiguratorApp) -> Self {
         let window: Self = glib::Object::new(&[]).unwrap();
+        app.add_window(&window);
 
         let daemon = daemon();
 
@@ -166,6 +167,7 @@ impl MainWindow {
             window.add_keyboard(board);
         }
 
+        let phony_board_names = app.phony_board_names().to_vec();
         if !phony_board_names.is_empty() {
             let daemon = Rc::new(DaemonDummy::new(phony_board_names));
 
@@ -218,7 +220,9 @@ impl MainWindow {
             }
         };
 
-        if let Some(keyboard) = Keyboard::new_board(&model, board) {
+        let app: ConfiguratorApp = self.get_application().unwrap().downcast().unwrap();
+
+        if let Some(keyboard) = Keyboard::new_board(&model, board, app.debug_layers()) {
             keyboard.set_halign(gtk::Align::Center);
             keyboard.show_all();
 
