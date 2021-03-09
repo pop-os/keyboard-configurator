@@ -502,7 +502,9 @@ impl Keyboard {
                 }
             }
 
-            self.inner().per_key_color.set_index(k.leds[0]);
+            if !k.leds.is_empty() {
+                self.inner().per_key_color.set_index(k.leds[0]);
+            }
         }
 
         picker.set_sensitive(i.is_some() && self.layer() != None);
