@@ -209,6 +209,15 @@ impl Backlight {
             .map(|x| x.to_string())
     }
 
+    fn led_index(&self) -> u8 {
+        let layer = self.inner().layer.get();
+        if self.inner().layout.meta.has_per_layer {
+            0xf0 + layer
+        } else {
+            0xff
+        }
+    }
+
     fn mode_speed_changed(&self) {
         self.notify("mode");
 
@@ -231,14 +240,15 @@ impl Backlight {
             return;
         }
         let value = self.inner().brightness_scale.get_value() as i32;
-        let layer = self.inner().layer.get();
-        if let Err(err) = self.board().set_brightness(0xf0 + layer, value) {
+        if let Err(err) = self.board().set_brightness(self.led_index(), value) {
             error!("{}", err);
         }
         debug!("Brightness: {}", value)
     }
 
     pub fn set_layer(&self, layer: u8) {
+        self.inner().layer.set(layer);
+
         let (mode, speed) = if self.inner().layout.meta.has_mode {
             self.board().mode(layer).unwrap_or_else(|err| {
                 error!("Error getting keyboard mode: {}", err);
@@ -250,7 +260,7 @@ impl Backlight {
 
         let mode = MODE_MAP.get(mode as usize).cloned();
 
-        let brightness = match self.board().brightness(0xf0 + layer) {
+        let brightness = match self.board().brightness(self.led_index()) {
             Ok(value) => value as f64,
             Err(err) => {
                 error!("{}", err);
@@ -260,11 +270,10 @@ impl Backlight {
 
         self.inner().do_not_set.set(true);
 
-        self.inner().layer.set(layer);
         self.inner().mode_combobox.set_active_id(mode);
         self.inner().speed_scale.set_value(speed.into());
         self.inner().brightness_scale.set_value(brightness);
-        self.inner().keyboard_color.set_index(0xf0 + layer);
+        self.inner().keyboard_color.set_index(self.led_index());
 
         self.inner().do_not_set.set(false);
     }

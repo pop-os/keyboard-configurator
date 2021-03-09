@@ -1,4 +1,5 @@
 {
   "display_name": "Launch Keyboard",
-  "has_mode": true
+  "has_mode": true,
+  "has_per_layer": true
 }
