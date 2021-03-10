@@ -74,7 +74,6 @@ jobs:
     steps:
     - run: brew install gtk+3 imagemagick librsvg
     - run: npm install -g appdmg
-    - run: cd && git clone https://gitlab.gnome.org/GNOME/gtk-mac-bundler && make -C gtk-mac-bundler install
     - run: echo "$HOME/.local/bin" >> $GITHUB_PATH
     - uses: actions/checkout@v2
     - run: cd macos && ./build.py $RELEASE
