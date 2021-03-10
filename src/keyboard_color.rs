@@ -269,7 +269,7 @@ impl KeyboardColor {
 
         if let Some(board) = &board {
             self.set_hs(board.color(self.index()).unwrap_or_else(|err| {
-                error!("{}", err);
+                error!("Error getting color: {}", err);
                 Hs::new(0., 0.)
             }));
         }

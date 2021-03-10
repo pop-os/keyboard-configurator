@@ -177,7 +177,7 @@ impl Backlight {
         let max_brightness = match board.max_brightness() {
             Ok(value) => value as f64,
             Err(err) => {
-                error!("{}", err);
+                error!("Error getting brightness: {}", err);
                 100.0
             }
         };
@@ -241,7 +241,7 @@ impl Backlight {
         }
         let value = self.inner().brightness_scale.get_value() as i32;
         if let Err(err) = self.board().set_brightness(self.led_index(), value) {
-            error!("{}", err);
+            error!("Error setting brightness: {}", err);
         }
         debug!("Brightness: {}", value)
     }
