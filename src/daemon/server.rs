@@ -206,7 +206,14 @@ impl<R: Read, W: Write> Daemon for DaemonServer<R, W> {
 
     fn max_brightness(&self, board: BoardId) -> Result<i32, String> {
         let mut ec = self.board(board)?;
-        unsafe { ec.led_get_value(0xF0).map(|x| x.1 as i32).map_err(err_str) }
+        let index = if unsafe { ec.access().is::<AccessHid>() } {
+            0xf0
+        } else {
+            0xff
+        };
+        unsafe { ec.led_get_value(index) }
+            .map(|x| x.1 as i32)
+            .map_err(err_str)
     }
 
     fn brightness(&self, board: BoardId, index: u8) -> Result<i32, String> {
