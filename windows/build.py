@@ -107,8 +107,8 @@ package = next(i for i in meta['packages'] if i['name'] == 'system76-keyboard-co
 crate_version = package['version']
 
 # Generate Icon
-# TODO: Replace with final version
-subprocess.check_call(["rsvg-convert", "--width", "256", "--height", "256", "-o", "out/keyboard-configurator.ico", ICON])
+subprocess.check_call(["rsvg-convert", "--width", "256", "--height", "256", "-o", "keyboard-configurator.png", ICON])
+subprocess.check_call(["convert", "keyboard-configurator.png", "out/keyboard-configurator.ico"])
 
 # Build .msi
 subprocess.check_call([f"{args.wix}/bin/candle.exe", ".\keyboard-configurator.wxs", f"-dcrate_version={crate_version}"])
