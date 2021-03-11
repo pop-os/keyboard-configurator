@@ -106,9 +106,11 @@ meta = json.loads(meta_str)
 package = next(i for i in meta['packages'] if i['name'] == 'system76-keyboard-configurator')
 crate_version = package['version']
 
-# Generate Icon
+# Generate Icon and installer banner
 subprocess.check_call(["rsvg-convert", "--width", "256", "--height", "256", "-o", "keyboard-configurator.png", ICON])
 subprocess.check_call(["convert", "keyboard-configurator.png", "out/keyboard-configurator.ico"])
+subprocess.check_call(["rsvg-convert", "--width", "493", "--height", "58", "-o", "banner.png", "banner.svg"])
+subprocess.check_call(["convert", "banner.png", "banner.bmp"])
 
 # Build .msi
 subprocess.check_call([f"{args.wix}/bin/candle.exe", ".\keyboard-configurator.wxs", f"-dcrate_version={crate_version}"])
