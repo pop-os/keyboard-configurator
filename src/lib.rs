@@ -8,6 +8,7 @@ mod choose_color;
 mod color;
 mod color_circle;
 mod color_wheel;
+mod config;
 mod deref_cell;
 mod keyboard_backlight_widget;
 mod keyboard_color;

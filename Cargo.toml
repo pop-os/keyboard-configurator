@@ -12,6 +12,7 @@ members = [ "tools", "ffi" ]
 
 [dependencies]
 anyhow = "1"
+app_dirs2 = "2"
 cascade = "1"
 cairo-rs = { git = "https://github.com/pop-os/gtk-rs" }
 derive_more = "0.99"
