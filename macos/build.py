@@ -53,7 +53,8 @@ with tempfile.TemporaryDirectory('.iconset') as d:
         outname = "{}/icon_{}x{}x2.png".format(d, i, i)
         subprocess.check_call(["rsvg-convert", "--width", str(i * 2), "--height", str(i * 2), "-o", outname, ICON])
 
-    subprocess.check_call(["iconutil", "--convert", "icns", "--output", APPDIR + '/Contents/Resources/keyboard-configurator.icns', d])
+    subprocess.check_call(["iconutil", "--convert", "icns", "--output", 'keyboard-configurator.icns', d])
+    shutil.copy('keyboard-configurator.icns', f'{APPDIR}/Contents/Resources/keyboard-configurator.icns')
 
 # Generate background png
 subprocess.check_call(["rsvg-convert", "--width", "640", "--height", "480", "-o", "background.png", "background.svg"])
