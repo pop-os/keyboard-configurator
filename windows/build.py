@@ -111,6 +111,8 @@ subprocess.check_call(["rsvg-convert", "--width", "256", "--height", "256", "-o"
 subprocess.check_call(["convert", "keyboard-configurator.png", "out/keyboard-configurator.ico"])
 subprocess.check_call(["rsvg-convert", "--width", "493", "--height", "58", "-o", "banner.png", "banner.svg"])
 subprocess.check_call(["convert", "banner.png", "banner.bmp"])
+subprocess.check_call(["rsvg-convert", "--width", "493", "--height", "312", "-o", "dialog.png", "dialog.svg"])
+subprocess.check_call(["convert", "dialog.png", "dialog.bmp"])
 
 # Build .msi
 subprocess.check_call([f"{args.wix}/bin/candle.exe", ".\keyboard-configurator.wxs", f"-dcrate_version={crate_version}"])

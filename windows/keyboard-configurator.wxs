@@ -57,6 +57,8 @@
 
         <WixVariable Id="WixUILicenseRtf" Value="gpl.rtf" />
         <WixVariable Id="WixUIBannerBmp" Value="banner.bmp" />
+        <WixVariable Id="WixUIDialogBmp" Value="dialog.bmp" />
+
         <UIRef Id="WixUI_Minimal" />
         <UIRef Id="WixUI_ErrorProgressText" />
 

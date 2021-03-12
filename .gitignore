@@ -2,8 +2,8 @@
 /linux/system76-keyboard-configurator
 /windows/out
 /windows/libraries.wxi
-/windows/banner.png
-/windows/banner.bmp
+/windows/*.png
+/windows/*.bmp
 /macos/Info.plist
 /macos/background.png
 /macos/keyboard-configurator
