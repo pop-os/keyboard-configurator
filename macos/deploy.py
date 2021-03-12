@@ -32,8 +32,8 @@ def newpath(path):
 
 def deploy_with_deps(binpath):
     pixbuf_ver = subprocess.check_output(['pkg-config', '--variable=gdk_pixbuf_binary_version', 'gdk-pixbuf-2.0']).decode().strip()
-    pixbuf_dir = os.path.join(PREFIX, "lib/gdk-pixbuf-2.0", pixbuf_ver, "loaders")
-    pixbuf_libs = [os.path.join(pixbuf_dir, i) for i in os.listdir(pixbuf_dir) if i.endswith('.so')]
+    pixbuf_dir = f"{PREFIX}/lib/gdk-pixbuf-2.0/{pixbuf_ver}/loaders"
+    pixbuf_libs = [f"{pixbuf_dir}/{i}" for i in os.listdir(pixbuf_dir) if i.endswith('.so')]
 
     deps = otool_recursive(binpath)
     for lib in pixbuf_libs:
@@ -58,13 +58,18 @@ def deploy_with_deps(binpath):
         shutil.copy(src, dest)
         subprocess.check_call(cmd + [dest])
 
-    copy_and_install_name_tool(binpath, os.path.join(BINDIR, os.path.basename(binpath)))
+    copy_and_install_name_tool(binpath, os.path.join(BINDIR, os.path.basename(binpath) + '-bin'))
     for i in deps.union(set(pixbuf_libs)):
         if i not in duplicates:
             copy_and_install_name_tool(i, newpath(i))
+    shutil.copy(f'launcher.sh', os.path.join(BINDIR, os.path.basename(binpath)))
 
     with open(f'{APPDIR}/Contents/PkgInfo', 'w') as f:
         f.write('APPL????')
 
-    os.makedirs(f'{APPDIR}/Contents/Resources/share/icons/hicolor')
-    shutil.copy(f'{PREFIX}/share/icons/hicolor/index.theme', f'{APPDIR}/Contents/Resources/share/icons/hicolor')
+    shutil.copytree(f'{PREFIX}/share/icons/hicolor', f'{APPDIR}/Contents/Resources/share/icons/hicolor')
+
+    module_dir = f"{RESOURCEDIR}/lib/gdk-pixbuf-2.0/{pixbuf_ver}"
+    with open(f"{module_dir}/loaders.cache", 'w') as cachefile:
+        cache = subprocess.check_output(['gdk-pixbuf-query-loaders'], env=dict(os.environ, GDK_PIXBUF_MODULEDIR=f"{module_dir}/loaders")).decode()
+        cachefile.write(cache.replace(APPDIR + '/Contents', '@executable_path/..'))
