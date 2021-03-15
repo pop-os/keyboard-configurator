@@ -150,7 +150,7 @@ impl KeyboardColor {
 
         // TODO: Signal handler for color change?
 
-        let colors = vec![
+        let default_colors: &[Hs] = &[
             Rgb::new(255, 255, 255).to_hs_lossy(),
             Rgb::new(0, 0, 255).to_hs_lossy(),
             Rgb::new(255, 0, 0).to_hs_lossy(),
@@ -158,8 +158,8 @@ impl KeyboardColor {
             Rgb::new(0, 255, 0).to_hs_lossy(),
         ];
 
-        for hs in colors {
-            widget.add_color(hs);
+        for hs in default_colors {
+            widget.add_color(*hs);
         }
 
         widget.populate_circles();
@@ -171,14 +171,15 @@ impl KeyboardColor {
         KeyboardColorInner::from_instance(self)
     }
 
-    fn add_color(&self, color: Hs) {
+    fn add_color(&self, color: Hs) -> ColorCircle {
         let self_ = self;
         let circle = cascade! {
             ColorCircle::new(30);
-            ..connect_clicked(clone!(@weak self_ => move |c| self_.circle_clicked(c)));
+            ..connect_clicked(clone!(@weak self_ => move |c| self_.select_circle(c)));
             ..set_hs(color);
         };
-        self.inner().circles.borrow_mut().push(circle);
+        self.inner().circles.borrow_mut().push(circle.clone());
+        circle
     }
 
     fn populate_circles(&self) {
@@ -237,13 +238,14 @@ impl KeyboardColor {
         }
     }
 
-    fn circle_clicked(&self, circle: &ColorCircle) {
+    fn select_circle(&self, circle: &ColorCircle) {
         let board = self.board().unwrap();
         let color = circle.hs();
         if let Err(err) = board.set_color(self.index(), color) {
             error!("Failed to set keyboard color: {}", err);
         }
-        self.set_hs(color);
+        self.inner().hs.set(color);
+        self.notify("hs");
 
         let mut current = self.inner().current_circle.borrow_mut();
         if let Some(c) = &*current {
@@ -267,18 +269,25 @@ impl KeyboardColor {
         self.inner().remove_button.set_sensitive(board.is_some());
         self.inner().edit_button.set_sensitive(board.is_some());
 
+        *self.inner().board.borrow_mut() = board.clone();
         if let Some(board) = &board {
             self.set_hs(board.color(self.index()).unwrap_or_else(|err| {
                 error!("Error getting color: {}", err);
                 Hs::new(0., 0.)
             }));
         }
-        *self.inner().board.borrow_mut() = board;
     }
 
     fn set_hs(&self, hs: Hs) {
-        self.inner().hs.set(hs);
-        self.notify("hs");
+        for i in &*self.inner().circles.borrow() {
+            if i.hs().is_close(hs) {
+                self.select_circle(&i);
+                return;
+            }
+        }
+
+        let circle = self.add_color(hs);
+        self.select_circle(&circle);
     }
 
     fn index(&self) -> u8 {
@@ -288,5 +297,13 @@ impl KeyboardColor {
     pub fn set_index(&self, value: u8) {
         self.inner().index.set(value);
         self.notify("index");
+        if let Some(board) = self.board() {
+            let hs = board.color(self.index()).unwrap_or_else(|err| {
+                error!("Error getting color: {}", err);
+                Hs::new(0., 0.)
+            });
+            drop(board);
+            self.set_hs(hs);
+        }
     }
 }

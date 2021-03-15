@@ -35,6 +35,10 @@ impl Hs {
         let (r, g, b) = rgb.into_format::<u8>().into_components();
         Rgb::new(r, g, b)
     }
+
+    pub fn is_close(self, other: Self) -> bool {
+        (self.h - other.h).abs() < 0.001 && (self.s - other.s).abs() < 0.001
+    }
 }
 
 #[derive(Clone, Copy, Debug, Serialize, Deserialize, Default, glib::GBoxed)]
