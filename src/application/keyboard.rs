@@ -199,7 +199,7 @@ impl Keyboard {
 
         let mut keys = layout.keys();
         for key in keys.iter_mut() {
-            for layer in 0..2 {
+            for layer in 0..layout.meta.num_layers {
                 debug!("  Layer {}", layer);
                 let scancode = match board.keymap_get(layer, key.electrical.0, key.electrical.1) {
                     Ok(value) => value,
@@ -460,6 +460,10 @@ impl Keyboard {
         for (i, page) in Page::iter_all().enumerate() {
             if !debug_layers && page.is_debug() {
                 continue;
+            } else if let Some(layer) = page.layer() {
+                if layer >= self.layout().meta.num_layers.into() {
+                    continue;
+                }
             }
 
             let keyboard_layer = KeyboardLayer::new(page, self.keys().clone());

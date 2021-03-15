@@ -2,6 +2,8 @@
 pub enum Page {
     Layer1,
     Layer2,
+    Layer3,
+    Layer4,
     Keycaps,
     Logical,
     Electrical,
@@ -13,6 +15,8 @@ impl Page {
         match self {
             Self::Layer1 => "Layer 1",
             Self::Layer2 => "Layer 2",
+            Self::Layer3 => "Layer 3",
+            Self::Layer4 => "Layer 4",
             Self::Keycaps => "Keycaps",
             Self::Logical => "Logical",
             Self::Electrical => "Electrical",
@@ -24,6 +28,8 @@ impl Page {
         match self {
             Self::Layer1 => Some(0),
             Self::Layer2 => Some(1),
+            Self::Layer3 => Some(2),
+            Self::Layer4 => Some(3),
             _ => None,
         }
     }
@@ -39,6 +45,8 @@ impl Page {
         vec![
             Self::Layer1,
             Self::Layer2,
+            Self::Layer3,
+            Self::Layer4,
             Self::Keycaps,
             Self::Logical,
             Self::Electrical,

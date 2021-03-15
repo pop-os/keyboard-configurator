@@ -35,15 +35,8 @@ impl Key {
     pub fn get_label(&self, page: Page) -> String {
         let scancodes = self.scancodes.borrow();
         match page {
-            Page::Layer1 => {
-                let scancode_name = &scancodes[0].1;
-                SCANCODE_LABELS
-                    .get(scancode_name)
-                    .unwrap_or(scancode_name)
-                    .into()
-            }
-            Page::Layer2 => {
-                let scancode_name = &scancodes[1].1;
+            Page::Layer1 | Page::Layer2 | Page::Layer3 | Page::Layer4 => {
+                let scancode_name = &scancodes[page.layer().unwrap()].1;
                 SCANCODE_LABELS
                     .get(scancode_name)
                     .unwrap_or(scancode_name)
