@@ -125,11 +125,11 @@ impl ObjectImpl for BacklightInner {
             ..get_style_context().add_class("frame");
             ..add(&mode_row);
             ..add(&speed_row);
-            ..add(&row("Brightness:", &brightness_scale));
             ..add(&cascade! {
                 row("Color:", &keyboard_color);
                 ..set_margin_bottom(8);
             });
+            ..add(&row("Brightness (all layers):", &brightness_scale));
         };
 
         self.keyboard_color.set(keyboard_color);
@@ -240,8 +240,16 @@ impl Backlight {
             return;
         }
         let value = self.inner().brightness_scale.get_value() as i32;
-        if let Err(err) = self.board().set_brightness(self.led_index(), value) {
-            error!("Error setting brightness: {}", err);
+        if self.inner().layout.meta.has_per_layer {
+            for i in 0..self.inner().layout.meta.num_layers {
+                if let Err(err) = self.board().set_brightness(0xf0 + i, value) {
+                    error!("Error setting brightness: {}", err);
+                }
+            }
+        } else {
+            if let Err(err) = self.board().set_brightness(0xff, value) {
+                error!("Error setting brightness: {}", err);
+            }
         }
         debug!("Brightness: {}", value)
     }
