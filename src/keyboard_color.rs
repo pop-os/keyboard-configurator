@@ -198,7 +198,8 @@ impl KeyboardColor {
     fn add_clicked(&self) {
         let board = self.board().unwrap();
         if let Some(color) = choose_color(board.clone(), self.index(), self, "Add Color", None) {
-            self.add_color(color);
+            let circle = self.add_color(color);
+            self.select_circle(&circle);
             self.inner().remove_button.set_visible(true);
             self.populate_circles();
         } else if let Some(circle) = &*self.inner().current_circle.borrow() {
@@ -286,6 +287,7 @@ impl KeyboardColor {
         }
 
         let circle = self.add_color(hs);
+        self.populate_circles();
         self.select_circle(&circle);
     }
 
