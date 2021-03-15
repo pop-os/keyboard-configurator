@@ -273,13 +273,8 @@ impl KeyboardColor {
         self.inner().remove_button.set_sensitive(board.is_some());
         self.inner().edit_button.set_sensitive(board.is_some());
 
-        *self.inner().board.borrow_mut() = board.clone();
-        if let Some(board) = &board {
-            self.set_hs(board.color(self.index()).unwrap_or_else(|err| {
-                error!("Error getting color: {}", err);
-                Hs::new(0., 0.)
-            }));
-        }
+        *self.inner().board.borrow_mut() = board;
+        self.read_color();
     }
 
     fn set_hs(&self, hs: Hs) {
@@ -298,9 +293,7 @@ impl KeyboardColor {
         self.inner().index.get()
     }
 
-    pub fn set_index(&self, value: u8) {
-        self.inner().index.set(value);
-        self.notify("index");
+    fn read_color(&self) {
         if let Some(board) = self.board() {
             let hs = board.color(self.index()).unwrap_or_else(|err| {
                 error!("Error getting color: {}", err);
@@ -309,5 +302,11 @@ impl KeyboardColor {
             drop(board);
             self.set_hs(hs);
         }
+    }
+
+    pub fn set_index(&self, value: u8) {
+        self.inner().index.set(value);
+        self.notify("index");
+        self.read_color();
     }
 }
