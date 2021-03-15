@@ -2,9 +2,9 @@ use cascade::cascade;
 use glib::clone;
 use gtk::prelude::*;
 use gtk::subclass::prelude::*;
-use std::{cell::Cell, rc::Rc};
+use std::{cell::Cell, convert::TryFrom, rc::Rc};
 
-use super::Layout;
+use super::{Key, Layout};
 use crate::{DaemonBoard, DerefCell, KeyboardColor};
 
 static MODE_MAP: &[&str] = &[
@@ -36,6 +36,8 @@ pub struct BacklightInner {
     speed_row: DerefCell<gtk::ListBoxRow>,
     layer: Cell<u8>,
     do_not_set: Cell<bool>,
+    keys: DerefCell<Rc<[Key]>>,
+    selected: Cell<Option<usize>>,
 }
 
 #[glib::object_subclass]
@@ -143,16 +145,39 @@ impl ObjectImpl for BacklightInner {
     fn properties() -> &'static [glib::ParamSpec] {
         use once_cell::sync::Lazy;
         static PROPERTIES: Lazy<Vec<glib::ParamSpec>> = Lazy::new(|| {
-            vec![glib::ParamSpec::string(
-                "mode",
-                "mode",
-                "mode",
-                None,
-                glib::ParamFlags::READABLE,
-            )]
+            vec![
+                glib::ParamSpec::string("mode", "mode", "mode", None, glib::ParamFlags::READABLE),
+                glib::ParamSpec::int(
+                    "selected",
+                    "selected",
+                    "selected",
+                    -1,
+                    i32::MAX,
+                    -1,
+                    glib::ParamFlags::WRITABLE,
+                ),
+            ]
         });
 
         PROPERTIES.as_ref()
+    }
+
+    fn set_property(
+        &self,
+        obj: &Self::Type,
+        _id: usize,
+        value: &glib::Value,
+        pspec: &glib::ParamSpec,
+    ) {
+        match pspec.get_name() {
+            "selected" => {
+                let v: i32 = value.get_some().unwrap();
+                let selected = usize::try_from(v).ok();
+                obj.inner().selected.set(selected);
+                obj.update_per_key();
+            }
+            _ => unimplemented!(),
+        }
     }
 
     fn get_property(&self, obj: &Self::Type, _id: usize, pspec: &glib::ParamSpec) -> glib::Value {
@@ -173,7 +198,7 @@ glib::wrapper! {
 }
 
 impl Backlight {
-    pub fn new(board: DaemonBoard, layout: Rc<Layout>) -> Self {
+    pub fn new(board: DaemonBoard, keys: Rc<[Key]>, layout: Rc<Layout>) -> Self {
         let max_brightness = match board.max_brightness() {
             Ok(value) => value as f64,
             Err(err) => {
@@ -183,6 +208,7 @@ impl Backlight {
         };
 
         let obj: Self = glib::Object::new(&[]).unwrap();
+        obj.inner().keys.set(keys);
         obj.inner().keyboard_color.set_board(Some(board.clone()));
         obj.inner().brightness_scale.set_range(0.0, max_brightness);
         obj.inner().board.set(board.clone());
@@ -220,6 +246,13 @@ impl Backlight {
 
     fn mode_speed_changed(&self) {
         self.notify("mode");
+
+        if self.mode().as_deref() == Some("PER_KEY") {
+            self.update_per_key();
+        } else {
+            self.inner().keyboard_color.set_sensitive(true);
+            self.inner().keyboard_color.set_index(self.led_index());
+        }
 
         if self.inner().do_not_set.get() {
             return;
@@ -284,5 +317,21 @@ impl Backlight {
         self.inner().keyboard_color.set_index(self.led_index());
 
         self.inner().do_not_set.set(false);
+    }
+
+    fn update_per_key(&self) {
+        if self.mode().as_deref() != Some("PER_KEY") {
+            return;
+        }
+
+        let mut sensitive = false;
+        if let Some(selected) = self.inner().selected.get() {
+            let k = &self.inner().keys[selected];
+            if !k.leds.is_empty() {
+                sensitive = true;
+                self.inner().keyboard_color.set_index(k.leds[0]);
+            }
+        }
+        self.inner().keyboard_color.set_sensitive(sensitive);
     }
 }
