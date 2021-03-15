@@ -185,7 +185,7 @@ impl<R: Read, W: Write> Daemon for DaemonServer<R, W> {
         let mut ec = self.board(board)?;
         let color = unsafe { ec.led_get_color(index) }.map_err(err_str)?;
 
-        if unsafe { ec.access().is::<AccessHid>() } && index == 0xff {
+        if unsafe { ec.access().is::<AccessHid>() } && index >= 0xf0 {
             Ok(Hs::from_ints(color.0, color.1))
         } else {
             Ok(Rgb::new(color.0, color.1, color.2).to_hs_lossy())

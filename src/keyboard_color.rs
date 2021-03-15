@@ -175,7 +175,7 @@ impl KeyboardColor {
         let self_ = self;
         let circle = cascade! {
             ColorCircle::new(30);
-            ..connect_clicked(clone!(@weak self_ => move |c| self_.select_circle(c)));
+            ..connect_clicked(clone!(@weak self_ => move |c| self_.circle_clicked(c)));
             ..set_hs(color);
         };
         self.inner().circles.borrow_mut().push(circle.clone());
@@ -238,13 +238,17 @@ impl KeyboardColor {
         }
     }
 
-    fn select_circle(&self, circle: &ColorCircle) {
+    fn circle_clicked(&self, circle: &ColorCircle) {
         let board = self.board().unwrap();
         let color = circle.hs();
         if let Err(err) = board.set_color(self.index(), color) {
             error!("Failed to set keyboard color: {}", err);
         }
-        self.inner().hs.set(color);
+        self.select_circle(circle);
+    }
+
+    fn select_circle(&self, circle: &ColorCircle) {
+        self.inner().hs.set(circle.hs());
         self.notify("hs");
 
         let mut current = self.inner().current_circle.borrow_mut();
