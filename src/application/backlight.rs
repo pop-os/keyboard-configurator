@@ -5,7 +5,7 @@ use gtk::subclass::prelude::*;
 use std::{cell::Cell, convert::TryFrom, rc::Rc};
 
 use super::{Key, Layout};
-use crate::{DaemonBoard, DerefCell, KeyboardColor};
+use crate::{DaemonBoard, DerefCell, Hs, KeyboardColor};
 
 static MODE_MAP: &[&str] = &[
     "SOLID_COLOR",
@@ -29,7 +29,10 @@ pub struct BacklightInner {
     board: DerefCell<DaemonBoard>,
     layout: DerefCell<Rc<Layout>>,
     keyboard_color: DerefCell<KeyboardColor>,
+    color_row: DerefCell<gtk::ListBoxRow>,
     brightness_scale: DerefCell<gtk::Scale>,
+    saturation_scale: DerefCell<gtk::Scale>,
+    saturation_row: DerefCell<gtk::ListBoxRow>,
     mode_combobox: DerefCell<gtk::ComboBoxText>,
     mode_row: DerefCell<gtk::ListBoxRow>,
     speed_scale: DerefCell<gtk::Scale>,
@@ -88,6 +91,15 @@ impl ObjectImpl for BacklightInner {
             ));
         };
 
+        let saturation_scale = cascade! {
+            gtk::Scale::with_range(gtk::Orientation::Horizontal, 0., 100., 1.);
+            ..set_halign(gtk::Align::Fill);
+            ..set_size_request(200, 0);
+            ..connect_value_changed(clone!(@weak obj => move |_|
+                obj.saturation_changed();
+            ));
+        };
+
         let keyboard_color = KeyboardColor::new(None, 0xf0);
 
         fn row(label: &str, widget: &impl IsA<gtk::Widget>) -> gtk::ListBoxRow {
@@ -121,25 +133,41 @@ impl ObjectImpl for BacklightInner {
             ..set_no_show_all(true);
         };
 
+        let saturation_row = cascade! {
+            row("Saturation:", &saturation_scale);
+            ..show_all();
+            ..set_no_show_all(true);
+        };
+
+        let color_row = cascade! {
+            row("Color:", &keyboard_color);
+            ..show_all();
+            ..set_no_show_all(true);
+        };
+
         cascade! {
             obj;
             ..set_valign(gtk::Align::Start);
             ..get_style_context().add_class("frame");
             ..add(&mode_row);
             ..add(&speed_row);
+            ..add(&saturation_row);
+            ..add(&color_row);
             ..add(&cascade! {
-                row("Color:", &keyboard_color);
+                row("Brightness (all layers):", &brightness_scale);
                 ..set_margin_bottom(8);
             });
-            ..add(&row("Brightness (all layers):", &brightness_scale));
         };
 
         self.keyboard_color.set(keyboard_color);
+        self.color_row.set(color_row);
         self.brightness_scale.set(brightness_scale);
         self.mode_combobox.set(mode_combobox);
         self.mode_row.set(mode_row);
         self.speed_scale.set(speed_scale);
         self.speed_row.set(speed_row);
+        self.saturation_scale.set(saturation_scale);
+        self.saturation_row.set(saturation_row);
     }
 
     fn properties() -> &'static [glib::ParamSpec] {
@@ -254,6 +282,13 @@ impl Backlight {
             self.inner().keyboard_color.set_index(self.led_index());
         }
 
+        let mode = self.mode();
+        let mode = mode.as_deref();
+        let has_hue =
+            mode == Some("SOLID_COLOR") || mode == Some("PER_KEY") || mode == Some("ACTIVE_KEYS");
+        self.inner().color_row.set_visible(has_hue);
+        self.inner().saturation_row.set_visible(!has_hue);
+
         if self.inner().do_not_set.get() {
             return;
         }
@@ -285,6 +320,22 @@ impl Backlight {
             }
         }
         debug!("Brightness: {}", value)
+    }
+
+    fn saturation_changed(&self) {
+        if self.inner().do_not_set.get() {
+            return;
+        }
+
+        let value = self.inner().saturation_scale.get_value();
+
+        let hs = Hs::new(0., value / 100.);
+
+        if let Err(err) = self.board().set_color(self.led_index(), hs) {
+            error!("Error setting color: {}", err);
+        }
+
+        debug!("Saturation: {}", value)
     }
 
     pub fn set_layer(&self, layer: u8) {
