@@ -120,6 +120,11 @@ impl Daemon for DaemonDummy {
         Ok(())
     }
 
+    fn led_save(&self, board: BoardId) -> Result<(), String> {
+        self.board(board)?;
+        Ok(())
+    }
+
     fn exit(&self) -> Result<(), String> {
         Ok(())
     }

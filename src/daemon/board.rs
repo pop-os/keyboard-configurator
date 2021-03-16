@@ -51,4 +51,8 @@ impl DaemonBoard {
     pub fn set_mode(&self, layer: u8, mode: u8, speed: u8) -> Result<(), String> {
         self.0.set_mode(self.1, layer, mode, speed)
     }
+
+    pub fn led_save(&self) -> Result<(), String> {
+        self.0.led_save(self.1)
+    }
 }

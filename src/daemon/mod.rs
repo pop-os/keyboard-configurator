@@ -118,6 +118,7 @@ commands! {
     fn set_brightness(&self, board: BoardId, index: u8, brightness: i32) -> Result<(), String>;
     fn mode(&self, board: BoardId, layer: u8) -> Result<(u8, u8), String>;
     fn set_mode(&self, board: BoardId, layer: u8, mode: u8, speed: u8) -> Result<(), String>;
+    fn led_save(&self, board: BoardId) -> Result<(), String>;
     fn exit(&self) -> Result<(), String>;
 }
 

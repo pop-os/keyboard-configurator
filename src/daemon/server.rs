@@ -236,6 +236,11 @@ impl<R: Read, W: Write> Daemon for DaemonServer<R, W> {
         unsafe { ec.led_set_mode(layer, mode, speed).map_err(err_str) }
     }
 
+    fn led_save(&self, board: BoardId) -> Result<(), String> {
+        let mut ec = self.board(board)?;
+        unsafe { ec.led_save().map_err(err_str) }
+    }
+
     fn exit(&self) -> Result<(), String> {
         self.running.set(false);
         Ok(())

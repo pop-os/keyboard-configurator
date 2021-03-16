@@ -210,6 +210,10 @@ impl Daemon for DaemonS76Power {
         Err("Unimplemented".to_string())
     }
 
+    fn led_save(&self, _board: BoardId) -> Result<(), String> {
+        Err("Unimplemented".to_string())
+    }
+
     fn exit(&self) -> Result<(), String> {
         Ok(())
     }
