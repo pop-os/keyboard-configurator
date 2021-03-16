@@ -2,27 +2,62 @@ use cascade::cascade;
 use glib::clone;
 use gtk::prelude::*;
 use gtk::subclass::prelude::*;
-use std::{cell::Cell, convert::TryFrom, rc::Rc};
+use once_cell::sync::Lazy;
+use std::{cell::Cell, collections::HashMap, convert::TryFrom, rc::Rc};
 
 use super::{Key, Layout};
 use crate::{DaemonBoard, DerefCell, Hs, KeyboardColor};
 
-static MODE_MAP: &[&str] = &[
-    "SOLID_COLOR",
-    "PER_KEY",
-    "CYCLE_ALL",
-    "CYCLE_LEFT_RIGHT",
-    "CYCLE_UP_DOWN",
-    "CYCLE_OUT_IN",
-    "CYCLE_OUT_IN_DUAL",
-    "RAINBOW_MOVING_CHEVRON",
-    "CYCLE_PINWHEEL",
-    "CYCLE_SPIRAL",
-    "RAINDROPS",
-    "SPLASH",
-    "MULTISPLASH",
-    "ACTIVE_KEYS",
+struct Mode {
+    index: u8,
+    id: &'static str,
+    name: &'static str,
+    has_hue: bool,
+}
+
+impl Mode {
+    const fn new(index: u8, id: &'static str, name: &'static str, has_hue: bool) -> Self {
+        Self {
+            index,
+            id,
+            name,
+            has_hue,
+        }
+    }
+}
+
+static MODES: &[Mode] = &[
+    Mode::new(0, "SOLID_COLOR", "Solid Color", true),
+    Mode::new(1, "PER_KEY", "Per Key", true),
+    Mode::new(2, "CYCLE_ALL", "Cosmic Background", false),
+    Mode::new(3, "CYCLE_LEFT_RIGHT", "Horizonal Scan", false),
+    Mode::new(4, "CYCLE_UP_DOWN", "Vertical Scan", false),
+    Mode::new(5, "CYCLE_OUT_IN", "Event Horizon", false),
+    Mode::new(6, "CYCLE_OUT_IN_DUAL", "Binary Galaxies", false),
+    Mode::new(7, "RAINBOW_MOVING_CHEVRON", "Spacetime", false),
+    Mode::new(8, "CYCLE_PINWHEEL", "Pinwheel Galaxy", false),
+    Mode::new(9, "CYCLE_SPIRAL", "Spiral Galaxy", false),
+    Mode::new(10, "RAINDROPS", "Elements", false),
+    Mode::new(11, "SPLASH", "Splashdown", false),
+    Mode::new(12, "MULTISPLASH", "Meteor Shower", false),
+    Mode::new(13, "ACTIVE_KEYS", "Active Keys", true),
 ];
+
+static MODE_BY_INDEX: Lazy<HashMap<u8, &Mode>> = Lazy::new(|| {
+    let mut m = HashMap::new();
+    for mode in MODES {
+        m.insert(mode.index, mode);
+    }
+    m
+});
+
+static MODE_BY_ID: Lazy<HashMap<&str, &Mode>> = Lazy::new(|| {
+    let mut m = HashMap::new();
+    for mode in MODES {
+        m.insert(mode.id, mode);
+    }
+    m
+});
 
 #[derive(Default)]
 pub struct BacklightInner {
@@ -54,24 +89,14 @@ impl ObjectImpl for BacklightInner {
     fn constructed(&self, obj: &Self::Type) {
         let mode_combobox = cascade! {
             gtk::ComboBoxText::new();
-            ..append(Some("SOLID_COLOR"), "Solid Color");
-            ..append(Some("PER_KEY"), "Per Key");
-            ..append(Some("CYCLE_ALL"), "Cosmic Background");
-            ..append(Some("CYCLE_LEFT_RIGHT"), "Horizonal Scan");
-            ..append(Some("CYCLE_UP_DOWN"), "Vertical Scan");
-            ..append(Some("CYCLE_OUT_IN"), "Event Horizon");
-            ..append(Some("CYCLE_OUT_IN_DUAL"), "Binary Galaxies");
-            ..append(Some("RAINBOW_MOVING_CHEVRON"), "Spacetime");
-            ..append(Some("CYCLE_PINWHEEL"), "Pinwheel Galaxy");
-            ..append(Some("CYCLE_SPIRAL"), "Spiral Galaxy");
-            ..append(Some("RAINDROPS"), "Elements");
-            ..append(Some("SPLASH"), "Splashdown");
-            ..append(Some("MULTISPLASH"), "Meteor Shower");
-            ..append(Some("ACTIVE_KEYS"), "Active Keys");
             ..connect_changed(clone!(@weak obj => move |_|
                 obj.mode_speed_changed();
             ));
         };
+
+        for mode in MODES {
+            mode_combobox.append(Some(mode.id), mode.name);
+        }
 
         let speed_scale = cascade! {
             gtk::Scale::with_range(gtk::Orientation::Horizontal, 0., 255., 1.);
@@ -123,27 +148,11 @@ impl ObjectImpl for BacklightInner {
         let mode_row = cascade! {
             row("Mode:", &mode_combobox);
             ..set_margin_top(8);
-            ..show_all();
-            ..set_no_show_all(true);
         };
 
-        let speed_row = cascade! {
-            row("Speed:", &speed_scale);
-            ..show_all();
-            ..set_no_show_all(true);
-        };
-
-        let saturation_row = cascade! {
-            row("Saturation:", &saturation_scale);
-            ..show_all();
-            ..set_no_show_all(true);
-        };
-
-        let color_row = cascade! {
-            row("Color:", &keyboard_color);
-            ..show_all();
-            ..set_no_show_all(true);
-        };
+        let speed_row = row("Speed:", &speed_scale);
+        let saturation_row = row("Saturation:", &saturation_scale);
+        let color_row = row("Color:", &keyboard_color);
 
         cascade! {
             obj;
@@ -171,7 +180,6 @@ impl ObjectImpl for BacklightInner {
     }
 
     fn properties() -> &'static [glib::ParamSpec] {
-        use once_cell::sync::Lazy;
         static PROPERTIES: Lazy<Vec<glib::ParamSpec>> = Lazy::new(|| {
             vec![
                 glib::ParamSpec::string("mode", "mode", "mode", None, glib::ParamFlags::READABLE),
@@ -210,7 +218,7 @@ impl ObjectImpl for BacklightInner {
 
     fn get_property(&self, obj: &Self::Type, _id: usize, pspec: &glib::ParamSpec) -> glib::Value {
         match pspec.get_name() {
-            "mode" => obj.mode().to_value(),
+            "mode" => obj.mode().id.to_value(),
             _ => unimplemented!(),
         }
     }
@@ -241,10 +249,20 @@ impl Backlight {
         obj.inner().brightness_scale.set_range(0.0, max_brightness);
         obj.inner().board.set(board.clone());
         obj.inner().layout.set(layout);
-        let has_mode = obj.inner().layout.meta.has_mode;
-        obj.inner().mode_row.set_visible(has_mode);
-        obj.inner().speed_row.set_visible(has_mode);
+        obj.invalidate_filter();
         obj.set_layer(0);
+        obj.set_filter_func(Some(Box::new(clone!(@weak obj => move |row| {
+            let inner = obj.inner();
+            if row == &*inner.mode_row || row == &*inner.speed_row {
+                inner.layout.meta.has_mode
+            } else if row == &*inner.color_row {
+                obj.mode().has_hue
+            } else if row == &*inner.saturation_row {
+                !obj.mode().has_hue
+            } else {
+                true
+            }
+        }))));
         obj
     }
 
@@ -256,11 +274,13 @@ impl Backlight {
         &self.inner().board
     }
 
-    pub fn mode(&self) -> Option<String> {
-        self.inner()
-            .mode_combobox
-            .get_active_id()
-            .map(|x| x.to_string())
+    fn mode(&self) -> &'static Mode {
+        if let Some(id) = self.inner().mode_combobox.get_active_id() {
+            if let Some(mode) = MODE_BY_ID.get(id.as_str()) {
+                return *mode;
+            }
+        }
+        &MODES[0]
     }
 
     fn led_index(&self) -> u8 {
@@ -275,31 +295,22 @@ impl Backlight {
     fn mode_speed_changed(&self) {
         self.notify("mode");
 
-        if self.mode().as_deref() == Some("PER_KEY") {
+        if self.mode().id == "PER_KEY" {
             self.update_per_key();
         } else {
             self.inner().keyboard_color.set_sensitive(true);
             self.inner().keyboard_color.set_index(self.led_index());
         }
-
-        let mode = self.mode();
-        let mode = mode.as_deref();
-        let has_hue =
-            mode == Some("SOLID_COLOR") || mode == Some("PER_KEY") || mode == Some("ACTIVE_KEYS");
-        self.inner().color_row.set_visible(has_hue);
-        self.inner().saturation_row.set_visible(!has_hue);
+        self.invalidate_filter();
 
         if self.inner().do_not_set.get() {
             return;
         }
-        if let Some(id) = self.mode() {
-            if let Some(mode) = MODE_MAP.iter().position(|i| id == *i) {
-                let speed = self.inner().speed_scale.get_value();
-                let layer = self.inner().layer.get();
-                if let Err(err) = self.board().set_mode(layer, mode as u8, speed as u8) {
-                    error!("Error setting keyboard mode: {}", err);
-                }
-            }
+
+        let speed = self.inner().speed_scale.get_value();
+        let layer = self.inner().layer.get();
+        if let Err(err) = self.board().set_mode(layer, self.mode().index, speed as u8) {
+            error!("Error setting keyboard mode: {}", err);
         }
     }
 
@@ -350,7 +361,7 @@ impl Backlight {
             (0, 128)
         };
 
-        let mode = MODE_MAP.get(mode as usize).cloned();
+        let mode = MODE_BY_INDEX.get(&mode).map(|x| x.id);
 
         let brightness = match self.board().brightness(self.led_index()) {
             Ok(value) => value as f64,
@@ -371,7 +382,7 @@ impl Backlight {
     }
 
     fn update_per_key(&self) {
-        if self.mode().as_deref() != Some("PER_KEY") {
+        if self.mode().id != "PER_KEY" {
             return;
         }
 
