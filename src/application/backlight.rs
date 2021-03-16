@@ -13,51 +13,53 @@ struct Mode {
     id: &'static str,
     name: &'static str,
     has_hue: bool,
+    has_speed: bool,
 }
 
 impl Mode {
-    const fn new(index: u8, id: &'static str, name: &'static str, has_hue: bool) -> Self {
+    const fn new(
+        index: u8,
+        id: &'static str,
+        name: &'static str,
+        has_hue: bool,
+        has_speed: bool,
+    ) -> Self {
         Self {
             index,
             id,
             name,
             has_hue,
+            has_speed,
         }
+    }
+
+    fn is_per_key(&self) -> bool {
+        self.index == 1
     }
 }
 
 static MODES: &[Mode] = &[
-    Mode::new(0, "SOLID_COLOR", "Solid Color", true),
-    Mode::new(1, "PER_KEY", "Per Key", true),
-    Mode::new(2, "CYCLE_ALL", "Cosmic Background", false),
-    Mode::new(3, "CYCLE_LEFT_RIGHT", "Horizonal Scan", false),
-    Mode::new(4, "CYCLE_UP_DOWN", "Vertical Scan", false),
-    Mode::new(5, "CYCLE_OUT_IN", "Event Horizon", false),
-    Mode::new(6, "CYCLE_OUT_IN_DUAL", "Binary Galaxies", false),
-    Mode::new(7, "RAINBOW_MOVING_CHEVRON", "Spacetime", false),
-    Mode::new(8, "CYCLE_PINWHEEL", "Pinwheel Galaxy", false),
-    Mode::new(9, "CYCLE_SPIRAL", "Spiral Galaxy", false),
-    Mode::new(10, "RAINDROPS", "Elements", false),
-    Mode::new(11, "SPLASH", "Splashdown", false),
-    Mode::new(12, "MULTISPLASH", "Meteor Shower", false),
-    Mode::new(13, "ACTIVE_KEYS", "Active Keys", true),
+    Mode::new(0, "SOLID_COLOR", "Solid Color", true, false),
+    Mode::new(1, "PER_KEY", "Per Key", true, false),
+    Mode::new(2, "CYCLE_ALL", "Cosmic Background", false, true),
+    Mode::new(3, "CYCLE_LEFT_RIGHT", "Horizonal Scan", false, true),
+    Mode::new(4, "CYCLE_UP_DOWN", "Vertical Scan", false, true),
+    Mode::new(5, "CYCLE_OUT_IN", "Event Horizon", false, true),
+    Mode::new(6, "CYCLE_OUT_IN_DUAL", "Binary Galaxies", false, true),
+    Mode::new(7, "RAINBOW_MOVING_CHEVRON", "Spacetime", false, true),
+    Mode::new(8, "CYCLE_PINWHEEL", "Pinwheel Galaxy", false, true),
+    Mode::new(9, "CYCLE_SPIRAL", "Spiral Galaxy", false, true),
+    Mode::new(10, "RAINDROPS", "Elements", false, false),
+    Mode::new(11, "SPLASH", "Splashdown", false, true),
+    Mode::new(12, "MULTISPLASH", "Meteor Shower", false, true),
+    Mode::new(13, "ACTIVE_KEYS", "Active Keys", true, false),
 ];
 
-static MODE_BY_INDEX: Lazy<HashMap<u8, &Mode>> = Lazy::new(|| {
-    let mut m = HashMap::new();
-    for mode in MODES {
-        m.insert(mode.index, mode);
-    }
-    m
-});
+static MODE_BY_INDEX: Lazy<HashMap<u8, &Mode>> =
+    Lazy::new(|| MODES.iter().map(|i| (i.index, i)).collect());
 
-static MODE_BY_ID: Lazy<HashMap<&str, &Mode>> = Lazy::new(|| {
-    let mut m = HashMap::new();
-    for mode in MODES {
-        m.insert(mode.id, mode);
-    }
-    m
-});
+static MODE_BY_ID: Lazy<HashMap<&str, &Mode>> =
+    Lazy::new(|| MODES.iter().map(|i| (i.id, i)).collect());
 
 #[derive(Default)]
 pub struct BacklightInner {
@@ -253,8 +255,10 @@ impl Backlight {
         obj.set_layer(0);
         obj.set_filter_func(Some(Box::new(clone!(@weak obj => move |row| {
             let inner = obj.inner();
-            if row == &*inner.mode_row || row == &*inner.speed_row {
+            if row == &*inner.mode_row {
                 inner.layout.meta.has_mode
+            } else if row == &*inner.speed_row {
+                inner.layout.meta.has_mode && obj.mode().has_speed
             } else if row == &*inner.color_row {
                 obj.mode().has_hue
             } else if row == &*inner.saturation_row {
@@ -295,7 +299,7 @@ impl Backlight {
     fn mode_speed_changed(&self) {
         self.notify("mode");
 
-        if self.mode().id == "PER_KEY" {
+        if self.mode().is_per_key() {
             self.update_per_key();
         } else {
             self.inner().keyboard_color.set_sensitive(true);
@@ -382,7 +386,7 @@ impl Backlight {
     }
 
     fn update_per_key(&self) {
-        if self.mode().id != "PER_KEY" {
+        if !self.mode().is_per_key() {
             return;
         }
 
