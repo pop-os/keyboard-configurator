@@ -78,6 +78,7 @@ pub struct BacklightInner {
     do_not_set: Cell<bool>,
     keys: DerefCell<Rc<[Key]>>,
     selected: Cell<Option<usize>>,
+    has_led_save: Cell<bool>,
 }
 
 #[glib::object_subclass]
@@ -249,12 +250,15 @@ impl Backlight {
             }
         };
 
+        let has_led_save = board.led_save().is_ok();
+
         let obj: Self = glib::Object::new(&[]).unwrap();
         obj.inner().keys.set(keys);
         obj.inner().keyboard_color.set_board(Some(board.clone()));
         obj.inner().brightness_scale.set_range(0.0, max_brightness);
         obj.inner().board.set(board.clone());
         obj.inner().layout.set(layout);
+        obj.inner().has_led_save.set(has_led_save);
         obj.invalidate_filter();
         obj.set_layer(0);
         obj.set_filter_func(Some(Box::new(clone!(@weak obj => move |row|
@@ -263,13 +267,17 @@ impl Backlight {
         obj.set_header_func(Some(Box::new(clone!(@weak obj => move |row, before|
             obj.header_func(row, before)
         ))));
-        glib::timeout_add_seconds_local(
-            10,
-            clone!(@weak obj => @default-return Continue(false), move || {
-                obj.led_save();
-                Continue(true)
-            }),
-        );
+
+        if has_led_save {
+            glib::timeout_add_seconds_local(
+                10,
+                clone!(@weak obj => @default-return Continue(false), move || {
+                    obj.led_save();
+                    Continue(true)
+                }),
+            );
+        }
+
         obj
     }
 
@@ -431,8 +439,10 @@ impl Backlight {
     }
 
     fn led_save(&self) {
-        if let Err(err) = self.board().led_save() {
-            error!("Failed to save LEDs: {}", err);
+        if self.inner().has_led_save.get() {
+            if let Err(err) = self.board().led_save() {
+                error!("Failed to save LEDs: {}", err);
+            }
         }
     }
 }
