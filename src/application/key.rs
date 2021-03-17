@@ -27,8 +27,6 @@ pub struct Key {
     pub(crate) scancodes: RefCell<Vec<(u16, String)>>,
     // Background color
     pub(crate) background_color: Rgb,
-    // Foreground color
-    pub(crate) foreground_color: Rgb,
 }
 
 impl Key {

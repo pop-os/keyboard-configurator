@@ -36,5 +36,4 @@ pub struct PhysicalKeyMeta {
     pub w: Option<f64>,
     pub h: Option<f64>,
     pub c: Option<String>,
-    pub t: Option<String>,
 }

@@ -150,7 +150,6 @@ impl Layout {
         let mut w = 1.0;
         let mut h = 1.0;
         let mut background_color = Rgb::new(0xcc, 0xcc, 0xcc);
-        let mut foreground_color = Rgb::new(0x00, 0x00, 0x00);
 
         for entry in &self.physical.0 {
             if let PhysicalLayoutEntry::Row(row) = entry {
@@ -170,14 +169,6 @@ impl Layout {
                                     Rgb::parse(&c[1..]).expect(&err)
                                 })
                                 .unwrap_or(background_color);
-                            if let Some(t) = &meta.t {
-                                //TODO: support using different color per line?
-                                //Is this even possible in GTK?
-                                if let Some(t_l) = t.lines().next() {
-                                    let err = format!("Failed to parse color {}", t_l);
-                                    foreground_color = Rgb::parse(&t_l[1..]).expect(&err);
-                                }
-                            }
                         }
                         PhysicalKeyEnum::Name(name) => {
                             debug!("Key {}, {} = {:?}", x, y, name);
@@ -224,7 +215,6 @@ impl Layout {
                                 pressed: Cell::new(false),
                                 scancodes: RefCell::new(Vec::new()),
                                 background_color,
-                                foreground_color,
                             });
 
                             x += w;
