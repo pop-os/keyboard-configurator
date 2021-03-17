@@ -17,7 +17,7 @@ pub struct KeyboardColorInner {
 #[glib::object_subclass]
 impl ObjectSubclass for KeyboardColorInner {
     const NAME: &'static str = "S76KeyboardColor";
-    type ParentType = gtk::Box;
+    type ParentType = gtk::Bin;
     type Type = KeyboardColor;
 }
 
@@ -30,12 +30,7 @@ impl ObjectImpl for KeyboardColorInner {
             ..connect_clicked(clone!(@weak obj => move |_| obj.circle_clicked()));
         };
 
-        cascade! {
-            obj;
-            ..set_spacing(8);
-            ..add(&circle);
-            ..show_all();
-        };
+        obj.add(&circle);
 
         self.circle.set(circle);
     }
@@ -102,11 +97,11 @@ impl ObjectImpl for KeyboardColorInner {
 
 impl WidgetImpl for KeyboardColorInner {}
 impl ContainerImpl for KeyboardColorInner {}
-impl BoxImpl for KeyboardColorInner {}
+impl BinImpl for KeyboardColorInner {}
 
 glib::wrapper! {
     pub struct KeyboardColor(ObjectSubclass<KeyboardColorInner>)
-        @extends gtk::Box, gtk::Container, gtk::Widget;
+        @extends gtk::Bin, gtk::Container, gtk::Widget;
 }
 
 impl KeyboardColor {
