@@ -138,10 +138,7 @@ impl ObjectImpl for BacklightInner {
                 gtk::ListBoxRow::new();
                 ..set_selectable(false);
                 ..set_activatable(false);
-                ..set_margin_top(8);
-                ..set_margin_start(8);
-                ..set_margin_end(8);
-                ..set_margin_bottom(8);
+                ..set_property_margin(8);
                 ..add(&cascade! {
                     gtk::Box::new(gtk::Orientation::Horizontal, 8);
                     ..add(&cascade! {
