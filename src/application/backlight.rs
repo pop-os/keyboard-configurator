@@ -148,7 +148,7 @@ impl ObjectImpl for BacklightInner {
                         gtk::Label::new(Some(label));
                         ..set_halign(gtk::Align::Start);
                     });
-                    ..add(widget);
+                    ..pack_end(widget, false, false, 0);
                 });
             }
         }
