@@ -103,6 +103,7 @@ impl ObjectImpl for BacklightInner {
         let speed_scale = cascade! {
             gtk::Scale::with_range(gtk::Orientation::Horizontal, 0., 255., 1.);
             ..set_halign(gtk::Align::Fill);
+            ..set_value_pos(gtk::PositionType::Right);
             ..set_size_request(200, 0);
             ..connect_value_changed(clone!(@weak obj => move |_|
                 obj.mode_speed_changed();
@@ -112,6 +113,7 @@ impl ObjectImpl for BacklightInner {
         let brightness_scale = cascade! {
             gtk::Scale::with_range(gtk::Orientation::Horizontal, 0., 100., 1.);
             ..set_halign(gtk::Align::Fill);
+            ..set_value_pos(gtk::PositionType::Right);
             ..set_size_request(200, 0);
             ..connect_value_changed(clone!(@weak obj => move |_|
                 obj.brightness_changed();
@@ -121,6 +123,7 @@ impl ObjectImpl for BacklightInner {
         let saturation_scale = cascade! {
             gtk::Scale::with_range(gtk::Orientation::Horizontal, 0., 100., 1.);
             ..set_halign(gtk::Align::Fill);
+            ..set_value_pos(gtk::PositionType::Right);
             ..set_size_request(200, 0);
             ..connect_value_changed(clone!(@weak obj => move |_|
                 obj.saturation_changed();
@@ -134,8 +137,10 @@ impl ObjectImpl for BacklightInner {
                 gtk::ListBoxRow::new();
                 ..set_selectable(false);
                 ..set_activatable(false);
+                ..set_margin_top(8);
                 ..set_margin_start(8);
                 ..set_margin_end(8);
+                ..set_margin_bottom(8);
                 ..add(&cascade! {
                     gtk::Box::new(gtk::Orientation::Horizontal, 8);
                     ..add(&cascade! {
@@ -147,11 +152,7 @@ impl ObjectImpl for BacklightInner {
             }
         }
 
-        let mode_row = cascade! {
-            row("Mode:", &mode_combobox);
-            ..set_margin_top(8);
-        };
-
+        let mode_row = row("Mode:", &mode_combobox);
         let speed_row = row("Speed:", &speed_scale);
         let saturation_row = row("Saturation:", &saturation_scale);
         let color_row = row("Color:", &keyboard_color);
@@ -166,7 +167,6 @@ impl ObjectImpl for BacklightInner {
             ..add(&color_row);
             ..add(&cascade! {
                 row("Brightness (all layers):", &brightness_scale);
-                ..set_margin_bottom(8);
             });
         };
 
@@ -260,6 +260,9 @@ impl Backlight {
         obj.set_filter_func(Some(Box::new(clone!(@weak obj => move |row|
             obj.filter_func(row)
         ))));
+        obj.set_header_func(Some(Box::new(clone!(@weak obj => move |row, before|
+            obj.header_func(row, before)
+        ))));
         glib::timeout_add_seconds_local(
             10,
             clone!(@weak obj => @default-return Continue(false), move || {
@@ -293,6 +296,17 @@ impl Backlight {
             0xf0 + layer
         } else {
             0xff
+        }
+    }
+
+    fn header_func(&self, row: &gtk::ListBoxRow, before: Option<&gtk::ListBoxRow>) {
+        if before.is_none() {
+            row.set_header::<gtk::Widget>(None)
+        } else if row.get_header().is_none() {
+            row.set_header(Some(&cascade! {
+                gtk::Separator::new(gtk::Orientation::Horizontal);
+                ..show();
+            }));
         }
     }
 
