@@ -249,8 +249,10 @@ impl KeyboardColor {
     }
 
     fn select_circle(&self, circle: &ColorCircle) {
-        self.inner().hs.set(circle.hs());
-        self.notify("hs");
+        let hs = circle.hs();
+        if self.inner().hs.replace(hs) != hs {
+            self.notify("hs");
+        }
 
         let mut current = self.inner().current_circle.borrow_mut();
         if let Some(c) = &*current {

@@ -79,6 +79,7 @@ pub struct BacklightInner {
     keys: DerefCell<Rc<[Key]>>,
     selected: Cell<Option<usize>>,
     has_led_save: Cell<bool>,
+    changed: Cell<bool>,
 }
 
 #[glib::object_subclass]
@@ -90,6 +91,8 @@ impl ObjectSubclass for BacklightInner {
 
 impl ObjectImpl for BacklightInner {
     fn constructed(&self, obj: &Self::Type) {
+        self.do_not_set.set(true);
+
         let mode_combobox = cascade! {
             gtk::ComboBoxText::new();
             ..connect_changed(clone!(@weak obj => move |_|
@@ -131,7 +134,13 @@ impl ObjectImpl for BacklightInner {
             ));
         };
 
-        let keyboard_color = KeyboardColor::new(None, 0xf0);
+        let keyboard_color = cascade! {
+            KeyboardColor::new(None, 0xf0);
+            ..connect_local("notify::hs", false, clone!(@weak obj => move |_| {
+                obj.inner().changed.set(true);
+                None
+            })).unwrap();
+        };
 
         fn row(label: &str, widget: &impl IsA<gtk::Widget>) -> gtk::ListBoxRow {
             cascade! {
@@ -350,6 +359,7 @@ impl Backlight {
         if let Err(err) = self.board().set_mode(layer, self.mode().index, speed as u8) {
             error!("Error setting keyboard mode: {}", err);
         }
+        self.inner().changed.set(true);
     }
 
     fn brightness_changed(&self) {
@@ -368,6 +378,7 @@ impl Backlight {
                 error!("Error setting brightness: {}", err);
             }
         }
+        self.inner().changed.set(true);
         debug!("Brightness: {}", value)
     }
 
@@ -383,6 +394,7 @@ impl Backlight {
         if let Err(err) = self.board().set_color(self.led_index(), hs) {
             error!("Error setting color: {}", err);
         }
+        self.inner().changed.set(true);
 
         debug!("Saturation: {}", value)
     }
@@ -436,9 +448,11 @@ impl Backlight {
     }
 
     fn led_save(&self) {
-        if self.inner().has_led_save.get() {
+        if self.inner().has_led_save.get() && self.inner().changed.replace(false) {
             if let Err(err) = self.board().led_save() {
                 error!("Failed to save LEDs: {}", err);
+            } else {
+                debug!("led_save");
             }
         }
     }

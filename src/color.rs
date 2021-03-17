@@ -2,7 +2,7 @@ use palette::{Component, IntoColor, RgbHue};
 use serde::{Deserialize, Serialize};
 use std::f64::consts::PI;
 
-#[derive(Clone, Copy, Debug, Serialize, Deserialize, Default, glib::GBoxed)]
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, Default, PartialEq, glib::GBoxed)]
 #[gboxed(type_name = "S76Hs")]
 pub struct Hs {
     /// Hue, in radians
