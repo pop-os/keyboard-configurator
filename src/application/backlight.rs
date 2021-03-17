@@ -181,6 +181,10 @@ impl ObjectImpl for BacklightInner {
         self.saturation_row.set(saturation_row);
     }
 
+    fn dispose(&self, obj: &Self::Type) {
+        obj.led_save();
+    }
+
     fn properties() -> &'static [glib::ParamSpec] {
         static PROPERTIES: Lazy<Vec<glib::ParamSpec>> = Lazy::new(|| {
             vec![
@@ -253,20 +257,16 @@ impl Backlight {
         obj.inner().layout.set(layout);
         obj.invalidate_filter();
         obj.set_layer(0);
-        obj.set_filter_func(Some(Box::new(clone!(@weak obj => move |row| {
-            let inner = obj.inner();
-            if row == &*inner.mode_row {
-                inner.layout.meta.has_mode
-            } else if row == &*inner.speed_row {
-                inner.layout.meta.has_mode && obj.mode().has_speed
-            } else if row == &*inner.color_row {
-                obj.mode().has_hue
-            } else if row == &*inner.saturation_row {
-                !obj.mode().has_hue
-            } else {
-                true
-            }
-        }))));
+        obj.set_filter_func(Some(Box::new(clone!(@weak obj => move |row|
+            obj.filter_func(row)
+        ))));
+        glib::timeout_add_seconds_local(
+            10,
+            clone!(@weak obj => @default-return Continue(false), move || {
+                obj.led_save();
+                Continue(true)
+            }),
+        );
         obj
     }
 
@@ -293,6 +293,21 @@ impl Backlight {
             0xf0 + layer
         } else {
             0xff
+        }
+    }
+
+    fn filter_func(&self, row: &gtk::ListBoxRow) -> bool {
+        let inner = self.inner();
+        if row == &*inner.mode_row {
+            inner.layout.meta.has_mode
+        } else if row == &*inner.speed_row {
+            inner.layout.meta.has_mode && self.mode().has_speed
+        } else if row == &*inner.color_row {
+            self.mode().has_hue
+        } else if row == &*inner.saturation_row {
+            !self.mode().has_hue
+        } else {
+            true
         }
     }
 
@@ -399,5 +414,11 @@ impl Backlight {
             }
         }
         self.inner().keyboard_color.set_sensitive(sensitive);
+    }
+
+    fn led_save(&self) {
+        if let Err(err) = self.board().led_save() {
+            error!("Failed to save LEDs: {}", err);
+        }
     }
 }
