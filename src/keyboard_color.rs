@@ -4,16 +4,11 @@ use gtk::prelude::*;
 use gtk::subclass::prelude::*;
 use std::cell::{Cell, Ref, RefCell};
 
-use crate::{choose_color, ColorCircle, DaemonBoard, DerefCell, Hs, Rgb};
+use crate::{choose_color, ColorCircle, DaemonBoard, DerefCell, Hs};
 
 #[derive(Default)]
 pub struct KeyboardColorInner {
-    circles: RefCell<Vec<ColorCircle>>,
-    circle_box: DerefCell<gtk::Box>,
-    current_circle: RefCell<Option<ColorCircle>>,
-    add_circle: DerefCell<ColorCircle>,
-    remove_button: DerefCell<gtk::Button>,
-    edit_button: DerefCell<gtk::Button>,
+    circle: DerefCell<ColorCircle>,
     board: RefCell<Option<DaemonBoard>>,
     hs: Cell<Hs>,
     index: Cell<u8>,
@@ -30,46 +25,19 @@ impl ObjectImpl for KeyboardColorInner {
     fn constructed(&self, obj: &KeyboardColor) {
         self.parent_constructed(obj);
 
-        let circle_box = cascade! {
-            gtk::Box::new(gtk::Orientation::Horizontal, 6);
-        };
-
-        let remove_button = cascade! {
-            gtk::Button::new();
-            ..add(&gtk::Image::from_icon_name(Some("edit-delete"), gtk::IconSize::Button));
-            ..connect_clicked(clone!(@weak obj => move |_| obj.remove_clicked()));
-        };
-
-        let edit_button = cascade! {
-            gtk::Button::new();
-            ..add(&gtk::Image::from_icon_name(Some("edit"), gtk::IconSize::Button));
-            ..connect_clicked(clone!(@weak obj => move |_| obj.edit_clicked()));
-        };
-
-        let add_circle = cascade! {
+        let circle = cascade! {
             ColorCircle::new(30);
-            ..set_alpha(0.);
-            ..set_symbol("+");
-            ..connect_clicked(clone!(@weak obj => move |_| obj.add_clicked()));
+            ..connect_clicked(clone!(@weak obj => move |_| obj.circle_clicked()));
         };
 
         cascade! {
             obj;
             ..set_spacing(8);
-            ..add(&circle_box);
-            ..add(&gtk::Separator::new(gtk::Orientation::Horizontal));
-            ..add(&cascade! {
-                gtk::Box::new(gtk::Orientation::Horizontal, 8);
-                ..add(&remove_button);
-                ..add(&edit_button);
-            });
+            ..add(&circle);
             ..show_all();
         };
 
-        self.circle_box.set(circle_box);
-        self.add_circle.set(add_circle);
-        self.remove_button.set(remove_button);
-        self.edit_button.set(edit_button);
+        self.circle.set(circle);
     }
 
     fn properties() -> &'static [glib::ParamSpec] {
@@ -143,123 +111,30 @@ glib::wrapper! {
 
 impl KeyboardColor {
     pub fn new(board: Option<DaemonBoard>, index: u8) -> Self {
-        let widget: Self = glib::Object::new(&[]).unwrap();
-
-        widget.set_board(board);
-        widget.set_index(index);
-
-        // TODO: Signal handler for color change?
-
-        let default_colors: &[Hs] = &[
-            Rgb::new(255, 255, 255).to_hs_lossy(),
-            Rgb::new(0, 0, 255).to_hs_lossy(),
-            Rgb::new(255, 0, 0).to_hs_lossy(),
-            Rgb::new(255, 255, 0).to_hs_lossy(),
-            Rgb::new(0, 255, 0).to_hs_lossy(),
-        ];
-
-        for hs in default_colors {
-            widget.add_color(*hs);
+        cascade! {
+            glib::Object::new::<Self>(&[]).unwrap();
+            ..set_board(board);
+            ..set_index(index);
         }
-
-        widget.populate_circles();
-
-        widget
     }
 
     fn inner(&self) -> &KeyboardColorInner {
         KeyboardColorInner::from_instance(self)
     }
 
-    fn add_color(&self, color: Hs) -> ColorCircle {
-        let self_ = self;
-        let circle = cascade! {
-            ColorCircle::new(30);
-            ..connect_clicked(clone!(@weak self_ => move |c| self_.circle_clicked(c)));
-            ..set_hs(color);
-        };
-        self.inner().circles.borrow_mut().push(circle.clone());
-        circle
-    }
-
-    fn populate_circles(&self) {
-        self.inner()
-            .circle_box
-            .foreach(|w| self.inner().circle_box.remove(w));
-
-        for circle in &*self.inner().circles.borrow() {
-            self.inner().circle_box.add(circle);
-        }
-        self.inner().circle_box.add(&*self.inner().add_circle);
-
-        self.inner().circle_box.show_all();
-    }
-
-    fn add_clicked(&self) {
+    fn circle_clicked(&self) {
         let board = self.board().unwrap();
-        if let Some(color) = choose_color(board.clone(), self.index(), self, "Add Color", None) {
-            let circle = self.add_color(color);
-            self.select_circle(&circle);
-            self.inner().remove_button.set_visible(true);
-            self.populate_circles();
-        } else if let Some(circle) = &*self.inner().current_circle.borrow() {
-            if let Err(err) = board.set_color(self.index(), circle.hs()) {
-                error!("Failed to set keyboard color: {}", err);
-            }
-        }
-    }
-
-    fn remove_clicked(&self) {
-        if let Some(current_circle) = &mut *self.inner().current_circle.borrow_mut() {
-            let mut circles = self.inner().circles.borrow_mut();
-            if let Some(index) = circles.iter().position(|c| c.ptr_eq(current_circle)) {
-                circles.remove(index);
-                *current_circle = circles[index.saturating_sub(1)].clone();
-                current_circle.set_symbol("✓");
-            }
-            self.inner().remove_button.set_visible(circles.len() > 1);
-        }
-        self.populate_circles();
-    }
-
-    fn edit_clicked(&self) {
-        let board = self.board().unwrap();
-        if let Some(circle) = &*self.inner().current_circle.borrow() {
-            if let Some(color) = choose_color(
-                board.clone(),
-                self.index(),
-                self,
-                "Edit Color",
-                Some(circle.hs()),
-            ) {
-                circle.set_hs(color);
-            } else if let Err(err) = board.set_color(self.index(), circle.hs()) {
-                error!("Failed to set keyboard color: {}", err);
-            }
-        }
-    }
-
-    fn circle_clicked(&self, circle: &ColorCircle) {
-        let board = self.board().unwrap();
-        let color = circle.hs();
-        if let Err(err) = board.set_color(self.index(), color) {
+        if let Some(color) = choose_color(
+            board.clone(),
+            self.index(),
+            self,
+            "Set Color",
+            Some(self.hs()),
+        ) {
+            self.set_hs(color);
+        } else if let Err(err) = board.set_color(self.index(), self.hs()) {
             error!("Failed to set keyboard color: {}", err);
         }
-        self.select_circle(circle);
-    }
-
-    fn select_circle(&self, circle: &ColorCircle) {
-        let hs = circle.hs();
-        if self.inner().hs.replace(hs) != hs {
-            self.notify("hs");
-        }
-
-        let mut current = self.inner().current_circle.borrow_mut();
-        if let Some(c) = &*current {
-            c.set_symbol("");
-        }
-        circle.set_symbol("✓");
-        *current = Some(circle.clone());
     }
 
     fn board(&self) -> Option<Ref<DaemonBoard>> {
@@ -272,25 +147,21 @@ impl KeyboardColor {
     }
 
     pub fn set_board(&self, board: Option<DaemonBoard>) {
-        self.inner().circle_box.set_sensitive(board.is_some());
-        self.inner().remove_button.set_sensitive(board.is_some());
-        self.inner().edit_button.set_sensitive(board.is_some());
-
+        self.inner().circle.set_sensitive(board.is_some());
         *self.inner().board.borrow_mut() = board;
         self.read_color();
     }
 
-    fn set_hs(&self, hs: Hs) {
-        for i in &*self.inner().circles.borrow() {
-            if i.hs().is_close(hs) {
-                self.select_circle(&i);
-                return;
-            }
-        }
+    fn hs(&self) -> Hs {
+        self.inner().hs.get()
+    }
 
-        let circle = self.add_color(hs);
-        self.populate_circles();
-        self.select_circle(&circle);
+    fn set_hs(&self, hs: Hs) {
+        self.inner().hs.set(hs);
+        if self.inner().hs.replace(hs) != hs {
+            self.notify("hs");
+        }
+        self.inner().circle.set_hs(hs);
     }
 
     fn index(&self) -> u8 {
