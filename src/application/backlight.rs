@@ -170,10 +170,10 @@ impl ObjectImpl for BacklightInner {
             }
         }
 
-        let mode_row = row("Mode:", &mode_combobox);
-        let speed_row = row("Speed:", &speed_scale);
-        let saturation_row = row("Saturation:", &saturation_scale);
-        let color_row = row("Color:", &keyboard_color);
+        let mode_row = row("Layer Color Pattern:", &mode_combobox);
+        let speed_row = row("Layer Animation Speed:", &speed_scale);
+        let saturation_row = row("Layer Saturation:", &saturation_scale);
+        let color_row = row("Layer Color:", &keyboard_color);
 
         cascade! {
             obj;
