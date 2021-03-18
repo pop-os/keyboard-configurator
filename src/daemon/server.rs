@@ -19,6 +19,7 @@ pub struct DaemonServer<R: Read, W: Write> {
     read: BufReader<R>,
     write: W,
     boards: RefCell<HashMap<BoardId, Ec<Box<dyn Access>>>>,
+    board_ids: Vec<BoardId>,
 }
 
 impl DaemonServer<io::Stdin, io::Stdout> {
@@ -30,6 +31,7 @@ impl DaemonServer<io::Stdin, io::Stdout> {
 impl<R: Read, W: Write> DaemonServer<R, W> {
     pub fn new(read: R, write: W) -> Result<Self, String> {
         let mut boards = HashMap::new();
+        let mut board_ids = Vec::new();
 
         #[cfg(target_os = "linux")]
         match unsafe { AccessLpcLinux::new(Duration::new(1, 0)) } {
@@ -38,6 +40,7 @@ impl<R: Read, W: Write> DaemonServer<R, W> {
                     info!("Adding LPC EC");
                     let id = BoardId(Uuid::new_v4().as_u128());
                     boards.insert(id, ec.into_dyn());
+                    board_ids.push(id);
                 }
                 Err(err) => {
                     error!("Failed to probe LPC EC: {:?}", err);
@@ -63,6 +66,7 @@ impl<R: Read, W: Write> DaemonServer<R, W> {
                                             info!("Adding USB HID EC at {:?}", info.path());
                                             let id = BoardId(Uuid::new_v4().as_u128());
                                             boards.insert(id, ec.into_dyn());
+                                            board_ids.push(id);
                                         }
                                         Err(err) => {
                                             error!(
@@ -104,6 +108,7 @@ impl<R: Read, W: Write> DaemonServer<R, W> {
             read: BufReader::new(read),
             write,
             boards: RefCell::new(boards),
+            board_ids,
         })
     }
 
@@ -140,7 +145,7 @@ impl<R: Read, W: Write> DaemonServer<R, W> {
 
 impl<R: Read, W: Write> Daemon for DaemonServer<R, W> {
     fn boards(&self) -> Result<Vec<BoardId>, String> {
-        Ok(self.boards.borrow().keys().cloned().collect())
+        Ok(self.board_ids.clone())
     }
 
     fn model(&self, board: BoardId) -> Result<String, String> {
