@@ -30,6 +30,7 @@ pub struct KeyboardInner {
     stack: DerefCell<gtk::Stack>,
     picker_box: DerefCell<gtk::Box>,
     backlight: DerefCell<Backlight>,
+    has_matrix: Cell<bool>,
 }
 
 #[glib::object_subclass]
@@ -226,6 +227,7 @@ impl Keyboard {
             .add_titled(&backlight, "leds", "LEDs");
 
         keyboard.inner().keys.set(keys);
+        keyboard.inner().has_matrix.set(board.matrix_get().is_ok());
         keyboard.inner().board.set(board);
         keyboard.inner().board_name.set(board_name.to_string());
         keyboard.inner().layout.set(layout);
@@ -521,10 +523,15 @@ impl Keyboard {
     }
 
     fn refresh(&self) -> bool {
+        if !self.inner().has_matrix.get() {
+            return false;
+        }
+
         let window = match self.window() {
             Some(some) => some,
             None => return true,
         };
+
         let focused = window.is_active();
         match self.board().matrix_get() {
             Ok(matrix) => {
