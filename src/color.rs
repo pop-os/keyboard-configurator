@@ -2,6 +2,9 @@ use palette::{Component, IntoColor, RgbHue};
 use serde::{Deserialize, Serialize};
 use std::f64::consts::PI;
 
+type PaletteHsv = palette::Hsv<palette::encoding::Srgb, f64>;
+type PaletteLinSrgb = palette::LinSrgb<f64>;
+
 #[derive(Clone, Copy, Debug, Serialize, Deserialize, Default, PartialEq, glib::GBoxed)]
 #[gboxed(type_name = "S76Hs")]
 pub struct Hs {
@@ -30,10 +33,10 @@ impl Hs {
 
     pub fn to_rgb(self) -> Rgb {
         let hue = RgbHue::from_radians(self.h);
-        let hsv = palette::Hsv::new(hue, self.s, 1.);
-        let rgb = hsv.into_rgb::<palette::encoding::srgb::Srgb>();
-        let (r, g, b) = rgb.into_format::<u8>().into_components();
-        Rgb::new(r, g, b)
+        let hsv = PaletteHsv::new(hue, self.s, 1.);
+        let rgb: PaletteLinSrgb = hsv.into_rgb();
+        let (r, g, b) = rgb.into_components();
+        Rgb::from_floats(r, g, b)
     }
 }
 
@@ -81,10 +84,26 @@ impl Rgb {
     }
 
     pub fn to_hs_lossy(self) -> Hs {
-        let rgb = palette::Srgb::new(self.r, self.g, self.b);
-        let rgb = rgb.into_format::<f64>();
-        let hsv = rgb.into_hsv::<palette::encoding::srgb::Srgb>();
+        let (r, g, b) = self.to_floats();
+        let rgb = PaletteLinSrgb::new(r, g, b);
+        let hsv: PaletteHsv = rgb.into_hsv();
         let (h, s, _) = hsv.into_components();
         Hs::new(h.to_radians(), s)
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_hs_rgb_hs() {
+        let hs1 = Hs::new(0.3, 0.4);
+        let hs2 = hs1.to_rgb().to_hs_lossy();
+        let hs3 = hs2.to_rgb().to_hs_lossy();
+        assert!((hs1.h - hs2.h).abs() < 0.01);
+        assert!((hs1.s - hs2.s).abs() < 0.01);
+        assert!((hs2.h - hs3.h).abs() < 0.0001);
+        assert!((hs2.s - hs3.s).abs() < 0.0001);
     }
 }
