@@ -270,11 +270,12 @@ impl Backlight {
         let has_led_save = board.led_save().is_ok();
 
         let obj: Self = glib::Object::new(&[]).unwrap();
+        obj.inner().layout.set(layout);
         obj.inner().keys.set(keys);
+        obj.inner().keyboard_color.set_index(obj.led_index());
         obj.inner().keyboard_color.set_board(Some(board.clone()));
         obj.inner().brightness_scale.set_range(0.0, max_brightness);
         obj.inner().board.set(board.clone());
-        obj.inner().layout.set(layout);
         obj.inner().has_led_save.set(has_led_save);
         obj.invalidate_filter();
         obj.set_layer(0);
