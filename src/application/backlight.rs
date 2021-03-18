@@ -129,9 +129,6 @@ impl ObjectImpl for BacklightInner {
             ..set_halign(gtk::Align::Fill);
             ..set_value_pos(gtk::PositionType::Right);
             ..set_size_request(200, 0);
-            ..connect_value_changed(clone!(@weak obj => move |_|
-                obj.saturation_changed();
-            ));
         };
 
         let keyboard_color = cascade! {
@@ -141,6 +138,20 @@ impl ObjectImpl for BacklightInner {
                 None
             })).unwrap();
         };
+
+        saturation_scale
+            .get_adjustment()
+            .bind_property("value", &keyboard_color, "hs")
+            .transform_from(|_, value| {
+                let hs: &Hs = value.get_some().unwrap();
+                Some((hs.s * 100.).to_value())
+            })
+            .transform_to(|_, value| {
+                let s: f64 = value.get_some().unwrap();
+                Some(Hs::new(0., s / 100.).to_value())
+            })
+            .flags(glib::BindingFlags::BIDIRECTIONAL)
+            .build();
 
         fn row(label: &str, widget: &impl IsA<gtk::Widget>) -> gtk::ListBoxRow {
             cascade! {
@@ -380,23 +391,6 @@ impl Backlight {
         }
         self.inner().changed.set(true);
         debug!("Brightness: {}", value)
-    }
-
-    fn saturation_changed(&self) {
-        if self.inner().do_not_set.get() {
-            return;
-        }
-
-        let value = self.inner().saturation_scale.get_value();
-
-        let hs = Hs::new(0., value / 100.);
-
-        if let Err(err) = self.board().set_color(self.led_index(), hs) {
-            error!("Error setting color: {}", err);
-        }
-        self.inner().changed.set(true);
-
-        debug!("Saturation: {}", value)
     }
 
     pub fn set_layer(&self, layer: u8) {

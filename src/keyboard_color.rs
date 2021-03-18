@@ -152,11 +152,14 @@ impl KeyboardColor {
     }
 
     fn set_hs(&self, hs: Hs) {
-        self.inner().hs.set(hs);
+        let board = self.board().unwrap();
         if self.inner().hs.replace(hs) != hs {
+            self.inner().circle.set_hs(hs);
+            if let Err(err) = board.set_color(self.index(), self.hs()) {
+                error!("Failed to set keyboard color: {}", err);
+            }
             self.notify("hs");
         }
-        self.inner().circle.set_hs(hs);
     }
 
     fn index(&self) -> u8 {
