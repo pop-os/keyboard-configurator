@@ -532,21 +532,18 @@ impl Keyboard {
             None => return true,
         };
 
-        let focused = window.is_active();
+        if !window.is_active() {
+            return true;
+        }
+
         match self.board().matrix_get() {
             Ok(matrix) => {
                 let mut changed = false;
                 for key in self.keys().iter() {
-                    let pressed = if focused {
-                        matrix
-                            .get(key.electrical.0 as usize, key.electrical.1 as usize)
-                            .unwrap_or(false)
-                    } else {
-                        false
-                    };
-                    if key.pressed.replace(pressed) != pressed {
-                        changed = true;
-                    }
+                    let pressed = matrix
+                        .get(key.electrical.0 as usize, key.electrical.1 as usize)
+                        .unwrap_or(false);
+                    changed |= key.pressed.replace(pressed) != pressed;
                 }
                 if changed {
                     let keyboard = self;
