@@ -85,7 +85,7 @@ impl ApplicationImpl for ConfiguratorAppInner {
 
         let about_action = cascade! {
             gio::SimpleAction::new("about", None);
-            ..connect_activate(|_, _| about_dialog::about_dialog());
+            ..connect_activate(|_, _| about_dialog::show_about_dialog());
         };
 
         app.add_action(&about_action);

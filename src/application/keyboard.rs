@@ -13,7 +13,7 @@ use std::{
     str, time,
 };
 
-use super::{error_dialog, Backlight, Key, KeyboardLayer, Layout, Page, Picker};
+use super::{show_error_dialog, Backlight, Key, KeyboardLayer, Layout, Page, Picker};
 use crate::{DaemonBoard, DerefCell, KeyMap};
 
 #[derive(Default)]
@@ -351,7 +351,7 @@ impl Keyboard {
         // TODO: Ideally don't want this function to be O(Keys^2)
 
         if keymap.board != self.board_name() {
-            error_dialog(
+            show_error_dialog(
                 &self.window().unwrap(),
                 "Failed to import keymap",
                 format!("Keymap is for board '{}'", keymap.board),
@@ -389,10 +389,10 @@ impl Keyboard {
                 Ok(file) => match KeyMap::from_reader(file) {
                     Ok(keymap) => self.import_keymap(&keymap),
                     Err(err) => {
-                        error_dialog(&self.window().unwrap(), "Failed to import keymap", err)
+                        show_error_dialog(&self.window().unwrap(), "Failed to import keymap", err)
                     }
                 },
-                Err(err) => error_dialog(&self.window().unwrap(), "Failed to open file", err),
+                Err(err) => show_error_dialog(&self.window().unwrap(), "Failed to open file", err),
             }
         }
     }
@@ -428,10 +428,10 @@ impl Keyboard {
                 Ok(file) => match keymap.to_writer_pretty(file) {
                     Ok(()) => {}
                     Err(err) => {
-                        error_dialog(&self.window().unwrap(), "Failed to export keymap", err)
+                        show_error_dialog(&self.window().unwrap(), "Failed to export keymap", err)
                     }
                 },
-                Err(err) => error_dialog(&self.window().unwrap(), "Failed to open file", err),
+                Err(err) => show_error_dialog(&self.window().unwrap(), "Failed to open file", err),
             }
         }
     }
