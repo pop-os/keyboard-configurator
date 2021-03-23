@@ -925,38 +925,50 @@
   ],
   [
     "MS_UP",
-    240
+    237
   ],
   [
     "MS_DOWN",
-    241
+    238
   ],
   [
     "MS_LEFT",
-    242
+    239
   ],
   [
     "MS_RIGHT",
-    243
+    240
   ],
   [
     "MS_BTN1",
-    244
+    241
   ],
   [
     "MS_BTN2",
-    245
+    242
   ],
   [
     "MS_BTN3",
-    246
+    243
   ],
   [
     "MS_BTN4",
-    247
+    244
   ],
   [
     "MS_BTN5",
+    245
+  ],
+  [
+    "MS_BTN6",
+    246
+  ],
+  [
+    "MS_BTN7",
+    247
+  ],
+  [
+    "MS_BTN8",
     248
   ],
   [
@@ -989,83 +1001,83 @@
   ],
   [
     "KBD_TOGGLE",
-    23746
-  ],
-  [
-    "RGB_MODE_FORWARD",
     23747
   ],
   [
-    "RGB_MODE_REVERSE",
+    "RGB_MODE_FORWARD",
     23748
   ],
   [
-    "RGB_HUI",
+    "RGB_MODE_REVERSE",
     23749
   ],
   [
-    "RGB_HUD",
+    "RGB_HUI",
     23750
   ],
   [
-    "RGB_SAI",
+    "RGB_HUD",
     23751
   ],
   [
-    "RGB_SAD",
+    "RGB_SAI",
     23752
   ],
   [
-    "RGB_VAI",
+    "RGB_SAD",
     23753
   ],
   [
-    "RGB_VAD",
+    "RGB_VAI",
     23754
   ],
   [
-    "RGB_SPI",
+    "RGB_VAD",
     23755
   ],
   [
-    "RGB_SPD",
+    "RGB_SPI",
     23756
   ],
   [
-    "RGB_MODE_PLAIN",
+    "RGB_SPD",
     23757
   ],
   [
-    "RGB_MODE_BREATHE",
+    "RGB_MODE_PLAIN",
     23758
   ],
   [
-    "RGB_MODE_RAINBOW",
+    "RGB_MODE_BREATHE",
     23759
   ],
   [
-    "RGB_MODE_SWIRL",
+    "RGB_MODE_RAINBOW",
     23760
   ],
   [
-    "RGB_MODE_SNAKE",
+    "RGB_MODE_SWIRL",
     23761
   ],
   [
-    "RGB_MODE_KNIGHT",
+    "RGB_MODE_SNAKE",
     23762
   ],
   [
-    "RGB_MODE_XMAS",
+    "RGB_MODE_KNIGHT",
     23763
   ],
   [
-    "RGB_MODE_GRADIENT",
+    "RGB_MODE_XMAS",
     23764
   ],
   [
-    "RGB_MODE_RGBTEST",
+    "RGB_MODE_GRADIENT",
     23765
+  ],
+  [
+    "RGB_MODE_RGBTEST",
+    23766
   ],
   [
     "FN",

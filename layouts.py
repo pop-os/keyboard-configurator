@@ -84,13 +84,16 @@ QMK_MAPPING = {
     'TRNS': 'ROLL_OVER',
 }
 
+def call_preprocessor(path: str) -> str:
+    return subprocess.check_output(["gcc", "-E", path], stderr=subprocess.DEVNULL, universal_newlines=True)
+
 def extract_scancodes(ecdir: str, is_qmk: bool) -> List[Tuple[str, int]]:
     "Extract mapping from scancode names to numbers"
 
     if is_qmk:
         includes = [f"{ecdir}/tmk_core/common/keycode.h", f"{ecdir}/quantum/quantum_keycodes.h"]
-        common_keymap_h = open(includes[0]).read()
-        quantum_keycode_h = open(includes[1]).read()
+        common_keymap_h = call_preprocessor(includes[0])
+        quantum_keycode_h = call_preprocessor(includes[1])
         scancode_defines = re.findall(
             '    (KC_[^,\s]+)', common_keymap_h)
         scancode_defines += re.findall(
