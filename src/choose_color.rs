@@ -16,12 +16,9 @@ pub fn choose_color<W: IsA<gtk::Widget>, F: Fn(Option<Hs>) + 'static>(
 ) {
     let color_wheel = cascade! {
         ColorWheel::new();
+        ..set_hs(color.unwrap_or_default());
         ..set_size_request(300, 300);
     };
-
-    if let Some(color) = color {
-        color_wheel.set_hs(color);
-    }
 
     let preview = cascade! {
         gtk::DrawingArea::new();
