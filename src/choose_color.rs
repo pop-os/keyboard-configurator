@@ -39,6 +39,40 @@ pub fn choose_color<W: IsA<gtk::Widget>, F: Fn(Option<Hs>) + 'static>(
         preview.queue_draw();
     }));
 
+    let hue_adjustment = gtk::Adjustment::new(0., 0., 360., 1., 1., 1.);
+    let saturation_adjustment = gtk::Adjustment::new(0., 0., 100., 1., 1., 1.);
+    let flags = glib::BindingFlags::BIDIRECTIONAL | glib::BindingFlags::SYNC_CREATE;
+    color_wheel
+        .bind_property("hue", &hue_adjustment, "value")
+        .flags(flags)
+        .build();
+    color_wheel
+        .bind_property("saturation", &saturation_adjustment, "value")
+        .flags(flags)
+        .build();
+
+    let hue_box = cascade! {
+        gtk::Box::new(gtk::Orientation::Horizontal, 0);
+        ..add(&gtk::Label::new(Some("Hue")));
+        ..add(&cascade! {
+            gtk::Scale::new(gtk::Orientation::Horizontal, Some(&hue_adjustment));
+            ..set_hexpand(true);
+            ..set_draw_value(false);
+        });
+        ..add(&gtk::SpinButton::new(Some(&hue_adjustment), 0., 0));
+    };
+
+    let saturation_box = cascade! {
+        gtk::Box::new(gtk::Orientation::Horizontal, 0);
+        ..add(&gtk::Label::new(Some("Saturation")));
+        ..add(&cascade! {
+            gtk::Scale::new(gtk::Orientation::Horizontal, Some(&saturation_adjustment));
+            ..set_hexpand(true);
+            ..set_draw_value(false);
+        });
+        ..add(&gtk::SpinButton::new(Some(&saturation_adjustment), 0., 0));
+    };
+
     let vbox = cascade! {
         gtk::Box::new(gtk::Orientation::Vertical, 12);
         ..set_margin_start(24);
@@ -47,6 +81,8 @@ pub fn choose_color<W: IsA<gtk::Widget>, F: Fn(Option<Hs>) + 'static>(
         ..set_margin_bottom(24);
         ..add(&color_wheel);
         ..add(&preview);
+        ..add(&hue_box);
+        ..add(&saturation_box);
     };
 
     let window = w

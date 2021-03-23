@@ -31,6 +31,70 @@ impl ObjectImpl for ColorWheelInner {
 
         wheel.add_events(gdk::EventMask::POINTER_MOTION_MASK | gdk::EventMask::BUTTON_PRESS_MASK);
     }
+
+    fn properties() -> &'static [glib::ParamSpec] {
+        use once_cell::sync::Lazy;
+        static PROPERTIES: Lazy<Vec<glib::ParamSpec>> = Lazy::new(|| {
+            vec![
+                glib::ParamSpec::double(
+                    "hue",
+                    "hue",
+                    "hue",
+                    0.,
+                    360.,
+                    0.,
+                    glib::ParamFlags::READWRITE,
+                ),
+                glib::ParamSpec::double(
+                    "saturation",
+                    "saturation",
+                    "saturation",
+                    0.,
+                    100.,
+                    0.,
+                    glib::ParamFlags::READWRITE,
+                ),
+            ]
+        });
+
+        PROPERTIES.as_ref()
+    }
+
+    fn set_property(
+        &self,
+        wheel: &ColorWheel,
+        _id: usize,
+        value: &glib::Value,
+        pspec: &glib::ParamSpec,
+    ) {
+        match pspec.get_name() {
+            "hue" => {
+                let hue: f64 = value.get_some().unwrap();
+                let mut hs = wheel.hs();
+                hs.h = (hue * PI / 180.).max(0.).min(2. * PI);
+                wheel.set_hs(hs);
+            }
+            "saturation" => {
+                let saturation: f64 = value.get_some().unwrap();
+                let mut hs = wheel.hs();
+                hs.s = (saturation / 100.).max(0.).min(1.);
+                wheel.set_hs(hs);
+            }
+            _ => unimplemented!(),
+        }
+    }
+
+    fn get_property(&self, wheel: &ColorWheel, _id: usize, pspec: &glib::ParamSpec) -> glib::Value {
+        match pspec.get_name() {
+            "hue" => {
+                let mut hue = wheel.hs().h * 180. / PI;
+                hue = (360. + hue) % 360.;
+                hue.to_value()
+            }
+            "saturation" => (wheel.hs().s * 100.).to_value(),
+            _ => unimplemented!(),
+        }
+    }
 }
 
 impl WidgetImpl for ColorWheelInner {
@@ -102,6 +166,8 @@ impl ColorWheel {
     pub fn set_hs(&self, hs: Hs) {
         self.inner().selected_hs.set(hs);
         self.queue_draw();
+        self.notify("hue");
+        self.notify("saturation");
         for handler in self.inner().hs_changed_handlers.borrow().iter() {
             handler(self);
         }
