@@ -6,13 +6,14 @@ use crate::color::Hs;
 use crate::color_wheel::ColorWheel;
 use crate::daemon::DaemonBoard;
 
-pub fn choose_color<W: IsA<gtk::Widget>>(
+pub fn choose_color<W: IsA<gtk::Widget>, F: Fn(Option<Hs>) + 'static>(
     board: DaemonBoard,
     index: u8,
     w: &W,
     title: &'static str,
     color: Option<Hs>,
-) -> Option<Hs> {
+    cb: F,
+) {
     let color_wheel = cascade! {
         ColorWheel::new();
         ..set_size_request(300, 300);
@@ -49,31 +50,32 @@ pub fn choose_color<W: IsA<gtk::Widget>>(
         ..set_margin_bottom(24);
         ..add(&color_wheel);
         ..add(&preview);
-        ..show_all();
     };
 
     let window = w
         .get_toplevel()
         .and_then(|x| x.downcast::<gtk::Window>().ok());
 
-    let dialog = gtk::DialogBuilder::new()
-        .title(title)
-        .use_header_bar(1)
-        .modal(true)
-        .build();
+    cascade! {
+        gtk::DialogBuilder::new()
+            .title(title)
+            .use_header_bar(1)
+            .modal(true)
+            .build();
+        ..add_button("Cancel", gtk::ResponseType::Cancel);
+        ..add_button("Save", gtk::ResponseType::Ok);
+        ..get_content_area().add(&vbox);
+        ..set_transient_for(window.as_ref());
+        ..connect_response(move |dialog, response| {
+            let hs = color_wheel.hs();
+            dialog.close();
 
-    dialog.add_button("Cancel", gtk::ResponseType::Cancel);
-    dialog.add_button("Save", gtk::ResponseType::Ok);
-    dialog.get_content_area().add(&vbox);
-    dialog.set_transient_for(window.as_ref());
-
-    let response = dialog.run();
-    let hs = color_wheel.hs();
-    dialog.close();
-
-    if response == gtk::ResponseType::Ok {
-        Some(hs)
-    } else {
-        None
-    }
+            cb(if response == gtk::ResponseType::Ok {
+                Some(hs)
+            } else {
+                None
+            })
+        });
+        ..show_all();
+    };
 }

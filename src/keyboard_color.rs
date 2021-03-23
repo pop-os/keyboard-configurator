@@ -118,18 +118,22 @@ impl KeyboardColor {
     }
 
     fn circle_clicked(&self) {
-        let board = self.board().unwrap();
-        if let Some(color) = choose_color(
+        let self_ = self;
+        let board = self.board().unwrap().clone();
+        choose_color(
             board.clone(),
             self.index(),
             self,
             "Set Color",
             Some(self.hs()),
-        ) {
-            self.set_hs(color);
-        } else if let Err(err) = board.set_color(self.index(), self.hs()) {
-            error!("Failed to set keyboard color: {}", err);
-        }
+            clone!(@weak self_ => move |resp| {
+                if let Some(color) = resp {
+                    self_.set_hs(color);
+                } else if let Err(err) = board.set_color(self_.index(), self_.hs()) {
+                    error!("Failed to set keyboard color: {}", err);
+                }
+            }),
+        );
     }
 
     fn board(&self) -> Option<Ref<DaemonBoard>> {
