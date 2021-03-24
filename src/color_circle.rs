@@ -53,8 +53,7 @@ impl ObjectImpl for ColorCircleInner {
     ) {
         match pspec.get_name() {
             "hs" => {
-                let hs: &Hs = value.get_some().unwrap();
-                widget.set_hs(*hs);
+                widget.set_hs(*value.get_some::<&Hs>().unwrap());
             }
             _ => unimplemented!(),
         }

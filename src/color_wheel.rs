@@ -11,7 +11,6 @@ use crate::{DerefCell, Hs, Rgb};
 pub struct ColorWheelInner {
     selected_hs: Cell<Hs>,
     surface: DerefCell<RefCell<cairo::ImageSurface>>,
-    hs_changed_handlers: RefCell<Vec<Box<dyn Fn(&ColorWheel) + 'static>>>,
 }
 
 #[glib::object_subclass]
@@ -36,6 +35,13 @@ impl ObjectImpl for ColorWheelInner {
         use once_cell::sync::Lazy;
         static PROPERTIES: Lazy<Vec<glib::ParamSpec>> = Lazy::new(|| {
             vec![
+                glib::ParamSpec::boxed(
+                    "hs",
+                    "hs",
+                    "hs",
+                    Hs::get_type(),
+                    glib::ParamFlags::READWRITE,
+                ),
                 glib::ParamSpec::double(
                     "hue",
                     "hue",
@@ -68,6 +74,9 @@ impl ObjectImpl for ColorWheelInner {
         pspec: &glib::ParamSpec,
     ) {
         match pspec.get_name() {
+            "hs" => {
+                wheel.set_hs(*value.get_some::<&Hs>().unwrap());
+            }
             "hue" => {
                 let hue: f64 = value.get_some().unwrap();
                 let mut hs = wheel.hs();
@@ -86,6 +95,7 @@ impl ObjectImpl for ColorWheelInner {
 
     fn get_property(&self, wheel: &ColorWheel, _id: usize, pspec: &glib::ParamSpec) -> glib::Value {
         match pspec.get_name() {
+            "hs" => wheel.hs().to_value(),
             "hue" => {
                 let mut hue = wheel.hs().h * 180. / PI;
                 hue = (360. + hue) % 360.;
@@ -166,18 +176,13 @@ impl ColorWheel {
     pub fn set_hs(&self, hs: Hs) {
         self.inner().selected_hs.set(hs);
         self.queue_draw();
+        self.notify("hs");
         self.notify("hue");
         self.notify("saturation");
-        for handler in self.inner().hs_changed_handlers.borrow().iter() {
-            handler(self);
-        }
     }
 
     pub fn connect_hs_changed<F: Fn(&Self) + 'static>(&self, f: F) {
-        self.inner()
-            .hs_changed_handlers
-            .borrow_mut()
-            .push(std::boxed::Box::new(f) as Box<dyn Fn(&Self)>);
+        self.connect_notify_local(Some("hs"), move |wheel, _| f(wheel));
     }
 
     fn generate_surface(&self, rect: &gtk::Rectangle) {
