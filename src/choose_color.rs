@@ -39,8 +39,8 @@ pub fn choose_color<W: IsA<gtk::Widget>, F: Fn(Option<Hs>) + 'static>(
         preview.queue_draw();
     }));
 
-    let hue_adjustment = gtk::Adjustment::new(0., 0., 360., 1., 1., 1.);
-    let saturation_adjustment = gtk::Adjustment::new(0., 0., 100., 1., 1., 1.);
+    let hue_adjustment = gtk::Adjustment::new(0., 0., 360., 1., 1., 0.);
+    let saturation_adjustment = gtk::Adjustment::new(0., 0., 100., 1., 1., 0.);
     let flags = glib::BindingFlags::BIDIRECTIONAL | glib::BindingFlags::SYNC_CREATE;
     color_wheel
         .bind_property("hue", &hue_adjustment, "value")
