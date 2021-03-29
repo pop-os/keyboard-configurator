@@ -1,7 +1,12 @@
 use cascade::cascade;
 use gtk::prelude::*;
 use gtk::subclass::prelude::*;
-use std::{cell::Cell, convert::TryFrom, f64::consts::PI, rc::Rc};
+use std::{
+    cell::{Cell, RefCell},
+    convert::TryFrom,
+    f64::consts::PI,
+    rc::Rc,
+};
 
 use super::{Key, Page};
 use crate::{DerefCell, Rgb};
@@ -14,8 +19,9 @@ const RADIUS: f64 = 4.;
 pub struct KeyboardLayerInner {
     page: Cell<Page>,
     keys: DerefCell<Rc<[Key]>>,
-    selected: Cell<Option<usize>>,
+    selected: RefCell<Vec<usize>>,
     selectable: Cell<bool>,
+    multiple: Cell<bool>,
 }
 
 #[glib::object_subclass]
@@ -67,7 +73,7 @@ impl ObjectImpl for KeyboardLayerInner {
             "selected" => {
                 let v: i32 = value.get_some().unwrap();
                 let selected = usize::try_from(v).ok();
-                widget.set_selected(selected);
+                widget.set_selected(selected.into_iter().collect());
             }
             _ => unimplemented!(),
         }
@@ -75,12 +81,18 @@ impl ObjectImpl for KeyboardLayerInner {
 
     fn get_property(
         &self,
-        widget: &KeyboardLayer,
+        _widget: &KeyboardLayer,
         _id: usize,
         pspec: &glib::ParamSpec,
     ) -> glib::Value {
         match pspec.get_name() {
-            "selected" => widget.selected().map(|v| v as i32).unwrap_or(-1).to_value(),
+            "selected" => self
+                .selected
+                .borrow()
+                .get(0)
+                .map(|v| *v as i32)
+                .unwrap_or(-1)
+                .to_value(),
             _ => unimplemented!(),
         }
     }
@@ -123,7 +135,7 @@ impl WidgetImpl for KeyboardLayerInner {
             cr.set_source_rgb(bg.0, bg.1, bg.2);
             cr.fill_preserve();
 
-            if widget.selected() == Some(i) {
+            if widget.selected().contains(&i) {
                 cr.set_source_rgb(selected.0, selected.1, selected.2);
                 cr.set_line_width(4.);
                 cr.stroke();
@@ -153,6 +165,7 @@ impl WidgetImpl for KeyboardLayerInner {
             return Inhibit(false);
         }
 
+        let mut pressed = None;
         let pos = evt.get_position();
         for (i, k) in widget.keys().iter().enumerate() {
             let x = (k.physical.x * SCALE) + MARGIN;
@@ -161,12 +174,27 @@ impl WidgetImpl for KeyboardLayerInner {
             let h = (k.physical.h * SCALE) - MARGIN * 2.;
 
             if (x..=x + w).contains(&pos.0) && (y..=y + h).contains(&pos.1) {
-                if widget.selected() == Some(i) {
-                    widget.set_selected(None);
+                pressed = Some(i);
+            }
+        }
+
+        if let Some(pressed) = pressed {
+            let shift = evt.get_state().contains(gdk::ModifierType::SHIFT_MASK);
+            let mut selected = widget.selected();
+            if shift && self.multiple.get() {
+                if let Some(i) = selected.iter().position(|i| *i == pressed) {
+                    selected.remove(i);
                 } else {
-                    widget.set_selected(Some(i));
+                    selected.push(pressed);
+                }
+            } else {
+                if selected.contains(&pressed) {
+                    selected.clear();
+                } else {
+                    selected = vec![pressed];
                 }
             }
+            widget.set_selected(selected);
         }
 
         Inhibit(false)
@@ -213,12 +241,12 @@ impl KeyboardLayer {
         &self.inner().keys
     }
 
-    pub fn selected(&self) -> Option<usize> {
-        self.inner().selected.get()
+    pub fn selected(&self) -> Vec<usize> {
+        self.inner().selected.borrow().clone()
     }
 
-    pub fn set_selected(&self, i: Option<usize>) {
-        self.inner().selected.set(i);
+    pub fn set_selected(&self, i: Vec<usize>) {
+        self.inner().selected.replace(i);
         self.queue_draw();
         self.notify("selected");
     }
@@ -226,7 +254,11 @@ impl KeyboardLayer {
     pub fn set_selectable(&self, selectable: bool) {
         self.inner().selectable.set(selectable);
         if !selectable {
-            self.set_selected(None);
+            self.set_selected(vec![]);
         }
+    }
+
+    pub fn set_multiple(&self, multiple: bool) {
+        self.inner().multiple.set(multiple)
     }
 }
