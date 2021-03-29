@@ -205,8 +205,6 @@ glib::wrapper! {
 
 impl KeyboardLayer {
     pub fn new(page: Page, keys: Rc<[Key]>) -> Self {
-        let obj: Self = glib::Object::new(&[]).unwrap();
-
         let (width, height) = keys
             .iter()
             .map(|k| {
@@ -216,11 +214,13 @@ impl KeyboardLayer {
             })
             .max()
             .unwrap();
-        obj.set_size_request(width, height);
 
+        let obj = cascade! {
+            glib::Object::new::<Self>(&[]).unwrap();
+            ..set_size_request(width, height);
+        };
         obj.inner().page.set(page);
         obj.inner().keys.set(keys);
-
         obj
     }
 
