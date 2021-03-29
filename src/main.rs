@@ -2,7 +2,7 @@
 
 use std::env;
 use std::process;
-use system76_keyboard_configurator::{application, daemon::DaemonServer};
+use system76_keyboard_configurator::{application, DaemonServer};
 
 fn main() {
     env_logger::Builder::from_env(

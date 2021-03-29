@@ -6,7 +6,7 @@ use std::{
     process::{Child, ChildStdin, ChildStdout, Command, Stdio},
 };
 
-use super::{err_str, Daemon, DaemonClientTrait, DaemonCommand, DaemonResponse};
+use crate::{err_str, Daemon, DaemonClientTrait, DaemonCommand, DaemonResponse};
 
 pub struct DaemonClient {
     child: Child,

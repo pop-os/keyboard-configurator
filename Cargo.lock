@@ -144,17 +144,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "derive_more"
-version = "0.99.11"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "41cb0e6161ad61ed084a36ba71fbba9e3ac5aee3606fb607fe08da6acbcf3d8c"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn",
-]
-
-[[package]]
 name = "downcast-rs"
 version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -975,29 +964,37 @@ dependencies = [
 name = "system76-keyboard-configurator"
 version = "0.1.0"
 dependencies = [
- "anyhow",
  "cairo-rs",
  "cascade",
- "derive_more",
  "env_logger",
  "gdk",
  "gio",
  "glib",
- "glib-sys",
  "gtk",
- "gtk-sys",
- "hidapi",
  "libc",
  "log",
  "once_cell",
- "palette",
  "pango",
  "pangocairo",
  "serde",
  "serde_json",
+ "system76-keyboard-configurator-daemon",
+ "winreg",
+]
+
+[[package]]
+name = "system76-keyboard-configurator-daemon"
+version = "0.1.0"
+dependencies = [
+ "gio",
+ "glib",
+ "hidapi",
+ "log",
+ "palette",
+ "serde",
+ "serde_json",
  "system76_ectool",
  "uuid",
- "winreg",
 ]
 
 [[package]]

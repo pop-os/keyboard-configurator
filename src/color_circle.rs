@@ -5,7 +5,7 @@ use std::cell::Cell;
 use std::f64::consts::PI;
 use std::ptr;
 
-use crate::color::Hs;
+use crate::Hs;
 
 #[derive(Default)]
 pub struct ColorCircleInner {

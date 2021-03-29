@@ -94,7 +94,7 @@ impl Rgb {
 
 #[cfg(test)]
 mod test {
-    use super::*;
+    use crate::*;
 
     #[test]
     fn test_hs_rgb_hs() {

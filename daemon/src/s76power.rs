@@ -6,8 +6,8 @@ use gio::prelude::*;
 use glib::variant::{FromVariant, ToVariant};
 use std::{cell::Cell, iter::Iterator};
 
-use super::{err_str, BoardId, Daemon, Matrix};
 use crate::color::{Hs, Rgb};
+use crate::{err_str, BoardId, Daemon, Matrix};
 
 const DBUS_NAME: &str = "com.system76.PowerDaemon";
 const DBUS_KEYBOARD_IFACE: &str = "com.system76.PowerDaemon.Keyboard";

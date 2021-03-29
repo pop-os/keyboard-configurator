@@ -1,7 +1,7 @@
 use std::rc::Rc;
 
-use super::{BoardId, Daemon, Matrix};
 use crate::Hs;
+use crate::{BoardId, Daemon, Matrix};
 
 #[derive(Clone, glib::GBoxed)]
 #[gboxed(type_name = "S76DaemonBoard")]

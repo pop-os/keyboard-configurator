@@ -2,9 +2,7 @@ use cascade::cascade;
 use glib::clone;
 use gtk::prelude::*;
 
-use crate::color::Hs;
-use crate::color_wheel::ColorWheel;
-use crate::daemon::DaemonBoard;
+use crate::{ColorWheel, DaemonBoard, Hs};
 
 pub fn choose_color<W: IsA<gtk::Widget>, F: Fn(Option<Hs>) + 'static>(
     board: DaemonBoard,

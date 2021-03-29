@@ -1,14 +1,16 @@
-use serde::{Deserialize, Serialize};
+#[macro_use]
+extern crate log;
 
-use crate::color::Hs;
+use serde::{Deserialize, Serialize};
 
 mod board;
 mod client;
+mod color;
 mod dummy;
 mod s76power;
 mod server;
 
-pub use self::{board::*, client::*, dummy::*, s76power::*, server::*};
+pub use self::{board::*, client::*, color::*, dummy::*, s76power::*, server::*};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Deserialize, Serialize)]
 pub struct BoardId(u128);
