@@ -124,13 +124,6 @@ impl ObjectImpl for BacklightInner {
             ));
         };
 
-        let saturation_scale = cascade! {
-            gtk::Scale::with_range(gtk::Orientation::Horizontal, 0., 100., 1.);
-            ..set_halign(gtk::Align::Fill);
-            ..set_value_pos(gtk::PositionType::Right);
-            ..set_size_request(200, 0);
-        };
-
         let keyboard_color = cascade! {
             KeyboardColor::new(None, 0xf0);
             ..connect_local("notify::hs", false, clone!(@weak obj => move |_| {
@@ -139,19 +132,28 @@ impl ObjectImpl for BacklightInner {
             })).unwrap();
         };
 
-        saturation_scale
-            .get_adjustment()
-            .bind_property("value", &keyboard_color, "hs")
-            .transform_from(|_, value| {
-                let hs: &Hs = value.get_some().unwrap();
-                Some((hs.s * 100.).to_value())
-            })
-            .transform_to(|_, value| {
-                let s: f64 = value.get_some().unwrap();
-                Some(Hs::new(0., s / 100.).to_value())
-            })
-            .flags(glib::BindingFlags::BIDIRECTIONAL)
-            .build();
+        let saturation_adjustment = cascade! {
+            gtk::Adjustment::new(0., 0., 100., 1., 1., 0.);
+            ..bind_property("value", &keyboard_color, "hs")
+                .transform_from(|_, value| {
+                    let hs: &Hs = value.get_some().unwrap();
+                    Some((hs.s * 100.).to_value())
+                })
+                .transform_to(|_, value| {
+                    let s: f64 = value.get_some().unwrap();
+                    Some(Hs::new(0., s / 100.).to_value())
+                })
+                .flags(glib::BindingFlags::BIDIRECTIONAL)
+                .build();
+        };
+
+        let saturation_scale = cascade! {
+            gtk::Scale::new(gtk::Orientation::Horizontal, Some(&saturation_adjustment));
+            ..set_halign(gtk::Align::Fill);
+            ..set_value_pos(gtk::PositionType::Right);
+            ..set_digits(0);
+            ..set_size_request(200, 0);
+        };
 
         fn row(label: &str, widget: &impl IsA<gtk::Widget>) -> gtk::ListBoxRow {
             cascade! {
