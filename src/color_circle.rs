@@ -134,11 +134,10 @@ glib::wrapper! {
 
 impl ColorCircle {
     pub fn new(size: i32) -> Self {
-        let color_circle: Self = glib::Object::new(&[]).unwrap();
-
-        color_circle.set_size_request(size, size);
-
-        color_circle
+        cascade! {
+            glib::Object::new::<Self>(&[]).unwrap();
+            ..set_size_request(size, size);
+        }
     }
 
     fn inner(&self) -> &ColorCircleInner {
