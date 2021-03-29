@@ -3,6 +3,7 @@ use gtk::prelude::*;
 use gtk::subclass::prelude::*;
 use std::{
     cell::{Cell, RefCell},
+    collections::HashSet,
     convert::TryFrom,
     f64::consts::PI,
     rc::Rc,
@@ -19,7 +20,7 @@ const RADIUS: f64 = 4.;
 pub struct KeyboardLayerInner {
     page: Cell<Page>,
     keys: DerefCell<Rc<[Key]>>,
-    selected: RefCell<Vec<usize>>,
+    selected: RefCell<HashSet<usize>>,
     selectable: Cell<bool>,
     multiple: Cell<bool>,
 }
@@ -86,13 +87,15 @@ impl ObjectImpl for KeyboardLayerInner {
         pspec: &glib::ParamSpec,
     ) -> glib::Value {
         match pspec.get_name() {
-            "selected" => self
-                .selected
-                .borrow()
-                .get(0)
-                .map(|v| *v as i32)
-                .unwrap_or(-1)
-                .to_value(),
+            "selected" => {
+                let selected = self.selected.borrow();
+                if selected.len() == 1 {
+                    *selected.iter().next().unwrap() as i32
+                } else {
+                    -1
+                }
+                .to_value()
+            }
             _ => unimplemented!(),
         }
     }
@@ -172,16 +175,17 @@ impl WidgetImpl for KeyboardLayerInner {
             let shift = evt.get_state().contains(gdk::ModifierType::SHIFT_MASK);
             let mut selected = widget.selected();
             if shift && self.multiple.get() {
-                if let Some(i) = selected.iter().position(|i| *i == pressed) {
-                    selected.remove(i);
+                if selected.contains(&pressed) {
+                    selected.remove(&pressed);
                 } else {
-                    selected.push(pressed);
+                    selected.insert(pressed);
                 }
             } else {
                 if selected.contains(&pressed) {
                     selected.clear();
                 } else {
-                    selected = vec![pressed];
+                    selected.clear();
+                    selected.insert(pressed);
                 }
             }
             widget.set_selected(selected);
@@ -231,11 +235,11 @@ impl KeyboardLayer {
         &self.inner().keys
     }
 
-    pub fn selected(&self) -> Vec<usize> {
+    pub fn selected(&self) -> HashSet<usize> {
         self.inner().selected.borrow().clone()
     }
 
-    pub fn set_selected(&self, i: Vec<usize>) {
+    pub fn set_selected(&self, i: HashSet<usize>) {
         self.inner().selected.replace(i);
         self.queue_draw();
         self.notify("selected");
@@ -244,7 +248,7 @@ impl KeyboardLayer {
     pub fn set_selectable(&self, selectable: bool) {
         self.inner().selectable.set(selectable);
         if !selectable {
-            self.set_selected(vec![]);
+            self.set_selected(HashSet::new());
         }
     }
 
