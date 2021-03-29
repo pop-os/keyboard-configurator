@@ -8,7 +8,7 @@ use std::{
     rc::Rc,
 };
 
-use super::{Key, Page};
+use super::{Key, Page, Rect};
 use crate::{DerefCell, Rgb};
 
 const SCALE: f64 = 64.0;
@@ -104,10 +104,7 @@ impl WidgetImpl for KeyboardLayerInner {
 
         let selected = Rgb::new(0xfb, 0xb8, 0x6c).to_floats();
         for (i, k) in widget.keys().iter().enumerate() {
-            let x = (k.physical.x * SCALE) + MARGIN;
-            let y = -(k.physical.y * SCALE) + MARGIN;
-            let w = (k.physical.w * SCALE) - MARGIN * 2.;
-            let h = (k.physical.h * SCALE) - MARGIN * 2.;
+            let Rect { x, y, w, h } = scale_rect(&k.physical);
 
             let mut bg = k.background_color.to_floats();
 
@@ -165,18 +162,11 @@ impl WidgetImpl for KeyboardLayerInner {
             return Inhibit(false);
         }
 
-        let mut pressed = None;
         let pos = evt.get_position();
-        for (i, k) in widget.keys().iter().enumerate() {
-            let x = (k.physical.x * SCALE) + MARGIN;
-            let y = -(k.physical.y * SCALE) + MARGIN;
-            let w = (k.physical.w * SCALE) - MARGIN * 2.;
-            let h = (k.physical.h * SCALE) - MARGIN * 2.;
-
-            if (x..=x + w).contains(&pos.0) && (y..=y + h).contains(&pos.1) {
-                pressed = Some(i);
-            }
-        }
+        let pressed = widget
+            .keys()
+            .iter()
+            .position(|k| scale_rect(&k.physical).contains(pos.0, pos.1));
 
         if let Some(pressed) = pressed {
             let shift = evt.get_state().contains(gdk::ModifierType::SHIFT_MASK);
@@ -260,5 +250,14 @@ impl KeyboardLayer {
 
     pub fn set_multiple(&self, multiple: bool) {
         self.inner().multiple.set(multiple)
+    }
+}
+
+fn scale_rect(rect: &Rect) -> Rect {
+    Rect {
+        x: (rect.x * SCALE) + MARGIN,
+        y: -(rect.y * SCALE) + MARGIN,
+        w: (rect.w * SCALE) - MARGIN * 2.,
+        h: (rect.h * SCALE) - MARGIN * 2.,
     }
 }

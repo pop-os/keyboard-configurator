@@ -10,4 +10,8 @@ impl Rect {
     pub fn new(x: f64, y: f64, w: f64, h: f64) -> Self {
         Self { x, y, w, h }
     }
+
+    pub fn contains(&self, x: f64, y: f64) -> bool {
+        (self.x..=self.x + self.w).contains(&x) && (self.y..=self.y + self.h).contains(&y)
+    }
 }
