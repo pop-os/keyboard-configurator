@@ -6,7 +6,8 @@ use std::rc::Rc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 use super::{shortcuts_window, ConfiguratorApp, Keyboard, KeyboardLayer, Page, Picker};
-use crate::{Daemon, DaemonBoard, DaemonClient, DaemonDummy, DaemonServer, DerefCell};
+use crate::DerefCell;
+use daemon::{Daemon, DaemonBoard, DaemonClient, DaemonDummy, DaemonServer};
 
 #[derive(Default)]
 pub struct MainWindowInner {

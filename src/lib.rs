@@ -1,6 +1,5 @@
 #[macro_use]
 extern crate log;
-extern crate system76_keyboard_configurator_daemon as daemon;
 
 pub mod application;
 
@@ -12,10 +11,8 @@ mod keyboard_backlight_widget;
 mod keyboard_color;
 mod keymap;
 
-pub use daemon::DaemonServer;
-
 use crate::{
-    choose_color::*, color_circle::*, color_wheel::*, daemon::*, deref_cell::*, keyboard_color::*,
-    keymap::*,
+    choose_color::*, color_circle::*, color_wheel::*, deref_cell::*, keyboard_color::*, keymap::*,
 };
+pub use daemon;
 pub use keyboard_backlight_widget::keyboard_backlight_widget;

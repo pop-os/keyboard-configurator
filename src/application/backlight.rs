@@ -6,7 +6,8 @@ use once_cell::sync::Lazy;
 use std::{cell::Cell, collections::HashMap, convert::TryFrom, rc::Rc};
 
 use super::{Key, Layout};
-use crate::{DaemonBoard, DerefCell, Hs, KeyboardColor};
+use crate::{DerefCell, KeyboardColor};
+use daemon::{DaemonBoard, Hs};
 
 struct Mode {
     index: u8,

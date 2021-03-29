@@ -4,7 +4,8 @@ use gtk::prelude::*;
 use gtk::subclass::prelude::*;
 use std::cell::{Cell, Ref, RefCell};
 
-use crate::{choose_color, ColorCircle, DaemonBoard, DerefCell, Hs};
+use crate::{choose_color, ColorCircle, DerefCell};
+use daemon::{DaemonBoard, Hs};
 
 #[derive(Default)]
 pub struct KeyboardColorInner {

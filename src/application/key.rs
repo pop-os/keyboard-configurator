@@ -1,7 +1,7 @@
 use std::cell::{Cell, RefCell};
 
 use super::{Page, Rect, SCANCODE_LABELS};
-use crate::Rgb;
+use daemon::Rgb;
 
 #[derive(Clone, Debug)]
 pub struct Key {

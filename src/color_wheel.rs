@@ -5,7 +5,8 @@ use gtk::subclass::prelude::*;
 use std::cell::{Cell, RefCell};
 use std::f64::consts::PI;
 
-use crate::{DerefCell, Hs, Rgb};
+use crate::DerefCell;
+use daemon::{Hs, Rgb};
 
 #[derive(Default)]
 pub struct ColorWheelInner {
