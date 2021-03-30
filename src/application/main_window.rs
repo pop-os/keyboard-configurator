@@ -164,7 +164,7 @@ impl MainWindow {
         let daemon = daemon();
 
         for i in daemon.boards().expect("Failed to load boards") {
-            let board = DaemonBoard(daemon.clone(), i);
+            let board = DaemonBoard::new(daemon.clone(), i);
             window.add_keyboard(board);
         }
 
@@ -173,7 +173,7 @@ impl MainWindow {
             let daemon = Rc::new(DaemonDummy::new(phony_board_names));
 
             for i in daemon.boards().unwrap() {
-                let board = DaemonBoard(daemon.clone(), i);
+                let board = DaemonBoard::new(daemon.clone(), i);
                 window.add_keyboard(board);
             }
         }

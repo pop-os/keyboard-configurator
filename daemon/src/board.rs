@@ -5,9 +5,13 @@ use crate::{BoardId, Daemon, Matrix};
 
 #[derive(Clone, glib::GBoxed)]
 #[gboxed(type_name = "S76DaemonBoard")]
-pub struct DaemonBoard(pub Rc<dyn Daemon>, pub BoardId);
+pub struct DaemonBoard(Rc<dyn Daemon>, BoardId);
 
 impl DaemonBoard {
+    pub fn new(daemon: Rc<dyn Daemon>, id: BoardId) -> Self {
+        Self(daemon, id)
+    }
+
     pub fn model(&self) -> Result<String, String> {
         self.0.model(self.1)
     }
@@ -54,5 +58,9 @@ impl DaemonBoard {
 
     pub fn led_save(&self) -> Result<(), String> {
         self.0.led_save(self.1)
+    }
+
+    pub fn is_fake(&self) -> bool {
+        self.0.is_fake()
     }
 }
