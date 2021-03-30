@@ -3,10 +3,10 @@ use glib::clone;
 use gtk::prelude::*;
 use gtk::subclass::prelude::*;
 use once_cell::sync::Lazy;
-use std::{cell::Cell, collections::HashMap, convert::TryFrom, rc::Rc};
+use std::{cell::Cell, collections::HashMap, convert::TryFrom};
 
 use crate::{DerefCell, KeyboardColor};
-use daemon::{DaemonBoard, Hs, Key};
+use daemon::{DaemonBoard, Hs};
 
 struct Mode {
     index: u8,
@@ -75,7 +75,6 @@ pub struct BacklightInner {
     speed_row: DerefCell<gtk::ListBoxRow>,
     layer: Cell<u8>,
     do_not_set: Cell<bool>,
-    keys: DerefCell<Rc<[Key]>>,
     selected: Cell<Option<usize>>,
     has_led_save: Cell<bool>,
     changed: Cell<bool>,
@@ -259,7 +258,7 @@ glib::wrapper! {
 }
 
 impl Backlight {
-    pub fn new(board: DaemonBoard, keys: Rc<[Key]>) -> Self {
+    pub fn new(board: DaemonBoard) -> Self {
         let max_brightness = match board.max_brightness() {
             Ok(value) => value as f64,
             Err(err) => {
@@ -271,7 +270,6 @@ impl Backlight {
         let has_led_save = board.led_save().is_ok();
 
         let obj: Self = glib::Object::new(&[]).unwrap();
-        obj.inner().keys.set(keys);
         obj.inner().board.set(board.clone());
         obj.inner().keyboard_color.set_index(obj.led_index());
         obj.inner().keyboard_color.set_board(Some(board.clone()));
@@ -435,7 +433,7 @@ impl Backlight {
 
         let mut sensitive = false;
         if let Some(selected) = self.inner().selected.get() {
-            let k = &self.inner().keys[selected];
+            let k = &self.inner().board.keys()[selected];
             if !k.leds.is_empty() {
                 sensitive = true;
                 self.inner().keyboard_color.set_index(k.leds[0]);

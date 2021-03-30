@@ -1,13 +1,14 @@
 use std::rc::Rc;
 
 use crate::Hs;
-use crate::{BoardId, Daemon, Layout, Matrix};
+use crate::{BoardId, Daemon, Key, Layout, Matrix};
 
 struct DaemonBoardInner {
     daemon: Rc<dyn Daemon>,
     board: BoardId,
     board_name: String,
     layout: Layout,
+    keys: Vec<Key>,
 }
 
 #[derive(Clone, glib::GBoxed)]
@@ -24,10 +25,36 @@ impl DaemonBoard {
         };
         let layout = Layout::from_board(&board_name)
             .ok_or_else(|| format!("Failed to locate layout for '{}'", board_name))?;
+
+        let mut keys = layout.keys();
+        for key in keys.iter_mut() {
+            for layer in 0..layout.meta.num_layers {
+                debug!("  Layer {}", layer);
+                let scancode =
+                    match daemon.keymap_get(board, layer, key.electrical.0, key.electrical.1) {
+                        Ok(value) => value,
+                        Err(err) => {
+                            error!("Failed to read scancode: {:?}", err);
+                            0
+                        }
+                    };
+                debug!("    Scancode: {:04X}", scancode);
+
+                let scancode_name = match layout.scancode_names.get(&scancode) {
+                    Some(some) => some.to_string(),
+                    None => String::new(),
+                };
+                debug!("    Scancode Name: {}", scancode_name);
+
+                key.scancodes.borrow_mut().push((scancode, scancode_name));
+            }
+        }
+
         Ok(Self(Rc::new(DaemonBoardInner {
             daemon,
             board,
             board_name,
+            keys,
             layout,
         })))
     }
@@ -94,5 +121,9 @@ impl DaemonBoard {
 
     pub fn board_name(&self) -> &str {
         &self.0.board_name
+    }
+
+    pub fn keys(&self) -> &[Key] {
+        &self.0.keys
     }
 }

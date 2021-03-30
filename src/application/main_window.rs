@@ -242,7 +242,7 @@ impl MainWindow {
             }));
         };
         let keyboard_layer = cascade! {
-            KeyboardLayer::new(Page::Keycaps, keyboard.keys().clone());
+            KeyboardLayer::new(Page::Keycaps, keyboard.board().clone());
             ..set_selectable(false);
             ..set_halign(gtk::Align::Center);
         };

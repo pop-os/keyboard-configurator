@@ -6,12 +6,11 @@ use std::{
     collections::HashSet,
     convert::TryFrom,
     f64::consts::PI,
-    rc::Rc,
 };
 
 use super::Page;
 use crate::DerefCell;
-use daemon::{Key, Rect, Rgb};
+use daemon::{DaemonBoard, Key, Rect, Rgb};
 
 const SCALE: f64 = 64.0;
 const MARGIN: f64 = 2.;
@@ -20,7 +19,7 @@ const RADIUS: f64 = 4.;
 #[derive(Default)]
 pub struct KeyboardLayerInner {
     page: Cell<Page>,
-    keys: DerefCell<Rc<[Key]>>,
+    board: DerefCell<DaemonBoard>,
     selected: RefCell<HashSet<usize>>,
     selectable: Cell<bool>,
     multiple: Cell<bool>,
@@ -204,8 +203,9 @@ glib::wrapper! {
 }
 
 impl KeyboardLayer {
-    pub fn new(page: Page, keys: Rc<[Key]>) -> Self {
-        let (width, height) = keys
+    pub fn new(page: Page, board: DaemonBoard) -> Self {
+        let (width, height) = board
+            .keys()
             .iter()
             .map(|k| {
                 let w = (k.physical.w + k.physical.x) * SCALE - MARGIN;
@@ -220,7 +220,7 @@ impl KeyboardLayer {
             ..set_size_request(width, height);
         };
         obj.inner().page.set(page);
-        obj.inner().keys.set(keys);
+        obj.inner().board.set(board);
         obj
     }
 
@@ -233,7 +233,7 @@ impl KeyboardLayer {
     }
 
     pub fn keys(&self) -> &[Key] {
-        &self.inner().keys
+        &self.inner().board.keys()
     }
 
     pub fn selected(&self) -> HashSet<usize> {

@@ -9,19 +9,17 @@ use std::{
     convert::TryFrom,
     ffi::OsStr,
     fs::File,
-    rc::Rc,
     str, time,
 };
 
 use super::{show_error_dialog, Backlight, KeyboardLayer, Page, Picker};
 use crate::DerefCell;
-use daemon::{DaemonBoard, Key, KeyMap, Layout};
+use daemon::{DaemonBoard, KeyMap, Layout};
 
 #[derive(Default)]
 pub struct KeyboardInner {
     action_group: DerefCell<gio::SimpleActionGroup>,
     board: DerefCell<DaemonBoard>,
-    keys: DerefCell<Rc<[Key]>>,
     page: Cell<Page>,
     picker: RefCell<WeakRef<Picker>>,
     selected: Cell<Option<usize>>,
@@ -181,35 +179,9 @@ glib::wrapper! {
 impl Keyboard {
     pub fn new(board: DaemonBoard, debug_layers: bool) -> Self {
         let keyboard: Self = glib::Object::new(&[]).unwrap();
-        let layout = board.layout();
-
-        let mut keys = layout.keys();
-        for key in keys.iter_mut() {
-            for layer in 0..layout.meta.num_layers {
-                debug!("  Layer {}", layer);
-                let scancode = match board.keymap_get(layer, key.electrical.0, key.electrical.1) {
-                    Ok(value) => value,
-                    Err(err) => {
-                        error!("Failed to read scancode: {:?}", err);
-                        0
-                    }
-                };
-                debug!("    Scancode: {:04X}", scancode);
-
-                let scancode_name = match layout.scancode_names.get(&scancode) {
-                    Some(some) => some.to_string(),
-                    None => String::new(),
-                };
-                debug!("    Scancode Name: {}", scancode_name);
-
-                key.scancodes.borrow_mut().push((scancode, scancode_name));
-            }
-        }
-
-        let keys: Rc<[Key]> = keys.into_boxed_slice().into();
 
         let backlight = cascade! {
-            Backlight::new(board.clone(), keys.clone());
+            Backlight::new(board.clone());
             ..set_halign(gtk::Align::Center);
         };
         keyboard
@@ -220,7 +192,6 @@ impl Keyboard {
             .stack
             .add_titled(&backlight, "leds", "LEDs");
 
-        keyboard.inner().keys.set(keys);
         keyboard.inner().has_matrix.set(board.matrix_get().is_ok());
         keyboard.inner().board.set(board);
         keyboard.inner().backlight.set(backlight);
@@ -249,7 +220,7 @@ impl Keyboard {
         &self.inner().board.board_name()
     }
 
-    fn board(&self) -> &DaemonBoard {
+    pub fn board(&self) -> &DaemonBoard {
         &self.inner().board
     }
 
@@ -287,12 +258,8 @@ impl Keyboard {
         self.layout().keymap.contains_key(scancode_name)
     }
 
-    pub fn keys(&self) -> &Rc<[Key]> {
-        &self.inner().keys
-    }
-
     pub fn keymap_set(&self, key_index: usize, layer: usize, scancode_name: &str) {
-        let k = &self.keys()[key_index];
+        let k = &self.board().keys()[key_index];
         let mut found = false;
         if let Some(scancode) = self.layout().keymap.get(scancode_name) {
             k.scancodes.borrow_mut()[layer] = (*scancode, scancode_name.to_string());
@@ -322,7 +289,7 @@ impl Keyboard {
 
     pub fn export_keymap(&self) -> KeyMap {
         let mut map = HashMap::new();
-        for key in self.keys().iter() {
+        for key in self.board().keys().iter() {
             let scancodes = key.scancodes.borrow();
             let scancodes = scancodes.iter().map(|s| s.1.clone()).collect();
             map.insert(key.logical_name.clone(), scancodes);
@@ -348,6 +315,7 @@ impl Keyboard {
 
         for (k, v) in keymap.map.iter() {
             let n = self
+                .board()
                 .keys()
                 .iter()
                 .position(|i| &i.logical_name == k)
@@ -439,7 +407,7 @@ impl Keyboard {
                 }
             }
 
-            let keyboard_layer = KeyboardLayer::new(page, self.keys().clone());
+            let keyboard_layer = KeyboardLayer::new(page, self.board().clone());
             self.bind_property("selected", &keyboard_layer, "selected")
                 .flags(glib::BindingFlags::BIDIRECTIONAL)
                 .build();
@@ -476,7 +444,7 @@ impl Keyboard {
                 return;
             }
         };
-        let keys = self.keys();
+        let keys = self.board().keys();
 
         picker.set_selected(None);
 
@@ -526,7 +494,7 @@ impl Keyboard {
         match self.board().matrix_get() {
             Ok(matrix) => {
                 let mut changed = false;
-                for key in self.keys().iter() {
+                for key in self.board().keys().iter() {
                     let pressed = matrix
                         .get(key.electrical.0 as usize, key.electrical.1 as usize)
                         .unwrap_or(false);
