@@ -7,10 +7,11 @@ mod board;
 mod client;
 mod color;
 mod dummy;
+mod keymap;
 mod s76power;
 mod server;
 
-pub use self::{board::*, client::*, color::*, dummy::*, s76power::*, server::*};
+pub use self::{board::*, client::*, color::*, dummy::*, keymap::*, s76power::*, server::*};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Deserialize, Serialize)]
 pub struct BoardId(u128);

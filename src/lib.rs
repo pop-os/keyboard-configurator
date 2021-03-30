@@ -9,10 +9,7 @@ mod color_wheel;
 mod deref_cell;
 mod keyboard_backlight_widget;
 mod keyboard_color;
-mod keymap;
 
-use crate::{
-    choose_color::*, color_circle::*, color_wheel::*, deref_cell::*, keyboard_color::*, keymap::*,
-};
+use crate::{choose_color::*, color_circle::*, color_wheel::*, deref_cell::*, keyboard_color::*};
 pub use daemon;
 pub use keyboard_backlight_widget::keyboard_backlight_widget;

@@ -14,8 +14,8 @@ use std::{
 };
 
 use super::{show_error_dialog, Backlight, Key, KeyboardLayer, Layout, Page, Picker};
-use crate::{DerefCell, KeyMap};
-use daemon::DaemonBoard;
+use crate::DerefCell;
+use daemon::{DaemonBoard, KeyMap};
 
 #[derive(Default)]
 pub struct KeyboardInner {

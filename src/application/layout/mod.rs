@@ -12,8 +12,7 @@ pub use self::meta::Meta;
 pub use physical_layout::PhysicalLayout;
 
 use super::{Key, Rect};
-use crate::KeyMap;
-use daemon::Rgb;
+use daemon::{KeyMap, Rgb};
 use physical_layout::{PhysicalKeyEnum, PhysicalLayoutEntry};
 
 pub struct Layout {
