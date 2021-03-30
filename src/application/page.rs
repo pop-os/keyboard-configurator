@@ -1,4 +1,6 @@
-use super::{Key, SCANCODE_LABELS};
+use super::picker::SCANCODE_LABELS;
+use daemon::Key;
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum Page {
     Layer1,

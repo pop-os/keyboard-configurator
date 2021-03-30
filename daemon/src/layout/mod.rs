@@ -11,8 +11,7 @@ mod physical_layout;
 pub use self::meta::Meta;
 pub use physical_layout::PhysicalLayout;
 
-use super::{Key, Rect};
-use daemon::{KeyMap, Rgb};
+use crate::{Key, KeyMap, Rect, Rgb};
 use physical_layout::{PhysicalKeyEnum, PhysicalLayoutEntry};
 
 pub struct Layout {
@@ -252,7 +251,6 @@ fn parse_keymap_json(keymap_json: &str) -> (HashMap<String, u16>, HashMap<u16, S
 
 #[cfg(test)]
 mod tests {
-    use super::super::picker::SCANCODE_LABELS;
     use super::*;
     use std::collections::HashSet;
 
@@ -271,20 +269,6 @@ mod tests {
             let layout = Layout::from_board(i).unwrap();
             for j in layout.default.map.values().flatten() {
                 if layout.keymap.keys().find(|x| x == &j).is_none() {
-                    missing.insert(j.to_owned());
-                }
-            }
-        }
-        assert_eq!(missing, HashSet::new());
-    }
-
-    #[test]
-    fn picker_has_keys() {
-        let mut missing = HashSet::new();
-        for i in layouts() {
-            let layout = Layout::from_board(i).unwrap();
-            for j in layout.default.map.values().flatten() {
-                if SCANCODE_LABELS.keys().find(|x| x == &j).is_none() {
                     missing.insert(j.to_owned());
                 }
             }

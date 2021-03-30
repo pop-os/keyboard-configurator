@@ -1,7 +1,6 @@
 use std::cell::{Cell, RefCell};
 
-use super::Rect;
-use daemon::Rgb;
+use crate::{Rect, Rgb};
 
 #[derive(Clone, Debug)]
 pub struct Key {

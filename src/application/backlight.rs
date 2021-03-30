@@ -5,9 +5,8 @@ use gtk::subclass::prelude::*;
 use once_cell::sync::Lazy;
 use std::{cell::Cell, collections::HashMap, convert::TryFrom, rc::Rc};
 
-use super::{Key, Layout};
 use crate::{DerefCell, KeyboardColor};
-use daemon::{DaemonBoard, Hs};
+use daemon::{DaemonBoard, Hs, Key, Layout};
 
 struct Mode {
     index: u8,

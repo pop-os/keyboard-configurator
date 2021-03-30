@@ -207,3 +207,24 @@ impl Picker {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use daemon::{layouts, Layout};
+    use std::collections::HashSet;
+
+    #[test]
+    fn picker_has_keys() {
+        let mut missing = HashSet::new();
+        for i in layouts() {
+            let layout = Layout::from_board(i).unwrap();
+            for j in layout.default.map.values().flatten() {
+                if SCANCODE_LABELS.keys().find(|x| x == &j).is_none() {
+                    missing.insert(j.to_owned());
+                }
+            }
+        }
+        assert_eq!(missing, HashSet::new());
+    }
+}

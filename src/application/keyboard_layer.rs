@@ -9,9 +9,9 @@ use std::{
     rc::Rc,
 };
 
-use super::{Key, Page, Rect};
+use super::Page;
 use crate::DerefCell;
-use daemon::Rgb;
+use daemon::{Key, Rect, Rgb};
 
 const SCALE: f64 = 64.0;
 const MARGIN: f64 = 2.;

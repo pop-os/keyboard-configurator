@@ -6,21 +6,18 @@ use std::cell::Cell;
 mod about_dialog;
 mod backlight;
 mod error_dialog;
-mod key;
 mod keyboard;
 mod keyboard_layer;
-pub(crate) mod layout;
 mod main_window;
 mod page;
 mod picker;
-mod rect;
 mod shortcuts_window;
 
 use crate::DerefCell;
 
 use self::{
-    backlight::*, error_dialog::*, key::*, keyboard::*, keyboard_layer::*, layout::*,
-    main_window::*, page::*, picker::*, rect::*, shortcuts_window::*,
+    backlight::*, error_dialog::*, keyboard::*, keyboard_layer::*, main_window::*, page::*,
+    picker::*, shortcuts_window::*,
 };
 
 #[derive(Default)]
@@ -67,7 +64,7 @@ impl ApplicationImpl for ConfiguratorAppInner {
             let value: String = opt.get().unwrap();
 
             if &value == "all" {
-                layout::layouts().iter().map(|s| s.to_string()).collect()
+                daemon::layouts().iter().map(|s| s.to_string()).collect()
             } else {
                 value.split(',').map(str::to_string).collect()
             }
