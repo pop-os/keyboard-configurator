@@ -21,9 +21,7 @@ use daemon::{DaemonBoard, Key, KeyMap, Layout};
 pub struct KeyboardInner {
     action_group: DerefCell<gio::SimpleActionGroup>,
     board: DerefCell<DaemonBoard>,
-    board_name: DerefCell<String>,
     keys: DerefCell<Rc<[Key]>>,
-    layout: DerefCell<Rc<Layout>>,
     page: Cell<Page>,
     picker: RefCell<WeakRef<Picker>>,
     selected: Cell<Option<usize>>,
@@ -181,14 +179,9 @@ glib::wrapper! {
 }
 
 impl Keyboard {
-    fn new_layout(
-        board_name: &str,
-        layout: Layout,
-        board: DaemonBoard,
-        debug_layers: bool,
-    ) -> Self {
+    pub fn new(board: DaemonBoard, debug_layers: bool) -> Self {
         let keyboard: Self = glib::Object::new(&[]).unwrap();
-        let layout = Rc::new(layout);
+        let layout = board.layout();
 
         let mut keys = layout.keys();
         for key in keys.iter_mut() {
@@ -216,7 +209,7 @@ impl Keyboard {
         let keys: Rc<[Key]> = keys.into_boxed_slice().into();
 
         let backlight = cascade! {
-            Backlight::new(board.clone(), keys.clone(), layout.clone());
+            Backlight::new(board.clone(), keys.clone());
             ..set_halign(gtk::Align::Center);
         };
         keyboard
@@ -230,8 +223,6 @@ impl Keyboard {
         keyboard.inner().keys.set(keys);
         keyboard.inner().has_matrix.set(board.matrix_get().is_ok());
         keyboard.inner().board.set(board);
-        keyboard.inner().board_name.set(board_name.to_string());
-        keyboard.inner().layout.set(layout);
         keyboard.inner().backlight.set(backlight);
 
         keyboard.add_pages(debug_layers);
@@ -246,11 +237,6 @@ impl Keyboard {
         keyboard
     }
 
-    pub fn new_board(board_name: &str, board: DaemonBoard, debug_layers: bool) -> Option<Self> {
-        Layout::from_board(board_name)
-            .map(|layout| Self::new_layout(board_name, layout, board, debug_layers))
-    }
-
     fn inner(&self) -> &KeyboardInner {
         KeyboardInner::from_instance(self)
     }
@@ -260,7 +246,7 @@ impl Keyboard {
     }
 
     fn board_name(&self) -> &str {
-        &self.inner().board_name
+        &self.inner().board.board_name()
     }
 
     fn board(&self) -> &DaemonBoard {
@@ -278,7 +264,7 @@ impl Keyboard {
     }
 
     fn layout(&self) -> &Layout {
-        &self.inner().layout
+        &self.inner().board.layout()
     }
 
     fn window(&self) -> Option<gtk::Window> {

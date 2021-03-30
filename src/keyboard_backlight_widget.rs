@@ -37,10 +37,12 @@ fn add_boards(stack: &gtk::Stack) -> Result<(), String> {
     let daemon = Rc::new(DaemonS76Power::new()?);
 
     for i in daemon.boards()? {
-        let board = DaemonBoard::new(daemon.clone(), i);
-        match board.model() {
-            Ok(model) => stack.add_titled(&page(board), &model, &model),
-            Err(err) => eprintln!("Failed to get board model: {}", err),
+        match DaemonBoard::new(daemon.clone(), i) {
+            Ok(board) => {
+                let name = board.board_name().to_owned();
+                stack.add_titled(&page(board), &name, &name);
+            }
+            Err(err) => error!("{}", err),
         }
     }
 

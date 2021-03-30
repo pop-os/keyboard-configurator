@@ -164,8 +164,10 @@ impl MainWindow {
         let daemon = daemon();
 
         for i in daemon.boards().expect("Failed to load boards") {
-            let board = DaemonBoard::new(daemon.clone(), i);
-            window.add_keyboard(board);
+            match DaemonBoard::new(daemon.clone(), i) {
+                Ok(board) => window.add_keyboard(board),
+                Err(err) => error!("{}", err),
+            }
         }
 
         let phony_board_names = app.phony_board_names().to_vec();
@@ -173,8 +175,10 @@ impl MainWindow {
             let daemon = Rc::new(DaemonDummy::new(phony_board_names));
 
             for i in daemon.boards().unwrap() {
-                let board = DaemonBoard::new(daemon.clone(), i);
-                window.add_keyboard(board);
+                match DaemonBoard::new(daemon.clone(), i) {
+                    Ok(board) => window.add_keyboard(board),
+                    Err(err) => error!("{}", err),
+                }
             }
         }
 
@@ -213,65 +217,56 @@ impl MainWindow {
     }
 
     fn add_keyboard(&self, board: DaemonBoard) {
-        let model = match board.model() {
-            Ok(model) => model,
-            Err(err) => {
-                error!("Failed to get board model: {}", err);
-                return;
-            }
-        };
-
         let app: ConfiguratorApp = self.get_application().unwrap().downcast().unwrap();
 
-        if let Some(keyboard) = Keyboard::new_board(&model, board, app.debug_layers()) {
-            keyboard.set_halign(gtk::Align::Center);
-            keyboard.show_all();
+        let keyboard = cascade! {
+            Keyboard::new(board, app.debug_layers());
+            ..set_halign(gtk::Align::Center);
+            ..show_all();
+        };
 
-            let attr_list = cascade! {
-                pango::AttrList::new();
-                ..insert(pango::Attribute::new_weight(pango::Weight::Bold));
-            };
-            let label = cascade! {
-                gtk::Label::new(Some(&keyboard.display_name()));
-                ..set_attributes(Some(&attr_list));
-            };
-            let window = self;
-            let button = cascade! {
-                gtk::Button::with_label("Configure Layout");
-                ..set_halign(gtk::Align::Center);
-                ..connect_clicked(clone!(@weak window, @weak keyboard => move |_| {
-                    window.show_keyboard(&keyboard);
-                }));
-            };
-            let keyboard_layer = cascade! {
-                KeyboardLayer::new(Page::Keycaps, keyboard.keys().clone());
-                ..set_selectable(false);
-                ..set_halign(gtk::Align::Center);
-            };
-            let keyboard_box = cascade! {
-                gtk::Box::new(gtk::Orientation::Vertical, 12);
-                ..add(&label);
-                ..add(&keyboard_layer);
-                ..add(&button);
-            };
-            let row = cascade! {
-                gtk::ListBoxRow::new();
-                ..set_activatable(false);
-                ..set_selectable(false);
-                ..add(&keyboard_box);
-                ..set_margin_top(12);
-                ..set_margin_bottom(12);
-                ..show_all();
-            };
-            self.inner().keyboard_list_box.add(&row);
+        let attr_list = cascade! {
+            pango::AttrList::new();
+            ..insert(pango::Attribute::new_weight(pango::Weight::Bold));
+        };
+        let label = cascade! {
+            gtk::Label::new(Some(&keyboard.display_name()));
+            ..set_attributes(Some(&attr_list));
+        };
+        let window = self;
+        let button = cascade! {
+            gtk::Button::with_label("Configure Layout");
+            ..set_halign(gtk::Align::Center);
+            ..connect_clicked(clone!(@weak window, @weak keyboard => move |_| {
+                window.show_keyboard(&keyboard);
+            }));
+        };
+        let keyboard_layer = cascade! {
+            KeyboardLayer::new(Page::Keycaps, keyboard.keys().clone());
+            ..set_selectable(false);
+            ..set_halign(gtk::Align::Center);
+        };
+        let keyboard_box = cascade! {
+            gtk::Box::new(gtk::Orientation::Vertical, 12);
+            ..add(&label);
+            ..add(&keyboard_layer);
+            ..add(&button);
+        };
+        let row = cascade! {
+            gtk::ListBoxRow::new();
+            ..set_activatable(false);
+            ..set_selectable(false);
+            ..add(&keyboard_box);
+            ..set_margin_top(12);
+            ..set_margin_bottom(12);
+            ..show_all();
+        };
+        self.inner().keyboard_list_box.add(&row);
 
-            self.inner().stack.add(&keyboard);
+        self.inner().stack.add(&keyboard);
 
-            // XXX if only one keyboard, show that with no back button
-            self.inner().count.fetch_add(1, Ordering::Relaxed);
-        } else {
-            error!("Failed to locate layout for '{}'", model);
-        }
+        // XXX if only one keyboard, show that with no back button
+        self.inner().count.fetch_add(1, Ordering::Relaxed);
     }
 }
 

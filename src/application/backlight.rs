@@ -6,7 +6,7 @@ use once_cell::sync::Lazy;
 use std::{cell::Cell, collections::HashMap, convert::TryFrom, rc::Rc};
 
 use crate::{DerefCell, KeyboardColor};
-use daemon::{DaemonBoard, Hs, Key, Layout};
+use daemon::{DaemonBoard, Hs, Key};
 
 struct Mode {
     index: u8,
@@ -64,7 +64,6 @@ static MODE_BY_ID: Lazy<HashMap<&str, &Mode>> =
 #[derive(Default)]
 pub struct BacklightInner {
     board: DerefCell<DaemonBoard>,
-    layout: DerefCell<Rc<Layout>>,
     keyboard_color: DerefCell<KeyboardColor>,
     color_row: DerefCell<gtk::ListBoxRow>,
     brightness_scale: DerefCell<gtk::Scale>,
@@ -260,7 +259,7 @@ glib::wrapper! {
 }
 
 impl Backlight {
-    pub fn new(board: DaemonBoard, keys: Rc<[Key]>, layout: Rc<Layout>) -> Self {
+    pub fn new(board: DaemonBoard, keys: Rc<[Key]>) -> Self {
         let max_brightness = match board.max_brightness() {
             Ok(value) => value as f64,
             Err(err) => {
@@ -272,12 +271,11 @@ impl Backlight {
         let has_led_save = board.led_save().is_ok();
 
         let obj: Self = glib::Object::new(&[]).unwrap();
-        obj.inner().layout.set(layout);
         obj.inner().keys.set(keys);
+        obj.inner().board.set(board.clone());
         obj.inner().keyboard_color.set_index(obj.led_index());
         obj.inner().keyboard_color.set_board(Some(board.clone()));
         obj.inner().brightness_scale.set_range(0.0, max_brightness);
-        obj.inner().board.set(board.clone());
         obj.inner().has_led_save.set(has_led_save);
         obj.invalidate_filter();
         obj.set_layer(0);
@@ -320,7 +318,7 @@ impl Backlight {
 
     fn led_index(&self) -> u8 {
         let layer = self.inner().layer.get();
-        if self.inner().layout.meta.has_per_layer {
+        if self.board().layout().meta.has_per_layer {
             0xf0 + layer
         } else {
             0xff
@@ -340,10 +338,11 @@ impl Backlight {
 
     fn filter_func(&self, row: &gtk::ListBoxRow) -> bool {
         let inner = self.inner();
+        let layout = inner.board.layout();
         if row == &*inner.mode_row {
-            inner.layout.meta.has_mode
+            layout.meta.has_mode
         } else if row == &*inner.speed_row {
-            inner.layout.meta.has_mode && self.mode().has_speed
+            layout.meta.has_mode && self.mode().has_speed
         } else if row == &*inner.color_row {
             self.mode().has_hue
         } else if row == &*inner.saturation_row {
@@ -381,8 +380,9 @@ impl Backlight {
             return;
         }
         let value = self.inner().brightness_scale.get_value() as i32;
-        if self.inner().layout.meta.has_per_layer {
-            for i in 0..self.inner().layout.meta.num_layers {
+        let layout = self.inner().board.layout();
+        if layout.meta.has_per_layer {
+            for i in 0..layout.meta.num_layers {
                 if let Err(err) = self.board().set_brightness(0xf0 + i, value) {
                     error!("Error setting brightness: {}", err);
                 }
@@ -399,7 +399,7 @@ impl Backlight {
     pub fn set_layer(&self, layer: u8) {
         self.inner().layer.set(layer);
 
-        let (mode, speed) = if self.inner().layout.meta.has_mode {
+        let (mode, speed) = if self.inner().board.layout().meta.has_mode {
             self.board().mode(layer).unwrap_or_else(|err| {
                 error!("Error getting keyboard mode: {}", err);
                 (0, 128)
