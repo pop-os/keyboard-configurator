@@ -1,7 +1,7 @@
 use cascade::cascade;
 use gtk::prelude::*;
 use gtk::subclass::prelude::*;
-use std::{cell::RefCell, f64::consts::PI};
+use std::{cell::RefCell, collections::BTreeSet, f64::consts::PI};
 
 use daemon::Hs;
 
@@ -9,7 +9,7 @@ const BORDER: f64 = 1.;
 
 #[derive(Default)]
 pub struct ColorCircleInner {
-    colors: RefCell<Vec<Hs>>,
+    colors: RefCell<BTreeSet<Hs>>,
 }
 
 #[glib::object_subclass]
@@ -84,14 +84,8 @@ impl ColorCircle {
         ColorCircleInner::from_instance(self)
     }
 
-    pub fn set_colors(&self, colors: Vec<Hs>) {
-        let mut colors2 = Vec::new();
-        for i in colors {
-            if !colors2.contains(&i) {
-                colors2.push(i);
-            }
-        }
-        self.inner().colors.replace(colors2);
+    pub fn set_colors(&self, colors: BTreeSet<Hs>) {
+        self.inner().colors.replace(colors);
         self.queue_draw();
     }
 }

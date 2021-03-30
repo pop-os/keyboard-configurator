@@ -2,7 +2,10 @@ use cascade::cascade;
 use glib::clone;
 use gtk::prelude::*;
 use gtk::subclass::prelude::*;
-use std::cell::{Cell, Ref, RefCell};
+use std::{
+    cell::{Cell, Ref, RefCell},
+    collections::BTreeSet,
+};
 
 use crate::{choose_color, ColorCircle, DerefCell};
 use daemon::{DaemonBoard, Hs};
@@ -159,7 +162,9 @@ impl KeyboardColor {
     fn set_hs(&self, hs: Hs) {
         let board = self.board().unwrap();
         if self.inner().hs.replace(hs) != hs {
-            self.inner().circle.set_colors(vec![hs]);
+            let mut colors = BTreeSet::new();
+            colors.insert(hs);
+            self.inner().circle.set_colors(colors);
             if let Err(err) = board.set_color(self.index(), self.hs()) {
                 error!("Failed to set keyboard color: {}", err);
             }
