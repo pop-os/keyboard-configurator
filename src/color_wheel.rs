@@ -79,16 +79,17 @@ impl ObjectImpl for ColorWheelInner {
                 wheel.set_hs(*value.get_some::<&Hs>().unwrap());
             }
             "hue" => {
-                let hue: f64 = value.get_some().unwrap();
-                let mut hs = wheel.hs();
-                hs.h = (hue * PI / 180.).max(0.).min(2. * PI);
-                wheel.set_hs(hs);
+                let mut hue: f64 = value.get_some().unwrap();
+                hue = (hue * PI / 180.).max(0.).min(2. * PI);
+                let hs = wheel.hs();
+                wheel.set_hs(Hs::new(hue, *hs.s));
             }
             "saturation" => {
-                let saturation: f64 = value.get_some().unwrap();
-                let mut hs = wheel.hs();
-                hs.s = (saturation / 100.).max(0.).min(1.);
+                let mut saturation: f64 = value.get_some().unwrap();
+                saturation = (saturation / 100.).max(0.).min(1.);
+                let hs = wheel.hs();
                 wheel.set_hs(hs);
+                wheel.set_hs(Hs::new(*hs.h, saturation));
             }
             _ => unimplemented!(),
         }
@@ -98,7 +99,7 @@ impl ObjectImpl for ColorWheelInner {
         match pspec.get_name() {
             "hs" => wheel.hs().to_value(),
             "hue" => {
-                let mut hue = wheel.hs().h * 180. / PI;
+                let mut hue = *wheel.hs().h * 180. / PI;
                 hue = (360. + hue) % 360.;
                 hue.to_value()
             }
@@ -123,9 +124,9 @@ impl WidgetImpl for ColorWheelInner {
         cr.fill();
 
         // Draw selector circle
-        let Hs { h, s } = wheel.hs();
-        let x = radius + h.cos() * s * radius;
-        let y = radius - h.sin() * s * radius;
+        let hs = wheel.hs();
+        let x = radius + hs.h.cos() * (*hs.s) * radius;
+        let y = radius - hs.h.sin() * (*hs.s) * radius;
         cr.arc(x, y, 7.5, 0., 2. * PI);
         cr.set_source_rgb(1., 1., 1.);
         cr.fill_preserve();

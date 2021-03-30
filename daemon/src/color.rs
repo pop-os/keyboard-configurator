@@ -1,3 +1,4 @@
+use ordered_float::NotNan;
 use palette::{Component, IntoColor, RgbHue};
 use serde::{Deserialize, Serialize};
 use std::f64::consts::PI;
@@ -5,25 +6,38 @@ use std::f64::consts::PI;
 type PaletteHsv = palette::Hsv<palette::encoding::Srgb, f64>;
 type PaletteLinSrgb = palette::LinSrgb<f64>;
 
-#[derive(Clone, Copy, Debug, Serialize, Deserialize, Default, PartialEq, glib::GBoxed)]
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    Serialize,
+    Deserialize,
+    Default,
+    PartialEq,
+    glib::GBoxed,
+    Hash,
+    Eq,
+    Ord,
+    PartialOrd,
+)]
 #[gboxed(type_name = "S76Hs")]
 pub struct Hs {
     /// Hue, in radians
-    pub h: f64,
+    pub h: NotNan<f64>,
     /// Saturation, from 0.0 to 1.0
-    pub s: f64,
+    pub s: NotNan<f64>,
 }
 
 impl Hs {
     pub fn new(h: f64, s: f64) -> Self {
-        Self { h, s }
+        Self {
+            h: NotNan::new(h).unwrap(),
+            s: NotNan::new(s).unwrap(),
+        }
     }
 
     pub fn from_ints(h: u8, s: u8) -> Self {
-        Hs {
-            h: h.convert::<f64>() * (2. * PI),
-            s: s.convert(),
-        }
+        Self::new(h.convert::<f64>() * (2. * PI), s.convert())
     }
 
     pub fn to_ints(self) -> (u8, u8) {
@@ -32,8 +46,8 @@ impl Hs {
     }
 
     pub fn to_rgb(self) -> Rgb {
-        let hue = RgbHue::from_radians(self.h);
-        let hsv = PaletteHsv::new(hue, self.s, 1.);
+        let hue = RgbHue::from_radians(*self.h);
+        let hsv = PaletteHsv::new(hue, *self.s, 1.);
         let rgb: PaletteLinSrgb = hsv.into_rgb();
         let (r, g, b) = rgb.into_components();
         Rgb::from_floats(r, g, b)
