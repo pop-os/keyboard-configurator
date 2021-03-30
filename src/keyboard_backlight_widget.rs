@@ -39,7 +39,7 @@ fn add_boards(stack: &gtk::Stack) -> Result<(), String> {
     for i in daemon.boards()? {
         match DaemonBoard::new(daemon.clone(), i) {
             Ok(board) => {
-                let name = board.board_name().to_owned();
+                let name = board.model().to_owned();
                 stack.add_titled(&page(board), &name, &name);
             }
             Err(err) => error!("{}", err),

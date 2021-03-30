@@ -6,7 +6,7 @@ use crate::{BoardId, Daemon, Key, Layout, Matrix};
 struct DaemonBoardInner {
     daemon: Rc<dyn Daemon>,
     board: BoardId,
-    board_name: String,
+    model: String,
     layout: Layout,
     keys: Vec<Key>,
 }
@@ -17,14 +17,14 @@ pub struct DaemonBoard(Rc<DaemonBoardInner>);
 
 impl DaemonBoard {
     pub fn new(daemon: Rc<dyn Daemon>, board: BoardId) -> Result<Self, String> {
-        let board_name = match daemon.model(board) {
+        let model = match daemon.model(board) {
             Ok(model) => model,
             Err(err) => {
                 return Err(format!("Failed to get board model: {}", err));
             }
         };
-        let layout = Layout::from_board(&board_name)
-            .ok_or_else(|| format!("Failed to locate layout for '{}'", board_name))?;
+        let layout = Layout::from_board(&model)
+            .ok_or_else(|| format!("Failed to locate layout for '{}'", model))?;
 
         let mut keys = layout.keys();
         for key in keys.iter_mut() {
@@ -53,14 +53,14 @@ impl DaemonBoard {
         Ok(Self(Rc::new(DaemonBoardInner {
             daemon,
             board,
-            board_name,
             keys,
             layout,
+            model,
         })))
     }
 
-    pub fn model(&self) -> Result<String, String> {
-        self.0.daemon.model(self.0.board)
+    pub fn model(&self) -> &str {
+        &self.0.model
     }
 
     pub fn keymap_get(&self, layer: u8, output: u8, input: u8) -> Result<u16, String> {
@@ -117,10 +117,6 @@ impl DaemonBoard {
 
     pub fn layout(&self) -> &Layout {
         &self.0.layout
-    }
-
-    pub fn board_name(&self) -> &str {
-        &self.0.board_name
     }
 
     pub fn keys(&self) -> &[Key] {

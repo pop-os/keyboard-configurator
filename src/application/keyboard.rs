@@ -216,8 +216,8 @@ impl Keyboard {
         self.inner().action_group.upcast_ref()
     }
 
-    fn board_name(&self) -> &str {
-        &self.inner().board.board_name()
+    fn model(&self) -> &str {
+        &self.inner().board.model()
     }
 
     pub fn board(&self) -> &DaemonBoard {
@@ -226,11 +226,11 @@ impl Keyboard {
 
     pub fn display_name(&self) -> String {
         let name = &self.layout().meta.display_name;
-        let board_name = self.board_name().splitn(2, "/").skip(1).next().unwrap();
+        let model = self.model().splitn(2, "/").skip(1).next().unwrap();
         if self.board().is_fake() {
-            format!("{} ({}, fake)", name, board_name)
+            format!("{} ({}, fake)", name, model)
         } else {
-            format!("{} ({})", name, board_name)
+            format!("{} ({})", name, model)
         }
     }
 
@@ -295,7 +295,7 @@ impl Keyboard {
             map.insert(key.logical_name.clone(), scancodes);
         }
         KeyMap {
-            board: self.board_name().to_string(),
+            board: self.model().to_string(),
             map,
         }
     }
@@ -304,7 +304,7 @@ impl Keyboard {
         // TODO: don't block UI thread
         // TODO: Ideally don't want this function to be O(Keys^2)
 
-        if keymap.board != self.board_name() {
+        if keymap.board != self.model() {
             show_error_dialog(
                 &self.window().unwrap(),
                 "Failed to import keymap",
