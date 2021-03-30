@@ -143,7 +143,7 @@ impl WidgetImpl for KeyboardLayerInner {
             }
 
             // Draw label
-            let text = k.get_label(widget.page());
+            let text = widget.page().get_label(k);
             let layout = cascade! {
                 widget.create_pango_layout(Some(&text));
                 ..set_width((w * pango::SCALE as f64) as i32);

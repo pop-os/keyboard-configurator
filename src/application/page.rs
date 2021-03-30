@@ -1,3 +1,4 @@
+use super::{Key, SCANCODE_LABELS};
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum Page {
     Layer1,
@@ -53,6 +54,23 @@ impl Page {
             Self::Leds,
         ]
         .into_iter()
+    }
+
+    pub fn get_label(&self, key: &Key) -> String {
+        let scancodes = key.scancodes.borrow();
+        match self {
+            Page::Layer1 | Page::Layer2 | Page::Layer3 | Page::Layer4 => {
+                let scancode_name = &scancodes[self.layer().unwrap()].1;
+                SCANCODE_LABELS
+                    .get(scancode_name)
+                    .unwrap_or(scancode_name)
+                    .into()
+            }
+            Page::Keycaps => key.physical_name.clone(),
+            Page::Logical => key.logical_name.clone(),
+            Page::Electrical => key.electrical_name.clone(),
+            Page::Leds => key.led_name.clone(),
+        }
     }
 }
 
