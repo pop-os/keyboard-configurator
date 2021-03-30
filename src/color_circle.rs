@@ -1,9 +1,7 @@
 use cascade::cascade;
 use gtk::prelude::*;
 use gtk::subclass::prelude::*;
-use std::cell::Cell;
-use std::f64::consts::PI;
-use std::ptr;
+use std::{cell::RefCell, f64::consts::PI};
 
 use daemon::Hs;
 
@@ -11,7 +9,7 @@ const BORDER: f64 = 1.;
 
 #[derive(Default)]
 pub struct ColorCircleInner {
-    hs: Cell<Hs>,
+    colors: RefCell<Vec<Hs>>,
 }
 
 #[glib::object_subclass]
@@ -31,16 +29,28 @@ impl WidgetImpl for ColorCircleInner {
         let flags = widget.get_state_flags();
 
         let radius = width.min(height) / 2.;
-        let (r, g, b) = widget.hs().to_rgb().to_floats();
         let alpha = if flags.contains(gtk::StateFlags::INSENSITIVE) {
             0.5
         } else {
             1.
         };
 
+        let colors = self.colors.borrow();
+        let total = colors.len() as f64;
+
+        let mut angle1 = 0.;
+        for hs in colors.iter() {
+            let angle2 = angle1 + (2. * PI) / total;
+            cr.move_to(radius, radius);
+            cr.arc(radius, radius, radius - 2. * BORDER, angle1, angle2);
+            cr.close_path();
+            let (r, g, b) = hs.to_rgb().to_floats();
+            cr.set_source_rgba(r, g, b, alpha);
+            cr.fill();
+            angle1 = angle2;
+        }
+
         cr.arc(radius, radius, radius - 2. * BORDER, 0., 2. * PI);
-        cr.set_source_rgba(r, g, b, alpha);
-        cr.fill_preserve();
         if flags.contains(gtk::StateFlags::PRELIGHT) {
             cr.set_source_rgba(0., 0., 0., 0.2);
             cr.fill_preserve();
@@ -74,16 +84,14 @@ impl ColorCircle {
         ColorCircleInner::from_instance(self)
     }
 
-    pub fn set_hs(&self, color: Hs) {
-        self.inner().hs.set(color);
+    pub fn set_colors(&self, colors: Vec<Hs>) {
+        let mut colors2 = Vec::new();
+        for i in colors {
+            if !colors2.contains(&i) {
+                colors2.push(i);
+            }
+        }
+        self.inner().colors.replace(colors2);
         self.queue_draw();
-    }
-
-    fn hs(&self) -> Hs {
-        self.inner().hs.get()
-    }
-
-    pub fn ptr_eq(&self, other: &Self) -> bool {
-        ptr::eq(self.inner(), other.inner())
     }
 }

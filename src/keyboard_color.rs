@@ -159,7 +159,7 @@ impl KeyboardColor {
     fn set_hs(&self, hs: Hs) {
         let board = self.board().unwrap();
         if self.inner().hs.replace(hs) != hs {
-            self.inner().circle.set_hs(hs);
+            self.inner().circle.set_colors(vec![hs]);
             if let Err(err) = board.set_color(self.index(), self.hs()) {
                 error!("Failed to set keyboard color: {}", err);
             }
