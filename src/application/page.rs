@@ -59,13 +59,12 @@ impl Page {
     }
 
     pub fn get_label(&self, key: &Key) -> String {
-        let scancodes = key.scancodes.borrow();
         match self {
             Page::Layer1 | Page::Layer2 | Page::Layer3 | Page::Layer4 => {
-                let scancode_name = &scancodes[self.layer().unwrap()].1;
+                let scancode_name = key.get_scancode(self.layer().unwrap()).unwrap().1;
                 SCANCODE_LABELS
-                    .get(scancode_name)
-                    .unwrap_or(scancode_name)
+                    .get(&scancode_name)
+                    .unwrap_or(&scancode_name)
                     .into()
             }
             Page::Keycaps => key.physical_name.clone(),

@@ -5,7 +5,6 @@ use gtk::prelude::*;
 use gtk::subclass::prelude::*;
 use std::{
     cell::{Cell, RefCell},
-    collections::HashMap,
     convert::TryFrom,
     ffi::OsStr,
     fs::File,
@@ -259,28 +258,7 @@ impl Keyboard {
     }
 
     pub fn keymap_set(&self, key_index: usize, layer: usize, scancode_name: &str) {
-        let k = &self.board().keys()[key_index];
-        let mut found = false;
-        if let Some(scancode) = self.layout().keymap.get(scancode_name) {
-            k.scancodes.borrow_mut()[layer] = (*scancode, scancode_name.to_string());
-            found = true;
-        }
-        if !found {
-            return;
-        }
-        info!(
-            "  set {}, {}, {} to {:04X}",
-            layer,
-            k.electrical.0,
-            k.electrical.1,
-            k.scancodes.borrow()[layer].0
-        );
-        if let Err(err) = self.board().keymap_set(
-            layer as u8,
-            k.electrical.0,
-            k.electrical.1,
-            k.scancodes.borrow_mut()[layer].0,
-        ) {
+        if let Err(err) = self.board().keymap_set(key_index, layer, scancode_name) {
             error!("Failed to set keymap: {:?}", err);
         }
 
@@ -288,16 +266,7 @@ impl Keyboard {
     }
 
     pub fn export_keymap(&self) -> KeyMap {
-        let mut map = HashMap::new();
-        for key in self.board().keys().iter() {
-            let scancodes = key.scancodes.borrow();
-            let scancodes = scancodes.iter().map(|s| s.1.clone()).collect();
-            map.insert(key.logical_name.clone(), scancodes);
-        }
-        KeyMap {
-            board: self.model().to_string(),
-            map,
-        }
+        self.board().export_keymap()
     }
 
     pub fn import_keymap(&self, keymap: &KeyMap) {
@@ -452,8 +421,8 @@ impl Keyboard {
             let k = &keys[i];
             debug!("{:#?}", k);
             if let Some(layer) = self.layer() {
-                if let Some((_scancode, scancode_name)) = keys[i].scancodes.borrow().get(layer) {
-                    picker.set_selected(Some(scancode_name.to_string()));
+                if let Some((_scancode, scancode_name)) = keys[i].get_scancode(layer) {
+                    picker.set_selected(Some(scancode_name));
                 }
             }
         }

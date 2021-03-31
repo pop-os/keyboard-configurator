@@ -23,7 +23,13 @@ pub struct Key {
     // Key is currently pressed
     pub pressed: Cell<bool>,
     // Currently loaded scancodes and their names
-    pub scancodes: RefCell<Vec<(u16, String)>>,
+    pub(crate) scancodes: RefCell<Vec<(u16, String)>>,
     // Background color
     pub background_color: Rgb,
+}
+
+impl Key {
+    pub fn get_scancode(&self, layer: usize) -> Option<(u16, String)> {
+        self.scancodes.borrow().get(layer).cloned()
+    }
 }

@@ -1,7 +1,7 @@
-use std::rc::Rc;
+use std::{collections::HashMap, rc::Rc};
 
 use crate::Hs;
-use crate::{BoardId, Daemon, Key, Layout, Matrix};
+use crate::{BoardId, Daemon, Key, KeyMap, Layout, Matrix};
 
 struct DaemonBoardInner {
     daemon: Rc<dyn Daemon>,
@@ -63,14 +63,27 @@ impl DaemonBoard {
         &self.0.model
     }
 
-    pub fn keymap_get(&self, layer: u8, output: u8, input: u8) -> Result<u16, String> {
-        self.0.daemon.keymap_get(self.0.board, layer, output, input)
-    }
-
-    pub fn keymap_set(&self, layer: u8, output: u8, input: u8, value: u16) -> Result<(), String> {
-        self.0
-            .daemon
-            .keymap_set(self.0.board, layer, output, input, value)
+    pub fn keymap_set(
+        &self,
+        key_index: usize,
+        layer: usize,
+        scancode_name: &str,
+    ) -> Result<(), String> {
+        let k = &self.keys()[key_index];
+        let scancode = *self
+            .layout()
+            .keymap
+            .get(scancode_name)
+            .ok_or_else(|| format!("Unable to find scancode '{}'", scancode_name))?;
+        self.0.daemon.keymap_set(
+            self.0.board,
+            layer as u8,
+            k.electrical.0,
+            k.electrical.1,
+            scancode,
+        )?;
+        k.scancodes.borrow_mut()[layer] = (scancode, scancode_name.to_string());
+        Ok(())
     }
 
     pub fn matrix_get(&self) -> Result<Matrix, String> {
@@ -121,5 +134,18 @@ impl DaemonBoard {
 
     pub fn keys(&self) -> &[Key] {
         &self.0.keys
+    }
+
+    pub fn export_keymap(&self) -> KeyMap {
+        let mut map = HashMap::new();
+        for key in self.keys().iter() {
+            let scancodes = key.scancodes.borrow();
+            let scancodes = scancodes.iter().map(|s| s.1.clone()).collect();
+            map.insert(key.logical_name.clone(), scancodes);
+        }
+        KeyMap {
+            board: self.model().to_string(),
+            map,
+        }
     }
 }
