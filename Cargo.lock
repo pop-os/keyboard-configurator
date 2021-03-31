@@ -1000,6 +1000,7 @@ dependencies = [
  "glib",
  "hidapi",
  "log",
+ "once_cell",
  "ordered-float",
  "palette",
  "serde",

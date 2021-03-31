@@ -10,13 +10,14 @@ mod dummy;
 mod key;
 mod keymap;
 mod layout;
+mod mode;
 mod rect;
 mod s76power;
 mod server;
 
 pub use self::{
-    board::*, client::*, color::*, dummy::*, key::*, keymap::*, layout::*, rect::*, s76power::*,
-    server::*,
+    board::*, client::*, color::*, dummy::*, key::*, keymap::*, layout::*, mode::*, rect::*,
+    s76power::*, server::*,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Deserialize, Serialize)]

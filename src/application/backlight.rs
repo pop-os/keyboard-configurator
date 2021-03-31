@@ -3,63 +3,10 @@ use glib::clone;
 use gtk::prelude::*;
 use gtk::subclass::prelude::*;
 use once_cell::sync::Lazy;
-use std::{cell::Cell, collections::HashMap, convert::TryFrom};
+use std::{cell::Cell, convert::TryFrom};
 
 use crate::{DerefCell, KeyboardColor};
-use daemon::{DaemonBoard, Hs};
-
-struct Mode {
-    index: u8,
-    id: &'static str,
-    name: &'static str,
-    has_hue: bool,
-    has_speed: bool,
-}
-
-impl Mode {
-    const fn new(
-        index: u8,
-        id: &'static str,
-        name: &'static str,
-        has_hue: bool,
-        has_speed: bool,
-    ) -> Self {
-        Self {
-            index,
-            id,
-            name,
-            has_hue,
-            has_speed,
-        }
-    }
-
-    fn is_per_key(&self) -> bool {
-        self.index == 1
-    }
-}
-
-static MODES: &[Mode] = &[
-    Mode::new(0, "SOLID_COLOR", "Solid Color", true, false),
-    Mode::new(1, "PER_KEY", "Per Key", true, false),
-    Mode::new(2, "CYCLE_ALL", "Cosmic Background", false, true),
-    Mode::new(3, "CYCLE_LEFT_RIGHT", "Horizonal Scan", false, true),
-    Mode::new(4, "CYCLE_UP_DOWN", "Vertical Scan", false, true),
-    Mode::new(5, "CYCLE_OUT_IN", "Event Horizon", false, true),
-    Mode::new(6, "CYCLE_OUT_IN_DUAL", "Binary Galaxies", false, true),
-    Mode::new(7, "RAINBOW_MOVING_CHEVRON", "Spacetime", false, true),
-    Mode::new(8, "CYCLE_PINWHEEL", "Pinwheel Galaxy", false, true),
-    Mode::new(9, "CYCLE_SPIRAL", "Spiral Galaxy", false, true),
-    Mode::new(10, "RAINDROPS", "Elements", false, false),
-    Mode::new(11, "SPLASH", "Splashdown", false, true),
-    Mode::new(12, "MULTISPLASH", "Meteor Shower", false, true),
-    Mode::new(13, "ACTIVE_KEYS", "Active Keys", true, false),
-];
-
-static MODE_BY_INDEX: Lazy<HashMap<u8, &Mode>> =
-    Lazy::new(|| MODES.iter().map(|i| (i.index, i)).collect());
-
-static MODE_BY_ID: Lazy<HashMap<&str, &Mode>> =
-    Lazy::new(|| MODES.iter().map(|i| (i.id, i)).collect());
+use daemon::{DaemonBoard, Hs, Mode};
 
 #[derive(Default)]
 pub struct BacklightInner {
@@ -98,7 +45,7 @@ impl ObjectImpl for BacklightInner {
             ));
         };
 
-        for mode in MODES {
+        for mode in Mode::all() {
             mode_combobox.append(Some(mode.id), mode.name);
         }
 
@@ -307,11 +254,11 @@ impl Backlight {
 
     fn mode(&self) -> &'static Mode {
         if let Some(id) = self.inner().mode_combobox.get_active_id() {
-            if let Some(mode) = MODE_BY_ID.get(id.as_str()) {
-                return *mode;
+            if let Some(mode) = Mode::from_id(id.as_str()) {
+                return mode;
             }
         }
-        &MODES[0]
+        &Mode::all()[0]
     }
 
     fn led_index(&self) -> u8 {
@@ -406,7 +353,7 @@ impl Backlight {
             (0, 128)
         };
 
-        let mode = MODE_BY_INDEX.get(&mode).map(|x| x.id);
+        let mode = Mode::from_index(mode).map(|x| x.id);
 
         let brightness = match self.board().brightness(self.led_index()) {
             Ok(value) => value as f64,
