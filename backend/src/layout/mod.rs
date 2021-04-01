@@ -139,7 +139,7 @@ impl Layout {
         )
     }
 
-    pub fn keys(&self) -> Vec<Key> {
+    pub(crate) fn keys(&self) -> Vec<Key> {
         let mut keys = Vec::new();
 
         let mut row_i = 0;
@@ -203,6 +203,7 @@ impl Layout {
                             debug!("  LEDs: {:?}", leds);
 
                             keys.push(Key {
+                                board: Default::default(),
                                 logical,
                                 logical_name,
                                 physical: Rect::new(x, y, w, h),

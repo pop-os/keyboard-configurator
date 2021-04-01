@@ -1,9 +1,11 @@
+use once_cell::unsync::OnceCell;
 use std::cell::{Cell, RefCell};
 
-use crate::{Rect, Rgb};
+use crate::{DaemonBoard, DaemonBoardWeak, Rect, Rgb};
 
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub struct Key {
+    pub(crate) board: OnceCell<DaemonBoardWeak>,
     // Logical position (row, column)
     pub logical: (u8, u8),
     // Logical name (something like K01, where 0 is the row and 1 is the column)
@@ -29,6 +31,10 @@ pub struct Key {
 }
 
 impl Key {
+    fn board(&self) -> DaemonBoard {
+        self.board.get().unwrap().upgrade().unwrap()
+    }
+
     pub fn get_scancode(&self, layer: usize) -> Option<(u16, String)> {
         self.scancodes.borrow().get(layer).cloned()
     }
