@@ -10,9 +10,9 @@ use std::{
 use crate::{choose_color, ColorCircle, DerefCell};
 use backend::{DaemonBoard, Hs};
 
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 pub enum KeyboardColorIndex {
-    Key(u8),
+    Keys(Vec<u8>),
     Layer(u8),
 }
 
@@ -27,7 +27,7 @@ pub struct KeyboardColorInner {
     circle: DerefCell<ColorCircle>,
     board: RefCell<Option<DaemonBoard>>,
     hs: Cell<Hs>,
-    index: Cell<KeyboardColorIndex>,
+    index: RefCell<KeyboardColorIndex>,
 }
 
 #[glib::object_subclass]
@@ -158,9 +158,14 @@ impl KeyboardColor {
             let mut colors = BTreeSet::new();
             colors.insert(hs);
             self.inner().circle.set_colors(colors);
-            let res = match self.index() {
-                KeyboardColorIndex::Key(i) => board.keys()[i as usize].set_color(hs),
-                KeyboardColorIndex::Layer(i) => board.layers()[i as usize].set_color(hs),
+            let res = match &*self.index() {
+                KeyboardColorIndex::Keys(keys) => (|| {
+                    for i in keys {
+                        board.keys()[*i as usize].set_color(hs)?;
+                    }
+                    Ok(())
+                })(),
+                KeyboardColorIndex::Layer(i) => board.layers()[*i as usize].set_color(hs),
             };
             if let Err(err) = res {
                 error!("Failed to set keyboard color: {}", err);
@@ -169,23 +174,32 @@ impl KeyboardColor {
         }
     }
 
-    fn index(&self) -> KeyboardColorIndex {
-        self.inner().index.get()
+    fn index(&self) -> Ref<KeyboardColorIndex> {
+        self.inner().index.borrow()
     }
 
     fn read_color(&self) {
         if let Some(board) = self.board() {
-            let hs = match self.index() {
-                KeyboardColorIndex::Key(i) => board.keys()[i as usize].color().unwrap_or_default(),
-                KeyboardColorIndex::Layer(i) => board.layers()[i as usize].color(),
+            let colors: BTreeSet<Hs> = match &*self.index() {
+                KeyboardColorIndex::Keys(keys) => keys
+                    .iter()
+                    .filter_map(|i| board.keys()[*i as usize].color())
+                    .collect(),
+                KeyboardColorIndex::Layer(i) => cascade! {
+                    BTreeSet::new();
+                    ..insert(board.layers()[*i as usize].color());
+                },
             };
-            drop(board);
-            self.set_hs(hs);
+            let hs = colors.iter().next().copied().unwrap_or(Hs::new(0., 0.));
+            if self.inner().hs.replace(hs) != hs {
+                self.notify("hs");
+            }
+            self.inner().circle.set_colors(colors);
         }
     }
 
     pub fn set_index(&self, value: KeyboardColorIndex) {
-        self.inner().index.set(value);
+        self.inner().index.replace(value);
         self.read_color();
     }
 }

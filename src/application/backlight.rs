@@ -354,7 +354,7 @@ impl Backlight {
                 sensitive = true;
                 self.inner()
                     .keyboard_color
-                    .set_index(KeyboardColorIndex::Key(selected as u8));
+                    .set_index(KeyboardColorIndex::Keys(vec![selected as u8]));
             }
         }
         self.inner().keyboard_color.set_sensitive(sensitive);
