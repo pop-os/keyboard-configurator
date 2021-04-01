@@ -11,8 +11,8 @@ use std::{
 };
 use uuid::Uuid;
 
-use crate::color::{Hs, Rgb};
-use crate::{err_str, BoardId, Daemon, DaemonCommand, Matrix};
+use super::{err_str, BoardId, Daemon, DaemonCommand};
+use crate::{Hs, Matrix, Rgb};
 
 pub struct DaemonServer<R: Read, W: Write> {
     running: Cell<bool>,

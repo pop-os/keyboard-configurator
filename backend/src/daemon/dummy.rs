@@ -3,8 +3,8 @@ use std::{
     collections::HashMap,
 };
 
-use crate::Hs;
-use crate::{BoardId, Daemon, Matrix};
+use super::{BoardId, Daemon};
+use crate::{Hs, Matrix};
 
 #[derive(Default)]
 struct BoardDummy {
