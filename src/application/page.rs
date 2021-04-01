@@ -38,10 +38,7 @@ impl Page {
     }
 
     pub fn is_debug(&self) -> bool {
-        match self {
-            Self::Logical | Self::Electrical | Self::Leds => true,
-            _ => false,
-        }
+        matches!(self, Self::Logical | Self::Electrical | Self::Leds)
     }
 
     pub fn iter_all() -> impl Iterator<Item = Self> {

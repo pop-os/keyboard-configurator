@@ -219,7 +219,7 @@ impl Backlight {
         let obj: Self = glib::Object::new(&[]).unwrap();
         obj.inner().board.set(board.clone());
         obj.inner().keyboard_color.set_index(obj.led_index());
-        obj.inner().keyboard_color.set_board(Some(board.clone()));
+        obj.inner().keyboard_color.set_board(Some(board));
         obj.inner().brightness_scale.set_range(0.0, max_brightness);
         obj.inner().has_led_save.set(has_led_save);
         obj.invalidate_filter();
@@ -332,10 +332,8 @@ impl Backlight {
                     error!("Error setting brightness: {}", err);
                 }
             }
-        } else {
-            if let Err(err) = self.board().set_brightness(0xff, value) {
-                error!("Error setting brightness: {}", err);
-            }
+        } else if let Err(err) = self.board().set_brightness(0xff, value) {
+            error!("Error setting brightness: {}", err);
         }
         self.inner().changed.set(true);
         debug!("Brightness: {}", value)

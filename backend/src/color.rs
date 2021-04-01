@@ -97,6 +97,7 @@ impl Rgb {
         }
     }
 
+    #[allow(clippy::many_single_char_names)]
     pub fn to_hs_lossy(self) -> Hs {
         let (r, g, b) = self.to_floats();
         let rgb = PaletteLinSrgb::new(r, g, b);
