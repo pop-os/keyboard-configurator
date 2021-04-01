@@ -10,8 +10,8 @@ use crate::KeyMap;
 pub struct Layout {
     pub meta: Meta,
     pub default: KeyMap,
-    pub keymap: HashMap<String, u16>,
-    pub scancode_names: HashMap<u16, String>,
+    keymap: HashMap<String, u16>,
+    scancode_names: HashMap<u16, String>,
     pub(crate) physical: Vec<PhysicalLayoutKey>,
     pub(crate) layout: HashMap<String, (u8, u8)>,
     pub(crate) leds: HashMap<String, Vec<u8>>,
@@ -132,6 +132,14 @@ impl Layout {
                 )
             },
         )
+    }
+
+    pub fn scancode_to_name(&self, scancode: u16) -> Option<&str> {
+        self.scancode_names.get(&scancode).map(String::as_str)
+    }
+
+    pub fn scancode_from_name(&self, name: &str) -> Option<u16> {
+        self.keymap.get(name).copied()
     }
 }
 

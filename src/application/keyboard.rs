@@ -237,7 +237,7 @@ impl Keyboard {
     }
 
     pub fn has_scancode(&self, scancode_name: &str) -> bool {
-        self.layout().keymap.contains_key(scancode_name)
+        self.layout().scancode_from_name(scancode_name).is_some()
     }
 
     pub fn keymap_set(&self, key_index: usize, layer: usize, scancode_name: &str) {
