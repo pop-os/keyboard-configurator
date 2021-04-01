@@ -76,8 +76,16 @@ impl DaemonBoard {
             has_matrix,
         }));
 
-        let mut keys = self_.0.layout.keys();
-        for key in &mut keys {
+        let mut keys = Vec::new();
+        for i in &self_.0.layout.physical {
+            let key = Key::new(
+                &self_,
+                i.logical,
+                i.physical,
+                i.physical_name.clone(),
+                i.background_color,
+            );
+
             for layer in 0..self_.0.layout.meta.num_layers {
                 debug!("  Layer {}", layer);
                 let scancode = match self_.0.daemon.keymap_get(
@@ -110,7 +118,7 @@ impl DaemonBoard {
                 }
             }
 
-            key.board.set(self_.downgrade()).unwrap();
+            keys.push(key);
         }
         self_.0.keys.set(keys).unwrap();
 

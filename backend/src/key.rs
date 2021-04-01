@@ -1,14 +1,13 @@
-use once_cell::unsync::OnceCell;
 use std::{
     cell::{Cell, RefCell},
     char,
 };
 
-use crate::{DaemonBoard, DaemonBoardWeak, Hs, Layout, Rect, Rgb};
+use crate::{DaemonBoard, DaemonBoardWeak, Hs, Rect, Rgb};
 
 #[derive(Debug)]
 pub struct Key {
-    pub(crate) board: OnceCell<DaemonBoardWeak>,
+    pub(crate) board: DaemonBoardWeak,
     // Logical position (row, column)
     pub logical: (u8, u8),
     // Logical name (something like K01, where 0 is the row and 1 is the column)
@@ -36,7 +35,7 @@ pub struct Key {
 
 impl Key {
     pub(crate) fn new(
-        layout: &Layout,
+        board: &DaemonBoard,
         logical: (u8, u8),
         physical: Rect,
         physical_name: String,
@@ -53,14 +52,16 @@ impl Key {
         let logical_name = format!("K{}{}", row_char, col_char).to_uppercase();
         debug!("  Logical Name: {}", logical_name);
 
-        let electrical = *layout
+        let electrical = *board
+            .layout()
             .layout
             .get(logical_name.as_str())
             //.expect("Failed to find electrical mapping");
             .unwrap_or(&(0, 0));
         debug!("  Electrical: {:?}", electrical);
 
-        let leds = layout
+        let leds = board
+            .layout()
             .leds
             .get(logical_name.as_str())
             .map_or(Vec::new(), |x| x.clone());
@@ -75,7 +76,7 @@ impl Key {
         }
 
         Self {
-            board: Default::default(),
+            board: board.downgrade(),
             logical,
             logical_name,
             physical,
@@ -92,7 +93,7 @@ impl Key {
     }
 
     fn board(&self) -> DaemonBoard {
-        self.board.get().unwrap().upgrade().unwrap()
+        self.board.upgrade().unwrap()
     }
 
     pub fn pressed(&self) -> bool {

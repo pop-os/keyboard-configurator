@@ -3,17 +3,16 @@ use std::{collections::HashMap, fs, path::Path};
 mod meta;
 mod physical_layout;
 pub use self::meta::Meta;
-pub use physical_layout::PhysicalLayout;
+pub(crate) use physical_layout::{PhysicalLayout, PhysicalLayoutKey};
 
-use crate::{Key, KeyMap, Rect, Rgb};
-use physical_layout::{PhysicalKeyEnum, PhysicalLayoutEntry};
+use crate::KeyMap;
 
 pub struct Layout {
     pub meta: Meta,
     pub default: KeyMap,
     pub keymap: HashMap<String, u16>,
     pub scancode_names: HashMap<u16, String>,
-    physical: PhysicalLayout,
+    pub(crate) physical: Vec<PhysicalLayoutKey>,
     pub(crate) layout: HashMap<String, (u8, u8)>,
     pub(crate) leds: HashMap<String, Vec<u8>>,
 }
@@ -79,7 +78,9 @@ impl Layout {
         let (keymap, scancode_names) = parse_keymap_json(keymap_json);
         let layout = serde_json::from_str(layout_json).unwrap();
         let leds = serde_json::from_str(leds_json).unwrap();
-        let physical = serde_json::from_str(physical_json).unwrap();
+        let physical = serde_json::from_str::<PhysicalLayout>(physical_json)
+            .unwrap()
+            .keys();
         Self {
             meta,
             default,
@@ -131,63 +132,6 @@ impl Layout {
                 )
             },
         )
-    }
-
-    pub(crate) fn keys(&self) -> Vec<Key> {
-        let mut keys = Vec::new();
-
-        let mut row_i = 0;
-        let mut col_i = 0;
-        let mut physical = Rect::new(0.0, 0.0, 1.0, 1.0);
-        let mut background_color = Rgb::new(0xcc, 0xcc, 0xcc);
-
-        for entry in &self.physical.0 {
-            if let PhysicalLayoutEntry::Row(row) = entry {
-                for i in &row.0 {
-                    match i {
-                        PhysicalKeyEnum::Meta(meta) => {
-                            debug!("Key metadata {:?}", meta);
-                            physical.x += meta.x;
-                            physical.y -= meta.y;
-                            physical.w = meta.w.unwrap_or(physical.w);
-                            physical.h = meta.h.unwrap_or(physical.h);
-                            background_color = meta
-                                .c
-                                .as_ref()
-                                .map(|c| {
-                                    let err = format!("Failed to parse color {}", c);
-                                    Rgb::parse(&c[1..]).expect(&err)
-                                })
-                                .unwrap_or(background_color);
-                        }
-                        PhysicalKeyEnum::Name(name) => {
-                            keys.push(Key::new(
-                                self,
-                                (row_i as u8, col_i as u8),
-                                physical,
-                                name.clone(),
-                                background_color,
-                            ));
-
-                            physical.x += physical.w;
-
-                            physical.w = 1.0;
-                            physical.h = 1.0;
-
-                            col_i += 1;
-                        }
-                    }
-                }
-
-                physical.x = 0.0;
-                physical.y -= 1.0;
-
-                col_i = 0;
-                row_i += 1;
-            }
-        }
-
-        keys
     }
 }
 
