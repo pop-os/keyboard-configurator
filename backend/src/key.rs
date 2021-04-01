@@ -3,7 +3,7 @@ use std::{
     char,
 };
 
-use crate::{DaemonBoard, DaemonBoardWeak, Hs, Rect, Rgb};
+use crate::{DaemonBoard, DaemonBoardWeak, Hs, PhysicalLayoutKey, Rect, Rgb};
 
 #[derive(Debug)]
 pub struct Key {
@@ -34,13 +34,12 @@ pub struct Key {
 }
 
 impl Key {
-    pub(crate) fn new(
-        board: &DaemonBoard,
-        logical: (u8, u8),
-        physical: Rect,
-        physical_name: String,
-        background_color: Rgb,
-    ) -> Self {
+    pub(crate) fn new(board: &DaemonBoard, physical_key: &PhysicalLayoutKey) -> Self {
+        let logical = physical_key.logical;
+        let physical = physical_key.physical;
+        let physical_name = physical_key.physical_name.clone();
+        let background_color = physical_key.background_color;
+
         debug!("Key {}, {} = {:?}", physical.x, physical.y, physical_name);
 
         debug!("  Logical: {:?}", logical);
@@ -75,6 +74,40 @@ impl Key {
             led_name.push_str(&led.to_string());
         }
 
+        let mut scancodes = Vec::new();
+        for layer in 0..board.layout().meta.num_layers {
+            debug!("  Layer {}", layer);
+            let scancode =
+                match board
+                    .0
+                    .daemon
+                    .keymap_get(board.0.board, layer, electrical.0, electrical.1)
+                {
+                    Ok(value) => value,
+                    Err(err) => {
+                        error!("Failed to read scancode: {:?}", err);
+                        0
+                    }
+                };
+            debug!("    Scancode: {:04X}", scancode);
+
+            let scancode_name = match board.layout().scancode_names.get(&scancode) {
+                Some(some) => some.to_string(),
+                None => String::new(),
+            };
+            debug!("    Scancode Name: {}", scancode_name);
+
+            scancodes.push((scancode, scancode_name));
+        }
+
+        let mut led_color = None;
+        if board.layout().meta.has_mode && leds.len() > 0 {
+            match board.0.daemon.color(board.0.board, leds[0]) {
+                Ok(color) => led_color = Some(color),
+                Err(err) => error!("error getting key color: {}", err),
+            }
+        }
+
         Self {
             board: board.downgrade(),
             logical,
@@ -85,9 +118,9 @@ impl Key {
             electrical_name: format!("{}, {}", electrical.0, electrical.1),
             leds,
             led_name,
-            led_color: Cell::new(None),
+            led_color: Cell::new(led_color),
             pressed: Cell::new(false),
-            scancodes: RefCell::new(Vec::new()),
+            scancodes: RefCell::new(scancodes),
             background_color,
         }
     }

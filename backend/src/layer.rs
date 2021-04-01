@@ -13,7 +13,7 @@ pub struct Layer {
 }
 
 impl Layer {
-    pub(crate) fn new(layer: u8, board: &DaemonBoard) -> Self {
+    pub(crate) fn new(board: &DaemonBoard, layer: u8) -> Self {
         let index = if board.layout().meta.has_per_layer {
             0xf0 + layer
         } else {

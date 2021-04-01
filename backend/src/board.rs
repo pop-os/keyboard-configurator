@@ -76,54 +76,17 @@ impl DaemonBoard {
             has_matrix,
         }));
 
-        let mut keys = Vec::new();
-        for i in &self_.0.layout.physical {
-            let key = Key::new(
-                &self_,
-                i.logical,
-                i.physical,
-                i.physical_name.clone(),
-                i.background_color,
-            );
-
-            for layer in 0..self_.0.layout.meta.num_layers {
-                debug!("  Layer {}", layer);
-                let scancode = match self_.0.daemon.keymap_get(
-                    board,
-                    layer,
-                    key.electrical.0,
-                    key.electrical.1,
-                ) {
-                    Ok(value) => value,
-                    Err(err) => {
-                        error!("Failed to read scancode: {:?}", err);
-                        0
-                    }
-                };
-                debug!("    Scancode: {:04X}", scancode);
-
-                let scancode_name = match self_.0.layout.scancode_names.get(&scancode) {
-                    Some(some) => some.to_string(),
-                    None => String::new(),
-                };
-                debug!("    Scancode Name: {}", scancode_name);
-
-                key.scancodes.borrow_mut().push((scancode, scancode_name));
-            }
-
-            if self_.layout().meta.has_mode && key.leds.len() > 0 {
-                match self_.0.daemon.color(self_.0.board, key.leds[0]) {
-                    Ok(color) => key.led_color.set(Some(color)),
-                    Err(err) => error!("error getting key color: {}", err),
-                }
-            }
-
-            keys.push(key);
-        }
+        let keys = self_
+            .0
+            .layout
+            .physical
+            .iter()
+            .map(|i| Key::new(&self_, i))
+            .collect();
         self_.0.keys.set(keys).unwrap();
 
         let layers = (0..num_layers)
-            .map(|layer| Layer::new(layer, &self_))
+            .map(|layer| Layer::new(&self_, layer))
             .collect();
         self_.0.layers.set(layers).unwrap();
 
