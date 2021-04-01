@@ -1,7 +1,10 @@
 use once_cell::unsync::OnceCell;
-use std::cell::{Cell, RefCell};
+use std::{
+    cell::{Cell, RefCell},
+    char,
+};
 
-use crate::{DaemonBoard, DaemonBoardWeak, Hs, Rect, Rgb};
+use crate::{DaemonBoard, DaemonBoardWeak, Hs, Layout, Rect, Rgb};
 
 #[derive(Debug)]
 pub struct Key {
@@ -32,6 +35,62 @@ pub struct Key {
 }
 
 impl Key {
+    pub(crate) fn new(
+        layout: &Layout,
+        logical: (u8, u8),
+        physical: Rect,
+        physical_name: String,
+        background_color: Rgb,
+    ) -> Self {
+        debug!("Key {}, {} = {:?}", physical.x, physical.y, physical_name);
+
+        debug!("  Logical: {:?}", logical);
+
+        let row_char =
+            char::from_digit(logical.0 as u32, 36).expect("Failed to convert row to char");
+        let col_char =
+            char::from_digit(logical.1 as u32, 36).expect("Failed to convert col to char");
+        let logical_name = format!("K{}{}", row_char, col_char).to_uppercase();
+        debug!("  Logical Name: {}", logical_name);
+
+        let electrical = *layout
+            .layout
+            .get(logical_name.as_str())
+            //.expect("Failed to find electrical mapping");
+            .unwrap_or(&(0, 0));
+        debug!("  Electrical: {:?}", electrical);
+
+        let leds = layout
+            .leds
+            .get(logical_name.as_str())
+            .map_or(Vec::new(), |x| x.clone());
+        debug!("  LEDs: {:?}", leds);
+
+        let mut led_name = String::new();
+        for led in leds.iter() {
+            if !led_name.is_empty() {
+                led_name.push_str(", ");
+            }
+            led_name.push_str(&led.to_string());
+        }
+
+        Self {
+            board: Default::default(),
+            logical,
+            logical_name,
+            physical,
+            physical_name,
+            electrical,
+            electrical_name: format!("{}, {}", electrical.0, electrical.1),
+            leds,
+            led_name,
+            led_color: Cell::new(None),
+            pressed: Cell::new(false),
+            scancodes: RefCell::new(Vec::new()),
+            background_color,
+        }
+    }
+
     fn board(&self) -> DaemonBoard {
         self.board.get().unwrap().upgrade().unwrap()
     }

@@ -1,10 +1,4 @@
-use std::{
-    cell::{Cell, RefCell},
-    char,
-    collections::HashMap,
-    fs,
-    path::Path,
-};
+use std::{collections::HashMap, fs, path::Path};
 
 mod meta;
 mod physical_layout;
@@ -20,8 +14,8 @@ pub struct Layout {
     pub keymap: HashMap<String, u16>,
     pub scancode_names: HashMap<u16, String>,
     physical: PhysicalLayout,
-    layout: HashMap<String, (u8, u8)>,
-    leds: HashMap<String, Vec<u8>>,
+    pub(crate) layout: HashMap<String, (u8, u8)>,
+    pub(crate) leds: HashMap<String, Vec<u8>>,
 }
 
 macro_rules! keyboards {
@@ -170,53 +164,13 @@ impl Layout {
                                 .unwrap_or(background_color);
                         }
                         PhysicalKeyEnum::Name(name) => {
-                            debug!("Key {}, {} = {:?}", x, y, name);
-
-                            let logical = (row_i as u8, col_i as u8);
-                            debug!("  Logical: {:?}", logical);
-
-                            let row_char = char::from_digit(logical.0 as u32, 36)
-                                .expect("Failed to convert row to char");
-                            let col_char = char::from_digit(logical.1 as u32, 36)
-                                .expect("Failed to convert col to char");
-                            let logical_name = format!("K{}{}", row_char, col_char).to_uppercase();
-                            debug!("  Logical Name: {}", logical_name);
-
-                            let electrical = self
-                                .layout
-                                .get(logical_name.as_str())
-                                //.expect("Failed to find electrical mapping");
-                                .unwrap_or(&(0, 0));
-                            debug!("  Electrical: {:?}", electrical);
-
-                            let leds = self
-                                .leds
-                                .get(logical_name.as_str())
-                                .map_or(Vec::new(), |x| x.clone());
-                            let mut led_name = String::new();
-                            for led in leds.iter() {
-                                if !led_name.is_empty() {
-                                    led_name.push_str(", ");
-                                }
-                                led_name.push_str(&led.to_string());
-                            }
-                            debug!("  LEDs: {:?}", leds);
-
-                            keys.push(Key {
-                                board: Default::default(),
-                                logical,
-                                logical_name,
-                                physical: Rect::new(x, y, w, h),
-                                physical_name: name.clone(),
-                                electrical: *electrical,
-                                electrical_name: format!("{}, {}", electrical.0, electrical.1),
-                                leds,
-                                led_name,
-                                led_color: Cell::new(None),
-                                pressed: Cell::new(false),
-                                scancodes: RefCell::new(Vec::new()),
+                            keys.push(Key::new(
+                                self,
+                                (row_i as u8, col_i as u8),
+                                Rect::new(x, y, w, h),
+                                name.clone(),
                                 background_color,
-                            });
+                            ));
 
                             x += w;
 
