@@ -212,6 +212,7 @@ impl Layout {
                                 electrical_name: format!("{}, {}", electrical.0, electrical.1),
                                 leds,
                                 led_name,
+                                led_color: Cell::new(None),
                                 pressed: Cell::new(false),
                                 scancodes: RefCell::new(Vec::new()),
                                 background_color,

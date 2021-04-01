@@ -4,8 +4,7 @@ use std::{
     rc::{Rc, Weak},
 };
 
-use crate::Hs;
-use crate::{BoardId, Daemon, Key, KeyMap, Layout, Matrix};
+use crate::{BoardId, Daemon, Hs, Key, KeyMap, Layer, Layout, Matrix};
 
 pub(crate) struct DaemonBoardInner {
     pub(crate) daemon: Rc<dyn Daemon>,
@@ -13,6 +12,7 @@ pub(crate) struct DaemonBoardInner {
     model: String,
     layout: Layout,
     keys: OnceCell<Vec<Key>>,
+    layers: OnceCell<Vec<Layer>>,
     max_brightness: i32,
 }
 
@@ -50,10 +50,17 @@ impl DaemonBoard {
             100
         });
 
+        let num_layers = if layout.meta.has_per_layer {
+            layout.meta.num_layers
+        } else {
+            1
+        };
+
         let inner = Rc::new(DaemonBoardInner {
             daemon,
             board,
             keys: OnceCell::new(),
+            layers: OnceCell::new(),
             layout,
             max_brightness,
             model,
@@ -91,6 +98,47 @@ impl DaemonBoard {
         }
         inner.keys.set(keys).unwrap();
 
+        let mut layers = Vec::new();
+        for layer in 0..num_layers {
+            let index = if inner.layout.meta.has_per_layer {
+                0xf0 + layer
+            } else {
+                0xff
+            };
+            let mode = if inner.layout.meta.has_mode {
+                inner
+                    .daemon
+                    .mode(board, layer)
+                    .map(Some)
+                    .unwrap_or_else(|err| {
+                        error!("Error getting layer mode: {}", err);
+                        None
+                    })
+            } else {
+                None
+            };
+            let brightness = inner
+                .daemon
+                .brightness(inner.board, index)
+                .unwrap_or_else(|err| {
+                    error!("error getting layer brightness: {}", err);
+                    0
+                });
+            let color = inner.daemon.color(board, index).unwrap_or_else(|err| {
+                error!("error getting layer color: {}", err);
+                Hs::new(0., 0.)
+            });
+            layers.push(Layer::new(
+                layer,
+                index,
+                DaemonBoardWeak(Rc::downgrade(&inner)),
+                mode,
+                brightness,
+                color,
+            ));
+        }
+        inner.layers.set(layers).unwrap();
+
         Ok(Self(inner))
     }
 
@@ -114,24 +162,6 @@ impl DaemonBoard {
         self.0.max_brightness
     }
 
-    pub fn brightness(&self, index: u8) -> Result<i32, String> {
-        self.0.daemon.brightness(self.0.board, index)
-    }
-
-    pub fn set_brightness(&self, index: u8, brightness: i32) -> Result<(), String> {
-        self.0
-            .daemon
-            .set_brightness(self.0.board, index, brightness)
-    }
-
-    pub fn mode(&self, layer: u8) -> Result<(u8, u8), String> {
-        self.0.daemon.mode(self.0.board, layer)
-    }
-
-    pub fn set_mode(&self, layer: u8, mode: u8, speed: u8) -> Result<(), String> {
-        self.0.daemon.set_mode(self.0.board, layer, mode, speed)
-    }
-
     pub fn led_save(&self) -> Result<(), String> {
         self.0.daemon.led_save(self.0.board)
     }
@@ -142,6 +172,10 @@ impl DaemonBoard {
 
     pub fn layout(&self) -> &Layout {
         &self.0.layout
+    }
+
+    pub fn layers(&self) -> &[Layer] {
+        self.0.layers.get().unwrap()
     }
 
     pub fn keys(&self) -> &[Key] {

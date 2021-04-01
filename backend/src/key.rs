@@ -1,7 +1,7 @@
 use once_cell::unsync::OnceCell;
 use std::cell::{Cell, RefCell};
 
-use crate::{DaemonBoard, DaemonBoardWeak, Rect, Rgb};
+use crate::{DaemonBoard, DaemonBoardWeak, Hs, Rect, Rgb};
 
 #[derive(Debug)]
 pub struct Key {
@@ -22,6 +22,7 @@ pub struct Key {
     pub leds: Vec<u8>,
     /// LED name
     pub led_name: String,
+    pub(crate) led_color: Cell<Option<Hs>>,
     // Key is currently pressed
     pub pressed: Cell<bool>,
     // Currently loaded scancodes and their names

@@ -306,8 +306,8 @@ impl Backlight {
         }
 
         let speed = self.inner().speed_scale.get_value();
-        let layer = self.inner().layer.get();
-        if let Err(err) = self.board().set_mode(layer, self.mode().index, speed as u8) {
+        let layer = &self.board().layers()[self.inner().layer.get() as usize];
+        if let Err(err) = layer.set_mode(self.mode().index, speed as u8) {
             error!("Error setting keyboard mode: {}", err);
         }
         self.inner().changed.set(true);
@@ -318,15 +318,10 @@ impl Backlight {
             return;
         }
         let value = self.inner().brightness_scale.get_value() as i32;
-        let layout = self.inner().board.layout();
-        if layout.meta.has_per_layer {
-            for i in 0..layout.meta.num_layers {
-                if let Err(err) = self.board().set_brightness(0xf0 + i, value) {
-                    error!("Error setting brightness: {}", err);
-                }
+        for layer in self.board().layers() {
+            if let Err(err) = layer.set_brightness(value) {
+                error!("Error setting brightness: {}", err);
             }
-        } else if let Err(err) = self.board().set_brightness(0xff, value) {
-            error!("Error setting brightness: {}", err);
         }
         self.inner().changed.set(true);
         debug!("Brightness: {}", value)
@@ -335,24 +330,11 @@ impl Backlight {
     pub fn set_layer(&self, layer: u8) {
         self.inner().layer.set(layer);
 
-        let (mode, speed) = if self.inner().board.layout().meta.has_mode {
-            self.board().mode(layer).unwrap_or_else(|err| {
-                error!("Error getting keyboard mode: {}", err);
-                (0, 128)
-            })
-        } else {
-            (0, 128)
-        };
+        let layer = &self.board().layers()[layer as usize];
 
+        let (mode, speed) = layer.mode().unwrap_or((0, 128));
         let mode = Mode::from_index(mode).map(|x| x.id);
-
-        let brightness = match self.board().brightness(self.led_index()) {
-            Ok(value) => value as f64,
-            Err(err) => {
-                error!("{}", err);
-                0.0
-            }
-        };
+        let brightness = layer.brightness() as f64;
 
         self.inner().do_not_set.set(true);
 
