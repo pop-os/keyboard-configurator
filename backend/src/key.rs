@@ -38,4 +38,22 @@ impl Key {
     pub fn get_scancode(&self, layer: usize) -> Option<(u16, String)> {
         self.scancodes.borrow().get(layer).cloned()
     }
+
+    pub fn set_scancode(&self, layer: usize, scancode_name: &str) -> Result<(), String> {
+        let board = self.board();
+        let scancode = *board
+            .layout()
+            .keymap
+            .get(scancode_name)
+            .ok_or_else(|| format!("Unable to find scancode '{}'", scancode_name))?;
+        board.0.daemon.keymap_set(
+            board.0.board,
+            layer as u8,
+            self.electrical.0,
+            self.electrical.1,
+            scancode,
+        )?;
+        self.scancodes.borrow_mut()[layer] = (scancode, scancode_name.to_string());
+        Ok(())
+    }
 }

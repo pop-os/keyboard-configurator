@@ -8,8 +8,8 @@ use crate::Hs;
 use crate::{BoardId, Daemon, Key, KeyMap, Layout, Matrix};
 
 pub(crate) struct DaemonBoardInner {
-    daemon: Rc<dyn Daemon>,
-    board: BoardId,
+    pub(crate) daemon: Rc<dyn Daemon>,
+    pub(crate) board: BoardId,
     model: String,
     layout: Layout,
     keys: OnceCell<Vec<Key>>,
@@ -17,7 +17,7 @@ pub(crate) struct DaemonBoardInner {
 
 #[derive(Clone, glib::GBoxed)]
 #[gboxed(type_name = "S76DaemonBoard")]
-pub struct DaemonBoard(Rc<DaemonBoardInner>);
+pub struct DaemonBoard(pub(crate) Rc<DaemonBoardInner>);
 
 pub(crate) struct DaemonBoardWeak(Weak<DaemonBoardInner>);
 
@@ -89,29 +89,6 @@ impl DaemonBoard {
 
     pub fn model(&self) -> &str {
         &self.0.model
-    }
-
-    pub fn keymap_set(
-        &self,
-        key_index: usize,
-        layer: usize,
-        scancode_name: &str,
-    ) -> Result<(), String> {
-        let k = &self.keys()[key_index];
-        let scancode = *self
-            .layout()
-            .keymap
-            .get(scancode_name)
-            .ok_or_else(|| format!("Unable to find scancode '{}'", scancode_name))?;
-        self.0.daemon.keymap_set(
-            self.0.board,
-            layer as u8,
-            k.electrical.0,
-            k.electrical.1,
-            scancode,
-        )?;
-        k.scancodes.borrow_mut()[layer] = (scancode, scancode_name.to_string());
-        Ok(())
     }
 
     pub fn matrix_get(&self) -> Result<Matrix, String> {

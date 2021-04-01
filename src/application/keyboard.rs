@@ -254,7 +254,7 @@ impl Keyboard {
     }
 
     pub fn keymap_set(&self, key_index: usize, layer: usize, scancode_name: &str) {
-        if let Err(err) = self.board().keymap_set(key_index, layer, scancode_name) {
+        if let Err(err) = self.board().keys()[key_index].set_scancode(layer, scancode_name) {
             error!("Failed to set keymap: {:?}", err);
         }
 
