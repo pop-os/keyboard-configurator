@@ -50,7 +50,7 @@ fn add_boards(stack: &gtk::Stack) -> Result<(), String> {
 }
 
 fn page(board: DaemonBoard) -> gtk::Widget {
-    let max_brightness = board.max_brightness().unwrap_or(100) as f64;
+    let max_brightness = board.max_brightness() as f64;
     let brightness = board.brightness(0xff).unwrap_or(0) as f64;
     let brightness_scale = cascade! {
         gtk::Scale::with_range(gtk::Orientation::Horizontal, 0., max_brightness, 1.);

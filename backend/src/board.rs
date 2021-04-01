@@ -13,6 +13,7 @@ pub(crate) struct DaemonBoardInner {
     model: String,
     layout: Layout,
     keys: OnceCell<Vec<Key>>,
+    max_brightness: i32,
 }
 
 #[derive(Clone, glib::GBoxed)]
@@ -44,11 +45,17 @@ impl DaemonBoard {
         let layout = Layout::from_board(&model)
             .ok_or_else(|| format!("Failed to locate layout for '{}'", model))?;
 
+        let max_brightness = daemon.max_brightness(board).unwrap_or_else(|err| {
+            error!("Error getting max brightness: {}", err);
+            100
+        });
+
         let inner = Rc::new(DaemonBoardInner {
             daemon,
             board,
             keys: OnceCell::new(),
             layout,
+            max_brightness,
             model,
         });
 
@@ -103,8 +110,8 @@ impl DaemonBoard {
         self.0.daemon.set_color(self.0.board, index, color)
     }
 
-    pub fn max_brightness(&self) -> Result<i32, String> {
-        self.0.daemon.max_brightness(self.0.board)
+    pub fn max_brightness(&self) -> i32 {
+        self.0.max_brightness
     }
 
     pub fn brightness(&self, index: u8) -> Result<i32, String> {

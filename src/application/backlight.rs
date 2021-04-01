@@ -206,14 +206,7 @@ glib::wrapper! {
 
 impl Backlight {
     pub fn new(board: DaemonBoard) -> Self {
-        let max_brightness = match board.max_brightness() {
-            Ok(value) => value as f64,
-            Err(err) => {
-                error!("Error getting brightness: {}", err);
-                100.0
-            }
-        };
-
+        let max_brightness = board.max_brightness() as f64;
         let has_led_save = board.led_save().is_ok();
 
         let obj: Self = glib::Object::new(&[]).unwrap();
