@@ -97,10 +97,9 @@ impl DaemonBoard {
         }
         self_.0.keys.set(keys).unwrap();
 
-        let mut layers = Vec::new();
-        for layer in 0..num_layers {
-            layers.push(Layer::new(layer, &self_));
-        }
+        let layers = (0..num_layers)
+            .map(|layer| Layer::new(layer, &self_))
+            .collect();
         self_.0.layers.set(layers).unwrap();
 
         Ok(self_)
