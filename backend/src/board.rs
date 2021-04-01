@@ -17,6 +17,7 @@ pub(crate) struct DaemonBoardInner {
     max_brightness: i32,
     pub(crate) leds_changed: Cell<bool>,
     has_led_save: bool,
+    has_matrix: bool,
 }
 
 #[derive(Clone, glib::GBoxed)]
@@ -60,6 +61,7 @@ impl DaemonBoard {
         };
 
         let has_led_save = daemon.led_save(board).is_ok();
+        let has_matrix = daemon.matrix_get(board).is_ok();
 
         let self_ = Self(Rc::new(DaemonBoardInner {
             daemon,
@@ -71,6 +73,7 @@ impl DaemonBoard {
             model,
             leds_changed: Cell::new(false),
             has_led_save,
+            has_matrix,
         }));
 
         let mut keys = self_.0.layout.keys();
@@ -125,6 +128,10 @@ impl DaemonBoard {
 
     pub fn model(&self) -> &str {
         &self.0.model
+    }
+
+    pub fn has_matrix(&self) -> bool {
+        self.0.has_matrix
     }
 
     pub fn matrix_get(&self) -> Result<Matrix, String> {
