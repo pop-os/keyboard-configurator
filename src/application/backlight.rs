@@ -3,9 +3,9 @@ use glib::clone;
 use gtk::prelude::*;
 use gtk::subclass::prelude::*;
 use once_cell::sync::Lazy;
-use std::{cell::Cell, convert::TryFrom};
+use std::cell::{Cell, RefCell};
 
-use crate::{DerefCell, KeyboardColor, KeyboardColorIndex};
+use crate::{DerefCell, KeyboardColor, KeyboardColorIndex, SelectedKeys};
 use backend::{DaemonBoard, Hs, Mode};
 
 #[derive(Default)]
@@ -22,7 +22,7 @@ pub struct BacklightInner {
     speed_row: DerefCell<gtk::ListBoxRow>,
     layer: Cell<u8>,
     do_not_set: Cell<bool>,
-    selected: Cell<Option<usize>>,
+    selected: RefCell<SelectedKeys>,
     has_led_save: Cell<bool>,
     changed: Cell<bool>,
 }
@@ -154,13 +154,11 @@ impl ObjectImpl for BacklightInner {
         static PROPERTIES: Lazy<Vec<glib::ParamSpec>> = Lazy::new(|| {
             vec![
                 glib::ParamSpec::string("mode", "mode", "mode", None, glib::ParamFlags::READABLE),
-                glib::ParamSpec::int(
+                glib::ParamSpec::boxed(
                     "selected",
                     "selected",
                     "selected",
-                    -1,
-                    i32::MAX,
-                    -1,
+                    SelectedKeys::get_type(),
                     glib::ParamFlags::WRITABLE,
                 ),
             ]
@@ -178,9 +176,8 @@ impl ObjectImpl for BacklightInner {
     ) {
         match pspec.get_name() {
             "selected" => {
-                let v: i32 = value.get_some().unwrap();
-                let selected = usize::try_from(v).ok();
-                obj.inner().selected.set(selected);
+                let selected: &SelectedKeys = value.get_some().unwrap();
+                obj.inner().selected.replace(selected.clone());
                 obj.update_per_key();
             }
             _ => unimplemented!(),
@@ -347,17 +344,13 @@ impl Backlight {
             return;
         }
 
-        let mut sensitive = false;
-        if let Some(selected) = self.inner().selected.get() {
-            let k = &self.inner().board.keys()[selected];
-            if !k.leds.is_empty() {
-                sensitive = true;
-                self.inner()
-                    .keyboard_color
-                    .set_index(KeyboardColorIndex::Keys(vec![selected as u8]));
-            }
-        }
-        self.inner().keyboard_color.set_sensitive(sensitive);
+        let selected = self.inner().selected.borrow();
+        self.inner()
+            .keyboard_color
+            .set_index(KeyboardColorIndex::Keys(selected.clone()));
+        self.inner()
+            .keyboard_color
+            .set_sensitive(!selected.is_empty());
     }
 
     fn led_save(&self) {

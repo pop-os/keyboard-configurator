@@ -158,9 +158,11 @@ impl Picker {
                     let layer = kb.layer();
 
                     info!("Clicked {} layer {:?}", name, layer);
-                    if let Some(i) = kb.selected() {
+                    let selected = kb.selected();
+                    if selected.len() == 1 {
+                        let i = selected.iter().next().unwrap();
                         if let Some(layer) = layer {
-                            kb.keymap_set(i, layer, &name);
+                            kb.keymap_set(*i, layer, &name);
                         }
                     }
                 }));

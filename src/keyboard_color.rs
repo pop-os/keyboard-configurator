@@ -7,12 +7,12 @@ use std::{
     collections::BTreeSet,
 };
 
-use crate::{choose_color, ColorCircle, DerefCell};
+use crate::{choose_color, ColorCircle, DerefCell, SelectedKeys};
 use backend::{DaemonBoard, Hs};
 
 #[derive(Clone)]
 pub enum KeyboardColorIndex {
-    Keys(Vec<u8>),
+    Keys(SelectedKeys),
     Layer(u8),
 }
 
@@ -160,7 +160,7 @@ impl KeyboardColor {
             self.inner().circle.set_colors(colors);
             let res = match &*self.index() {
                 KeyboardColorIndex::Keys(keys) => (|| {
-                    for i in keys {
+                    for i in keys.iter() {
                         board.keys()[*i as usize].set_color(hs)?;
                     }
                     Ok(())

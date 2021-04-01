@@ -5,14 +5,13 @@ use gtk::prelude::*;
 use gtk::subclass::prelude::*;
 use std::{
     cell::{Cell, RefCell},
-    convert::TryFrom,
     ffi::OsStr,
     fs::File,
     str, time,
 };
 
 use super::{show_error_dialog, Backlight, KeyboardLayer, Page, Picker};
-use crate::DerefCell;
+use crate::{DerefCell, SelectedKeys};
 use backend::{DaemonBoard, KeyMap, Layout};
 
 #[derive(Default)]
@@ -21,7 +20,7 @@ pub struct KeyboardInner {
     board: DerefCell<DaemonBoard>,
     page: Cell<Page>,
     picker: RefCell<WeakRef<Picker>>,
-    selected: Cell<Option<usize>>,
+    selected: RefCell<SelectedKeys>,
     layer_stack: DerefCell<gtk::Stack>,
     stack: DerefCell<gtk::Stack>,
     picker_box: DerefCell<gtk::Box>,
@@ -118,13 +117,11 @@ impl ObjectImpl for KeyboardInner {
     fn properties() -> &'static [glib::ParamSpec] {
         use once_cell::sync::Lazy;
         static PROPERTIES: Lazy<Vec<glib::ParamSpec>> = Lazy::new(|| {
-            vec![glib::ParamSpec::int(
+            vec![glib::ParamSpec::boxed(
                 "selected",
                 "selected",
                 "selected",
-                -1,
-                i32::MAX,
-                -1,
+                SelectedKeys::get_type(),
                 glib::ParamFlags::READWRITE,
             )]
         });
@@ -140,11 +137,7 @@ impl ObjectImpl for KeyboardInner {
         pspec: &glib::ParamSpec,
     ) {
         match pspec.get_name() {
-            "selected" => {
-                let v: i32 = value.get_some().unwrap();
-                let selected = usize::try_from(v).ok();
-                keyboard.set_selected(selected);
-            }
+            "selected" => keyboard.set_selected(value.get_some::<&SelectedKeys>().unwrap().clone()),
             _ => unimplemented!(),
         }
     }
@@ -156,11 +149,7 @@ impl ObjectImpl for KeyboardInner {
         pspec: &glib::ParamSpec,
     ) -> glib::Value {
         match pspec.get_name() {
-            "selected" => keyboard
-                .selected()
-                .map(|v| v as i32)
-                .unwrap_or(-1)
-                .to_value(),
+            "selected" => keyboard.selected().to_value(),
             _ => unimplemented!(),
         }
     }
@@ -241,8 +230,8 @@ impl Keyboard {
         self.inner().page.get().layer()
     }
 
-    pub fn selected(&self) -> Option<usize> {
-        self.inner().selected.get()
+    pub fn selected(&self) -> SelectedKeys {
+        self.inner().selected.borrow().clone()
     }
 
     pub fn layer_stack(&self) -> &gtk::Stack {
@@ -395,14 +384,14 @@ impl Keyboard {
                     widget.downcast::<gtk::Container>().unwrap().remove(picker);
                 }
                 self.inner().picker_box.add(picker);
-                picker.set_sensitive(self.selected().is_some() && self.layer() != None);
+                picker.set_sensitive(!self.selected().is_empty() && self.layer() != None);
                 picker.downgrade()
             }
             None => WeakRef::new(),
         };
     }
 
-    fn set_selected(&self, i: Option<usize>) {
+    fn set_selected(&self, i: SelectedKeys) {
         let picker = match self.inner().picker.borrow().upgrade() {
             Some(picker) => picker,
             None => {
@@ -413,19 +402,19 @@ impl Keyboard {
 
         picker.set_selected(None);
 
-        if let Some(i) = i {
-            let k = &keys[i];
+        if i.len() == 1 {
+            let k = &keys[*i.iter().next().unwrap()];
             debug!("{:#?}", k);
             if let Some(layer) = self.layer() {
-                if let Some((_scancode, scancode_name)) = keys[i].get_scancode(layer) {
+                if let Some((_scancode, scancode_name)) = k.get_scancode(layer) {
                     picker.set_selected(Some(scancode_name));
                 }
             }
         }
 
-        picker.set_sensitive(i.is_some() && self.layer() != None);
+        picker.set_sensitive(i.len() == 1 && self.layer() != None);
 
-        self.inner().selected.set(i);
+        self.inner().selected.replace(i);
 
         self.queue_draw();
         self.notify("selected");

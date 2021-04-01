@@ -3,13 +3,11 @@ use gtk::prelude::*;
 use gtk::subclass::prelude::*;
 use std::{
     cell::{Cell, RefCell},
-    collections::HashSet,
-    convert::TryFrom,
     f64::consts::PI,
 };
 
 use super::Page;
-use crate::DerefCell;
+use crate::{DerefCell, SelectedKeys};
 use backend::{DaemonBoard, Key, Rect, Rgb};
 
 const SCALE: f64 = 64.0;
@@ -20,7 +18,7 @@ const RADIUS: f64 = 4.;
 pub struct KeyboardLayerInner {
     page: Cell<Page>,
     board: DerefCell<DaemonBoard>,
-    selected: RefCell<HashSet<usize>>,
+    selected: RefCell<SelectedKeys>,
     selectable: Cell<bool>,
     multiple: Cell<bool>,
 }
@@ -49,13 +47,11 @@ impl ObjectImpl for KeyboardLayerInner {
     fn properties() -> &'static [glib::ParamSpec] {
         use once_cell::sync::Lazy;
         static PROPERTIES: Lazy<Vec<glib::ParamSpec>> = Lazy::new(|| {
-            vec![glib::ParamSpec::int(
+            vec![glib::ParamSpec::boxed(
                 "selected",
                 "selected",
                 "selected",
-                -1,
-                i32::MAX,
-                -1,
+                SelectedKeys::get_type(),
                 glib::ParamFlags::READWRITE,
             )]
         });
@@ -71,11 +67,7 @@ impl ObjectImpl for KeyboardLayerInner {
         pspec: &glib::ParamSpec,
     ) {
         match pspec.get_name() {
-            "selected" => {
-                let v: i32 = value.get_some().unwrap();
-                let selected = usize::try_from(v).ok();
-                widget.set_selected(selected.into_iter().collect());
-            }
+            "selected" => widget.set_selected(value.get_some::<&SelectedKeys>().unwrap().clone()),
             _ => unimplemented!(),
         }
     }
@@ -87,15 +79,7 @@ impl ObjectImpl for KeyboardLayerInner {
         pspec: &glib::ParamSpec,
     ) -> glib::Value {
         match pspec.get_name() {
-            "selected" => {
-                let selected = self.selected.borrow();
-                if selected.len() == 1 {
-                    *selected.iter().next().unwrap() as i32
-                } else {
-                    -1
-                }
-                .to_value()
-            }
+            "selected" => self.selected.borrow().to_value(),
             _ => unimplemented!(),
         }
     }
@@ -174,7 +158,9 @@ impl WidgetImpl for KeyboardLayerInner {
         if let Some(pressed) = pressed {
             let shift = evt.get_state().contains(gdk::ModifierType::SHIFT_MASK);
             let mut selected = widget.selected();
-            if shift && self.multiple.get() {
+            if shift
+            /*&& self.multiple.get()*/
+            {
                 if selected.contains(&pressed) {
                     selected.remove(&pressed);
                 } else {
@@ -236,11 +222,11 @@ impl KeyboardLayer {
         &self.inner().board.keys()
     }
 
-    pub fn selected(&self) -> HashSet<usize> {
+    pub fn selected(&self) -> SelectedKeys {
         self.inner().selected.borrow().clone()
     }
 
-    pub fn set_selected(&self, i: HashSet<usize>) {
+    pub fn set_selected(&self, i: SelectedKeys) {
         self.inner().selected.replace(i);
         self.queue_draw();
         self.notify("selected");
@@ -249,7 +235,7 @@ impl KeyboardLayer {
     pub fn set_selectable(&self, selectable: bool) {
         self.inner().selectable.set(selectable);
         if !selectable {
-            self.set_selected(HashSet::new());
+            self.set_selected(SelectedKeys::new());
         }
     }
 
