@@ -1,7 +1,4 @@
-use std::{
-    cell::{Cell, RefCell},
-    char,
-};
+use std::{cell::Cell, char};
 
 use crate::{DaemonBoard, DaemonBoardWeak, Hs, PhysicalLayoutKey, Rect, Rgb};
 
@@ -24,11 +21,11 @@ pub struct Key {
     pub leds: Vec<u8>,
     /// LED name
     pub led_name: String,
-    pub(crate) led_color: Cell<Option<Hs>>,
+    led_color: Cell<Option<Hs>>,
     // Key is currently pressed
     pub(crate) pressed: Cell<bool>,
     // Currently loaded scancodes and their names
-    pub(crate) scancodes: RefCell<Vec<(u16, String)>>,
+    scancodes: Vec<Cell<u16>>,
     // Background color
     pub background_color: Rgb,
 }
@@ -90,14 +87,12 @@ impl Key {
                     }
                 };
             debug!("    Scancode: {:04X}", scancode);
+            debug!(
+                "    Scancode Name: {:?}",
+                board.layout().scancode_names.get(&scancode)
+            );
 
-            let scancode_name = match board.layout().scancode_names.get(&scancode) {
-                Some(some) => some.to_string(),
-                None => String::new(),
-            };
-            debug!("    Scancode Name: {}", scancode_name);
-
-            scancodes.push((scancode, scancode_name));
+            scancodes.push(Cell::new(scancode));
         }
 
         let mut led_color = None;
@@ -120,7 +115,7 @@ impl Key {
             led_name,
             led_color: Cell::new(led_color),
             pressed: Cell::new(false),
-            scancodes: RefCell::new(scancodes),
+            scancodes,
             background_color,
         }
     }
@@ -148,7 +143,13 @@ impl Key {
     }
 
     pub fn get_scancode(&self, layer: usize) -> Option<(u16, String)> {
-        self.scancodes.borrow().get(layer).cloned()
+        let board = self.board();
+        let scancode = self.scancodes.get(layer)?.get();
+        let scancode_name = match board.layout().scancode_names.get(&scancode) {
+            Some(some) => some.to_string(),
+            None => String::new(),
+        };
+        Some((scancode, scancode_name))
     }
 
     pub fn set_scancode(&self, layer: usize, scancode_name: &str) -> Result<(), String> {
@@ -165,7 +166,7 @@ impl Key {
             self.electrical.1,
             scancode,
         )?;
-        self.scancodes.borrow_mut()[layer] = (scancode, scancode_name.to_string());
+        self.scancodes[layer].set(scancode);
         Ok(())
     }
 }

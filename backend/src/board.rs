@@ -153,8 +153,9 @@ impl DaemonBoard {
     pub fn export_keymap(&self) -> KeyMap {
         let mut map = HashMap::new();
         for key in self.keys().iter() {
-            let scancodes = key.scancodes.borrow();
-            let scancodes = scancodes.iter().map(|s| s.1.clone()).collect();
+            let scancodes = (0..self.layout().meta.num_layers as usize)
+                .map(|layer| key.get_scancode(layer).unwrap().1)
+                .collect();
             map.insert(key.logical_name.clone(), scancodes);
         }
         KeyMap {
