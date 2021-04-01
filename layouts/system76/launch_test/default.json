@@ -23,10 +23,10 @@
       "RGB_SAI"
     ],
     "K07": [
-      "RGB_VAD"
+      "KBD_DOWN"
     ],
     "K08": [
-      "RGB_VAI"
+      "KBD_UP"
     ],
     "K09": [
       "RGB_M_P"

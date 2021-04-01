@@ -70,9 +70,8 @@ QMK_MAPPING = {
     'RCTRL': 'RIGHT_CTRL',
     'RCTL': 'RIGHT_CTRL',
     'RGB_TOG': 'KBD_TOGGLE',
-    # TODO: These aren't working?
-    # 'RGB_VAD': 'KBD_DOWN',
-    # 'RGB_VAI': 'KBD_UP',
+    'RGB_VAD': 'KBD_DOWN',
+    'RGB_VAI': 'KBD_UP',
     'RGUI': 'RIGHT_SUPER',
     'RSHIFT': 'RIGHT_SHIFT',
     'RSFT': 'RIGHT_SHIFT',
