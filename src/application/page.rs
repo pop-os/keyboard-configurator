@@ -1,5 +1,5 @@
 use super::picker::SCANCODE_LABELS;
-use daemon::Key;
+use backend::Key;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum Page {

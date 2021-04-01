@@ -211,7 +211,7 @@ impl Picker {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use daemon::{layouts, Layout};
+    use backend::{layouts, Layout};
     use std::collections::HashSet;
 
     #[test]

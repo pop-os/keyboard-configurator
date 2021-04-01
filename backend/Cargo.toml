@@ -1,5 +1,5 @@
 [package]
-name = "system76-keyboard-configurator-daemon"
+name = "system76-keyboard-configurator-backend"
 version = "0.1.0"
 authors = ["Ian Douglas Scott <idscott@system76.com>", "Jeremy Soller <jeremy@system76.com>"]
 license = "GPL-3.0-or-later"

@@ -10,7 +10,7 @@ use std::{
 
 use super::Page;
 use crate::DerefCell;
-use daemon::{DaemonBoard, Key, Rect, Rgb};
+use backend::{DaemonBoard, Key, Rect, Rgb};
 
 const SCALE: f64 = 64.0;
 const MARGIN: f64 = 2.;

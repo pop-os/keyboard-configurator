@@ -3,7 +3,7 @@ use gtk::prelude::*;
 use gtk::subclass::prelude::*;
 use std::{cell::RefCell, collections::BTreeSet, f64::consts::PI};
 
-use daemon::Hs;
+use backend::Hs;
 
 const BORDER: f64 = 1.;
 

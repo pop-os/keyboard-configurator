@@ -13,7 +13,7 @@ use std::{
 
 use super::{show_error_dialog, Backlight, KeyboardLayer, Page, Picker};
 use crate::DerefCell;
-use daemon::{DaemonBoard, KeyMap, Layout};
+use backend::{DaemonBoard, KeyMap, Layout};
 
 #[derive(Default)]
 pub struct KeyboardInner {

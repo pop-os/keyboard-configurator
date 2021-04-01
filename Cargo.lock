@@ -988,12 +988,12 @@ dependencies = [
  "pangocairo",
  "serde",
  "serde_json",
- "system76-keyboard-configurator-daemon",
+ "system76-keyboard-configurator-backend",
  "winreg",
 ]
 
 [[package]]
-name = "system76-keyboard-configurator-daemon"
+name = "system76-keyboard-configurator-backend"
 version = "0.1.0"
 dependencies = [
  "gio",

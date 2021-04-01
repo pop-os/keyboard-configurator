@@ -6,7 +6,7 @@ license = "GPL-3.0-or-later"
 edition = "2018"
 
 [workspace]
-members = [ "tools", "ffi", "daemon" ]
+members = [ "tools", "ffi", "backend" ]
 
 [dependencies]
 cascade = "1"
@@ -23,7 +23,7 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 log = "0.4.0"
 env_logger = "0.8.3"
-daemon = { package = "system76-keyboard-configurator-daemon", path = "daemon" }
+backend = { package = "system76-keyboard-configurator-backend", path = "backend" }
 
 [build-dependencies]
 gio = { git = "https://github.com/pop-os/gtk-rs" }
@@ -32,4 +32,4 @@ gio = { git = "https://github.com/pop-os/gtk-rs" }
 winreg = "0.8"
 
 [features]
-appimage = ["daemon/appimage"]
+appimage = ["backend/appimage"]

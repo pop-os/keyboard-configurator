@@ -6,7 +6,7 @@ use gtk::prelude::*;
 use std::rc::Rc;
 
 use crate::KeyboardColor;
-use daemon::{Daemon, DaemonBoard, DaemonS76Power};
+use backend::{Daemon, DaemonBoard, DaemonS76Power};
 
 pub fn keyboard_backlight_widget() -> gtk::Widget {
     let stack = cascade! {

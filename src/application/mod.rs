@@ -64,7 +64,7 @@ impl ApplicationImpl for ConfiguratorAppInner {
             let value: String = opt.get().unwrap();
 
             if &value == "all" {
-                daemon::layouts().iter().map(|s| s.to_string()).collect()
+                backend::layouts().iter().map(|s| s.to_string()).collect()
             } else {
                 value.split(',').map(str::to_string).collect()
             }

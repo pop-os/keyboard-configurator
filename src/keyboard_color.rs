@@ -8,7 +8,7 @@ use std::{
 };
 
 use crate::{choose_color, ColorCircle, DerefCell};
-use daemon::{DaemonBoard, Hs};
+use backend::{DaemonBoard, Hs};
 
 #[derive(Default)]
 pub struct KeyboardColorInner {

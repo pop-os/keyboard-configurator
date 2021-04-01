@@ -6,7 +6,7 @@ use std::cell::{Cell, RefCell};
 use std::f64::consts::PI;
 
 use crate::DerefCell;
-use daemon::{Hs, Rgb};
+use backend::{Hs, Rgb};
 
 #[derive(Default)]
 pub struct ColorWheelInner {

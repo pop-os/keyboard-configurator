@@ -6,7 +6,7 @@ use once_cell::sync::Lazy;
 use std::{cell::Cell, convert::TryFrom};
 
 use crate::{DerefCell, KeyboardColor};
-use daemon::{DaemonBoard, Hs, Mode};
+use backend::{DaemonBoard, Hs, Mode};
 
 #[derive(Default)]
 pub struct BacklightInner {
