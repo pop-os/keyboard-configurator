@@ -5,7 +5,7 @@ use std::{
     rc::{Rc, Weak},
 };
 
-use crate::{BoardId, Daemon, Key, KeyMap, Layer, Layout, Matrix};
+use crate::{BoardId, Daemon, Key, KeyMap, Layer, Layout};
 
 pub(crate) struct DaemonBoardInner {
     pub(crate) daemon: Rc<dyn Daemon>,
@@ -134,8 +134,16 @@ impl DaemonBoard {
         self.0.has_matrix
     }
 
-    pub fn matrix_get(&self) -> Result<Matrix, String> {
-        self.0.daemon.matrix_get(self.0.board)
+    pub fn refresh_matrix(&self) -> Result<bool, String> {
+        let matrix = self.0.daemon.matrix_get(self.0.board)?;
+        let mut changed = false;
+        for key in self.keys() {
+            let pressed = matrix
+                .get(key.electrical.0 as usize, key.electrical.1 as usize)
+                .unwrap_or(false);
+            changed |= key.pressed.replace(pressed) != pressed;
+        }
+        Ok(changed)
     }
 
     pub fn max_brightness(&self) -> i32 {

@@ -443,15 +443,8 @@ impl Keyboard {
             return true;
         }
 
-        match self.board().matrix_get() {
-            Ok(matrix) => {
-                let mut changed = false;
-                for key in self.board().keys().iter() {
-                    let pressed = matrix
-                        .get(key.electrical.0 as usize, key.electrical.1 as usize)
-                        .unwrap_or(false);
-                    changed |= key.pressed.replace(pressed) != pressed;
-                }
+        match self.board().refresh_matrix() {
+            Ok(changed) => {
                 if changed {
                     let keyboard = self;
                     keyboard.redraw();

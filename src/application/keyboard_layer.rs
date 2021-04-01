@@ -95,7 +95,7 @@ impl WidgetImpl for KeyboardLayerInner {
 
             let mut bg = k.background_color.to_floats();
 
-            if k.pressed.get() {
+            if k.pressed() {
                 // Invert colors if pressed
                 bg.0 = 1.0 - bg.0;
                 bg.1 = 1.0 - bg.1;

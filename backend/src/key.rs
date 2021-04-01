@@ -24,7 +24,7 @@ pub struct Key {
     pub led_name: String,
     pub(crate) led_color: Cell<Option<Hs>>,
     // Key is currently pressed
-    pub pressed: Cell<bool>,
+    pub(crate) pressed: Cell<bool>,
     // Currently loaded scancodes and their names
     pub(crate) scancodes: RefCell<Vec<(u16, String)>>,
     // Background color
@@ -34,6 +34,10 @@ pub struct Key {
 impl Key {
     fn board(&self) -> DaemonBoard {
         self.board.get().unwrap().upgrade().unwrap()
+    }
+
+    pub fn pressed(&self) -> bool {
+        self.pressed.get()
     }
 
     pub fn color(&self) -> Option<Hs> {
