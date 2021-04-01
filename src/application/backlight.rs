@@ -5,7 +5,7 @@ use gtk::subclass::prelude::*;
 use once_cell::sync::Lazy;
 use std::{cell::Cell, convert::TryFrom};
 
-use crate::{DerefCell, KeyboardColor};
+use crate::{DerefCell, KeyboardColor, KeyboardColorIndex};
 use backend::{DaemonBoard, Hs, Mode};
 
 #[derive(Default)]
@@ -70,7 +70,7 @@ impl ObjectImpl for BacklightInner {
         };
 
         let keyboard_color = cascade! {
-            KeyboardColor::new(None, 0xf0);
+            KeyboardColor::new(None, KeyboardColorIndex::Layer(0));
             ..connect_local("notify::hs", false, clone!(@weak obj => move |_| {
                 obj.inner().changed.set(true);
                 None
@@ -211,7 +211,6 @@ impl Backlight {
 
         let obj: Self = glib::Object::new(&[]).unwrap();
         obj.inner().board.set(board.clone());
-        obj.inner().keyboard_color.set_index(obj.led_index());
         obj.inner().keyboard_color.set_board(Some(board));
         obj.inner().brightness_scale.set_range(0.0, max_brightness);
         obj.inner().has_led_save.set(has_led_save);
@@ -254,15 +253,6 @@ impl Backlight {
         &Mode::all()[0]
     }
 
-    fn led_index(&self) -> u8 {
-        let layer = self.inner().layer.get();
-        if self.board().layout().meta.has_per_layer {
-            0xf0 + layer
-        } else {
-            0xff
-        }
-    }
-
     fn header_func(&self, row: &gtk::ListBoxRow, before: Option<&gtk::ListBoxRow>) {
         if before.is_none() {
             row.set_header::<gtk::Widget>(None)
@@ -297,7 +287,9 @@ impl Backlight {
             self.update_per_key();
         } else {
             self.inner().keyboard_color.set_sensitive(true);
-            self.inner().keyboard_color.set_index(self.led_index());
+            self.inner()
+                .keyboard_color
+                .set_index(KeyboardColorIndex::Layer(self.inner().layer.get()));
         }
         self.invalidate_filter();
 
@@ -341,7 +333,11 @@ impl Backlight {
         self.inner().mode_combobox.set_active_id(mode);
         self.inner().speed_scale.set_value(speed.into());
         self.inner().brightness_scale.set_value(brightness);
-        self.inner().keyboard_color.set_index(self.led_index());
+        if !self.mode().is_per_key() {
+            self.inner()
+                .keyboard_color
+                .set_index(KeyboardColorIndex::Layer(self.inner().layer.get()));
+        }
 
         self.inner().do_not_set.set(false);
     }
@@ -356,7 +352,9 @@ impl Backlight {
             let k = &self.inner().board.keys()[selected];
             if !k.leds.is_empty() {
                 sensitive = true;
-                self.inner().keyboard_color.set_index(k.leds[0]);
+                self.inner()
+                    .keyboard_color
+                    .set_index(KeyboardColorIndex::Key(selected as u8));
             }
         }
         self.inner().keyboard_color.set_sensitive(sensitive);

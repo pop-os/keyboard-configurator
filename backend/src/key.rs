@@ -36,6 +36,19 @@ impl Key {
         self.board.get().unwrap().upgrade().unwrap()
     }
 
+    pub fn color(&self) -> Option<Hs> {
+        self.led_color.get()
+    }
+
+    pub fn set_color(&self, color: Hs) -> Result<(), String> {
+        let board = self.board();
+        for index in &self.leds {
+            board.0.daemon.set_color(board.0.board, *index, color)?;
+        }
+        self.led_color.set(Some(color));
+        Ok(())
+    }
+
     pub fn get_scancode(&self, layer: usize) -> Option<(u16, String)> {
         self.scancodes.borrow().get(layer).cloned()
     }

@@ -10,12 +10,24 @@ use std::{
 use crate::{choose_color, ColorCircle, DerefCell};
 use backend::{DaemonBoard, Hs};
 
+#[derive(Clone, Copy)]
+pub enum KeyboardColorIndex {
+    Key(u8),
+    Layer(u8),
+}
+
+impl Default for KeyboardColorIndex {
+    fn default() -> Self {
+        Self::Layer(0)
+    }
+}
+
 #[derive(Default)]
 pub struct KeyboardColorInner {
     circle: DerefCell<ColorCircle>,
     board: RefCell<Option<DaemonBoard>>,
     hs: Cell<Hs>,
-    index: Cell<u8>,
+    index: Cell<KeyboardColorIndex>,
 }
 
 #[glib::object_subclass]
@@ -42,24 +54,13 @@ impl ObjectImpl for KeyboardColorInner {
     fn properties() -> &'static [glib::ParamSpec] {
         use once_cell::sync::Lazy;
         static PROPERTIES: Lazy<Vec<glib::ParamSpec>> = Lazy::new(|| {
-            vec![
-                glib::ParamSpec::boxed(
-                    "hs",
-                    "hs",
-                    "hs",
-                    Hs::get_type(),
-                    glib::ParamFlags::READWRITE,
-                ),
-                glib::ParamSpec::uchar(
-                    "index",
-                    "index",
-                    "index",
-                    0x00,
-                    0xff,
-                    0xff,
-                    glib::ParamFlags::READWRITE,
-                ),
-            ]
+            vec![glib::ParamSpec::boxed(
+                "hs",
+                "hs",
+                "hs",
+                Hs::get_type(),
+                glib::ParamFlags::READWRITE,
+            )]
         });
 
         PROPERTIES.as_ref()
@@ -77,10 +78,6 @@ impl ObjectImpl for KeyboardColorInner {
                 let hs: &Hs = value.get_some().unwrap();
                 widget.set_hs(*hs);
             }
-            "index" => {
-                let index: u8 = value.get_some().unwrap();
-                widget.set_index(index);
-            }
             _ => unimplemented!(),
         }
     }
@@ -93,7 +90,6 @@ impl ObjectImpl for KeyboardColorInner {
     ) -> glib::Value {
         match pspec.get_name() {
             "hs" => self.hs.get().to_value(),
-            "index" => self.index.get().to_value(),
             _ => unimplemented!(),
         }
     }
@@ -109,7 +105,7 @@ glib::wrapper! {
 }
 
 impl KeyboardColor {
-    pub fn new(board: Option<DaemonBoard>, index: u8) -> Self {
+    pub fn new(board: Option<DaemonBoard>, index: KeyboardColorIndex) -> Self {
         cascade! {
             glib::Object::new::<Self>(&[]).unwrap();
             ..set_board(board);
@@ -126,15 +122,12 @@ impl KeyboardColor {
         let board = self.board().unwrap().clone();
         choose_color(
             board.clone(),
-            self.index(),
             self,
             "Set Color",
             Some(self.hs()),
             clone!(@weak self_ => move |resp| {
                 if let Some(color) = resp {
                     self_.set_hs(color);
-                } else if let Err(err) = board.set_color(self_.index(), self_.hs()) {
-                    error!("Failed to set keyboard color: {}", err);
                 }
             }),
         );
@@ -165,31 +158,34 @@ impl KeyboardColor {
             let mut colors = BTreeSet::new();
             colors.insert(hs);
             self.inner().circle.set_colors(colors);
-            if let Err(err) = board.set_color(self.index(), self.hs()) {
+            let res = match self.index() {
+                KeyboardColorIndex::Key(i) => board.keys()[i as usize].set_color(hs),
+                KeyboardColorIndex::Layer(i) => board.layers()[i as usize].set_color(hs),
+            };
+            if let Err(err) = res {
                 error!("Failed to set keyboard color: {}", err);
             }
             self.notify("hs");
         }
     }
 
-    fn index(&self) -> u8 {
+    fn index(&self) -> KeyboardColorIndex {
         self.inner().index.get()
     }
 
     fn read_color(&self) {
         if let Some(board) = self.board() {
-            let hs = board.color(self.index()).unwrap_or_else(|err| {
-                error!("Error getting color: {}", err);
-                Hs::new(0., 0.)
-            });
+            let hs = match self.index() {
+                KeyboardColorIndex::Key(i) => board.keys()[i as usize].color().unwrap_or_default(),
+                KeyboardColorIndex::Layer(i) => board.layers()[i as usize].color(),
+            };
             drop(board);
             self.set_hs(hs);
         }
     }
 
-    pub fn set_index(&self, value: u8) {
+    pub fn set_index(&self, value: KeyboardColorIndex) {
         self.inner().index.set(value);
-        self.notify("index");
         self.read_color();
     }
 }

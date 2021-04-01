@@ -4,7 +4,7 @@ use std::{
     rc::{Rc, Weak},
 };
 
-use crate::{BoardId, Daemon, Hs, Key, KeyMap, Layer, Layout, Matrix};
+use crate::{BoardId, Daemon, Key, KeyMap, Layer, Layout, Matrix};
 
 pub(crate) struct DaemonBoardInner {
     pub(crate) daemon: Rc<dyn Daemon>,
@@ -93,6 +93,13 @@ impl DaemonBoard {
                 key.scancodes.borrow_mut().push((scancode, scancode_name));
             }
 
+            if self_.layout().meta.has_mode && key.leds.len() > 0 {
+                match self_.0.daemon.color(self_.0.board, key.leds[0]) {
+                    Ok(color) => key.led_color.set(Some(color)),
+                    Err(err) => error!("error getting key color: {}", err),
+                }
+            }
+
             key.board.set(self_.downgrade()).unwrap();
         }
         self_.0.keys.set(keys).unwrap();
@@ -115,14 +122,6 @@ impl DaemonBoard {
 
     pub fn matrix_get(&self) -> Result<Matrix, String> {
         self.0.daemon.matrix_get(self.0.board)
-    }
-
-    pub fn color(&self, index: u8) -> Result<Hs, String> {
-        self.0.daemon.color(self.0.board, index)
-    }
-
-    pub fn set_color(&self, index: u8, color: Hs) -> Result<(), String> {
-        self.0.daemon.set_color(self.0.board, index, color)
     }
 
     pub fn max_brightness(&self) -> i32 {

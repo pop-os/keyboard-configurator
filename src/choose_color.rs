@@ -7,12 +7,21 @@ use backend::{DaemonBoard, Hs};
 
 pub fn choose_color<W: IsA<gtk::Widget>, F: Fn(Option<Hs>) + 'static>(
     board: DaemonBoard,
-    index: u8,
     w: &W,
     title: &'static str,
     color: Option<Hs>,
     cb: F,
 ) {
+    let layer = &board.layers()[0];
+    let original_color = layer.color();
+    let original_mode = layer.mode();
+
+    if original_mode.is_some() {
+        if let Err(err) = layer.set_mode(0, 0) {
+            error!("Failed to set keyboard mode: {}", err);
+        }
+    }
+
     let color_wheel = cascade! {
         ColorWheel::new();
         ..set_hs(color.unwrap_or_default());
@@ -31,12 +40,14 @@ pub fn choose_color<W: IsA<gtk::Widget>, F: Fn(Option<Hs>) + 'static>(
         }));
     };
 
-    color_wheel.connect_hs_changed(clone!(@weak preview => @default-panic, move |wheel| {
-        if let Err(err) = board.set_color(index, wheel.hs()) {
-            error!("Failed to set keyboard color: {}", err);
-        }
-        preview.queue_draw();
-    }));
+    color_wheel.connect_hs_changed(
+        clone!(@strong board, @weak preview => @default-panic, move |wheel| {
+            if let Err(err) = board.layers()[0].set_color(wheel.hs()) {
+                error!("Failed to set keyboard color: {}", err);
+            }
+            preview.queue_draw();
+        }),
+    );
 
     let hue_adjustment = gtk::Adjustment::new(0., 0., 360., 1., 1., 0.);
     let saturation_adjustment = gtk::Adjustment::new(0., 0., 100., 1., 1., 0.);
@@ -99,8 +110,22 @@ pub fn choose_color<W: IsA<gtk::Widget>, F: Fn(Option<Hs>) + 'static>(
         ..get_content_area().add(&vbox);
         ..set_transient_for(window.as_ref());
         ..connect_response(move |dialog, response| {
+            if response == gtk::ResponseType::DeleteEvent {
+                return;
+            }
+
             let hs = color_wheel.hs();
+            let layer = &board.layers()[0];
             dialog.close();
+
+            if let Err(err) = layer.set_color(original_color) {
+                error!("Failed to set keyboard color: {}", err);
+            }
+            if let Some(mode) = original_mode {
+                if let Err(err) = layer.set_mode(mode.0, mode.1) {
+                    error!("Failed to set keyboard mode: {}", err);
+                }
+            }
 
             cb(if response == gtk::ResponseType::Ok {
                 Some(hs)
