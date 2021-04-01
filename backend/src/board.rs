@@ -80,6 +80,7 @@ impl DaemonBoard {
             .0
             .layout
             .physical
+            .keys
             .iter()
             .map(|i| Key::new(&self_, i))
             .collect();

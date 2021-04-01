@@ -12,7 +12,7 @@ pub struct Layout {
     pub default: KeyMap,
     keymap: HashMap<String, u16>,
     scancode_names: HashMap<u16, String>,
-    pub(crate) physical: Vec<PhysicalLayoutKey>,
+    pub(crate) physical: PhysicalLayout,
     pub(crate) layout: HashMap<String, (u8, u8)>,
     pub(crate) leds: HashMap<String, Vec<u8>>,
 }
@@ -78,9 +78,7 @@ impl Layout {
         let (keymap, scancode_names) = parse_keymap_json(keymap_json);
         let layout = serde_json::from_str(layout_json).unwrap();
         let leds = serde_json::from_str(leds_json).unwrap();
-        let physical = serde_json::from_str::<PhysicalLayout>(physical_json)
-            .unwrap()
-            .keys();
+        let physical = PhysicalLayout::from_str(physical_json);
         Self {
             meta,
             default,
