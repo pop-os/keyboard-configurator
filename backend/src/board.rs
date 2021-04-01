@@ -56,7 +56,7 @@ impl DaemonBoard {
             1
         };
 
-        let inner = Rc::new(DaemonBoardInner {
+        let self_ = Self(Rc::new(DaemonBoardInner {
             daemon,
             board,
             keys: OnceCell::new(),
@@ -64,26 +64,27 @@ impl DaemonBoard {
             layout,
             max_brightness,
             model,
-        });
+        }));
 
-        let mut keys = inner.layout.keys();
+        let mut keys = self_.0.layout.keys();
         for key in &mut keys {
-            for layer in 0..inner.layout.meta.num_layers {
+            for layer in 0..self_.0.layout.meta.num_layers {
                 debug!("  Layer {}", layer);
-                let scancode =
-                    match inner
-                        .daemon
-                        .keymap_get(board, layer, key.electrical.0, key.electrical.1)
-                    {
-                        Ok(value) => value,
-                        Err(err) => {
-                            error!("Failed to read scancode: {:?}", err);
-                            0
-                        }
-                    };
+                let scancode = match self_.0.daemon.keymap_get(
+                    board,
+                    layer,
+                    key.electrical.0,
+                    key.electrical.1,
+                ) {
+                    Ok(value) => value,
+                    Err(err) => {
+                        error!("Failed to read scancode: {:?}", err);
+                        0
+                    }
+                };
                 debug!("    Scancode: {:04X}", scancode);
 
-                let scancode_name = match inner.layout.scancode_names.get(&scancode) {
+                let scancode_name = match self_.0.layout.scancode_names.get(&scancode) {
                     Some(some) => some.to_string(),
                     None => String::new(),
                 };
@@ -92,54 +93,21 @@ impl DaemonBoard {
                 key.scancodes.borrow_mut().push((scancode, scancode_name));
             }
 
-            key.board
-                .set(DaemonBoardWeak(Rc::downgrade(&inner)))
-                .unwrap();
+            key.board.set(self_.downgrade()).unwrap();
         }
-        inner.keys.set(keys).unwrap();
+        self_.0.keys.set(keys).unwrap();
 
         let mut layers = Vec::new();
         for layer in 0..num_layers {
-            let index = if inner.layout.meta.has_per_layer {
-                0xf0 + layer
-            } else {
-                0xff
-            };
-            let mode = if inner.layout.meta.has_mode {
-                inner
-                    .daemon
-                    .mode(board, layer)
-                    .map(Some)
-                    .unwrap_or_else(|err| {
-                        error!("Error getting layer mode: {}", err);
-                        None
-                    })
-            } else {
-                None
-            };
-            let brightness = inner
-                .daemon
-                .brightness(inner.board, index)
-                .unwrap_or_else(|err| {
-                    error!("error getting layer brightness: {}", err);
-                    0
-                });
-            let color = inner.daemon.color(board, index).unwrap_or_else(|err| {
-                error!("error getting layer color: {}", err);
-                Hs::new(0., 0.)
-            });
-            layers.push(Layer::new(
-                layer,
-                index,
-                DaemonBoardWeak(Rc::downgrade(&inner)),
-                mode,
-                brightness,
-                color,
-            ));
+            layers.push(Layer::new(layer, &self_));
         }
-        inner.layers.set(layers).unwrap();
+        self_.0.layers.set(layers).unwrap();
 
-        Ok(Self(inner))
+        Ok(self_)
+    }
+
+    pub(crate) fn downgrade(&self) -> DaemonBoardWeak {
+        DaemonBoardWeak(Rc::downgrade(&self.0))
     }
 
     pub fn model(&self) -> &str {
