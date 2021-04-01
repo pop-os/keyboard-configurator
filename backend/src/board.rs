@@ -1,5 +1,6 @@
 use once_cell::unsync::OnceCell;
 use std::{
+    cell::Cell,
     collections::HashMap,
     rc::{Rc, Weak},
 };
@@ -14,6 +15,8 @@ pub(crate) struct DaemonBoardInner {
     keys: OnceCell<Vec<Key>>,
     layers: OnceCell<Vec<Layer>>,
     max_brightness: i32,
+    pub(crate) leds_changed: Cell<bool>,
+    has_led_save: bool,
 }
 
 #[derive(Clone, glib::GBoxed)]
@@ -56,6 +59,8 @@ impl DaemonBoard {
             1
         };
 
+        let has_led_save = daemon.led_save(board).is_ok();
+
         let self_ = Self(Rc::new(DaemonBoardInner {
             daemon,
             board,
@@ -64,6 +69,8 @@ impl DaemonBoard {
             layout,
             max_brightness,
             model,
+            leds_changed: Cell::new(false),
+            has_led_save,
         }));
 
         let mut keys = self_.0.layout.keys();
@@ -129,11 +136,20 @@ impl DaemonBoard {
     }
 
     pub fn led_save(&self) -> Result<(), String> {
-        self.0.daemon.led_save(self.0.board)
+        if self.has_led_save() && self.0.leds_changed.get() {
+            self.0.daemon.led_save(self.0.board)?;
+            self.0.leds_changed.set(false);
+            debug!("led_save");
+        }
+        Ok(())
     }
 
     pub fn is_fake(&self) -> bool {
         self.0.daemon.is_fake()
+    }
+
+    pub fn has_led_save(&self) -> bool {
+        self.0.has_led_save
     }
 
     pub fn layout(&self) -> &Layout {

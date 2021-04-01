@@ -23,8 +23,6 @@ pub struct BacklightInner {
     layer: Cell<u8>,
     do_not_set: Cell<bool>,
     selected: RefCell<SelectedKeys>,
-    has_led_save: Cell<bool>,
-    changed: Cell<bool>,
 }
 
 #[glib::object_subclass]
@@ -69,13 +67,7 @@ impl ObjectImpl for BacklightInner {
             ));
         };
 
-        let keyboard_color = cascade! {
-            KeyboardColor::new(None, KeyboardColorIndex::Layer(0));
-            ..connect_local("notify::hs", false, clone!(@weak obj => move |_| {
-                obj.inner().changed.set(true);
-                None
-            })).unwrap();
-        };
+        let keyboard_color = KeyboardColor::new(None, KeyboardColorIndex::Layer(0));
 
         let saturation_adjustment = cascade! {
             gtk::Adjustment::new(0., 0., 100., 1., 1., 0.);
@@ -204,13 +196,12 @@ glib::wrapper! {
 impl Backlight {
     pub fn new(board: DaemonBoard) -> Self {
         let max_brightness = board.max_brightness() as f64;
-        let has_led_save = board.led_save().is_ok();
+        let has_led_save = board.has_led_save();
 
         let obj: Self = glib::Object::new(&[]).unwrap();
         obj.inner().board.set(board.clone());
         obj.inner().keyboard_color.set_board(Some(board));
         obj.inner().brightness_scale.set_range(0.0, max_brightness);
-        obj.inner().has_led_save.set(has_led_save);
         obj.invalidate_filter();
         obj.set_layer(0);
         obj.set_filter_func(Some(Box::new(clone!(@weak obj => move |row|
@@ -299,7 +290,6 @@ impl Backlight {
         if let Err(err) = layer.set_mode(self.mode().index, speed as u8) {
             error!("Error setting keyboard mode: {}", err);
         }
-        self.inner().changed.set(true);
     }
 
     fn brightness_changed(&self) {
@@ -312,7 +302,6 @@ impl Backlight {
                 error!("Error setting brightness: {}", err);
             }
         }
-        self.inner().changed.set(true);
         debug!("Brightness: {}", value)
     }
 
@@ -354,11 +343,9 @@ impl Backlight {
     }
 
     fn led_save(&self) {
-        if self.inner().has_led_save.get() && self.inner().changed.replace(false) {
+        if self.board().has_led_save() {
             if let Err(err) = self.board().led_save() {
                 error!("Failed to save LEDs: {}", err);
-            } else {
-                debug!("led_save");
             }
         }
     }

@@ -46,6 +46,7 @@ impl Key {
             board.0.daemon.set_color(board.0.board, *index, color)?;
         }
         self.led_color.set(Some(color));
+        board.0.leds_changed.set(true);
         Ok(())
     }
 
