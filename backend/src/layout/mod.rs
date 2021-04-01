@@ -138,10 +138,7 @@ impl Layout {
 
         let mut row_i = 0;
         let mut col_i = 0;
-        let mut x = 0.0;
-        let mut y = 0.0;
-        let mut w = 1.0;
-        let mut h = 1.0;
+        let mut physical = Rect::new(0.0, 0.0, 1.0, 1.0);
         let mut background_color = Rgb::new(0xcc, 0xcc, 0xcc);
 
         for entry in &self.physical.0 {
@@ -150,10 +147,10 @@ impl Layout {
                     match i {
                         PhysicalKeyEnum::Meta(meta) => {
                             debug!("Key metadata {:?}", meta);
-                            x += meta.x;
-                            y -= meta.y;
-                            w = meta.w.unwrap_or(w);
-                            h = meta.h.unwrap_or(h);
+                            physical.x += meta.x;
+                            physical.y -= meta.y;
+                            physical.w = meta.w.unwrap_or(physical.w);
+                            physical.h = meta.h.unwrap_or(physical.h);
                             background_color = meta
                                 .c
                                 .as_ref()
@@ -167,23 +164,23 @@ impl Layout {
                             keys.push(Key::new(
                                 self,
                                 (row_i as u8, col_i as u8),
-                                Rect::new(x, y, w, h),
+                                physical,
                                 name.clone(),
                                 background_color,
                             ));
 
-                            x += w;
+                            physical.x += physical.w;
 
-                            w = 1.0;
-                            h = 1.0;
+                            physical.w = 1.0;
+                            physical.h = 1.0;
 
                             col_i += 1;
                         }
                     }
                 }
 
-                x = 0.0;
-                y -= 1.0;
+                physical.x = 0.0;
+                physical.y -= 1.0;
 
                 col_i = 0;
                 row_i += 1;
