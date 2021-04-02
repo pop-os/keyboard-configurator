@@ -221,6 +221,7 @@ impl KeyboardLayer {
             ..set_size_request(width, height);
         };
         board.connect_leds_changed(clone!(@weak obj => move || obj.queue_draw()));
+        board.connect_matrix_changed(clone!(@weak obj => move || obj.queue_draw()));
         obj.inner().page.set(page);
         obj.inner().board.set(board);
         obj

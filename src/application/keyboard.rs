@@ -421,17 +421,6 @@ impl Keyboard {
         self.notify("selected");
     }
 
-    fn redraw(&self) {
-        self.queue_draw();
-        // TODO: clean up this hack to only redraw keyboard on main page
-        if let Some(parent) = self.get_parent() {
-            parent.queue_draw();
-            if let Some(grandparent) = parent.get_parent() {
-                grandparent.queue_draw();
-            }
-        }
-    }
-
     fn refresh(&self) -> bool {
         if !self.board().has_matrix() {
             return false;
@@ -446,26 +435,11 @@ impl Keyboard {
             return true;
         }
 
-        match self.board().refresh_matrix() {
-            Ok(changed) => {
-                if changed {
-                    let keyboard = self;
-                    keyboard.redraw();
-                    // Sometimes the redraw is missed, so send it again in 10ms
-                    glib::timeout_add_local(
-                        time::Duration::from_millis(10),
-                        clone!(@weak keyboard => @default-return glib::Continue(false), move || {
-                            keyboard.redraw();
-                            glib::Continue(false)
-                        }),
-                    );
-                }
-                true
-            }
-            Err(err) => {
-                error!("Failed to get matrix: {}", err);
-                false
-            }
+        if let Err(err) = self.board().refresh_matrix() {
+            error!("Failed to get matrix: {}", err);
+            false
+        } else {
+            true
         }
     }
 }

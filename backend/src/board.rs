@@ -35,7 +35,10 @@ impl ObjectSubclass for DaemonBoardInner {
 impl ObjectImpl for DaemonBoardInner {
     fn signals() -> &'static [Signal] {
         static SIGNALS: Lazy<Vec<Signal>> = Lazy::new(|| {
-            vec![Signal::builder("leds-changed", &[], glib::Type::UNIT.into()).build()]
+            vec![
+                Signal::builder("leds-changed", &[], glib::Type::UNIT.into()).build(),
+                Signal::builder("matrix-changed", &[], glib::Type::UNIT.into()).build(),
+            ]
         });
         SIGNALS.as_ref()
     }
@@ -138,7 +141,18 @@ impl DaemonBoard {
                 .unwrap_or(false);
             changed |= key.pressed.replace(pressed) != pressed;
         }
+        if changed {
+            self.emit_by_name("matrix-changed", &[]).unwrap();
+        }
         Ok(changed)
+    }
+
+    pub fn connect_matrix_changed<F: Fn() + 'static>(&self, cb: F) {
+        self.connect_local("matrix-changed", false, move |_| {
+            cb();
+            None
+        })
+        .unwrap();
     }
 
     pub fn max_brightness(&self) -> i32 {
