@@ -1,41 +1,37 @@
-use once_cell::unsync::OnceCell;
-use std::{
-    cell::Cell,
-    collections::HashMap,
-    rc::{Rc, Weak},
-};
+use glib::subclass::prelude::*;
+use std::{cell::Cell, collections::HashMap, rc::Rc};
 
-use crate::{BoardId, Daemon, Key, KeyMap, Layer, Layout};
+use crate::{BoardId, Daemon, DerefCell, Key, KeyMap, Layer, Layout};
 
-pub(crate) struct DaemonBoardInner {
-    pub(crate) daemon: Rc<dyn Daemon>,
-    pub(crate) board: BoardId,
-    model: String,
-    layout: Layout,
-    keys: OnceCell<Vec<Key>>,
-    layers: OnceCell<Vec<Layer>>,
-    max_brightness: i32,
+// GObject
+// Add changed signal
+// Want DerefCell, I guess... Or use OnceCell
+
+#[derive(Default)]
+pub struct DaemonBoardInner {
+    daemon: DerefCell<Rc<dyn Daemon>>,
+    board: DerefCell<BoardId>,
+    model: DerefCell<String>,
+    layout: DerefCell<Layout>,
+    keys: DerefCell<Vec<Key>>,
+    layers: DerefCell<Vec<Layer>>,
+    max_brightness: DerefCell<i32>,
     pub(crate) leds_changed: Cell<bool>,
-    has_led_save: bool,
-    has_matrix: bool,
+    has_led_save: DerefCell<bool>,
+    has_matrix: DerefCell<bool>,
 }
 
-#[derive(Clone, glib::GBoxed)]
-#[gboxed(type_name = "S76DaemonBoard")]
-pub struct DaemonBoard(pub(crate) Rc<DaemonBoardInner>);
-
-pub(crate) struct DaemonBoardWeak(Weak<DaemonBoardInner>);
-
-impl std::fmt::Debug for DaemonBoardWeak {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "DaemonBoardWeak({:p})", self)
-    }
+#[glib::object_subclass]
+impl ObjectSubclass for DaemonBoardInner {
+    const NAME: &'static str = "S76DaemonBoard";
+    type ParentType = glib::Object;
+    type Type = DaemonBoard;
 }
 
-impl DaemonBoardWeak {
-    pub fn upgrade(&self) -> Option<DaemonBoard> {
-        self.0.upgrade().map(DaemonBoard)
-    }
+impl ObjectImpl for DaemonBoardInner {}
+
+glib::wrapper! {
+    pub struct DaemonBoard(ObjectSubclass<DaemonBoardInner>);
 }
 
 impl DaemonBoard {
@@ -63,51 +59,55 @@ impl DaemonBoard {
         let has_led_save = daemon.led_save(board).is_ok();
         let has_matrix = daemon.matrix_get(board).is_ok();
 
-        let self_ = Self(Rc::new(DaemonBoardInner {
-            daemon,
-            board,
-            keys: OnceCell::new(),
-            layers: OnceCell::new(),
-            layout,
-            max_brightness,
-            model,
-            leds_changed: Cell::new(false),
-            has_led_save,
-            has_matrix,
-        }));
+        let self_ = glib::Object::new::<DaemonBoard>(&[]).unwrap();
+        self_.inner().daemon.set(daemon);
+        self_.inner().board.set(board);
+        self_.inner().model.set(model);
+        self_.inner().layout.set(layout);
+        self_.inner().max_brightness.set(max_brightness);
+        self_.inner().has_led_save.set(has_led_save);
+        self_.inner().has_matrix.set(has_matrix);
 
         let keys = self_
-            .0
+            .inner()
             .layout
             .physical
             .keys
             .iter()
             .map(|i| Key::new(&self_, i))
             .collect();
-        self_.0.keys.set(keys).unwrap();
+        self_.inner().keys.set(keys);
 
         let layers = (0..num_layers)
             .map(|layer| Layer::new(&self_, layer))
             .collect();
-        self_.0.layers.set(layers).unwrap();
+        self_.inner().layers.set(layers);
 
         Ok(self_)
     }
 
-    pub(crate) fn downgrade(&self) -> DaemonBoardWeak {
-        DaemonBoardWeak(Rc::downgrade(&self.0))
+    pub(crate) fn inner(&self) -> &DaemonBoardInner {
+        DaemonBoardInner::from_instance(self)
+    }
+
+    pub(crate) fn daemon(&self) -> &dyn Daemon {
+        self.inner().daemon.as_ref()
+    }
+
+    pub(crate) fn board(&self) -> BoardId {
+        *self.inner().board
     }
 
     pub fn model(&self) -> &str {
-        &self.0.model
+        &self.inner().model
     }
 
     pub fn has_matrix(&self) -> bool {
-        self.0.has_matrix
+        *self.inner().has_matrix
     }
 
     pub fn refresh_matrix(&self) -> Result<bool, String> {
-        let matrix = self.0.daemon.matrix_get(self.0.board)?;
+        let matrix = self.daemon().matrix_get(self.board())?;
         let mut changed = false;
         for key in self.keys() {
             let pressed = matrix
@@ -119,36 +119,36 @@ impl DaemonBoard {
     }
 
     pub fn max_brightness(&self) -> i32 {
-        self.0.max_brightness
+        *self.inner().max_brightness
     }
 
     pub fn led_save(&self) -> Result<(), String> {
-        if self.has_led_save() && self.0.leds_changed.get() {
-            self.0.daemon.led_save(self.0.board)?;
-            self.0.leds_changed.set(false);
+        if self.has_led_save() && self.inner().leds_changed.get() {
+            self.daemon().led_save(self.board())?;
+            self.inner().leds_changed.set(false);
             debug!("led_save");
         }
         Ok(())
     }
 
     pub fn is_fake(&self) -> bool {
-        self.0.daemon.is_fake()
+        self.daemon().is_fake()
     }
 
     pub fn has_led_save(&self) -> bool {
-        self.0.has_led_save
+        *self.inner().has_led_save
     }
 
     pub fn layout(&self) -> &Layout {
-        &self.0.layout
+        &*self.inner().layout
     }
 
     pub fn layers(&self) -> &[Layer] {
-        self.0.layers.get().unwrap()
+        &*self.inner().layers
     }
 
     pub fn keys(&self) -> &[Key] {
-        self.0.keys.get().unwrap()
+        &*self.inner().keys
     }
 
     pub fn export_keymap(&self) -> KeyMap {

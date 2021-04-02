@@ -1,10 +1,11 @@
+use glib::clone::Downgrade;
 use std::{cell::Cell, char};
 
-use crate::{DaemonBoard, DaemonBoardWeak, Hs, PhysicalLayoutKey, Rect, Rgb};
+use crate::{DaemonBoard, Hs, PhysicalLayoutKey, Rect, Rgb};
 
 #[derive(Debug)]
 pub struct Key {
-    pub(crate) board: DaemonBoardWeak,
+    pub(crate) board: glib::WeakRef<DaemonBoard>,
     // Logical position (row, column)
     pub logical: (u8, u8),
     // Logical name (something like K01, where 0 is the row and 1 is the column)
@@ -76,9 +77,8 @@ impl Key {
             debug!("  Layer {}", layer);
             let scancode =
                 match board
-                    .0
-                    .daemon
-                    .keymap_get(board.0.board, layer, electrical.0, electrical.1)
+                    .daemon()
+                    .keymap_get(board.board(), layer, electrical.0, electrical.1)
                 {
                     Ok(value) => value,
                     Err(err) => {
@@ -97,7 +97,7 @@ impl Key {
 
         let mut led_color = None;
         if board.layout().meta.has_mode && leds.len() > 0 {
-            match board.0.daemon.color(board.0.board, leds[0]) {
+            match board.daemon().color(board.board(), leds[0]) {
                 Ok(color) => led_color = Some(color),
                 Err(err) => error!("error getting key color: {}", err),
             }
@@ -135,10 +135,10 @@ impl Key {
     pub fn set_color(&self, color: Hs) -> Result<(), String> {
         let board = self.board();
         for index in &self.leds {
-            board.0.daemon.set_color(board.0.board, *index, color)?;
+            board.daemon().set_color(board.board(), *index, color)?;
         }
         self.led_color.set(Some(color));
-        board.0.leds_changed.set(true);
+        board.inner().leds_changed.set(true);
         Ok(())
     }
 
@@ -158,8 +158,8 @@ impl Key {
             .layout()
             .scancode_from_name(scancode_name)
             .ok_or_else(|| format!("Unable to find scancode '{}'", scancode_name))?;
-        board.0.daemon.keymap_set(
-            board.0.board,
+        board.daemon().keymap_set(
+            board.board(),
             layer as u8,
             self.electrical.0,
             self.electrical.1,
