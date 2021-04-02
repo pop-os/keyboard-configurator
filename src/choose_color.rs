@@ -3,7 +3,7 @@ use glib::clone;
 use gtk::prelude::*;
 
 use crate::ColorWheel;
-use backend::{DaemonBoard, Hs};
+use backend::{DaemonBoard, Hs, Mode};
 
 pub fn choose_color<W: IsA<gtk::Widget>, F: Fn(Option<Hs>) + 'static>(
     board: DaemonBoard,
@@ -17,7 +17,7 @@ pub fn choose_color<W: IsA<gtk::Widget>, F: Fn(Option<Hs>) + 'static>(
     let original_mode = layer.mode();
 
     if original_mode.is_some() {
-        if let Err(err) = layer.set_mode(0, 0) {
+        if let Err(err) = layer.set_mode(&Mode::all()[0], 0) {
             error!("Failed to set keyboard mode: {}", err);
         }
     }

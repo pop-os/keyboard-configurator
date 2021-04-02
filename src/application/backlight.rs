@@ -287,7 +287,7 @@ impl Backlight {
 
         let speed = self.inner().speed_scale.get_value();
         let layer = &self.board().layers()[self.inner().layer.get() as usize];
-        if let Err(err) = layer.set_mode(self.mode().index, speed as u8) {
+        if let Err(err) = layer.set_mode(self.mode(), speed as u8) {
             error!("Error setting keyboard mode: {}", err);
         }
     }
@@ -310,13 +310,12 @@ impl Backlight {
 
         let layer = &self.board().layers()[layer as usize];
 
-        let (mode, speed) = layer.mode().unwrap_or((0, 128));
-        let mode = Mode::from_index(mode).map(|x| x.id);
+        let (mode, speed) = layer.mode().unwrap_or((&Mode::all()[0], 128));
         let brightness = layer.brightness() as f64;
 
         self.inner().do_not_set.set(true);
 
-        self.inner().mode_combobox.set_active_id(mode);
+        self.inner().mode_combobox.set_active_id(Some(mode.id));
         self.inner().speed_scale.set_value(speed.into());
         self.inner().brightness_scale.set_value(brightness);
         if !self.mode().is_per_key() {

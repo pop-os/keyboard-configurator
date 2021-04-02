@@ -1,6 +1,6 @@
 use std::cell::Cell;
 
-use crate::{DaemonBoard, DaemonBoardWeak, Hs};
+use crate::{DaemonBoard, DaemonBoardWeak, Hs, Mode};
 
 #[derive(Debug)]
 pub struct Layer {
@@ -62,17 +62,18 @@ impl Layer {
         self.board.upgrade().unwrap()
     }
 
-    pub fn mode(&self) -> Option<(u8, u8)> {
-        self.mode.get()
+    pub fn mode(&self) -> Option<(&'static Mode, u8)> {
+        let (index, speed) = self.mode.get()?;
+        Some((Mode::from_index(index)?, speed))
     }
 
-    pub fn set_mode(&self, mode: u8, speed: u8) -> Result<(), String> {
+    pub fn set_mode(&self, mode: &Mode, speed: u8) -> Result<(), String> {
         let board = self.board();
         board
             .0
             .daemon
-            .set_mode(board.0.board, self.layer, mode, speed)?;
-        self.mode.set(Some((mode, speed)));
+            .set_mode(board.0.board, self.layer, mode.index, speed)?;
+        self.mode.set(Some((mode.index, speed)));
         board.0.leds_changed.set(true);
         Ok(())
     }
