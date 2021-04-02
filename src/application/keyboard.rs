@@ -359,7 +359,10 @@ impl Keyboard {
                 }
             }
 
-            let keyboard_layer = KeyboardLayer::new(page, self.board().clone());
+            let keyboard_layer = cascade! {
+                KeyboardLayer::new(page, self.board().clone());
+                ..set_selectable(true);
+            };
             self.bind_property("selected", &keyboard_layer, "selected")
                 .flags(glib::BindingFlags::BIDIRECTIONAL)
                 .build();

@@ -28,13 +28,6 @@ impl ObjectSubclass for KeyboardLayerInner {
     const NAME: &'static str = "S76KeyboardLayer";
     type ParentType = gtk::DrawingArea;
     type Type = KeyboardLayer;
-
-    fn new() -> Self {
-        Self {
-            selectable: Cell::new(true),
-            ..Self::default()
-        }
-    }
 }
 
 impl ObjectImpl for KeyboardLayerInner {
