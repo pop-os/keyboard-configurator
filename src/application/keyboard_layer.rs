@@ -1,4 +1,5 @@
 use cascade::cascade;
+use glib::clone;
 use gtk::prelude::*;
 use gtk::subclass::prelude::*;
 use std::{
@@ -8,7 +9,7 @@ use std::{
 
 use super::Page;
 use crate::{DerefCell, SelectedKeys};
-use backend::{DaemonBoard, Key, Rect, Rgb};
+use backend::{DaemonBoard, Key, Layer, Rect, Rgb};
 
 const SCALE: f64 = 64.0;
 const MARGIN: f64 = 2.;
@@ -82,11 +83,27 @@ impl WidgetImpl for KeyboardLayerInner {
     fn draw(&self, widget: &KeyboardLayer, cr: &cairo::Context) -> Inhibit {
         self.parent_draw(widget, cr);
 
+        let layer = widget.page().layer().map(|i| &self.board.layers()[i]);
+        let (is_per_key, has_hue) = layer
+            .and_then(Layer::mode)
+            .map(|x| (x.0.is_per_key(), x.0.has_hue))
+            .unwrap_or_default();
         let selected = Rgb::new(0xfb, 0xb8, 0x6c).to_floats();
+
         for (i, k) in widget.keys().iter().enumerate() {
             let Rect { x, y, w, h } = scale_rect(&k.physical);
 
             let mut bg = k.background_color.to_floats();
+
+            let border_color = layer.and_then(|layer| {
+                if is_per_key {
+                    k.color()
+                } else if has_hue {
+                    Some(layer.color())
+                } else {
+                    None
+                }
+            });
 
             if k.pressed() {
                 // Invert colors if pressed
@@ -115,6 +132,11 @@ impl WidgetImpl for KeyboardLayerInner {
             if widget.selected().contains(&i) {
                 cr.set_source_rgb(selected.0, selected.1, selected.2);
                 cr.set_line_width(4.);
+                cr.stroke();
+            } else if let Some(color) = border_color {
+                let color = color.to_rgb().to_floats();
+                cr.set_source_rgb(color.0, color.1, color.2);
+                cr.set_line_width(1.);
                 cr.stroke();
             }
 
@@ -198,6 +220,7 @@ impl KeyboardLayer {
             glib::Object::new::<Self>(&[]).unwrap();
             ..set_size_request(width, height);
         };
+        board.connect_leds_changed(clone!(@weak obj => move || obj.queue_draw()));
         obj.inner().page.set(page);
         obj.inner().board.set(board);
         obj

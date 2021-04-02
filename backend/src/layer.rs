@@ -71,7 +71,7 @@ impl Layer {
             .daemon()
             .set_mode(board.board(), self.layer, mode.index, speed)?;
         self.mode.set(Some((mode.index, speed)));
-        board.inner().leds_changed.set(true);
+        board.set_leds_changed();
         Ok(())
     }
 
@@ -85,7 +85,7 @@ impl Layer {
             .daemon()
             .set_brightness(board.board(), self.index, brightness)?;
         self.brightness.set(brightness);
-        board.inner().leds_changed.set(true);
+        board.set_leds_changed();
         Ok(())
     }
 
@@ -97,7 +97,7 @@ impl Layer {
         let board = self.board();
         board.daemon().set_color(board.board(), self.index, color)?;
         self.color.set(color);
-        board.inner().leds_changed.set(true);
+        board.set_leds_changed();
         Ok(())
     }
 }

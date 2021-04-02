@@ -138,7 +138,7 @@ impl Key {
             board.daemon().set_color(board.board(), *index, color)?;
         }
         self.led_color.set(Some(color));
-        board.inner().leds_changed.set(true);
+        board.set_leds_changed();
         Ok(())
     }
 

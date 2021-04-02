@@ -1,4 +1,8 @@
-use glib::subclass::prelude::*;
+use glib::{
+    prelude::*,
+    subclass::{prelude::*, Signal},
+};
+use once_cell::sync::Lazy;
 use std::{cell::Cell, collections::HashMap, rc::Rc};
 
 use crate::{BoardId, Daemon, DerefCell, Key, KeyMap, Layer, Layout};
@@ -16,7 +20,7 @@ pub struct DaemonBoardInner {
     keys: DerefCell<Vec<Key>>,
     layers: DerefCell<Vec<Layer>>,
     max_brightness: DerefCell<i32>,
-    pub(crate) leds_changed: Cell<bool>,
+    leds_changed: Cell<bool>,
     has_led_save: DerefCell<bool>,
     has_matrix: DerefCell<bool>,
 }
@@ -28,7 +32,14 @@ impl ObjectSubclass for DaemonBoardInner {
     type Type = DaemonBoard;
 }
 
-impl ObjectImpl for DaemonBoardInner {}
+impl ObjectImpl for DaemonBoardInner {
+    fn signals() -> &'static [Signal] {
+        static SIGNALS: Lazy<Vec<Signal>> = Lazy::new(|| {
+            vec![Signal::builder("leds-changed", &[], glib::Type::UNIT.into()).build()]
+        });
+        SIGNALS.as_ref()
+    }
+}
 
 glib::wrapper! {
     pub struct DaemonBoard(ObjectSubclass<DaemonBoardInner>);
@@ -69,8 +80,7 @@ impl DaemonBoard {
         self_.inner().has_matrix.set(has_matrix);
 
         let keys = self_
-            .inner()
-            .layout
+            .layout()
             .physical
             .keys
             .iter()
@@ -86,8 +96,21 @@ impl DaemonBoard {
         Ok(self_)
     }
 
-    pub(crate) fn inner(&self) -> &DaemonBoardInner {
+    fn inner(&self) -> &DaemonBoardInner {
         DaemonBoardInner::from_instance(self)
+    }
+
+    pub(crate) fn set_leds_changed(&self) {
+        self.inner().leds_changed.set(true);
+        self.emit_by_name("leds-changed", &[]).unwrap();
+    }
+
+    pub fn connect_leds_changed<F: Fn() + 'static>(&self, cb: F) {
+        self.connect_local("leds-changed", false, move |_| {
+            cb();
+            None
+        })
+        .unwrap();
     }
 
     pub(crate) fn daemon(&self) -> &dyn Daemon {
