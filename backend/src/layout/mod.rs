@@ -184,9 +184,7 @@ mod tests {
         let layout_ec = Layout::from_board("system76/darp6").unwrap();
         let layout_qmk = Layout::from_board("system76/launch_1").unwrap();
         for k in layout_ec.keymap.keys() {
-            if k == "KBD_UP"
-                || k == "KBD_DOWN"
-                || k == "KBD_COLOR"
+            if k == "KBD_COLOR"
                 || k == "KBD_BKL"
                 || k == "TOUCHPAD"
                 || k == "DISPLAY_TOGGLE"
