@@ -1,7 +1,7 @@
 #[cfg(target_os = "linux")]
 use ectool::AccessLpcLinux;
 use ectool::{Access, AccessHid, Ec};
-use hidapi::HidApi;
+use hidapi::{DeviceInfo, HidApi};
 use std::{
     cell::{Cell, RefCell, RefMut},
     collections::HashMap,
@@ -15,11 +15,12 @@ use super::{err_str, BoardId, Daemon, DaemonCommand};
 use crate::Matrix;
 
 pub struct DaemonServer<R: Read, W: Write> {
+    hidapi: RefCell<Option<HidApi>>,
     running: Cell<bool>,
     read: BufReader<R>,
     write: W,
-    boards: RefCell<HashMap<BoardId, Ec<Box<dyn Access>>>>,
-    board_ids: Vec<BoardId>,
+    boards: RefCell<HashMap<BoardId, (Ec<Box<dyn Access>>, Option<DeviceInfo>)>>,
+    board_ids: RefCell<Vec<BoardId>>,
 }
 
 impl DaemonServer<io::Stdin, io::Stdout> {
@@ -39,7 +40,7 @@ impl<R: Read, W: Write> DaemonServer<R, W> {
                 Ok(ec) => {
                     info!("Adding LPC EC");
                     let id = BoardId(Uuid::new_v4().as_u128());
-                    boards.insert(id, ec.into_dyn());
+                    boards.insert(id, (ec.into_dyn(), None));
                     board_ids.push(id);
                 }
                 Err(err) => {
@@ -60,52 +61,84 @@ impl<R: Read, W: Write> DaemonServer<R, W> {
             }
         };
 
-        if let Some(api) = &hidapi {
+        let self_ = Self {
+            hidapi: RefCell::new(hidapi),
+            running: Cell::new(true),
+            read: BufReader::new(read),
+            write,
+            boards: RefCell::new(boards),
+            board_ids: RefCell::new(board_ids),
+        };
+
+        self_.refresh();
+
+        Ok(self_)
+    }
+
+    fn have_device(&self, info: &DeviceInfo) -> bool {
+        for (_, i) in self.boards.borrow().values() {
+            if let Some(i) = i {
+                if (i.vendor_id(), i.product_id(), i.path())
+                    == (info.vendor_id(), info.product_id(), info.path())
+                {
+                    return true;
+                }
+            }
+        }
+        false
+    }
+
+    fn refresh(&self) {
+        if let Some(api) = &mut *self.hidapi.borrow_mut() {
+            if let Err(err) = api.refresh_devices() {
+                error!("Failed to refresh hidapi devices: {}", err);
+            }
             for info in api.device_list() {
                 match (info.vendor_id(), info.product_id(), info.interface_number()) {
                     // System76 launch_1
                     //TODO: better way to determine this
-                    (0x3384, 0x0001, 1) => match info.open_device(&api) {
-                        Ok(device) => match AccessHid::new(device, 10, 100) {
-                            Ok(access) => match unsafe { Ec::new(access) } {
-                                Ok(ec) => {
-                                    info!("Adding USB HID EC at {:?}", info.path());
-                                    let id = BoardId(Uuid::new_v4().as_u128());
-                                    boards.insert(id, ec.into_dyn());
-                                    board_ids.push(id);
-                                }
+                    (0x3384, 0x0001, 1) => {
+                        // Skip if device already open
+                        if self.have_device(&info) {
+                            continue;
+                        }
+
+                        match info.open_device(&api) {
+                            Ok(device) => match AccessHid::new(device, 10, 100) {
+                                Ok(access) => match unsafe { Ec::new(access) } {
+                                    Ok(ec) => {
+                                        info!("Adding USB HID EC at {:?}", info.path());
+                                        let id = BoardId(Uuid::new_v4().as_u128());
+                                        self.boards
+                                            .borrow_mut()
+                                            .insert(id, (ec.into_dyn(), Some(info.clone())));
+                                        self.board_ids.borrow_mut().push(id);
+                                    }
+                                    Err(err) => {
+                                        error!(
+                                            "Failed to probe USB HID EC at {:?}: {:?}",
+                                            info.path(),
+                                            err
+                                        );
+                                    }
+                                },
                                 Err(err) => {
                                     error!(
-                                        "Failed to probe USB HID EC at {:?}: {:?}",
+                                        "Failed to access USB HID EC at {:?}: {:?}",
                                         info.path(),
                                         err
                                     );
                                 }
                             },
                             Err(err) => {
-                                error!(
-                                    "Failed to access USB HID EC at {:?}: {:?}",
-                                    info.path(),
-                                    err
-                                );
+                                error!("Failed to open USB HID EC at {:?}: {:?}", info.path(), err);
                             }
-                        },
-                        Err(err) => {
-                            error!("Failed to open USB HID EC at {:?}: {:?}", info.path(), err);
                         }
-                    },
+                    }
                     _ => (),
                 }
             }
         }
-
-        Ok(Self {
-            running: Cell::new(true),
-            read: BufReader::new(read),
-            write,
-            boards: RefCell::new(boards),
-            board_ids,
-        })
     }
 
     pub fn run(mut self) -> io::Result<()> {
@@ -132,7 +165,7 @@ impl<R: Read, W: Write> DaemonServer<R, W> {
     fn board(&self, board: BoardId) -> Result<RefMut<Ec<Box<dyn Access>>>, String> {
         let mut boards = self.boards.borrow_mut();
         if boards.get_mut(&board).is_some() {
-            Ok(RefMut::map(boards, |x| x.get_mut(&board).unwrap()))
+            Ok(RefMut::map(boards, |x| &mut x.get_mut(&board).unwrap().0))
         } else {
             Err("failed to find board".to_string())
         }
@@ -141,7 +174,7 @@ impl<R: Read, W: Write> DaemonServer<R, W> {
 
 impl<R: Read, W: Write> Daemon for DaemonServer<R, W> {
     fn boards(&self) -> Result<Vec<BoardId>, String> {
-        Ok(self.board_ids.clone())
+        Ok(self.board_ids.borrow().clone())
     }
 
     fn model(&self, board: BoardId) -> Result<String, String> {
