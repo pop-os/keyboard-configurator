@@ -98,7 +98,7 @@ impl Key {
         let mut led_color = None;
         if board.layout().meta.has_mode && leds.len() > 0 {
             match board.daemon().color(board.board(), leds[0]) {
-                Ok(color) => led_color = Some(color),
+                Ok((r, g, b)) => led_color = Some(Rgb::new(r, g, b).to_hs_lossy()),
                 Err(err) => error!("error getting key color: {}", err),
             }
         }
@@ -134,8 +134,9 @@ impl Key {
 
     pub fn set_color(&self, color: Hs) -> Result<(), String> {
         let board = self.board();
+        let Rgb { r, g, b } = color.to_rgb();
         for index in &self.leds {
-            board.daemon().set_color(board.board(), *index, color)?;
+            board.daemon().set_color(board.board(), *index, (r, g, b))?;
         }
         self.led_color.set(Some(color));
         board.set_leds_changed();

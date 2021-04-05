@@ -1,7 +1,7 @@
 use glib::clone::Downgrade;
 use std::cell::Cell;
 
-use crate::{DaemonBoard, Hs, Mode};
+use crate::{DaemonBoard, Hs, Mode, Rgb};
 
 #[derive(Debug)]
 pub struct Layer {
@@ -42,6 +42,13 @@ impl Layer {
         let color = board
             .daemon()
             .color(board.board(), index)
+            .map(|color| {
+                if index == 0xff {
+                    Rgb::new(color.0, color.1, color.2).to_hs_lossy()
+                } else {
+                    Hs::from_ints(color.0, color.1)
+                }
+            })
             .unwrap_or_else(|err| {
                 error!("error getting layer color: {}", err);
                 Hs::new(0., 0.)
@@ -95,7 +102,17 @@ impl Layer {
 
     pub fn set_color(&self, color: Hs) -> Result<(), String> {
         let board = self.board();
-        board.daemon().set_color(board.board(), self.index, color)?;
+        if self.index == 0xff {
+            let Rgb { r, g, b } = color.to_rgb();
+            board
+                .daemon()
+                .set_color(board.board(), self.index, (r, g, b))?;
+        } else {
+            let (h, s) = color.to_ints();
+            board
+                .daemon()
+                .set_color(board.board(), self.index, (h, s, 0))?;
+        }
         self.color.set(color);
         board.set_leds_changed();
         Ok(())

@@ -12,7 +12,7 @@ use std::{
 use uuid::Uuid;
 
 use super::{err_str, BoardId, Daemon, DaemonCommand};
-use crate::{Hs, Matrix, Rgb};
+use crate::Matrix;
 
 pub struct DaemonServer<R: Read, W: Write> {
     running: Cell<bool>,
@@ -186,26 +186,16 @@ impl<R: Read, W: Write> Daemon for DaemonServer<R, W> {
         Ok(Matrix::new(rows, cols, data.into_boxed_slice()))
     }
 
-    fn color(&self, board: BoardId, index: u8) -> Result<Hs, String> {
+    fn color(&self, board: BoardId, index: u8) -> Result<(u8, u8, u8), String> {
         let mut ec = self.board(board)?;
-        let color = unsafe { ec.led_get_color(index) }.map_err(err_str)?;
-
-        if unsafe { ec.access().is::<AccessHid>() } && index >= 0xf0 {
-            Ok(Hs::from_ints(color.0, color.1))
-        } else {
-            Ok(Rgb::new(color.0, color.1, color.2).to_hs_lossy())
-        }
+        unsafe { ec.led_get_color(index) }.map_err(err_str)
     }
 
-    fn set_color(&self, board: BoardId, index: u8, color: Hs) -> Result<(), String> {
+    fn set_color(&self, board: BoardId, index: u8, color: (u8, u8, u8)) -> Result<(), String> {
         let mut ec = self.board(board)?;
-
-        if unsafe { ec.access().is::<AccessHid>() } && index >= 0xf0 {
-            let (h, s) = color.to_ints();
-            unsafe { ec.led_set_color(index, h, s, 0).map_err(err_str) }
-        } else {
-            let Rgb { r, g, b } = color.to_rgb();
-            unsafe { ec.led_set_color(index, r, g, b).map_err(err_str) }
+        unsafe {
+            ec.led_set_color(index, color.0, color.1, color.2)
+                .map_err(err_str)
         }
     }
 

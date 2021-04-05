@@ -4,13 +4,13 @@ use std::{
 };
 
 use super::{BoardId, Daemon};
-use crate::{Hs, Matrix};
+use crate::Matrix;
 
 #[derive(Default)]
 struct BoardDummy {
     name: String,
     keymap: RefCell<HashMap<(u8, u8, u8), u16>>,
-    color: Cell<Hs>,
+    color: Cell<(u8, u8, u8)>,
     brightness: Cell<i32>,
     mode: Cell<(u8, u8)>,
 }
@@ -75,7 +75,7 @@ impl Daemon for DaemonDummy {
         Ok(Matrix::new(0, 0, Vec::new().into_boxed_slice()))
     }
 
-    fn color(&self, board: BoardId, index: u8) -> Result<Hs, String> {
+    fn color(&self, board: BoardId, index: u8) -> Result<(u8, u8, u8), String> {
         // TODO implement support for per-led
         if index != 0xFF {
             return Err(format!("Can't set color index {}", index));
@@ -83,7 +83,7 @@ impl Daemon for DaemonDummy {
         Ok(self.board(board)?.color.get())
     }
 
-    fn set_color(&self, board: BoardId, index: u8, color: Hs) -> Result<(), String> {
+    fn set_color(&self, board: BoardId, index: u8, color: (u8, u8, u8)) -> Result<(), String> {
         if index != 0xFF {
             return Err(format!("Can't set color index {}", index));
         }

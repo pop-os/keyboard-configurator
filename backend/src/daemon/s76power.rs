@@ -7,7 +7,7 @@ use glib::variant::{FromVariant, ToVariant};
 use std::{cell::Cell, iter::Iterator};
 
 use super::{err_str, BoardId, Daemon, Matrix};
-use crate::{Hs, Rgb};
+use crate::Rgb;
 
 const DBUS_NAME: &str = "com.system76.PowerDaemon";
 const DBUS_KEYBOARD_IFACE: &str = "com.system76.PowerDaemon.Keyboard";
@@ -158,25 +158,24 @@ impl Daemon for DaemonS76Power {
         Err("Unimplemented".to_string())
     }
 
-    fn color(&self, board: BoardId, index: u8) -> Result<Hs, String> {
+    fn color(&self, board: BoardId, index: u8) -> Result<(u8, u8, u8), String> {
         if index != 0xFF {
             return Err(format!("Can't set color index {}", index));
         }
         let color = self.board(board)?.prop::<String>("color")?;
         Ok(color
             .and_then(|c| Rgb::parse(&c))
-            .map(|rgb| rgb.to_hs_lossy())
-            .unwrap_or_else(|| Hs::new(0., 0.)))
+            .map_or((0, 0, 0), |rgb| (rgb.r, rgb.g, rgb.b)))
     }
 
-    fn set_color(&self, board: BoardId, index: u8, color: Hs) -> Result<(), String> {
+    fn set_color(&self, board: BoardId, index: u8, color: (u8, u8, u8)) -> Result<(), String> {
         if index != 0xFF {
             return Err(format!("Can't set color index {}", index));
         }
         let board = self.board(board)?;
         board.set_prop(
             "color",
-            color.to_rgb().to_string(),
+            Rgb::new(color.0, color.1, color.2).to_string(),
             &board.color_set_cancellable,
         )?;
         Ok(())
