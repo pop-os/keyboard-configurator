@@ -52,54 +52,50 @@ impl<R: Read, W: Write> DaemonServer<R, W> {
         }
 
         //TODO: should we continue through HID errors?
-        match HidApi::new() {
-            Ok(api) => {
-                for info in api.device_list() {
-                    match (info.vendor_id(), info.product_id()) {
-                        // System76 launch_1
-                        (0x3384, 0x0001) => match info.interface_number() {
-                            //TODO: better way to determine this
-                            1 => match info.open_device(&api) {
-                                Ok(device) => match AccessHid::new(device, 10, 100) {
-                                    Ok(access) => match unsafe { Ec::new(access) } {
-                                        Ok(ec) => {
-                                            info!("Adding USB HID EC at {:?}", info.path());
-                                            let id = BoardId(Uuid::new_v4().as_u128());
-                                            boards.insert(id, ec.into_dyn());
-                                            board_ids.push(id);
-                                        }
-                                        Err(err) => {
-                                            error!(
-                                                "Failed to probe USB HID EC at {:?}: {:?}",
-                                                info.path(),
-                                                err
-                                            );
-                                        }
-                                    },
-                                    Err(err) => {
-                                        error!(
-                                            "Failed to access USB HID EC at {:?}: {:?}",
-                                            info.path(),
-                                            err
-                                        );
-                                    }
-                                },
+        let hidapi = match HidApi::new() {
+            Ok(api) => Some(api),
+            Err(err) => {
+                error!("Failed to list USB HID ECs: {:?}", err);
+                None
+            }
+        };
+
+        if let Some(api) = &hidapi {
+            for info in api.device_list() {
+                match (info.vendor_id(), info.product_id(), info.interface_number()) {
+                    // System76 launch_1
+                    //TODO: better way to determine this
+                    (0x3384, 0x0001, 1) => match info.open_device(&api) {
+                        Ok(device) => match AccessHid::new(device, 10, 100) {
+                            Ok(access) => match unsafe { Ec::new(access) } {
+                                Ok(ec) => {
+                                    info!("Adding USB HID EC at {:?}", info.path());
+                                    let id = BoardId(Uuid::new_v4().as_u128());
+                                    boards.insert(id, ec.into_dyn());
+                                    board_ids.push(id);
+                                }
                                 Err(err) => {
                                     error!(
-                                        "Failed to open USB HID EC at {:?}: {:?}",
+                                        "Failed to probe USB HID EC at {:?}: {:?}",
                                         info.path(),
                                         err
                                     );
                                 }
                             },
-                            _ => (),
+                            Err(err) => {
+                                error!(
+                                    "Failed to access USB HID EC at {:?}: {:?}",
+                                    info.path(),
+                                    err
+                                );
+                            }
                         },
-                        _ => (),
-                    }
+                        Err(err) => {
+                            error!("Failed to open USB HID EC at {:?}: {:?}", info.path(), err);
+                        }
+                    },
+                    _ => (),
                 }
-            }
-            Err(err) => {
-                error!("Failed to list USB HID ECs: {:?}", err);
             }
         }
 
