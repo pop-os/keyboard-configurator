@@ -161,7 +161,7 @@ impl KeyboardColor {
             let res = match &*self.index() {
                 KeyboardColorIndex::Keys(keys) => (|| {
                     for i in keys.iter() {
-                        board.keys()[*i as usize].set_color(hs)?;
+                        board.keys()[*i as usize].set_color(Some(hs))?;
                     }
                     Ok(())
                 })(),

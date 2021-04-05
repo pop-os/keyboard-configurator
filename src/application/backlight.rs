@@ -11,6 +11,7 @@ use backend::{DaemonBoard, Hs, Mode};
 #[derive(Default)]
 pub struct BacklightInner {
     board: DerefCell<DaemonBoard>,
+    disable_color_button: DerefCell<gtk::Button>,
     keyboard_color: DerefCell<KeyboardColor>,
     color_row: DerefCell<gtk::ListBoxRow>,
     brightness_scale: DerefCell<gtk::Scale>,
@@ -109,10 +110,22 @@ impl ObjectImpl for BacklightInner {
             }
         }
 
+        let disable_color_button = cascade! {
+            gtk::Button::with_label("Disable");
+            ..connect_clicked(clone!(@weak obj => move |_| obj.disable_color_clicked()));
+        };
+
         let mode_row = row("Layer Color Pattern:", &mode_combobox);
         let speed_row = row("Layer Animation Speed:", &speed_scale);
         let saturation_row = row("Layer Saturation:", &saturation_scale);
-        let color_row = row("Layer Color:", &keyboard_color);
+        let color_row = row(
+            "Layer Color:",
+            &cascade! {
+                gtk::Box::new(gtk::Orientation::Horizontal, 8);
+                ..add(&disable_color_button);
+                ..add(&keyboard_color);
+            },
+        );
 
         cascade! {
             obj;
@@ -127,6 +140,7 @@ impl ObjectImpl for BacklightInner {
             });
         };
 
+        self.disable_color_button.set(disable_color_button);
         self.keyboard_color.set(keyboard_color);
         self.color_row.set(color_row);
         self.brightness_scale.set(brightness_scale);
@@ -279,6 +293,9 @@ impl Backlight {
                 .keyboard_color
                 .set_index(KeyboardColorIndex::Layer(self.inner().layer.get()));
         }
+        self.inner()
+            .disable_color_button
+            .set_visible(self.mode().is_per_key());
         self.invalidate_filter();
 
         if self.inner().do_not_set.get() {
@@ -339,6 +356,18 @@ impl Backlight {
         self.inner()
             .keyboard_color
             .set_sensitive(!selected.is_empty());
+        self.inner()
+            .disable_color_button
+            .set_sensitive(!selected.is_empty());
+    }
+
+    fn disable_color_clicked(&self) {
+        let keys = self.board().keys();
+        for i in self.inner().selected.borrow().iter() {
+            if let Err(err) = keys[*i].set_color(None) {
+                error!("Failed to disable key: {}", err);
+            }
+        }
     }
 
     fn led_save(&self) {
