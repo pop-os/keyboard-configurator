@@ -2,8 +2,12 @@ use cascade::cascade;
 use glib::clone;
 use gtk::prelude::*;
 use gtk::subclass::prelude::*;
-use std::rc::Rc;
-use std::sync::atomic::{AtomicUsize, Ordering};
+use std::{
+    cell::RefCell,
+    collections::HashSet,
+    rc::Rc,
+    sync::atomic::{AtomicUsize, Ordering},
+};
 
 use super::{shortcuts_window, ConfiguratorApp, Keyboard, KeyboardLayer, Page, Picker};
 use crate::DerefCell;
@@ -11,6 +15,7 @@ use backend::{Board, Daemon, DaemonClient, DaemonDummy, DaemonServer};
 
 #[derive(Default)]
 pub struct MainWindowInner {
+    daemon: DerefCell<Rc<dyn Daemon>>,
     back_button: DerefCell<gtk::Button>,
     count: AtomicUsize,
     header_bar: DerefCell<gtk::HeaderBar>,
@@ -18,6 +23,7 @@ pub struct MainWindowInner {
     layer_switcher: DerefCell<gtk::StackSwitcher>,
     picker: DerefCell<Picker>,
     stack: DerefCell<gtk::Stack>,
+    keyboards: RefCell<Vec<(Keyboard, gtk::ListBoxRow)>>,
 }
 
 #[glib::object_subclass]
@@ -182,6 +188,48 @@ impl MainWindow {
             }
         }
 
+        window.inner().daemon.set(daemon);
+        glib::timeout_add_seconds_local(
+            1,
+            clone!(@weak window => move || {
+                let daemon = &*window.inner().daemon;
+
+                if let Err(err) = daemon.refresh() {
+                    error!("Failed to refresh boards: {}", err);
+                }
+
+                let boards = match daemon.boards() {
+                    Ok(boards) => boards,
+                    Err(_) => return glib::Continue(true),
+                };
+
+                // Remove boards that aren't detected now
+                let mut ids = HashSet::new();
+                window.inner().keyboards.borrow_mut().retain(|(keyboard, row)| {
+                    let board = keyboard.board().board();
+                    ids.insert(board);
+                    if boards.iter().find(|i| **i == board).is_none() {
+                        window.inner().stack.remove(keyboard);
+                        window.inner().keyboard_list_box.remove(row);
+                        return false;
+                    }
+                    true
+                });
+
+                // Add new boards
+                for i in boards {
+                    if !ids.contains(&i) {
+                        match Board::new(daemon.clone(), i) {
+                            Ok(board) => window.add_keyboard(board),
+                            Err(err) => error!("{}", err),
+                        }
+                    }
+                }
+
+                glib::Continue(true)
+            }),
+        );
+
         window
     }
 
@@ -263,6 +311,7 @@ impl MainWindow {
         self.inner().keyboard_list_box.add(&row);
 
         self.inner().stack.add(&keyboard);
+        self.inner().keyboards.borrow_mut().push((keyboard, row));
 
         // XXX if only one keyboard, show that with no back button
         self.inner().count.fetch_add(1, Ordering::Relaxed);

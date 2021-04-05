@@ -116,7 +116,7 @@ impl Board {
         self.inner().daemon.as_ref()
     }
 
-    pub(crate) fn board(&self) -> BoardId {
+    pub fn board(&self) -> BoardId {
         *self.inner().board
     }
 
