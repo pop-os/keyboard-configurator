@@ -8,7 +8,7 @@ use std::{
 };
 
 use crate::{choose_color, ColorCircle, DerefCell, SelectedKeys};
-use backend::{DaemonBoard, Hs};
+use backend::{Board, Hs};
 
 #[derive(Clone)]
 pub enum KeyboardColorIndex {
@@ -25,7 +25,7 @@ impl Default for KeyboardColorIndex {
 #[derive(Default)]
 pub struct KeyboardColorInner {
     circle: DerefCell<ColorCircle>,
-    board: RefCell<Option<DaemonBoard>>,
+    board: RefCell<Option<Board>>,
     hs: Cell<Hs>,
     index: RefCell<KeyboardColorIndex>,
 }
@@ -105,7 +105,7 @@ glib::wrapper! {
 }
 
 impl KeyboardColor {
-    pub fn new(board: Option<DaemonBoard>, index: KeyboardColorIndex) -> Self {
+    pub fn new(board: Option<Board>, index: KeyboardColorIndex) -> Self {
         cascade! {
             glib::Object::new::<Self>(&[]).unwrap();
             ..set_board(board);
@@ -133,7 +133,7 @@ impl KeyboardColor {
         );
     }
 
-    fn board(&self) -> Option<Ref<DaemonBoard>> {
+    fn board(&self) -> Option<Ref<Board>> {
         let board = self.inner().board.borrow();
         if board.is_some() {
             Some(Ref::map(board, |x| x.as_ref().unwrap()))
@@ -142,7 +142,7 @@ impl KeyboardColor {
         }
     }
 
-    pub fn set_board(&self, board: Option<DaemonBoard>) {
+    pub fn set_board(&self, board: Option<Board>) {
         self.inner().circle.set_sensitive(board.is_some());
         *self.inner().board.borrow_mut() = board;
         self.read_color();

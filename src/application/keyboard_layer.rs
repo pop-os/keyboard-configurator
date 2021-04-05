@@ -9,7 +9,7 @@ use std::{
 
 use super::Page;
 use crate::{DerefCell, SelectedKeys};
-use backend::{DaemonBoard, Key, Layer, Rect, Rgb};
+use backend::{Board, Key, Layer, Rect, Rgb};
 
 const SCALE: f64 = 64.0;
 const MARGIN: f64 = 2.;
@@ -18,7 +18,7 @@ const RADIUS: f64 = 4.;
 #[derive(Default)]
 pub struct KeyboardLayerInner {
     page: Cell<Page>,
-    board: DerefCell<DaemonBoard>,
+    board: DerefCell<Board>,
     selected: RefCell<SelectedKeys>,
     selectable: Cell<bool>,
     multiple: Cell<bool>,
@@ -204,7 +204,7 @@ glib::wrapper! {
 }
 
 impl KeyboardLayer {
-    pub fn new(page: Page, board: DaemonBoard) -> Self {
+    pub fn new(page: Page, board: Board) -> Self {
         let (width, height) = board
             .keys()
             .iter()

@@ -7,7 +7,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 
 use super::{shortcuts_window, ConfiguratorApp, Keyboard, KeyboardLayer, Page, Picker};
 use crate::DerefCell;
-use backend::{Daemon, DaemonBoard, DaemonClient, DaemonDummy, DaemonServer};
+use backend::{Board, Daemon, DaemonClient, DaemonDummy, DaemonServer};
 
 #[derive(Default)]
 pub struct MainWindowInner {
@@ -164,7 +164,7 @@ impl MainWindow {
         let daemon = daemon();
 
         for i in daemon.boards().expect("Failed to load boards") {
-            match DaemonBoard::new(daemon.clone(), i) {
+            match Board::new(daemon.clone(), i) {
                 Ok(board) => window.add_keyboard(board),
                 Err(err) => error!("{}", err),
             }
@@ -175,7 +175,7 @@ impl MainWindow {
             let daemon = Rc::new(DaemonDummy::new(phony_board_names));
 
             for i in daemon.boards().unwrap() {
-                match DaemonBoard::new(daemon.clone(), i) {
+                match Board::new(daemon.clone(), i) {
                     Ok(board) => window.add_keyboard(board),
                     Err(err) => error!("{}", err),
                 }
@@ -216,7 +216,7 @@ impl MainWindow {
         inner.picker.set_keyboard(Some(keyboard.clone()));
     }
 
-    fn add_keyboard(&self, board: DaemonBoard) {
+    fn add_keyboard(&self, board: Board) {
         let app: ConfiguratorApp = self.get_application().unwrap().downcast().unwrap();
 
         let keyboard = cascade! {

@@ -12,12 +12,12 @@ use std::{
 
 use super::{show_error_dialog, Backlight, KeyboardLayer, Page, Picker};
 use crate::{DerefCell, SelectedKeys};
-use backend::{DaemonBoard, KeyMap, Layout};
+use backend::{Board, KeyMap, Layout};
 
 #[derive(Default)]
 pub struct KeyboardInner {
     action_group: DerefCell<gio::SimpleActionGroup>,
-    board: DerefCell<DaemonBoard>,
+    board: DerefCell<Board>,
     page: Cell<Page>,
     picker: RefCell<WeakRef<Picker>>,
     selected: RefCell<SelectedKeys>,
@@ -164,7 +164,7 @@ glib::wrapper! {
 }
 
 impl Keyboard {
-    pub fn new(board: DaemonBoard, debug_layers: bool) -> Self {
+    pub fn new(board: Board, debug_layers: bool) -> Self {
         let keyboard: Self = glib::Object::new(&[]).unwrap();
 
         let backlight = cascade! {
@@ -202,7 +202,7 @@ impl Keyboard {
         self.inner().action_group.upcast_ref()
     }
 
-    pub fn board(&self) -> &DaemonBoard {
+    pub fn board(&self) -> &Board {
         &self.inner().board
     }
 

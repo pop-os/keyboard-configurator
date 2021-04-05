@@ -1,11 +1,11 @@
 use glib::clone::Downgrade;
 use std::{cell::Cell, char};
 
-use crate::{DaemonBoard, Hs, PhysicalLayoutKey, Rect, Rgb};
+use crate::{Board, Hs, PhysicalLayoutKey, Rect, Rgb};
 
 #[derive(Debug)]
 pub struct Key {
-    pub(crate) board: glib::WeakRef<DaemonBoard>,
+    pub(crate) board: glib::WeakRef<Board>,
     // Logical position (row, column)
     pub logical: (u8, u8),
     // Logical name (something like K01, where 0 is the row and 1 is the column)
@@ -32,7 +32,7 @@ pub struct Key {
 }
 
 impl Key {
-    pub(crate) fn new(board: &DaemonBoard, physical_key: &PhysicalLayoutKey) -> Self {
+    pub(crate) fn new(board: &Board, physical_key: &PhysicalLayoutKey) -> Self {
         let logical = physical_key.logical;
         let physical = physical_key.physical;
         let physical_name = physical_key.physical_name.clone();
@@ -121,7 +121,7 @@ impl Key {
         }
     }
 
-    fn board(&self) -> DaemonBoard {
+    fn board(&self) -> Board {
         self.board.upgrade().unwrap()
     }
 

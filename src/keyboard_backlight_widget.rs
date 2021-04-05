@@ -6,7 +6,7 @@ use gtk::prelude::*;
 use std::rc::Rc;
 
 use crate::{KeyboardColor, KeyboardColorIndex};
-use backend::{Daemon, DaemonBoard, DaemonS76Power};
+use backend::{Board, Daemon, DaemonS76Power};
 
 pub fn keyboard_backlight_widget() -> gtk::Widget {
     let stack = cascade! {
@@ -37,7 +37,7 @@ fn add_boards(stack: &gtk::Stack) -> Result<(), String> {
     let daemon = Rc::new(DaemonS76Power::new()?);
 
     for i in daemon.boards()? {
-        match DaemonBoard::new(daemon.clone(), i) {
+        match Board::new(daemon.clone(), i) {
             Ok(board) => {
                 let name = board.model().to_owned();
                 stack.add_titled(&page(board), &name, &name);
@@ -49,7 +49,7 @@ fn add_boards(stack: &gtk::Stack) -> Result<(), String> {
     Ok(())
 }
 
-fn page(board: DaemonBoard) -> gtk::Widget {
+fn page(board: Board) -> gtk::Widget {
     let max_brightness = board.max_brightness() as f64;
     let brightness = board.layers()[0].brightness() as f64;
     let brightness_scale = cascade! {

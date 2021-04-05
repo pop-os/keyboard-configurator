@@ -1,20 +1,20 @@
 use glib::clone::Downgrade;
 use std::cell::Cell;
 
-use crate::{DaemonBoard, Hs, Mode, Rgb};
+use crate::{Board, Hs, Mode, Rgb};
 
 #[derive(Debug)]
 pub struct Layer {
     layer: u8,
     index: u8,
-    board: glib::WeakRef<DaemonBoard>,
+    board: glib::WeakRef<Board>,
     mode: Cell<Option<(u8, u8)>>,
     brightness: Cell<i32>,
     color: Cell<Hs>,
 }
 
 impl Layer {
-    pub(crate) fn new(board: &DaemonBoard, layer: u8) -> Self {
+    pub(crate) fn new(board: &Board, layer: u8) -> Self {
         let index = if board.layout().meta.has_per_layer {
             0xf0 + layer
         } else {
@@ -63,7 +63,7 @@ impl Layer {
         }
     }
 
-    fn board(&self) -> DaemonBoard {
+    fn board(&self) -> Board {
         self.board.upgrade().unwrap()
     }
 

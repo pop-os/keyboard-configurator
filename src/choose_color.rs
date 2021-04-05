@@ -3,10 +3,10 @@ use glib::clone;
 use gtk::prelude::*;
 
 use crate::ColorWheel;
-use backend::{DaemonBoard, Hs, Mode};
+use backend::{Board, Hs, Mode};
 
 pub fn choose_color<W: IsA<gtk::Widget>, F: Fn(Option<Hs>) + 'static>(
-    board: DaemonBoard,
+    board: Board,
     w: &W,
     title: &'static str,
     color: Option<Hs>,

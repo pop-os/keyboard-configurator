@@ -7,12 +7,8 @@ use std::{cell::Cell, collections::HashMap, rc::Rc};
 
 use crate::{BoardId, Daemon, DerefCell, Key, KeyMap, Layer, Layout};
 
-// GObject
-// Add changed signal
-// Want DerefCell, I guess... Or use OnceCell
-
 #[derive(Default)]
-pub struct DaemonBoardInner {
+pub struct BoardInner {
     daemon: DerefCell<Rc<dyn Daemon>>,
     board: DerefCell<BoardId>,
     model: DerefCell<String>,
@@ -26,13 +22,13 @@ pub struct DaemonBoardInner {
 }
 
 #[glib::object_subclass]
-impl ObjectSubclass for DaemonBoardInner {
+impl ObjectSubclass for BoardInner {
     const NAME: &'static str = "S76DaemonBoard";
     type ParentType = glib::Object;
-    type Type = DaemonBoard;
+    type Type = Board;
 }
 
-impl ObjectImpl for DaemonBoardInner {
+impl ObjectImpl for BoardInner {
     fn signals() -> &'static [Signal] {
         static SIGNALS: Lazy<Vec<Signal>> = Lazy::new(|| {
             vec![
@@ -45,10 +41,10 @@ impl ObjectImpl for DaemonBoardInner {
 }
 
 glib::wrapper! {
-    pub struct DaemonBoard(ObjectSubclass<DaemonBoardInner>);
+    pub struct Board(ObjectSubclass<BoardInner>);
 }
 
-impl DaemonBoard {
+impl Board {
     pub fn new(daemon: Rc<dyn Daemon>, board: BoardId) -> Result<Self, String> {
         let model = match daemon.model(board) {
             Ok(model) => model,
@@ -73,7 +69,7 @@ impl DaemonBoard {
         let has_led_save = daemon.led_save(board).is_ok();
         let has_matrix = daemon.matrix_get(board).is_ok();
 
-        let self_ = glib::Object::new::<DaemonBoard>(&[]).unwrap();
+        let self_ = glib::Object::new::<Board>(&[]).unwrap();
         self_.inner().daemon.set(daemon);
         self_.inner().board.set(board);
         self_.inner().model.set(model);
@@ -99,8 +95,8 @@ impl DaemonBoard {
         Ok(self_)
     }
 
-    fn inner(&self) -> &DaemonBoardInner {
-        DaemonBoardInner::from_instance(self)
+    fn inner(&self) -> &BoardInner {
+        BoardInner::from_instance(self)
     }
 
     pub(crate) fn set_leds_changed(&self) {

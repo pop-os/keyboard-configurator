@@ -6,11 +6,11 @@ use once_cell::sync::Lazy;
 use std::cell::{Cell, RefCell};
 
 use crate::{DerefCell, KeyboardColor, KeyboardColorIndex, SelectedKeys};
-use backend::{DaemonBoard, Hs, Mode};
+use backend::{Board, Hs, Mode};
 
 #[derive(Default)]
 pub struct BacklightInner {
-    board: DerefCell<DaemonBoard>,
+    board: DerefCell<Board>,
     disable_color_button: DerefCell<gtk::Button>,
     keyboard_color: DerefCell<KeyboardColor>,
     color_row: DerefCell<gtk::ListBoxRow>,
@@ -208,7 +208,7 @@ glib::wrapper! {
 }
 
 impl Backlight {
-    pub fn new(board: DaemonBoard) -> Self {
+    pub fn new(board: Board) -> Self {
         let max_brightness = board.max_brightness() as f64;
         let has_led_save = board.has_led_save();
 
@@ -242,7 +242,7 @@ impl Backlight {
         BacklightInner::from_instance(self)
     }
 
-    fn board(&self) -> &DaemonBoard {
+    fn board(&self) -> &Board {
         &self.inner().board
     }
 
