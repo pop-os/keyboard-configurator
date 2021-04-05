@@ -70,7 +70,7 @@ impl<R: Read, W: Write> DaemonServer<R, W> {
             board_ids: RefCell::new(board_ids),
         };
 
-        self_.refresh();
+        self_.refresh()?;
 
         Ok(self_)
     }
@@ -86,59 +86,6 @@ impl<R: Read, W: Write> DaemonServer<R, W> {
             }
         }
         false
-    }
-
-    fn refresh(&self) {
-        if let Some(api) = &mut *self.hidapi.borrow_mut() {
-            if let Err(err) = api.refresh_devices() {
-                error!("Failed to refresh hidapi devices: {}", err);
-            }
-            for info in api.device_list() {
-                match (info.vendor_id(), info.product_id(), info.interface_number()) {
-                    // System76 launch_1
-                    //TODO: better way to determine this
-                    (0x3384, 0x0001, 1) => {
-                        // Skip if device already open
-                        if self.have_device(&info) {
-                            continue;
-                        }
-
-                        match info.open_device(&api) {
-                            Ok(device) => match AccessHid::new(device, 10, 100) {
-                                Ok(access) => match unsafe { Ec::new(access) } {
-                                    Ok(ec) => {
-                                        info!("Adding USB HID EC at {:?}", info.path());
-                                        let id = BoardId(Uuid::new_v4().as_u128());
-                                        self.boards
-                                            .borrow_mut()
-                                            .insert(id, (ec.into_dyn(), Some(info.clone())));
-                                        self.board_ids.borrow_mut().push(id);
-                                    }
-                                    Err(err) => {
-                                        error!(
-                                            "Failed to probe USB HID EC at {:?}: {:?}",
-                                            info.path(),
-                                            err
-                                        );
-                                    }
-                                },
-                                Err(err) => {
-                                    error!(
-                                        "Failed to access USB HID EC at {:?}: {:?}",
-                                        info.path(),
-                                        err
-                                    );
-                                }
-                            },
-                            Err(err) => {
-                                error!("Failed to open USB HID EC at {:?}: {:?}", info.path(), err);
-                            }
-                        }
-                    }
-                    _ => (),
-                }
-            }
-        }
     }
 
     pub fn run(mut self) -> io::Result<()> {
@@ -263,6 +210,69 @@ impl<R: Read, W: Write> Daemon for DaemonServer<R, W> {
     fn led_save(&self, board: BoardId) -> Result<(), String> {
         let mut ec = self.board(board)?;
         unsafe { ec.led_save().map_err(err_str) }
+    }
+
+    fn refresh(&self) -> Result<(), String> {
+        if let Some(api) = &mut *self.hidapi.borrow_mut() {
+            // Remove USB boards that are no longer attached
+            {
+                let mut boards = self.boards.borrow_mut();
+                let mut board_ids = self.board_ids.borrow_mut();
+
+                boards.retain(|_, (ec, _)| unsafe {
+                    !(ec.access().is::<AccessHid>() && ec.probe().is_err())
+                });
+                board_ids.retain(|i| boards.contains_key(i));
+            }
+
+            if let Err(err) = api.refresh_devices() {
+                error!("Failed to refresh hidapi devices: {}", err);
+            }
+
+            for info in api.device_list() {
+                match (info.vendor_id(), info.product_id(), info.interface_number()) {
+                    // System76 launch_1
+                    //TODO: better way to determine this
+                    (0x3384, 0x0001, 1) => {
+                        // Skip if device already open
+                        if self.have_device(&info) {
+                            continue;
+                        }
+
+                        match info.open_device(&api) {
+                            Ok(device) => match AccessHid::new(device, 10, 100) {
+                                Ok(access) => match unsafe { Ec::new(access) } {
+                                    Ok(ec) => {
+                                        info!("Adding USB HID EC at {:?}", info.path());
+                                        let id = BoardId(Uuid::new_v4().as_u128());
+                                        self.boards
+                                            .borrow_mut()
+                                            .insert(id, (ec.into_dyn(), Some(info.clone())));
+                                        self.board_ids.borrow_mut().push(id);
+                                    }
+                                    Err(err) => error!(
+                                        "Failed to probe USB HID EC at {:?}: {:?}",
+                                        info.path(),
+                                        err
+                                    ),
+                                },
+                                Err(err) => error!(
+                                    "Failed to access USB HID EC at {:?}: {:?}",
+                                    info.path(),
+                                    err
+                                ),
+                            },
+                            Err(err) => {
+                                error!("Failed to open USB HID EC at {:?}: {:?}", info.path(), err)
+                            }
+                        }
+                    }
+                    _ => (),
+                }
+            }
+        }
+
+        Ok(())
     }
 
     fn exit(&self) -> Result<(), String> {

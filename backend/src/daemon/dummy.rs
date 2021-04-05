@@ -125,6 +125,10 @@ impl Daemon for DaemonDummy {
         Ok(())
     }
 
+    fn refresh(&self) -> Result<(), String> {
+        Ok(())
+    }
+
     fn exit(&self) -> Result<(), String> {
         Ok(())
     }

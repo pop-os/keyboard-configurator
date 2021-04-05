@@ -213,6 +213,10 @@ impl Daemon for DaemonS76Power {
         Err("Unimplemented".to_string())
     }
 
+    fn refresh(&self) -> Result<(), String> {
+        Ok(())
+    }
+
     fn exit(&self) -> Result<(), String> {
         Ok(())
     }
