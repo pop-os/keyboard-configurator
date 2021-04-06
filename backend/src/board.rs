@@ -8,6 +8,7 @@ use std::{cell::Cell, collections::HashMap, rc::Rc};
 use crate::{BoardId, Daemon, DerefCell, Key, KeyMap, Layer, Layout};
 
 #[derive(Default)]
+#[doc(hidden)]
 pub struct BoardInner {
     daemon: DerefCell<Rc<dyn Daemon>>,
     board: DerefCell<BoardId>,

@@ -25,6 +25,7 @@ pub use self::{
 use daemon::*;
 
 #[derive(Default)]
+#[doc(hidden)]
 pub struct BackendInner {
     daemon: DerefCell<Rc<dyn Daemon>>,
     boards: RefCell<HashMap<BoardId, Board>>,
