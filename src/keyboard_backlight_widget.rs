@@ -3,10 +3,9 @@
 use cascade::cascade;
 use glib::clone;
 use gtk::prelude::*;
-use std::rc::Rc;
 
 use crate::{KeyboardColor, KeyboardColorIndex};
-use backend::{Board, Daemon, DaemonS76Power};
+use backend::{Backend, Board};
 
 pub fn keyboard_backlight_widget() -> gtk::Widget {
     let stack = cascade! {
@@ -34,17 +33,11 @@ pub fn keyboard_backlight_widget() -> gtk::Widget {
 }
 
 fn add_boards(stack: &gtk::Stack) -> Result<(), String> {
-    let daemon = Rc::new(DaemonS76Power::new()?);
-
-    for i in daemon.boards()? {
-        match Board::new(daemon.clone(), i) {
-            Ok(board) => {
-                let name = board.model().to_owned();
-                stack.add_titled(&page(board), &name, &name);
-            }
-            Err(err) => error!("{}", err),
-        }
-    }
+    let backend = Backend::new_s76power()?;
+    backend.connect_board_added(clone!(@weak stack => move |board| {
+        let name = board.model().to_owned();
+        stack.add_titled(&page(board), &name, &name);
+    }));
 
     Ok(())
 }

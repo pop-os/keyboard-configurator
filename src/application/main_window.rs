@@ -4,18 +4,16 @@ use gtk::prelude::*;
 use gtk::subclass::prelude::*;
 use std::{
     cell::RefCell,
-    collections::HashSet,
-    rc::Rc,
     sync::atomic::{AtomicUsize, Ordering},
 };
 
 use super::{shortcuts_window, ConfiguratorApp, Keyboard, KeyboardLayer, Page, Picker};
 use crate::DerefCell;
-use backend::{Board, Daemon, DaemonClient, DaemonDummy, DaemonServer};
+use backend::{Backend, Board};
 
 #[derive(Default)]
 pub struct MainWindowInner {
-    daemon: DerefCell<Rc<dyn Daemon>>,
+    backend: DerefCell<Backend>,
     back_button: DerefCell<gtk::Button>,
     count: AtomicUsize,
     header_bar: DerefCell<gtk::HeaderBar>,
@@ -167,65 +165,34 @@ impl MainWindow {
         let window: Self = glib::Object::new(&[]).unwrap();
         app.add_window(&window);
 
-        let daemon = daemon();
-
-        for i in daemon.boards().expect("Failed to load boards") {
-            match Board::new(daemon.clone(), i) {
-                Ok(board) => window.add_keyboard(board),
-                Err(err) => error!("{}", err),
-            }
-        }
+        let backend = cascade! {
+            daemon();
+            ..connect_board_added(clone!(@weak window => move |board| window.add_keyboard(board)));
+            ..connect_board_removed(clone!(@weak window => move |board| {
+                let mut boards = window.inner().keyboards.borrow_mut();
+                if let Some(idx) = boards.iter().position(|(kb, _)| kb.board() == &board) {
+                    let (keyboard, row) = boards.remove(idx);
+                    window.inner().stack.remove(&keyboard);
+                    window.inner().keyboard_list_box.remove(&row);
+                }
+            }));
+            ..refresh();
+        };
 
         let phony_board_names = app.phony_board_names().to_vec();
         if !phony_board_names.is_empty() {
-            let daemon = Rc::new(DaemonDummy::new(phony_board_names));
-
-            for i in daemon.boards().unwrap() {
-                match Board::new(daemon.clone(), i) {
-                    Ok(board) => window.add_keyboard(board),
-                    Err(err) => error!("{}", err),
-                }
-            }
+            let backend = Backend::new_dummy(phony_board_names).unwrap();
+            backend.connect_board_added(
+                clone!(@weak window => move |board| window.add_keyboard(board)),
+            );
+            backend.refresh();
         }
 
-        window.inner().daemon.set(daemon);
+        window.inner().backend.set(backend);
         glib::timeout_add_seconds_local(
             1,
             clone!(@weak window => move || {
-                let daemon = &*window.inner().daemon;
-
-                if let Err(err) = daemon.refresh() {
-                    error!("Failed to refresh boards: {}", err);
-                }
-
-                let boards = match daemon.boards() {
-                    Ok(boards) => boards,
-                    Err(_) => return glib::Continue(true),
-                };
-
-                // Remove boards that aren't detected now
-                let mut ids = HashSet::new();
-                window.inner().keyboards.borrow_mut().retain(|(keyboard, row)| {
-                    let board = keyboard.board().board();
-                    ids.insert(board);
-                    if boards.iter().find(|i| **i == board).is_none() {
-                        window.inner().stack.remove(keyboard);
-                        window.inner().keyboard_list_box.remove(row);
-                        return false;
-                    }
-                    true
-                });
-
-                // Add new boards
-                for i in boards {
-                    if !ids.contains(&i) {
-                        match Board::new(daemon.clone(), i) {
-                            Ok(board) => window.add_keyboard(board),
-                            Err(err) => error!("{}", err),
-                        }
-                    }
-                }
-
+                window.inner().backend.refresh();
                 glib::Continue(true)
             }),
         );
@@ -319,14 +286,15 @@ impl MainWindow {
 }
 
 #[cfg(target_os = "linux")]
-fn daemon() -> Rc<dyn Daemon> {
+fn daemon() -> Backend {
     if unsafe { libc::geteuid() == 0 } {
         info!("Already running as root");
-        Rc::new(DaemonServer::new_stdio().expect("Failed to create server"))
+        Backend::new()
     } else {
         info!("Not running as root, spawning daemon with pkexec");
-        Rc::new(DaemonClient::new_pkexec())
+        Backend::new_pkexec()
     }
+    .expect("Failed to create server")
 }
 
 #[cfg(not(target_os = "linux"))]

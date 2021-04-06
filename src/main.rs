@@ -2,7 +2,7 @@
 
 use std::env;
 use std::process;
-use system76_keyboard_configurator::{application, backend::DaemonServer};
+use system76_keyboard_configurator::application;
 
 fn main() {
     env_logger::Builder::from_env(
@@ -15,9 +15,7 @@ fn main() {
     let args = env::args().collect::<Vec<_>>();
     for arg in args.iter().skip(1) {
         if arg.as_str() == "--daemon" {
-            let server = DaemonServer::new_stdio().expect("Failed to create server");
-            server.run().expect("Failed to run server");
-            return;
+            backend::run_daemon();
         }
     }
 

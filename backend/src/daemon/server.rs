@@ -61,18 +61,14 @@ impl<R: Read, W: Write> DaemonServer<R, W> {
             }
         };
 
-        let self_ = Self {
+        Ok(Self {
             hidapi: RefCell::new(hidapi),
             running: Cell::new(true),
             read: BufReader::new(read),
             write,
             boards: RefCell::new(boards),
             board_ids: RefCell::new(board_ids),
-        };
-
-        self_.refresh()?;
-
-        Ok(self_)
+        })
     }
 
     fn have_device(&self, info: &DeviceInfo) -> bool {
