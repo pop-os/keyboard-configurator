@@ -6,13 +6,7 @@ use glib::{
     subclass::{prelude::*, Signal},
 };
 use once_cell::sync::Lazy;
-use std::{
-    cell::RefCell,
-    collections::{HashMap, HashSet},
-    iter::FromIterator,
-    process,
-    rc::Rc,
-};
+use std::{cell::RefCell, collections::HashMap, process, rc::Rc};
 
 mod board;
 mod color;
@@ -33,7 +27,6 @@ use daemon::*;
 #[derive(Default)]
 pub struct BackendInner {
     daemon: DerefCell<Rc<dyn Daemon>>,
-    ids: RefCell<HashSet<BoardId>>,
     boards: RefCell<HashMap<BoardId, Board>>,
 }
 
@@ -102,20 +95,24 @@ impl Backend {
             error!("Failed to refresh boards: {}", err);
         }
 
-        let mut ids = self.inner().ids.borrow_mut();
-        let new_ids = HashSet::from_iter(self.inner().daemon.boards().unwrap().into_iter());
+        let new_ids = self.inner().daemon.boards().unwrap();
 
         let mut boards = self.inner().boards.borrow_mut();
 
         // Removed boards
-        for i in ids.difference(&new_ids) {
-            self.emit_by_name("board-removed", &[&boards[i]]).unwrap();
-            boards.remove(i);
-        }
+        boards.retain(|k, v| {
+            if new_ids.iter().find(|i| *i == k).is_none() {
+                self.emit_by_name("board-removed", &[v]).unwrap();
+                return false;
+            }
+            true
+        });
 
         // Added boards
-        // TODO: emit in correct order
-        for i in new_ids.difference(&ids) {
+        for i in &new_ids {
+            if boards.contains_key(i) {
+                continue;
+            }
             match Board::new(self.inner().daemon.clone(), *i) {
                 Ok(board) => {
                     boards.insert(*i, board.clone());
@@ -124,8 +121,6 @@ impl Backend {
                 Err(err) => error!("Failed to add board: {}", err),
             }
         }
-
-        *ids = new_ids;
     }
 
     pub fn connect_board_added<F: Fn(Board) + 'static>(&self, cb: F) {
