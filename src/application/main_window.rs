@@ -298,7 +298,6 @@ fn daemon() -> Backend {
 }
 
 #[cfg(not(target_os = "linux"))]
-fn daemon() -> Rc<dyn Daemon> {
-    let server = DaemonServer::new_stdio().expect("Failed to create server");
-    Rc::new(server)
+fn daemon() -> Backend {
+    Backend::new().expect("Failed to create server")
 }
