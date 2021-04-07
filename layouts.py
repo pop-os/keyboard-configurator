@@ -16,19 +16,13 @@ QMK_MAPPING = {
     'AUDIO_VOL_DOWN': 'VOLUME_DOWN',
     'AUDIO_VOL_UP': 'VOLUME_UP',
     'BSLASH': 'BACKSLASH',
-    'BSLS': 'BACKSLASH',
     'BSPACE': 'BKSP',
-    'BSPC': 'BKSP',
     'CAPSLOCK': 'CAPS',
-    'COMM': 'COMMA',
     'DELETE': 'DEL',
     'DOT': 'PERIOD',
-    'ENT': 'ENTER',
     'EQUAL': 'EQUALS',
-    'EQL': 'EQUALS',
     'ESCAPE': 'ESC',
     'GRAVE': 'TICK',
-    'GRV': 'TICK',
     'KP_0': 'NUM_0',
     'KP_1': 'NUM_1',
     'KP_2': 'NUM_2',
@@ -49,49 +43,38 @@ QMK_MAPPING = {
     'KP_SLASH': 'NUM_SLASH',
     'LALT': 'LEFT_ALT',
     'LBRACKET': 'BRACE_OPEN',
-    'LBRC': 'BRACE_OPEN',
     'LCTRL': 'LEFT_CTRL',
-    'LCTL': 'LEFT_CTRL',
     'LGUI': 'LEFT_SUPER',
     'LSHIFT': 'LEFT_SHIFT',
-    'LSFT': 'LEFT_SHIFT',
     'NO': 'NONE',
     'MEDIA_NEXT_TRACK': 'MEDIA_NEXT',
     'MEDIA_PLAY_PAUSE': 'PLAY_PAUSE',
     'MEDIA_PREV_TRACK': 'MEDIA_PREV',
-    'MINS': 'MINUS',
-    'MPLY': 'PLAY_PAUSE',
     'NUMLOCK': 'NUM_LOCK',
     'PGDOWN': 'PGDN',
-    'PSCR': 'PRINT_SCREEN',
     'PSCREEN': 'PRINT_SCREEN',
-    'QUOT': 'QUOTE',
     'RALT': 'RIGHT_ALT',
     'RBRACKET': 'BRACE_CLOSE',
-    'RBRC': 'BRACE_CLOSE',
     'RCTRL': 'RIGHT_CTRL',
-    'RCTL': 'RIGHT_CTRL',
     'RGB_TOG': 'KBD_TOGGLE',
     'RGB_VAD': 'KBD_DOWN',
     'RGB_VAI': 'KBD_UP',
-    'RGHT': 'RIGHT',
     'RGUI': 'RIGHT_SUPER',
     'RSHIFT': 'RIGHT_SHIFT',
-    'RSFT': 'RIGHT_SHIFT',
     'SCOLON': 'SEMICOLON',
-    'SCLN': 'SEMICOLON',
-    'SLSH': 'SLASH',
-    'SPC': 'SPACE',
     'SYSTEM_SLEEP': 'SUSPEND',
-    'TRNS': 'ROLL_OVER',
-    'VOLD': 'VOLUME_DOWN',
-    'VOLU': 'VOLUME_UP',
+    'TRANSPARENT': 'ROLL_OVER',
 }
+
+ALIAS_RE = '#define\s+KC_([A-Z_]*)\s+KC_([A-Z_]+]*)\s*$'
+
+# keycode_h = open('tmk_core/common/keycode.h').read()
+# [(i.group(1), i.group(2)) for i in (re.match('#define\s+KC_([A-Z_]*)\s+KC_([A-Z_]+]*)\s*$', i) for i in keycode_h.splitlines()) if i]
 
 def call_preprocessor(path: str) -> str:
     return subprocess.check_output(["gcc", "-E", path], stderr=subprocess.DEVNULL, universal_newlines=True)
 
-def extract_scancodes(ecdir: str, is_qmk: bool) -> List[Tuple[str, int]]:
+def extract_scancodes(ecdir: str, is_qmk: bool) -> Tuple[List[Tuple[str, int]], Dict[str, str]]:
     "Extract mapping from scancode names to numbers"
 
     if is_qmk:
@@ -102,11 +85,17 @@ def extract_scancodes(ecdir: str, is_qmk: bool) -> List[Tuple[str, int]]:
             '    (KC_[^,\s]+)', common_keymap_h)
         scancode_defines += re.findall(
             '    (RGB_[^,\s]+)', quantum_keycode_h)
+        define_aliases = [(i.group(1), i.group(2)) for i in (re.match(ALIAS_RE, i) for i in open(includes[0])) if i]
+        mapping = QMK_MAPPING
+        mapping.update({alias: QMK_MAPPING.get(keycode, keycode) for alias, keycode in define_aliases})
+        for (alias, keycode) in define_aliases:
+            mapping[alias] = QMK_MAPPING.get(keycode, keycode)
     else:
         includes = [f"{ecdir}/src/common/include/common/keymap.h"]
         common_keymap_h = open(includes[0]).read()
         scancode_defines = re.findall(
             '#define.*((?:K_\S+)|(?:KT_FN))', common_keymap_h)
+        mapping = {}
 
     tmpdir = tempfile.mkdtemp()
     with open(f'{tmpdir}/keysym-extract.c', 'w') as f:
@@ -136,7 +125,7 @@ def extract_scancodes(ecdir: str, is_qmk: bool) -> List[Tuple[str, int]]:
         else:
             scancode_names.append(b)
     if is_qmk:
-        scancode_names = [QMK_MAPPING.get(i, i) for i in scancode_names]
+        scancode_names = [mapping.get(i, i) for i in scancode_names]
     scancodes = (int(i) for i in output.split())
     scancode_list = list(zip(scancode_names, scancodes))
 
@@ -158,7 +147,7 @@ def extract_scancodes(ecdir: str, is_qmk: bool) -> List[Tuple[str, int]]:
     # Make sure scancodes are unique
     assert len(scancode_list) == len(set(i for _, i in scancode_list))
 
-    return scancode_list
+    return scancode_list, mapping
 
 
 def parse_layout_define(keymap_h: str, is_qmk) -> Tuple[List[str], List[List[str]]]:
@@ -186,7 +175,7 @@ def parse_led_config(led_c: str, physical: List[str]) -> Dict[str, List[int]]:
         leds[physical_name] = [int(led_indexes[i])]
     return leds
 
-def parse_keymap(keymap_c: str, physical: List[str], is_qmk: bool) -> Dict[str, List[str]]:
+def parse_keymap(keymap_c: str, mapping: Dict[str, str], physical: List[str], is_qmk: bool) -> Dict[str, List[str]]:
     # XXX for launch
     keymap_c = keymap_c.replace('MO(1)', 'FN')
     keymap_c = re.sub(r'/\*.*?\*/', '', keymap_c)
@@ -203,7 +192,7 @@ def parse_keymap(keymap_c: str, physical: List[str], is_qmk: bool) -> Dict[str, 
             code = code.replace('K_', '').replace('KC_', '').replace('KT_', '')
 
             if is_qmk:
-                code = QMK_MAPPING.get(code, code)
+                code = mapping.get(code, code)
 
             return code
 
@@ -269,8 +258,8 @@ def generate_layout_dir(ecdir: str, board: str, is_qmk: bool) -> None:
 
     physical, physical2 = parse_layout_define(keymap_h, is_qmk)
     leds = parse_led_config(led_c, physical)
-    scancodes = extract_scancodes(ecdir, is_qmk)
-    default_keymap = parse_keymap(default_c, physical, is_qmk)
+    scancodes, mapping = extract_scancodes(ecdir, is_qmk)
+    default_keymap = parse_keymap(default_c, mapping, physical, is_qmk)
     gen_layout_json(f'{layoutdir}/layout.json', physical, physical2)
     gen_leds_json(f'{layoutdir}/leds.json', leds)
     gen_keymap_json(f'{layoutdir}/keymap.json', scancodes)
