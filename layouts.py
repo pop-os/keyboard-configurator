@@ -136,6 +136,11 @@ def extract_scancodes(ecdir: str, is_qmk: bool) -> List[Tuple[str, int]]:
     scancode_list = list(zip(scancode_names, scancodes))
 
     if is_qmk:
+        scancode_list.append(('LAYER_TOGGLE_1', 0x5300)) # TG(0)
+        scancode_list.append(('LAYER_TOGGLE_2', 0x5301)) # TG(1)
+        scancode_list.append(('LAYER_TOGGLE_3', 0x5302)) # TG(2)
+        scancode_list.append(('LAYER_TOGGLE_4', 0x5303)) # TG(3)
+        scancode_list.append(('LAYER_ACCESS_1', 0x5100)) # MO(0)
         scancode_list.append(('FN', 0x5101)) # MO(1)
         scancode_list.append(('LAYER_ACCESS_3', 0x5102)) # MO(2)
         scancode_list.append(('LAYER_ACCESS_4', 0x5103)) # MO(3)

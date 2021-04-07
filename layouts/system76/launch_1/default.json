@@ -87,7 +87,7 @@
     ],
     "K0E": [
       "HOME",
-      "ROLL_OVER",
+      "MPLY",
       "ROLL_OVER",
       "ROLL_OVER"
     ],
@@ -153,19 +153,19 @@
     ],
     "K1A": [
       "0",
-      "ROLL_OVER",
+      "KBD_TOGGLE",
       "ROLL_OVER",
       "ROLL_OVER"
     ],
     "K1B": [
       "MINUS",
-      "ROLL_OVER",
+      "KBD_DOWN",
       "ROLL_OVER",
       "ROLL_OVER"
     ],
     "K1C": [
       "EQUALS",
-      "ROLL_OVER",
+      "KBD_UP",
       "ROLL_OVER",
       "ROLL_OVER"
     ],
@@ -177,13 +177,13 @@
     ],
     "K1E": [
       "PGUP",
-      "ROLL_OVER",
+      "VOLU",
       "ROLL_OVER",
       "ROLL_OVER"
     ],
     "K20": [
       "TAB",
-      "ROLL_OVER",
+      "PSCR",
       "ROLL_OVER",
       "ROLL_OVER"
     ],
@@ -219,25 +219,25 @@
     ],
     "K26": [
       "Y",
-      "ROLL_OVER",
+      "HOME",
       "ROLL_OVER",
       "ROLL_OVER"
     ],
     "K27": [
       "U",
-      "ROLL_OVER",
+      "PGDN",
       "ROLL_OVER",
       "ROLL_OVER"
     ],
     "K28": [
       "I",
-      "ROLL_OVER",
+      "PGUP",
       "ROLL_OVER",
       "ROLL_OVER"
     ],
     "K29": [
       "O",
-      "ROLL_OVER",
+      "END",
       "ROLL_OVER",
       "ROLL_OVER"
     ],
@@ -267,7 +267,7 @@
     ],
     "K2E": [
       "PGDN",
-      "ROLL_OVER",
+      "VOLD",
       "ROLL_OVER",
       "ROLL_OVER"
     ],
@@ -309,25 +309,25 @@
     ],
     "K36": [
       "H",
-      "ROLL_OVER",
+      "LEFT",
       "ROLL_OVER",
       "ROLL_OVER"
     ],
     "K37": [
       "J",
-      "ROLL_OVER",
+      "DOWN",
       "ROLL_OVER",
       "ROLL_OVER"
     ],
     "K38": [
       "K",
-      "ROLL_OVER",
+      "UP",
       "ROLL_OVER",
       "ROLL_OVER"
     ],
     "K39": [
       "L",
-      "ROLL_OVER",
+      "RGHT",
       "ROLL_OVER",
       "ROLL_OVER"
     ],
@@ -351,7 +351,7 @@
     ],
     "K3D": [
       "END",
-      "ROLL_OVER",
+      "MUTE",
       "ROLL_OVER",
       "ROLL_OVER"
     ],
@@ -500,7 +500,7 @@
       "ROLL_OVER"
     ],
     "K5B": [
-      "RIGHT",
+      "RGHT",
       "END",
       "ROLL_OVER",
       "ROLL_OVER"
