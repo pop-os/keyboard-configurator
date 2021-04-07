@@ -60,8 +60,10 @@ QMK_MAPPING = {
     'MEDIA_PLAY_PAUSE': 'PLAY_PAUSE',
     'MEDIA_PREV_TRACK': 'MEDIA_PREV',
     'MINS': 'MINUS',
+    'MPLY': 'PLAY_PAUSE',
     'NUMLOCK': 'NUM_LOCK',
     'PGDOWN': 'PGDN',
+    'PSCR': 'PRINT_SCREEN',
     'PSCREEN': 'PRINT_SCREEN',
     'QUOT': 'QUOTE',
     'RALT': 'RIGHT_ALT',
@@ -72,6 +74,7 @@ QMK_MAPPING = {
     'RGB_TOG': 'KBD_TOGGLE',
     'RGB_VAD': 'KBD_DOWN',
     'RGB_VAI': 'KBD_UP',
+    'RGHT': 'RIGHT',
     'RGUI': 'RIGHT_SUPER',
     'RSHIFT': 'RIGHT_SHIFT',
     'RSFT': 'RIGHT_SHIFT',
@@ -81,6 +84,8 @@ QMK_MAPPING = {
     'SPC': 'SPACE',
     'SYSTEM_SLEEP': 'SUSPEND',
     'TRNS': 'ROLL_OVER',
+    'VOLD': 'VOLUME_DOWN',
+    'VOLU': 'VOLUME_UP',
 }
 
 def call_preprocessor(path: str) -> str:

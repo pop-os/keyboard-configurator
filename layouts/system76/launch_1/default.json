@@ -87,7 +87,7 @@
     ],
     "K0E": [
       "HOME",
-      "MPLY",
+      "PLAY_PAUSE",
       "ROLL_OVER",
       "ROLL_OVER"
     ],
@@ -177,13 +177,13 @@
     ],
     "K1E": [
       "PGUP",
-      "VOLU",
+      "VOLUME_UP",
       "ROLL_OVER",
       "ROLL_OVER"
     ],
     "K20": [
       "TAB",
-      "PSCR",
+      "PRINT_SCREEN",
       "ROLL_OVER",
       "ROLL_OVER"
     ],
@@ -267,7 +267,7 @@
     ],
     "K2E": [
       "PGDN",
-      "VOLD",
+      "VOLUME_DOWN",
       "ROLL_OVER",
       "ROLL_OVER"
     ],
@@ -327,7 +327,7 @@
     ],
     "K39": [
       "L",
-      "RGHT",
+      "RIGHT",
       "ROLL_OVER",
       "ROLL_OVER"
     ],
@@ -500,7 +500,7 @@
       "ROLL_OVER"
     ],
     "K5B": [
-      "RGHT",
+      "RIGHT",
       "END",
       "ROLL_OVER",
       "ROLL_OVER"

@@ -54,7 +54,7 @@
       "ROLL_OVER"
     ],
     "RA7": [
-      "PSCR",
+      "PRINT_SCREEN",
       "ROLL_OVER"
     ],
     "RA8": [
@@ -342,7 +342,7 @@
       "ROLL_OVER"
     ],
     "RF9": [
-      "RGHT",
+      "RIGHT",
       "ROLL_OVER"
     ]
   }
