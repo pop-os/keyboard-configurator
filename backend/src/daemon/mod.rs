@@ -2,10 +2,14 @@ use serde::{Deserialize, Serialize};
 
 mod client;
 mod dummy;
-mod s76power;
 mod server;
 
-pub use self::{client::*, dummy::*, s76power::*, server::*};
+#[cfg(target_os = "linux")]
+mod s76power;
+#[cfg(target_os = "linux")]
+pub use self::s76power::*;
+
+pub use self::{client::*, dummy::*, server::*};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Deserialize, Serialize)]
 pub struct BoardId(u128);

@@ -75,6 +75,7 @@ impl Backend {
         Self::new_internal(DaemonDummy::new(board_names))
     }
 
+    #[cfg(target_os = "linux")]
     pub fn new_s76power() -> Result<Self, String> {
         Self::new_internal(DaemonS76Power::new()?)
     }
