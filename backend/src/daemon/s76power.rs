@@ -12,20 +12,20 @@ const DBUS_NAME: &str = "com.system76.PowerDaemon";
 
 #[dbus_proxy(interface = "com.system76.PowerDaemon.Keyboard")]
 trait Keyboard {
-    #[dbus_proxy(property)]
+    #[dbus_proxy(property, name = "brightness")]
     fn brightness(&self) -> zbus::Result<i32>;
-    #[dbus_proxy(property)]
+    #[dbus_proxy(property, name = "brightness")]
     fn set_brightness(&self, value: i32) -> zbus::Result<()>;
 
-    #[dbus_proxy(property)]
+    #[dbus_proxy(property, name = "color")]
     fn color(&self) -> zbus::Result<String>;
-    #[dbus_proxy(property)]
+    #[dbus_proxy(property, name = "color")]
     fn set_color(&self, value: &str) -> zbus::Result<()>;
 
-    #[dbus_proxy(property)]
+    #[dbus_proxy(property, name = "max_brightness")]
     fn max_brightness(&self) -> zbus::Result<i32>;
 
-    #[dbus_proxy(property)]
+    #[dbus_proxy(property, name = "name")]
     fn name(&self) -> zbus::Result<String>;
 }
 
@@ -80,12 +80,9 @@ impl Daemon for DaemonS76Power {
         Ok((0..self.boards.len() as u128).map(BoardId).collect())
     }
 
-    fn model(&self, board: BoardId) -> Result<String, String> {
-        Ok(self
-            .board(board)?
-            .proxy
-            .name()
-            .unwrap_or_else(|_| "".to_string()))
+    fn model(&self, _board: BoardId) -> Result<String, String> {
+        // XXX
+        Ok("system76/darp6".to_string())
     }
 
     fn keymap_get(

@@ -38,6 +38,7 @@ fn add_boards(stack: &gtk::Stack) -> Result<(), String> {
         let name = board.model().to_owned();
         stack.add_titled(&page(board), &name, &name);
     }));
+    backend.refresh();
 
     Ok(())
 }
