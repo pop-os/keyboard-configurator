@@ -218,9 +218,11 @@ impl Backlight {
         obj.inner().brightness_scale.set_range(0.0, max_brightness);
         obj.invalidate_filter();
         obj.set_layer(0);
-        obj.set_filter_func(Some(Box::new(clone!(@weak obj => move |row|
-            obj.filter_func(row)
-        ))));
+        obj.set_filter_func(Some(Box::new(
+            clone!(@weak obj => @default-panic, move |row|
+                obj.filter_func(row)
+            ),
+        )));
         obj.set_header_func(Some(Box::new(clone!(@weak obj => move |row, before|
             obj.header_func(row, before)
         ))));

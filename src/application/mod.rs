@@ -173,7 +173,7 @@ fn windows_init() {
     }
 }
 
-pub fn run(args: Vec<String>) -> i32 {
+pub fn run() -> i32 {
     gtk::init().unwrap();
 
     #[cfg(target_os = "macos")]
@@ -186,5 +186,5 @@ pub fn run(args: Vec<String>) -> i32 {
     gtk::Window::set_default_icon_name("com.system76.keyboardconfigurator");
 
     let application = ConfiguratorApp::new();
-    application.run(&args)
+    application.run()
 }

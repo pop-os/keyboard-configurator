@@ -191,7 +191,7 @@ impl MainWindow {
         window.inner().backend.set(backend);
         glib::timeout_add_seconds_local(
             1,
-            clone!(@weak window => move || {
+            clone!(@weak window => @default-return glib::Continue(false), move || {
                 window.inner().backend.refresh();
                 glib::Continue(true)
             }),

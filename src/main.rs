@@ -19,5 +19,5 @@ fn main() {
         }
     }
 
-    process::exit(application::run(args));
+    process::exit(application::run());
 }
