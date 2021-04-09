@@ -1,6 +1,7 @@
 use cascade::cascade;
 use glib::clone;
 use gtk::prelude::*;
+use std::rc::Rc;
 
 use crate::ColorWheel;
 use backend::{Board, Hs, Mode};
@@ -12,14 +13,17 @@ pub fn choose_color<W: IsA<gtk::Widget>, F: Fn(Option<Hs>) + 'static>(
     color: Option<Hs>,
     cb: F,
 ) {
-    let layer = &board.layers()[0];
-    let original_color = layer.color();
-    let original_mode = layer.mode();
+    let cb = Rc::new(cb);
+
+    let original_color = board.layers()[0].color();
+    let original_mode = board.layers()[0].mode();
 
     if original_mode.is_some() {
-        if let Err(err) = layer.set_mode(&Mode::all()[0], 0) {
-            error!("Failed to set keyboard mode: {}", err);
-        }
+        glib::MainContext::default().spawn_local(clone!(@strong board => async move {
+            if let Err(err) = board.layers()[0].set_mode(&Mode::all()[0], 0).await {
+                error!("Failed to set keyboard mode: {}", err);
+            }
+        }));
     }
 
     let color_wheel = cascade! {
@@ -42,9 +46,11 @@ pub fn choose_color<W: IsA<gtk::Widget>, F: Fn(Option<Hs>) + 'static>(
 
     color_wheel.connect_hs_changed(
         clone!(@strong board, @weak preview => @default-panic, move |wheel| {
-            if let Err(err) = board.layers()[0].set_color(wheel.hs()) {
-                error!("Failed to set keyboard color: {}", err);
-            }
+            glib::MainContext::default().spawn_local(clone!(@strong board, @strong wheel => async move {
+                if let Err(err) = board.layers()[0].set_color(wheel.hs()).await {
+                    error!("Failed to set keyboard color: {}", err);
+                }
+            }));
             preview.queue_draw();
         }),
     );
@@ -115,23 +121,27 @@ pub fn choose_color<W: IsA<gtk::Widget>, F: Fn(Option<Hs>) + 'static>(
             }
 
             let hs = color_wheel.hs();
-            let layer = &board.layers()[0];
             dialog.close();
 
-            if let Err(err) = layer.set_color(original_color) {
-                error!("Failed to set keyboard color: {}", err);
-            }
-            if let Some(mode) = original_mode {
-                if let Err(err) = layer.set_mode(mode.0, mode.1) {
-                    error!("Failed to set keyboard mode: {}", err);
-                }
-            }
+            glib::MainContext::default().spawn_local(clone!(@strong board, @strong cb => async move {
+                let layer = &board.layers()[0];
 
-            cb(if response == gtk::ResponseType::Ok {
-                Some(hs)
-            } else {
-                None
-            })
+                if let Err(err) = layer.set_color(original_color).await {
+                    error!("Failed to set keyboard color: {}", err);
+                }
+                if let Some(mode) = original_mode {
+                    if let Err(err) = layer.set_mode(mode.0, mode.1).await {
+                        error!("Failed to set keyboard mode: {}", err);
+                    }
+                }
+
+                let cb = cb.clone();
+                cb(if response == gtk::ResponseType::Ok {
+                    Some(hs)
+                } else {
+                    None
+                })
+            }));
         });
         ..show_all();
     };

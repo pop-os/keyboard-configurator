@@ -160,9 +160,11 @@ impl Picker {
                     info!("Clicked {} layer {:?}", name, layer);
                     let selected = kb.selected();
                     if selected.len() == 1 {
-                        let i = selected.iter().next().unwrap();
+                        let i = *selected.iter().next().unwrap();
                         if let Some(layer) = layer {
-                            kb.keymap_set(*i, layer, &name);
+                            glib::MainContext::default().spawn_local(clone!(@strong kb, @strong name => async move {
+                                kb.keymap_set(i, layer, &name).await;
+                            }));
                         }
                     }
                 }));

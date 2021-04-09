@@ -2,11 +2,12 @@
 extern crate log;
 
 use glib::{
+    clone,
     prelude::*,
     subclass::{prelude::*, Signal},
 };
 use once_cell::sync::Lazy;
-use std::{cell::RefCell, collections::HashMap, process, rc::Rc};
+use std::{cell::RefCell, collections::HashMap, process};
 
 mod board;
 mod color;
@@ -27,7 +28,7 @@ use daemon::*;
 #[derive(Default)]
 #[doc(hidden)]
 pub struct BackendInner {
-    daemon: DerefCell<Rc<dyn Daemon>>,
+    thread_client: DerefCell<ThreadClient>,
     boards: RefCell<HashMap<BoardId, Board>>,
 }
 
@@ -58,6 +59,10 @@ impl ObjectImpl for BackendInner {
         });
         SIGNALS.as_ref()
     }
+
+    fn dispose(&self, _obj: &Self::Type) {
+        self.thread_client.exit();
+    }
 }
 
 glib::wrapper! {
@@ -67,7 +72,22 @@ glib::wrapper! {
 impl Backend {
     fn new_internal<T: Daemon + 'static>(daemon: T) -> Result<Self, String> {
         let self_ = glib::Object::new::<Self>(&[]).unwrap();
-        self_.inner().daemon.set(Rc::new(daemon));
+        let thread_client = ThreadClient::new(
+            Box::new(daemon),
+            clone!(@weak self_ => move |response| {
+                match response {
+                    ThreadResponse::BoardAdded(board) => {
+                        self_.emit_by_name("board-added", &[&board]).unwrap();
+                        self_.inner().boards.borrow_mut().insert(board.board(), board);
+                    },
+                    ThreadResponse::BoardRemoved(id) => {
+                        let boards = self_.inner().boards.borrow();
+                        self_.emit_by_name("board-removed", &[&boards[&id]]).unwrap();
+                    },
+                }
+            }),
+        );
+        self_.inner().thread_client.set(thread_client);
         Ok(self_)
     }
 
@@ -93,36 +113,12 @@ impl Backend {
     }
 
     pub fn refresh(&self) {
-        if let Err(err) = self.inner().daemon.refresh() {
-            error!("Failed to refresh boards: {}", err);
-        }
-
-        let new_ids = self.inner().daemon.boards().unwrap();
-
-        let mut boards = self.inner().boards.borrow_mut();
-
-        // Removed boards
-        boards.retain(|k, v| {
-            if new_ids.iter().find(|i| *i == k).is_none() {
-                self.emit_by_name("board-removed", &[v]).unwrap();
-                return false;
+        let self_ = self.clone();
+        glib::MainContext::default().spawn_local(async move {
+            if let Err(err) = self_.inner().thread_client.refresh().await {
+                error!("Failed to refresh boards: {}", err);
             }
-            true
         });
-
-        // Added boards
-        for i in &new_ids {
-            if boards.contains_key(i) {
-                continue;
-            }
-            match Board::new(self.inner().daemon.clone(), *i) {
-                Ok(board) => {
-                    boards.insert(*i, board.clone());
-                    self.emit_by_name("board-added", &[&board]).unwrap();
-                }
-                Err(err) => error!("Failed to add board: {}", err),
-            }
-        }
     }
 
     pub fn connect_board_added<F: Fn(Board) + 'static>(&self, cb: F) {

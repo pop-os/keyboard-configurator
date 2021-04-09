@@ -1,7 +1,7 @@
 use glib::clone::Downgrade;
 use std::cell::Cell;
 
-use crate::{Board, Hs, Mode, Rgb};
+use crate::{Board, Daemon, Hs, Mode, Rgb};
 
 #[derive(Debug)]
 pub struct Layer {
@@ -14,15 +14,14 @@ pub struct Layer {
 }
 
 impl Layer {
-    pub(crate) fn new(board: &Board, layer: u8) -> Self {
+    pub(crate) fn new(daemon: &dyn Daemon, board: &Board, layer: u8) -> Self {
         let index = if board.layout().meta.has_per_layer {
             0xf0 + layer
         } else {
             0xff
         };
         let mode = if board.layout().meta.has_mode {
-            board
-                .daemon()
+            daemon
                 .mode(board.board(), layer)
                 .map(Some)
                 .unwrap_or_else(|err| {
@@ -32,15 +31,13 @@ impl Layer {
         } else {
             None
         };
-        let brightness = board
-            .daemon()
+        let brightness = daemon
             .brightness(board.board(), index)
             .unwrap_or_else(|err| {
                 error!("error getting layer brightness: {}", err);
                 0
             });
-        let color = board
-            .daemon()
+        let color = daemon
             .color(board.board(), index)
             .map(|color| {
                 if index == 0xff {
@@ -72,11 +69,12 @@ impl Layer {
         Some((Mode::from_index(index)?, speed))
     }
 
-    pub fn set_mode(&self, mode: &Mode, speed: u8) -> Result<(), String> {
+    pub async fn set_mode(&self, mode: &Mode, speed: u8) -> Result<(), String> {
         let board = self.board();
         board
-            .daemon()
-            .set_mode(board.board(), self.layer, mode.index, speed)?;
+            .thread_client()
+            .set_mode(board.board(), self.layer, mode.index, speed)
+            .await?;
         self.mode.set(Some((mode.index, speed)));
         board.set_leds_changed();
         Ok(())
@@ -86,11 +84,12 @@ impl Layer {
         self.brightness.get()
     }
 
-    pub fn set_brightness(&self, brightness: i32) -> Result<(), String> {
+    pub async fn set_brightness(&self, brightness: i32) -> Result<(), String> {
         let board = self.board();
         board
-            .daemon()
-            .set_brightness(board.board(), self.index, brightness)?;
+            .thread_client()
+            .set_brightness(board.board(), self.index, brightness)
+            .await?;
         self.brightness.set(brightness);
         board.set_leds_changed();
         Ok(())
@@ -100,18 +99,20 @@ impl Layer {
         self.color.get()
     }
 
-    pub fn set_color(&self, color: Hs) -> Result<(), String> {
+    pub async fn set_color(&self, color: Hs) -> Result<(), String> {
         let board = self.board();
         if self.index == 0xff {
             let Rgb { r, g, b } = color.to_rgb();
             board
-                .daemon()
-                .set_color(board.board(), self.index, (r, g, b))?;
+                .thread_client()
+                .set_color(board.board(), self.index, (r, g, b))
+                .await?;
         } else {
             let (h, s) = color.to_ints();
             board
-                .daemon()
-                .set_color(board.board(), self.index, (h, s, 0))?;
+                .thread_client()
+                .set_color(board.board(), self.index, (h, s, 0))
+                .await?;
         }
         self.color.set(color);
         board.set_leds_changed();

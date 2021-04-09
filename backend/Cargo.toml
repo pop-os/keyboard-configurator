@@ -6,6 +6,7 @@ license = "GPL-3.0-or-later"
 edition = "2018"
 
 [dependencies]
+futures = "0.3.13"
 gio = { git = "https://github.com/pop-os/gtk-rs" }
 glib = { git = "https://github.com/pop-os/gtk-rs" }
 hidapi = { version = "1.2", default-features = false, features = ["linux-static-hidraw"] }
@@ -18,7 +19,7 @@ log = "0.4.0"
 uuid = { version = "0.8.2", features = ["v4"] }
 
 [dependencies.system76_ectool]
-version = "0.3.3"
+version = "0.3.6"
 features = ["hidapi", "std"]
 
 [target.'cfg(target_os = "linux")'.dependencies]

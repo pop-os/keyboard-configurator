@@ -1209,6 +1209,7 @@ dependencies = [
 name = "system76-keyboard-configurator-backend"
 version = "0.1.0"
 dependencies = [
+ "futures",
  "gio",
  "glib",
  "hidapi",
@@ -1225,9 +1226,9 @@ dependencies = [
 
 [[package]]
 name = "system76_ectool"
-version = "0.3.5"
+version = "0.3.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3bef240d2aac9bb2d6ca58150ce02b4e5ac24afa5a676dcb998498194ee4ca85"
+checksum = "c76d2c18f51cf53f70d50dc831c3c9b82fc1733eacba36fffe73119a87fa7878"
 dependencies = [
  "clap",
  "downcast-rs",

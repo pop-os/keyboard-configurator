@@ -14,7 +14,7 @@ use uuid::Uuid;
 use super::{err_str, BoardId, Daemon, DaemonCommand};
 use crate::Matrix;
 
-pub struct DaemonServer<R: Read, W: Write> {
+pub struct DaemonServer<R: Read + Send + 'static, W: Write + Send + 'static> {
     hidapi: RefCell<Option<HidApi>>,
     running: Cell<bool>,
     read: BufReader<R>,
@@ -29,7 +29,7 @@ impl DaemonServer<io::Stdin, io::Stdout> {
     }
 }
 
-impl<R: Read, W: Write> DaemonServer<R, W> {
+impl<R: Read + Send + 'static, W: Write + Send + 'static> DaemonServer<R, W> {
     pub fn new(read: R, write: W) -> Result<Self, String> {
         let mut boards = HashMap::new();
         let mut board_ids = Vec::new();
@@ -115,7 +115,7 @@ impl<R: Read, W: Write> DaemonServer<R, W> {
     }
 }
 
-impl<R: Read, W: Write> Daemon for DaemonServer<R, W> {
+impl<R: Read + Send + 'static, W: Write + Send + 'static> Daemon for DaemonServer<R, W> {
     fn boards(&self) -> Result<Vec<BoardId>, String> {
         Ok(self.board_ids.borrow().clone())
     }

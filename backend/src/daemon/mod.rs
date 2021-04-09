@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 mod client;
+mod daemon_thread;
 mod dummy;
 mod server;
 
@@ -9,12 +10,12 @@ mod s76power;
 #[cfg(target_os = "linux")]
 pub use self::s76power::*;
 
-pub use self::{client::*, dummy::*, server::*};
+pub use self::{client::*, daemon_thread::*, dummy::*, server::*};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Deserialize, Serialize)]
 pub struct BoardId(u128);
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Default, PartialEq, Clone)]
 pub struct Matrix {
     rows: usize,
     cols: usize,
@@ -46,14 +47,14 @@ impl Matrix {
     }
 }
 
-pub trait DaemonClientTrait {
+pub trait DaemonClientTrait: Send + 'static {
     fn send_command(&self, command: DaemonCommand) -> Result<DaemonResponse, String>;
 }
 
 // Define Daemon trait, DaemonCommand enum, and DaemonResponse enum
 macro_rules! commands {
     ( $( fn $func:ident(&self $(,)? $( $arg:ident: $type:ty ),*) -> Result<$ret:ty, String>; )* ) => {
-        pub trait Daemon {
+        pub trait Daemon: Send + 'static {
         $(
             fn $func(&self, $( $arg: $type ),*) -> Result<$ret, String>;
         )*

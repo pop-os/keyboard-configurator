@@ -240,8 +240,11 @@ impl Keyboard {
         self.layout().scancode_from_name(scancode_name).is_some()
     }
 
-    pub fn keymap_set(&self, key_index: usize, layer: usize, scancode_name: &str) {
-        if let Err(err) = self.board().keys()[key_index].set_scancode(layer, scancode_name) {
+    pub async fn keymap_set(&self, key_index: usize, layer: usize, scancode_name: &str) {
+        if let Err(err) = self.board().keys()[key_index]
+            .set_scancode(layer, scancode_name)
+            .await
+        {
             error!("Failed to set keymap: {:?}", err);
         }
 
@@ -252,8 +255,7 @@ impl Keyboard {
         self.board().export_keymap()
     }
 
-    pub fn import_keymap(&self, keymap: &KeyMap) {
-        // TODO: don't block UI thread
+    pub fn import_keymap(&self, keymap: KeyMap) {
         // TODO: Ideally don't want this function to be O(Keys^2)
 
         if keymap.board != self.board().model() {
@@ -265,17 +267,20 @@ impl Keyboard {
             return;
         }
 
-        for (k, v) in keymap.map.iter() {
-            let n = self
-                .board()
-                .keys()
-                .iter()
-                .position(|i| &i.logical_name == k)
-                .unwrap();
-            for (layer, scancode_name) in v.iter().enumerate() {
-                self.keymap_set(n, layer, scancode_name);
+        let self_ = self.clone();
+        glib::MainContext::default().spawn_local(async move {
+            for (k, v) in keymap.map.iter() {
+                let n = self_
+                    .board()
+                    .keys()
+                    .iter()
+                    .position(|i| &i.logical_name == k)
+                    .unwrap();
+                for (layer, scancode_name) in v.iter().enumerate() {
+                    self_.keymap_set(n, layer, scancode_name).await;
+                }
             }
-        }
+        });
     }
 
     fn load(&self) {
@@ -294,7 +299,7 @@ impl Keyboard {
             let path = chooser.get_filename().unwrap();
             match File::open(&path) {
                 Ok(file) => match KeyMap::from_reader(file) {
-                    Ok(keymap) => self.import_keymap(&keymap),
+                    Ok(keymap) => self.import_keymap(keymap),
                     Err(err) => {
                         show_error_dialog(&self.window().unwrap(), "Failed to import keymap", err)
                     }
@@ -344,7 +349,7 @@ impl Keyboard {
     }
 
     fn reset(&self) {
-        self.import_keymap(&self.layout().default);
+        self.import_keymap(self.layout().default.clone());
     }
 
     fn add_pages(&self, debug_layers: bool) {
@@ -435,11 +440,13 @@ impl Keyboard {
             return true;
         }
 
-        if let Err(err) = self.board().refresh_matrix() {
-            error!("Failed to get matrix: {}", err);
-            false
-        } else {
-            true
-        }
+        let board = self.board().clone();
+        glib::MainContext::default().spawn_local(async move {
+            if let Err(err) = board.refresh_matrix().await {
+                error!("Failed to get matrix: {}", err);
+            }
+        });
+
+        true
     }
 }

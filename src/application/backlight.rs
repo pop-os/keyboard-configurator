@@ -304,11 +304,16 @@ impl Backlight {
             return;
         }
 
+        let board = self.board().clone();
         let speed = self.inner().speed_scale.get_value();
-        let layer = &self.board().layers()[self.inner().layer.get() as usize];
-        if let Err(err) = layer.set_mode(self.mode(), speed as u8) {
-            error!("Error setting keyboard mode: {}", err);
-        }
+        let mode = self.mode();
+        let layer = self.inner().layer.get() as usize;
+        glib::MainContext::default().spawn_local(async move {
+            let layer = &board.layers()[layer];
+            if let Err(err) = layer.set_mode(mode, speed as u8).await {
+                error!("Error setting keyboard mode: {}", err);
+            }
+        });
     }
 
     fn brightness_changed(&self) {
@@ -316,11 +321,14 @@ impl Backlight {
             return;
         }
         let value = self.inner().brightness_scale.get_value() as i32;
-        for layer in self.board().layers() {
-            if let Err(err) = layer.set_brightness(value) {
-                error!("Error setting brightness: {}", err);
+        let board = self.board().clone();
+        glib::MainContext::default().spawn_local(async move {
+            for layer in board.layers() {
+                if let Err(err) = layer.set_brightness(value).await {
+                    error!("Error setting brightness: {}", err);
+                }
             }
-        }
+        });
         debug!("Brightness: {}", value)
     }
 
@@ -364,19 +372,25 @@ impl Backlight {
     }
 
     fn disable_color_clicked(&self) {
-        let keys = self.board().keys();
-        for i in self.inner().selected.borrow().iter() {
-            if let Err(err) = keys[*i].set_color(None) {
-                error!("Failed to disable key: {}", err);
+        let board = self.board().clone();
+        let selected = self.inner().selected.borrow().clone();
+        glib::MainContext::default().spawn_local(async move {
+            for i in selected.iter() {
+                if let Err(err) = board.keys()[*i].set_color(None).await {
+                    error!("Failed to disable key: {}", err);
+                }
             }
-        }
+        });
     }
 
     fn led_save(&self) {
         if self.board().has_led_save() {
-            if let Err(err) = self.board().led_save() {
-                error!("Failed to save LEDs: {}", err);
-            }
+            let board = self.board().clone();
+            glib::MainContext::default().spawn_local(async move {
+                if let Err(err) = board.led_save().await {
+                    error!("Failed to save LEDs: {}", err);
+                }
+            });
         }
     }
 }

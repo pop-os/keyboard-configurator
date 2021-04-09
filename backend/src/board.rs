@@ -1,16 +1,18 @@
+use futures::{channel::mpsc as async_mpsc, prelude::*};
 use glib::{
     prelude::*,
     subclass::{prelude::*, Signal},
 };
 use once_cell::sync::Lazy;
-use std::{cell::Cell, collections::HashMap, rc::Rc};
+use std::{cell::Cell, collections::HashMap};
 
-use crate::{BoardId, Daemon, DerefCell, Key, KeyMap, Layer, Layout};
+use crate::daemon::ThreadClient;
+use crate::{BoardId, Daemon, DerefCell, Key, KeyMap, Layer, Layout, Matrix};
 
 #[derive(Default)]
 #[doc(hidden)]
 pub struct BoardInner {
-    daemon: DerefCell<Rc<dyn Daemon>>,
+    thread_client: DerefCell<ThreadClient>,
     board: DerefCell<BoardId>,
     model: DerefCell<String>,
     layout: DerefCell<Layout>,
@@ -20,6 +22,7 @@ pub struct BoardInner {
     leds_changed: Cell<bool>,
     has_led_save: DerefCell<bool>,
     has_matrix: DerefCell<bool>,
+    is_fake: DerefCell<bool>,
 }
 
 #[glib::object_subclass]
@@ -45,8 +48,15 @@ glib::wrapper! {
     pub struct Board(ObjectSubclass<BoardInner>);
 }
 
+unsafe impl Send for Board {}
+
 impl Board {
-    pub fn new(daemon: Rc<dyn Daemon>, board: BoardId) -> Result<Self, String> {
+    pub fn new(
+        daemon: &dyn Daemon,
+        thread_client: ThreadClient,
+        board: BoardId,
+        mut matrix_reciever: async_mpsc::UnboundedReceiver<Matrix>,
+    ) -> Result<Self, String> {
         let model = match daemon.model(board) {
             Ok(model) => model,
             Err(err) => {
@@ -71,27 +81,43 @@ impl Board {
         let has_matrix = daemon.matrix_get(board).is_ok();
 
         let self_ = glib::Object::new::<Board>(&[]).unwrap();
-        self_.inner().daemon.set(daemon);
+        self_.inner().thread_client.set(thread_client);
         self_.inner().board.set(board);
         self_.inner().model.set(model);
         self_.inner().layout.set(layout);
         self_.inner().max_brightness.set(max_brightness);
         self_.inner().has_led_save.set(has_led_save);
         self_.inner().has_matrix.set(has_matrix);
+        self_.inner().is_fake.set(daemon.is_fake());
 
         let keys = self_
             .layout()
             .physical
             .keys
             .iter()
-            .map(|i| Key::new(&self_, i))
+            .map(|i| Key::new(daemon, &self_, i))
             .collect();
         self_.inner().keys.set(keys);
 
         let layers = (0..num_layers)
-            .map(|layer| Layer::new(&self_, layer))
+            .map(|layer| Layer::new(daemon, &self_, layer))
             .collect();
         self_.inner().layers.set(layers);
+
+        {
+            let self_ = self_.clone();
+            glib::MainContext::default().spawn(async move {
+                while let Some(matrix) = matrix_reciever.next().await {
+                    for key in self_.keys() {
+                        let pressed = matrix
+                            .get(key.electrical.0 as usize, key.electrical.1 as usize)
+                            .unwrap_or(false);
+                        key.pressed.set(pressed);
+                    }
+                    self_.emit_by_name("matrix-changed", &[]).unwrap();
+                }
+            });
+        }
 
         Ok(self_)
     }
@@ -113,12 +139,12 @@ impl Board {
         .unwrap();
     }
 
-    pub(crate) fn daemon(&self) -> &dyn Daemon {
-        self.inner().daemon.as_ref()
-    }
-
     pub fn board(&self) -> BoardId {
         *self.inner().board
+    }
+
+    pub(crate) fn thread_client(&self) -> &ThreadClient {
+        &self.inner().thread_client
     }
 
     pub fn model(&self) -> &str {
@@ -129,19 +155,8 @@ impl Board {
         *self.inner().has_matrix
     }
 
-    pub fn refresh_matrix(&self) -> Result<bool, String> {
-        let matrix = self.daemon().matrix_get(self.board())?;
-        let mut changed = false;
-        for key in self.keys() {
-            let pressed = matrix
-                .get(key.electrical.0 as usize, key.electrical.1 as usize)
-                .unwrap_or(false);
-            changed |= key.pressed.replace(pressed) != pressed;
-        }
-        if changed {
-            self.emit_by_name("matrix-changed", &[]).unwrap();
-        }
-        Ok(changed)
+    pub async fn refresh_matrix(&self) -> Result<(), String> {
+        self.thread_client().matrix_get(self.board()).await
     }
 
     pub fn connect_matrix_changed<F: Fn() + 'static>(&self, cb: F) {
@@ -156,9 +171,9 @@ impl Board {
         *self.inner().max_brightness
     }
 
-    pub fn led_save(&self) -> Result<(), String> {
+    pub async fn led_save(&self) -> Result<(), String> {
         if self.has_led_save() && self.inner().leds_changed.get() {
-            self.daemon().led_save(self.board())?;
+            self.thread_client().led_save(self.board()).await?;
             self.inner().leds_changed.set(false);
             debug!("led_save");
         }
@@ -166,7 +181,7 @@ impl Board {
     }
 
     pub fn is_fake(&self) -> bool {
-        self.daemon().is_fake()
+        *self.inner().is_fake
     }
 
     pub fn has_led_save(&self) -> bool {

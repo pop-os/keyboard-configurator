@@ -52,9 +52,11 @@ fn page(board: Board) -> gtk::Widget {
         ..set_draw_value(false);
         ..set_value(brightness);
         ..connect_change_value(clone!(@strong board => move |_scale, _, value| {
-            if let Err(err) = board.layers()[0].set_brightness(value as i32) {
-                eprintln!("Failed to set keyboard brightness: {}", err);
-            }
+            glib::MainContext::default().spawn_local(clone!(@strong board => async move {
+                if let Err(err) = board.layers()[0].set_brightness(value as i32).await {
+                    eprintln!("Failed to set keyboard brightness: {}", err);
+                }
+            }));
             Inhibit(false)
         }));
     };

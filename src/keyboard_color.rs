@@ -153,24 +153,30 @@ impl KeyboardColor {
     }
 
     fn set_hs(&self, hs: Hs) {
-        let board = self.board().unwrap();
+        let self_ = self.clone();
+        let board = self.board().unwrap().clone();
         if self.inner().hs.replace(hs) != hs {
             let mut colors = BTreeSet::new();
             colors.insert(hs);
             self.inner().circle.set_colors(colors);
-            let res = match &*self.index() {
-                KeyboardColorIndex::Keys(keys) => (|| {
-                    for i in keys.iter() {
-                        board.keys()[*i as usize].set_color(Some(hs))?;
+            glib::MainContext::default().spawn_local(async move {
+                let res = match &*self_.index() {
+                    KeyboardColorIndex::Keys(keys) => {
+                        (|| async {
+                            for i in keys.iter() {
+                                board.keys()[*i as usize].set_color(Some(hs)).await?;
+                            }
+                            Ok(())
+                        })()
+                        .await
                     }
-                    Ok(())
-                })(),
-                KeyboardColorIndex::Layer(i) => board.layers()[*i as usize].set_color(hs),
-            };
-            if let Err(err) = res {
-                error!("Failed to set keyboard color: {}", err);
-            }
-            self.notify("hs");
+                    KeyboardColorIndex::Layer(i) => board.layers()[*i as usize].set_color(hs).await,
+                };
+                if let Err(err) = res {
+                    error!("Failed to set keyboard color: {}", err);
+                }
+                self_.notify("hs");
+            });
         }
     }
 
