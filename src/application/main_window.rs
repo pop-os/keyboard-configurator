@@ -5,6 +5,7 @@ use gtk::subclass::prelude::*;
 use std::{
     cell::RefCell,
     sync::atomic::{AtomicUsize, Ordering},
+    time::Duration,
 };
 
 use super::{shortcuts_window, ConfiguratorApp, Keyboard, KeyboardLayer, Page, Picker};
@@ -178,6 +179,20 @@ impl MainWindow {
             }));
             ..refresh();
         };
+
+        // Refresh key matrix only when window is visible
+        backend.set_matrix_get_rate(if window.is_active() {
+            Some(Duration::from_millis(50))
+        } else {
+            None
+        });
+        window.connect_property_is_active_notify(clone!(@weak backend => move |window| {
+            backend.set_matrix_get_rate(if window.is_active() {
+                Some(Duration::from_millis(50))
+            } else {
+                None
+            });
+        }));
 
         let phony_board_names = app.phony_board_names().to_vec();
         if !phony_board_names.is_empty() {

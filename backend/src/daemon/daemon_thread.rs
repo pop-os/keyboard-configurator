@@ -1,17 +1,23 @@
 use futures::{
     channel::{mpsc as async_mpsc, oneshot},
-    executor::block_on,
+    executor::{block_on, LocalPool},
     prelude::*,
+    task::LocalSpawnExt,
 };
+use futures_timer::Delay;
+use glib::clone;
 use std::{
+    cell::{Cell, RefCell},
     cmp::PartialEq,
     collections::HashMap,
     hash::{Hash, Hasher},
+    rc::Rc,
     sync::{
         atomic::{AtomicBool, Ordering},
-        mpsc, Arc, Mutex,
+        Arc, Mutex,
     },
     thread,
+    time::Duration,
 };
 
 use super::{BoardId, Daemon, Matrix};
@@ -50,7 +56,7 @@ enum SetEnum {
     Brightness(Item<(BoardId, u8), i32>),
     Mode(Item<(BoardId, u8), (u8, u8)>),
     LedSave(BoardId),
-    MatrixGet(BoardId),
+    MatrixGetRate(Item<(), Option<Duration>>),
     Refresh(()),
     Exit(()),
 }
@@ -71,12 +77,12 @@ impl Set {
 #[derive(Clone)]
 pub struct ThreadClient {
     cancels: Arc<Mutex<HashMap<SetEnum, Arc<AtomicBool>>>>,
-    channel: mpsc::Sender<Set>,
+    channel: async_mpsc::UnboundedSender<Set>,
 }
 
 impl ThreadClient {
     pub fn new<F: Fn(ThreadResponse) + 'static>(daemon: Box<dyn Daemon>, cb: F) -> Self {
-        let (sender, reciever) = mpsc::channel();
+        let (sender, reciever) = async_mpsc::unbounded();
         let client = Self {
             cancels: Arc::new(Mutex::new(HashMap::new())),
             channel: sender,
@@ -102,7 +108,7 @@ impl ThreadClient {
         cancels.insert(set_enum.clone(), cancel.clone());
         drop(cancels);
 
-        let _ = self.channel.send(Set {
+        let _ = self.channel.unbounded_send(Set {
             inner: set_enum,
             oneshot: sender,
             cancel,
@@ -161,12 +167,12 @@ impl ThreadClient {
             .await
     }
 
-    pub async fn led_save(&self, board: BoardId) -> Result<(), String> {
-        self.send(SetEnum::LedSave(board)).await
+    pub async fn set_matrix_get_rate(&self, rate: Option<Duration>) -> Result<(), String> {
+        self.send(SetEnum::MatrixGetRate(Item::new((), rate))).await
     }
 
-    pub async fn matrix_get(&self, board: BoardId) -> Result<(), String> {
-        self.send(SetEnum::MatrixGet(board)).await
+    pub async fn led_save(&self, board: BoardId) -> Result<(), String> {
+        self.send(SetEnum::LedSave(board)).await
     }
 
     pub fn exit(&self) {
@@ -195,9 +201,10 @@ impl ThreadBoard {
 
 struct Thread {
     daemon: Box<dyn Daemon>,
-    boards: HashMap<BoardId, ThreadBoard>,
+    boards: RefCell<HashMap<BoardId, ThreadBoard>>,
     client: ThreadClient,
     response_channel: async_mpsc::UnboundedSender<ThreadResponse>,
+    matrix_get_rate: Cell<Option<Duration>>,
 }
 
 impl Thread {
@@ -210,62 +217,97 @@ impl Thread {
             daemon,
             client,
             response_channel,
-            boards: HashMap::new(),
+            boards: RefCell::new(HashMap::new()),
+            matrix_get_rate: Cell::new(None),
         }
     }
 
-    fn spawn(mut self, channel: mpsc::Receiver<Set>) {
+    fn spawn(self, mut channel: async_mpsc::UnboundedReceiver<Set>) {
         thread::spawn(move || {
-            self.run(channel);
+            let mut pool = LocalPool::new();
+            let spawner = pool.spawner();
+
+            let self_ = Rc::new(self);
+
+            spawner
+                .spawn_local(clone!(@strong self_ => async move {
+                    loop {
+                        if let Some(rate) = self_.matrix_get_rate.get() {
+                            Delay::new(rate).await;
+                            self_.matrix_refresh_all();
+                        } else {
+                            Delay::new(Duration::from_millis(100)).await;
+                        }
+                    }
+                }))
+                .unwrap();
+
+            pool.run_until(async move {
+                while let Some(set) = channel.next().await {
+                    if !self_.handle_set(set) {
+                        break;
+                    }
+                }
+            });
         });
     }
 
-    fn run(&mut self, channel: mpsc::Receiver<Set>) {
-        for set in channel.into_iter() {
-            if set.cancel.load(Ordering::SeqCst) {
-                continue;
-            }
+    fn handle_set(&self, set: Set) -> bool {
+        if set.cancel.load(Ordering::SeqCst) {
+            return true;
+        }
 
-            let resp = match set.inner {
-                SetEnum::KeyMap(Item { key, value }) => {
-                    self.daemon.keymap_set(key.0, key.1, key.2, key.3, value)
+        let resp = match set.inner {
+            SetEnum::KeyMap(Item { key, value }) => {
+                self.daemon.keymap_set(key.0, key.1, key.2, key.3, value)
+            }
+            SetEnum::Color(Item { key, value }) => self.daemon.set_color(key.0, key.1, value),
+            SetEnum::Brightness(Item { key, value }) => {
+                self.daemon.set_brightness(key.0, key.1, value)
+            }
+            SetEnum::Mode(Item { key, value }) => {
+                self.daemon.set_mode(key.0, key.1, value.0, value.1)
+            }
+            SetEnum::LedSave(board) => self.daemon.led_save(board),
+            SetEnum::MatrixGetRate(Item { value, .. }) => {
+                self.matrix_get_rate.set(value);
+                Ok(())
+            }
+            SetEnum::Refresh(()) => self.refresh(),
+            SetEnum::Exit(()) => return false,
+        };
+
+        set.reply(resp);
+
+        true
+    }
+
+    fn matrix_refresh_all(&self) {
+        for (k, v) in self.boards.borrow_mut().iter_mut() {
+            let matrix = match self.daemon.matrix_get(*k) {
+                Ok(matrix) => matrix,
+                Err(err) => {
+                    error!("Failed to get matrix: {}", err);
+                    break;
                 }
-                SetEnum::Color(Item { key, value }) => self.daemon.set_color(key.0, key.1, value),
-                SetEnum::Brightness(Item { key, value }) => {
-                    self.daemon.set_brightness(key.0, key.1, value)
-                }
-                SetEnum::Mode(Item { key, value }) => {
-                    self.daemon.set_mode(key.0, key.1, value.0, value.1)
-                }
-                SetEnum::LedSave(board) => self.daemon.led_save(board),
-                SetEnum::MatrixGet(board) => self.matrix_get(board),
-                SetEnum::Refresh(()) => self.refresh(),
-                SetEnum::Exit(()) => break,
             };
-
-            set.reply(resp);
-        }
-    }
-
-    fn matrix_get(&mut self, board: BoardId) -> Result<(), String> {
-        let matrix = self.daemon.matrix_get(board)?;
-        if let Some(board) = self.boards.get_mut(&board) {
-            if board.matrix != matrix {
-                let _ = board.matrix_channel.unbounded_send(matrix.clone());
-                board.matrix = matrix;
+            if v.matrix != matrix {
+                let _ = v.matrix_channel.unbounded_send(matrix.clone());
+                v.matrix = matrix;
             }
         }
-        Ok(())
     }
 
-    fn refresh(&mut self) -> Result<(), String> {
+    fn refresh(&self) -> Result<(), String> {
+        let mut boards = self.boards.borrow_mut();
+
         self.daemon.refresh()?;
 
         let new_ids = self.daemon.boards()?;
 
         // Removed boards
-        let response_channel = &mut self.response_channel;
-        self.boards.retain(|id, _| {
+        let response_channel = &self.response_channel;
+        boards.retain(|id, _| {
             if new_ids.iter().find(|i| *i == id).is_none() {
                 // XXX unwrap?
                 response_channel
@@ -278,7 +320,7 @@ impl Thread {
 
         // Added boards
         for i in &new_ids {
-            if self.boards.contains_key(i) {
+            if boards.contains_key(i) {
                 continue;
             }
 
@@ -294,7 +336,7 @@ impl Thread {
                     self.response_channel
                         .unbounded_send(ThreadResponse::BoardAdded(board))
                         .unwrap();
-                    self.boards.insert(*i, ThreadBoard::new(matrix_sender));
+                    boards.insert(*i, ThreadBoard::new(matrix_sender));
                 }
                 Err(err) => error!("Failed to add board: {}", err),
             }

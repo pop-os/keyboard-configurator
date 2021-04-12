@@ -7,6 +7,7 @@ edition = "2018"
 
 [dependencies]
 futures = "0.3.13"
+futures-timer = "3.0.2"
 gio = { git = "https://github.com/pop-os/gtk-rs" }
 glib = { git = "https://github.com/pop-os/gtk-rs" }
 hidapi = { version = "1.2", default-features = false, features = ["linux-static-hidraw"] }

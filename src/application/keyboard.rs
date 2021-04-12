@@ -7,7 +7,7 @@ use std::{
     cell::{Cell, RefCell},
     ffi::OsStr,
     fs::File,
-    str, time,
+    str,
 };
 
 use super::{show_error_dialog, Backlight, KeyboardLayer, Page, Picker};
@@ -183,13 +183,6 @@ impl Keyboard {
         keyboard.inner().backlight.set(backlight);
 
         keyboard.add_pages(debug_layers);
-
-        glib::timeout_add_local(
-            time::Duration::from_millis(50),
-            clone!(@weak keyboard => @default-return glib::Continue(false), move || {
-                glib::Continue(keyboard.refresh())
-            }),
-        );
 
         keyboard
     }
@@ -424,29 +417,5 @@ impl Keyboard {
 
         self.queue_draw();
         self.notify("selected");
-    }
-
-    fn refresh(&self) -> bool {
-        if !self.board().has_matrix() {
-            return false;
-        }
-
-        let window = match self.window() {
-            Some(some) => some,
-            None => return true,
-        };
-
-        if !window.is_active() {
-            return true;
-        }
-
-        let board = self.board().clone();
-        glib::MainContext::default().spawn_local(async move {
-            if let Err(err) = board.refresh_matrix().await {
-                error!("Failed to get matrix: {}", err);
-            }
-        });
-
-        true
     }
 }

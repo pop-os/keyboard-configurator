@@ -155,10 +155,6 @@ impl Board {
         *self.inner().has_matrix
     }
 
-    pub async fn refresh_matrix(&self) -> Result<(), String> {
-        self.thread_client().matrix_get(self.board()).await
-    }
-
     pub fn connect_matrix_changed<F: Fn() + 'static>(&self, cb: F) {
         self.connect_local("matrix-changed", false, move |_| {
             cb();

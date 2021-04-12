@@ -7,7 +7,7 @@ use glib::{
     subclass::{prelude::*, Signal},
 };
 use once_cell::sync::Lazy;
-use std::{cell::RefCell, collections::HashMap, process};
+use std::{cell::RefCell, collections::HashMap, process, time::Duration};
 
 mod board;
 mod color;
@@ -118,6 +118,13 @@ impl Backend {
             if let Err(err) = self_.inner().thread_client.refresh().await {
                 error!("Failed to refresh boards: {}", err);
             }
+        });
+    }
+
+    pub fn set_matrix_get_rate(&self, rate: Option<Duration>) {
+        let self_ = self.clone();
+        glib::MainContext::default().spawn_local(async move {
+            let _ = self_.inner().thread_client.set_matrix_get_rate(rate).await;
         });
     }
 
