@@ -3,7 +3,6 @@
 use cascade::cascade;
 use gio::prelude::*;
 use gtk::prelude::*;
-use std::env;
 use std::process;
 
 use system76_keyboard_configurator::keyboard_backlight_widget;
@@ -31,5 +30,5 @@ fn main() {
         });
     };
 
-    process::exit(application.run(&env::args().collect::<Vec<_>>()));
+    process::exit(application.run());
 }
