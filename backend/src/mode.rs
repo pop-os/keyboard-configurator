@@ -1,12 +1,18 @@
 use once_cell::sync::Lazy;
 use std::collections::HashMap;
 
+/// A mode/pattern for the keyboard's LEDs to display
 #[non_exhaustive]
 pub struct Mode {
+    /// Index (as used in firmware)
     pub index: u8,
+    /// Textual ID of mode, for `ListBox` or debugging
     pub id: &'static str,
+    /// Display name of mode
     pub name: &'static str,
+    /// Hue setting has effect in this mode
     pub has_hue: bool,
+    /// Speed setting has effect in this mode
     pub has_speed: bool,
 }
 
@@ -27,22 +33,26 @@ impl Mode {
         }
     }
 
+    /// Return slice of all `Mode`s, ordered as they should be displayed
     pub fn all() -> &'static [Mode] {
         MODES
     }
 
+    /// Get `Mode` corresponding to index (as used in firmware)
     pub fn from_index(index: u8) -> Option<&'static Self> {
         static MODE_BY_INDEX: Lazy<HashMap<u8, &Mode>> =
             Lazy::new(|| MODES.iter().map(|i| (i.index, i)).collect());
         MODE_BY_INDEX.get(&index).cloned()
     }
 
+    /// Get `Mode` corresponding to textual ID
     pub fn from_id(id: &str) -> Option<&'static Self> {
         static MODE_BY_ID: Lazy<HashMap<&str, &Mode>> =
             Lazy::new(|| MODES.iter().map(|i| (i.id, i)).collect());
         MODE_BY_ID.get(&id).cloned()
     }
 
+    /// `true` for Per Key mode, otherwise `false`
     pub fn is_per_key(&self) -> bool {
         self.index == 1
     }

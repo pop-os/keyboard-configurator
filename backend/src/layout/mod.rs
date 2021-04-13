@@ -8,7 +8,9 @@ pub(crate) use physical_layout::{PhysicalLayout, PhysicalLayoutKey};
 use crate::KeyMap;
 
 pub struct Layout {
+    /// Metadata for keyboard
     pub meta: Meta,
+    /// Default keymap for this keyboard
     pub default: KeyMap,
     keymap: HashMap<String, u16>,
     scancode_names: HashMap<u16, String>,
@@ -42,6 +44,7 @@ macro_rules! keyboards {
             }
         }
 
+        /// Names of board layouts that can be opened with `Layout::from_board`
         pub fn layouts() -> &'static [&'static str] {
             &[$( $board ),*]
         }
@@ -132,10 +135,12 @@ impl Layout {
         )
     }
 
+    /// Get the scancode number corresponding to a name
     pub fn scancode_to_name(&self, scancode: u16) -> Option<&str> {
         self.scancode_names.get(&scancode).map(String::as_str)
     }
 
+    /// Get the name corresponding to a scancode number
     pub fn scancode_from_name(&self, name: &str) -> Option<u16> {
         self.keymap.get(name).copied()
     }

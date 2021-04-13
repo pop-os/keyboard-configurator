@@ -6,28 +6,28 @@ use crate::{Board, Daemon, Hs, PhysicalLayoutKey, Rect, Rgb};
 #[derive(Debug)]
 pub struct Key {
     pub(crate) board: glib::WeakRef<Board>,
-    // Logical position (row, column)
+    /// Logical position (row, column)
     pub logical: (u8, u8),
-    // Logical name (something like K01, where 0 is the row and 1 is the column)
+    /// Logical name (something like K01, where 0 is the row and 1 is the column)
     pub logical_name: String,
-    // Physical position and size
+    /// Physical position and size
     pub physical: Rect,
-    // Physical key name (what is printed on the keycap)
+    /// Physical key name (what is printed on the keycap)
     pub physical_name: String,
-    // Electrical mapping (output, input)
+    /// Electrical mapping (output, input)
     pub electrical: (u8, u8),
-    // Electrical name (output, input)
+    /// Electrical name (output, input)
     pub electrical_name: String,
     /// LED indexes
     pub leds: Vec<u8>,
     /// LED name
     pub led_name: String,
     led_color: Cell<Option<Hs>>,
-    // Key is currently pressed
+    /// Key is currently pressed
     pub(crate) pressed: Cell<bool>,
-    // Currently loaded scancodes and their names
+    /// Currently loaded scancodes and their names
     scancodes: Vec<Cell<u16>>,
-    // Background color
+    /// Background color
     pub background_color: Rgb,
 }
 

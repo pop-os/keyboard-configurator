@@ -6,6 +6,7 @@ use std::f64::consts::PI;
 type PaletteHsv = palette::Hsv<palette::encoding::Srgb, f64>;
 type PaletteLinSrgb = palette::LinSrgb<f64>;
 
+/// Floating point hue/saturation color
 #[derive(
     Clone,
     Copy,
@@ -54,6 +55,7 @@ impl Hs {
     }
 }
 
+/// Integer RGB color
 #[derive(Clone, Copy, Debug, Serialize, Deserialize, Default, glib::GBoxed)]
 #[gboxed(type_name = "S76Rgb")]
 pub struct Rgb {
@@ -82,10 +84,12 @@ impl Rgb {
         (self.r.convert(), self.g.convert(), self.b.convert())
     }
 
+    /// Convert to hexadecimal string
     pub fn to_string(self) -> String {
         format!("{:02x}{:02x}{:02x}", self.r, self.g, self.b)
     }
 
+    /// Parse from hexadecimal string
     pub fn parse(s: &str) -> Option<Self> {
         if s.len() == 6 {
             let r = u8::from_str_radix(&s[0..2], 16).ok()?;

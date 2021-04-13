@@ -1,10 +1,9 @@
-// Wrapper around `OnceCell` implementing `Deref`, and thus also panicking
-// when not set (or set twice).
-//
-// To be used in place of `gtk::TemplateChild`, but without xml.
-
 use once_cell::unsync::OnceCell;
 
+/// Wrapper around `OnceCell` implementing `Deref`, and thus also panicking
+/// when not set (or set twice).
+///
+/// To be used in place of `gtk::TemplateChild`, but without xml.
 pub struct DerefCell<T>(OnceCell<T>);
 
 impl<T> DerefCell<T> {

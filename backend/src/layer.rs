@@ -64,6 +64,7 @@ impl Layer {
         self.board.upgrade().unwrap()
     }
 
+    /// Get the current mode and speed. `None` if not supported by board.
     pub fn mode(&self) -> Option<(&'static Mode, u8)> {
         let (index, speed) = self.mode.get()?;
         Some((Mode::from_index(index)?, speed))
@@ -80,6 +81,7 @@ impl Layer {
         Ok(())
     }
 
+    /// Get the current brightness
     pub fn brightness(&self) -> i32 {
         self.brightness.get()
     }
@@ -95,6 +97,7 @@ impl Layer {
         Ok(())
     }
 
+    /// Get the current color
     pub fn color(&self) -> Hs {
         self.color.get()
     }

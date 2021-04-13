@@ -11,6 +11,7 @@ impl Rect {
         Self { x, y, w, h }
     }
 
+    /// Test if `(x, y)` is a point in the rectangle
     pub fn contains(&self, x: f64, y: f64) -> bool {
         (self.x..=self.x + self.w).contains(&x) && (self.y..=self.y + self.h).contains(&y)
     }

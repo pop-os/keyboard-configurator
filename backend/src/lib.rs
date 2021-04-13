@@ -1,3 +1,16 @@
+//#![warn(missing_docs)]
+
+//! ```no_run
+//! use system76_keyboard_configurator_backend::Backend;
+//!
+//! let backend = Backend::new()?;
+//! backend.connect_board_added(|board| {
+//!     println!("{}", board.model());
+//! });
+//! backend.refresh();
+//! # Ok::<(), String>(())
+//! ```
+
 #[macro_use]
 extern crate log;
 
@@ -112,6 +125,9 @@ impl Backend {
         BackendInner::from_instance(self)
     }
 
+    /// Test for added/removed boards, emitting `board-added`/`board-removed` signals
+    ///
+    /// This function does not block, and loads new boards in the background.
     pub fn refresh(&self) {
         let self_ = self.clone();
         glib::MainContext::default().spawn_local(async move {
