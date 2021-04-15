@@ -1,4 +1,5 @@
 use cascade::cascade;
+use futures::{prelude::*, stream::FuturesUnordered};
 use glib::clone;
 use glib::object::WeakRef;
 use gtk::prelude::*;
@@ -262,17 +263,24 @@ impl Keyboard {
 
         let self_ = self.clone();
         glib::MainContext::default().spawn_local(async move {
-            for (k, v) in keymap.map.iter() {
-                let n = self_
-                    .board()
-                    .keys()
-                    .iter()
-                    .position(|i| &i.logical_name == k)
-                    .unwrap();
-                for (layer, scancode_name) in v.iter().enumerate() {
-                    self_.keymap_set(n, layer, scancode_name).await;
-                }
-            }
+            keymap
+                .map
+                .iter()
+                .flat_map(|(k, v)| {
+                    let n = self_
+                        .board()
+                        .keys()
+                        .iter()
+                        .position(|i| &i.logical_name == k)
+                        .unwrap();
+                    let self_ = &self_;
+                    v.iter().enumerate().map(move |(layer, scancode_name)| {
+                        self_.keymap_set(n, layer, scancode_name)
+                    })
+                })
+                .collect::<FuturesUnordered<_>>()
+                .collect::<()>()
+                .await;
         });
     }
 

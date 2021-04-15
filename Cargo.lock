@@ -1196,6 +1196,7 @@ dependencies = [
  "cairo-rs",
  "cascade",
  "env_logger",
+ "futures",
  "gdk",
  "gio",
  "glib",

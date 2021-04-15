@@ -1,4 +1,5 @@
 use cascade::cascade;
+use futures::{prelude::*, stream::FuturesUnordered};
 use glib::clone;
 use gtk::prelude::*;
 use gtk::subclass::prelude::*;
@@ -20,9 +21,11 @@ impl KeyboardColorIndex {
     pub async fn set_color(&self, board: &Board, hs: Hs) -> Result<(), String> {
         match self {
             KeyboardColorIndex::Keys(keys) => {
-                for i in keys.iter() {
-                    board.keys()[*i as usize].set_color(Some(hs)).await?;
-                }
+                keys.iter()
+                    .map(|i| board.keys()[*i as usize].set_color(Some(hs)))
+                    .collect::<FuturesUnordered<_>>()
+                    .try_collect::<()>()
+                    .await?
             }
             KeyboardColorIndex::Layer(i) => board.layers()[*i as usize].set_color(hs).await?,
         };

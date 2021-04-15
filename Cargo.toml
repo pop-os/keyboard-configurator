@@ -11,6 +11,7 @@ members = [ "tools", "ffi", "backend" ]
 [dependencies]
 cascade = "1"
 cairo-rs = { git = "https://github.com/pop-os/gtk-rs" }
+futures = "0.3.13"
 gdk = { git = "https://github.com/pop-os/gtk-rs" }
 gio = { git = "https://github.com/pop-os/gtk-rs" }
 glib = { git = "https://github.com/pop-os/gtk-rs" }
