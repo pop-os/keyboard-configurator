@@ -102,22 +102,20 @@ impl Layer {
         self.color.get()
     }
 
-    pub async fn set_color(&self, color: Hs) -> Result<(), String> {
+    pub async fn set_color(&self, hs: Hs) -> Result<(), String> {
         let board = self.board();
-        if self.index == 0xff {
-            let Rgb { r, g, b } = color.to_rgb();
-            board
-                .thread_client()
-                .set_color(board.board(), self.index, (r, g, b))
-                .await?;
+        let color = if self.index == 0xff {
+            let Rgb { r, g, b } = hs.to_rgb();
+            (r, g, b)
         } else {
-            let (h, s) = color.to_ints();
-            board
-                .thread_client()
-                .set_color(board.board(), self.index, (h, s, 0))
-                .await?;
-        }
-        self.color.set(color);
+            let (h, s) = hs.to_ints();
+            (h, s, 0)
+        };
+        board
+            .thread_client()
+            .set_color(board.board(), self.index, color)
+            .await?;
+        self.color.set(hs);
         board.set_leds_changed();
         Ok(())
     }
