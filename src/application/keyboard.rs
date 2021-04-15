@@ -11,7 +11,7 @@ use std::{
     str,
 };
 
-use super::{show_error_dialog, Backlight, KeyboardLayer, Page, Picker};
+use super::{show_error_dialog, Backlight, KeyboardLayer, MainWindow, Page, Picker};
 use crate::{DerefCell, SelectedKeys};
 use backend::{Board, KeyMap, Layout};
 
@@ -263,6 +263,13 @@ impl Keyboard {
 
         let self_ = self.clone();
         glib::MainContext::default().spawn_local(async move {
+            let _loader = self_.get_toplevel().and_then(|x| {
+                Some(
+                    x.downcast_ref::<MainWindow>()?
+                        .display_loader(&format!("Loading keymap for {}...", self_.display_name())),
+                )
+            });
+
             keymap
                 .map
                 .iter()

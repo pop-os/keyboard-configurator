@@ -12,6 +12,19 @@ use super::{shortcuts_window, ConfiguratorApp, Keyboard, KeyboardLayer, Page, Pi
 use crate::DerefCell;
 use backend::{Backend, Board};
 
+pub struct Loader(MainWindow, gtk::Box);
+
+impl Drop for Loader {
+    fn drop(&mut self) {
+        self.0.inner().load_box.remove(&self.1);
+        let mut empty = true;
+        self.0.inner().load_box.foreach(|_| empty = true);
+        if empty {
+            self.0.inner().load_revealer.set_reveal_child(false);
+        }
+    }
+}
+
 #[derive(Default)]
 pub struct MainWindowInner {
     backend: DerefCell<Backend>,
@@ -20,6 +33,8 @@ pub struct MainWindowInner {
     header_bar: DerefCell<gtk::HeaderBar>,
     keyboard_list_box: DerefCell<gtk::ListBox>,
     layer_switcher: DerefCell<gtk::StackSwitcher>,
+    load_box: DerefCell<gtk::Box>,
+    load_revealer: DerefCell<gtk::Revealer>,
     picker: DerefCell<Picker>,
     stack: DerefCell<gtk::Stack>,
     keyboards: RefCell<Vec<(Keyboard, gtk::ListBoxRow)>>,
@@ -120,6 +135,18 @@ impl ObjectImpl for MainWindowInner {
 
         let picker = Picker::new();
 
+        let load_box = cascade! {
+            gtk::Box::new(gtk::Orientation::Vertical, 6);
+            ..set_property_margin(6);
+            ..show();
+        };
+
+        let load_revealer = cascade! {
+            gtk::Revealer::new();
+            ..set_transition_type(gtk::RevealerTransitionType::SlideDown);
+            ..add(&load_box);
+        };
+
         cascade! {
             window;
             ..set_title("System76 Keyboard Configurator");
@@ -128,7 +155,11 @@ impl ObjectImpl for MainWindowInner {
             ..set_titlebar(Some(&header_bar));
             ..add(&cascade! {
                 gtk::ScrolledWindow::new::<gtk::Adjustment, gtk::Adjustment>(None, None);
-                ..add(&stack);
+                ..add(&cascade! {
+                    gtk::Box::new(gtk::Orientation::Vertical, 0);
+                    ..add(&load_revealer);
+                    ..add(&stack);
+                });
             });
             ..set_help_overlay(Some(&shortcuts_window()));
             ..set_focus(None::<&gtk::Widget>);
@@ -140,6 +171,8 @@ impl ObjectImpl for MainWindowInner {
         self.header_bar.set(header_bar);
         self.keyboard_list_box.set(keyboard_list_box);
         self.layer_switcher.set(layer_switcher);
+        self.load_box.set(load_box);
+        self.load_revealer.set(load_revealer);
         self.picker.set(picker);
         self.stack.set(stack);
     }
@@ -297,6 +330,23 @@ impl MainWindow {
 
         // XXX if only one keyboard, show that with no back button
         self.inner().count.fetch_add(1, Ordering::Relaxed);
+    }
+
+    pub fn display_loader(&self, text: &str) -> Loader {
+        let load_hbox = cascade! {
+            gtk::Box::new(gtk::Orientation::Horizontal, 6);
+            ..add(&cascade! {
+                gtk::Spinner::new();
+                ..start();
+            });
+            ..add(&gtk::Label::new(Some(text)));
+            ..show_all();
+        };
+
+        self.inner().load_box.add(&load_hbox);
+        self.inner().load_revealer.set_reveal_child(true);
+
+        Loader(self.clone(), load_hbox)
     }
 }
 
