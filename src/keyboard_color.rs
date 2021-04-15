@@ -16,6 +16,33 @@ pub enum KeyboardColorIndex {
     Layer(u8),
 }
 
+impl KeyboardColorIndex {
+    pub async fn set_color(&self, board: &Board, hs: Hs) -> Result<(), String> {
+        match self {
+            KeyboardColorIndex::Keys(keys) => {
+                for i in keys.iter() {
+                    board.keys()[*i as usize].set_color(Some(hs)).await?;
+                }
+            }
+            KeyboardColorIndex::Layer(i) => board.layers()[*i as usize].set_color(hs).await?,
+        };
+        Ok(())
+    }
+
+    pub fn get_color(&self, board: &Board) -> BTreeSet<Hs> {
+        match self {
+            KeyboardColorIndex::Keys(keys) => keys
+                .iter()
+                .filter_map(|i| board.keys()[*i as usize].color())
+                .collect(),
+            KeyboardColorIndex::Layer(i) => cascade! {
+                BTreeSet::new();
+                ..insert(board.layers()[*i as usize].color());
+            },
+        }
+    }
+}
+
 impl Default for KeyboardColorIndex {
     fn default() -> Self {
         Self::Layer(0)
@@ -159,20 +186,12 @@ impl KeyboardColor {
             let mut colors = BTreeSet::new();
             colors.insert(hs);
             self.inner().circle.set_colors(colors);
+            self.inner().circle.set_colors(cascade! {
+                BTreeSet::new();
+                ..insert(hs);
+            });
             glib::MainContext::default().spawn_local(async move {
-                let res = match &*self_.index() {
-                    KeyboardColorIndex::Keys(keys) => {
-                        (|| async {
-                            for i in keys.iter() {
-                                board.keys()[*i as usize].set_color(Some(hs)).await?;
-                            }
-                            Ok(())
-                        })()
-                        .await
-                    }
-                    KeyboardColorIndex::Layer(i) => board.layers()[*i as usize].set_color(hs).await,
-                };
-                if let Err(err) = res {
+                if let Err(err) = self_.index().set_color(&board, hs).await {
                     error!("Failed to set keyboard color: {}", err);
                 }
                 self_.notify("hs");
@@ -186,16 +205,7 @@ impl KeyboardColor {
 
     fn read_color(&self) {
         if let Some(board) = self.board() {
-            let colors: BTreeSet<Hs> = match &*self.index() {
-                KeyboardColorIndex::Keys(keys) => keys
-                    .iter()
-                    .filter_map(|i| board.keys()[*i as usize].color())
-                    .collect(),
-                KeyboardColorIndex::Layer(i) => cascade! {
-                    BTreeSet::new();
-                    ..insert(board.layers()[*i as usize].color());
-                },
-            };
+            let colors = self.index().get_color(&board);
             let hs = colors.iter().next().copied().unwrap_or(Hs::new(0., 0.));
             if self.inner().hs.replace(hs) != hs {
                 self.notify("hs");
