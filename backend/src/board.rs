@@ -21,6 +21,7 @@ pub struct BoardInner {
     max_brightness: DerefCell<i32>,
     leds_changed: Cell<bool>,
     has_led_save: DerefCell<bool>,
+    led_save_blocked: Cell<bool>,
     has_matrix: DerefCell<bool>,
     is_fake: DerefCell<bool>,
 }
@@ -168,12 +169,23 @@ impl Board {
     }
 
     pub async fn led_save(&self) -> Result<(), String> {
+        if self.inner().led_save_blocked.get() {
+            return Ok(());
+        }
         if self.has_led_save() && self.inner().leds_changed.get() {
             self.thread_client().led_save(self.board()).await?;
             self.inner().leds_changed.set(false);
             debug!("led_save");
         }
         Ok(())
+    }
+
+    pub fn block_led_save(&self) {
+        self.inner().led_save_blocked.set(true);
+    }
+
+    pub fn unblock_led_save(&self) {
+        self.inner().led_save_blocked.set(false);
     }
 
     pub fn is_fake(&self) -> bool {

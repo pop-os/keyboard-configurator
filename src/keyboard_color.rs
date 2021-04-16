@@ -5,7 +5,7 @@ use gtk::prelude::*;
 use gtk::subclass::prelude::*;
 use std::{
     cell::{Cell, Ref, RefCell},
-    collections::BTreeSet,
+    collections::{BTreeSet, HashMap},
 };
 
 use crate::{choose_color, ColorCircle, DerefCell, SelectedKeys};
@@ -32,7 +32,7 @@ impl KeyboardColorIndex {
         Ok(())
     }
 
-    pub fn get_color(&self, board: &Board) -> BTreeSet<Hs> {
+    pub fn get_color_set(&self, board: &Board) -> BTreeSet<Hs> {
         match self {
             KeyboardColorIndex::Keys(keys) => keys
                 .iter()
@@ -43,6 +43,41 @@ impl KeyboardColorIndex {
                 ..insert(board.layers()[*i as usize].color());
             },
         }
+    }
+
+    pub fn get_colors(&self, board: &Board) -> HashMap<usize, Hs> {
+        match self {
+            KeyboardColorIndex::Keys(keys) => keys
+                .iter()
+                .filter_map(|i| Some((*i, board.keys()[*i].color()?)))
+                .collect(),
+            KeyboardColorIndex::Layer(i) => cascade! {
+                HashMap::new();
+                ..insert(*i, board.layers()[*i].color());
+            },
+        }
+    }
+
+    pub async fn set_colors(
+        &self,
+        board: &Board,
+        colors: &HashMap<usize, Hs>,
+    ) -> Result<(), String> {
+        match self {
+            KeyboardColorIndex::Keys(keys) => {
+                keys.iter()
+                    .map(|i| board.keys()[*i as usize].set_color(colors.get(i).copied()))
+                    .collect::<FuturesUnordered<_>>()
+                    .try_collect::<()>()
+                    .await?
+            }
+            KeyboardColorIndex::Layer(i) => {
+                board.layers()[*i as usize]
+                    .set_color(*colors.get(i).unwrap())
+                    .await?
+            }
+        };
+        Ok(())
     }
 }
 
@@ -155,6 +190,7 @@ impl KeyboardColor {
             self,
             "Set Color",
             Some(self.hs()),
+            self.index().clone(),
             clone!(@weak self_ => move |resp| {
                 if let Some(color) = resp {
                     self_.set_hs(color);
@@ -208,7 +244,7 @@ impl KeyboardColor {
 
     fn read_color(&self) {
         if let Some(board) = self.board() {
-            let colors = self.index().get_color(&board);
+            let colors = self.index().get_color_set(&board);
             let hs = colors.iter().next().copied().unwrap_or(Hs::new(0., 0.));
             if self.inner().hs.replace(hs) != hs {
                 self.notify("hs");

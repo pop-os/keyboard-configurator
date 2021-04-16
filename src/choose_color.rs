@@ -1,30 +1,25 @@
 use cascade::cascade;
+use futures::future::abortable;
 use glib::clone;
 use gtk::prelude::*;
-use std::rc::Rc;
+use std::{cell::RefCell, rc::Rc};
 
-use crate::ColorWheel;
-use backend::{Board, Hs, Mode};
+use crate::{ColorWheel, KeyboardColorIndex};
+use backend::{Board, Hs};
 
 pub fn choose_color<W: IsA<gtk::Widget>, F: Fn(Option<Hs>) + 'static>(
     board: Board,
     w: &W,
     title: &'static str,
     color: Option<Hs>,
+    index: KeyboardColorIndex,
     cb: F,
 ) {
+    let index = Rc::new(index);
     let cb = Rc::new(cb);
-
-    let original_color = board.layers()[0].color();
-    let original_mode = board.layers()[0].mode();
-
-    if original_mode.is_some() {
-        glib::MainContext::default().spawn_local(clone!(@strong board => async move {
-            if let Err(err) = board.layers()[0].set_mode(&Mode::all()[0], 0).await {
-                error!("Failed to set keyboard mode: {}", err);
-            }
-        }));
-    }
+    let original_colors = Rc::new(index.get_colors(&board));
+    let abort_handle = Rc::new(RefCell::new(None));
+    board.block_led_save();
 
     let color_wheel = cascade! {
         ColorWheel::new();
@@ -45,9 +40,13 @@ pub fn choose_color<W: IsA<gtk::Widget>, F: Fn(Option<Hs>) + 'static>(
     };
 
     color_wheel.connect_hs_changed(
-        clone!(@strong board, @weak preview => @default-panic, move |wheel| {
-            glib::MainContext::default().spawn_local(clone!(@strong board, @strong wheel => async move {
-                if let Err(err) = board.layers()[0].set_color(wheel.hs()).await {
+        clone!(@strong board, @strong index, @weak preview => @default-panic, move |wheel| {
+            glib::MainContext::default().spawn_local(clone!(@strong board, @strong wheel, @strong index, @strong abort_handle => async move {
+                let (res, new_abort_handle) = abortable(index.set_color(&board, wheel.hs()));
+                if let Some(handle) = abort_handle.replace(Some(new_abort_handle)) {
+                    handle.abort();
+                }
+                if let Ok(Err(err)) = res.await {
                     error!("Failed to set keyboard color: {}", err);
                 }
             }));
@@ -122,16 +121,12 @@ pub fn choose_color<W: IsA<gtk::Widget>, F: Fn(Option<Hs>) + 'static>(
 
             let hs = color_wheel.hs();
             dialog.close();
+            board.unblock_led_save();
 
-            glib::MainContext::default().spawn_local(clone!(@strong board, @strong cb => async move {
-                let layer = &board.layers()[0];
-
-                if let Err(err) = layer.set_color(original_color).await {
-                    error!("Failed to set keyboard color: {}", err);
-                }
-                if let Some(mode) = original_mode {
-                    if let Err(err) = layer.set_mode(mode.0, mode.1).await {
-                        error!("Failed to set keyboard mode: {}", err);
+            glib::MainContext::default().spawn_local(clone!(@strong board, @strong cb, @strong original_colors, @strong index, => async move {
+                if response != gtk::ResponseType::Ok {
+                    if let Err(err) = index.set_colors(&board, &original_colors).await {
+                        error!("Failed to set keyboard color: {}", err);
                     }
                 }
 
