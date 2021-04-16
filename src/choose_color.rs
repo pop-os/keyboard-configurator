@@ -7,17 +7,15 @@ use std::{cell::RefCell, rc::Rc};
 use crate::{ColorWheel, KeyboardColorIndex};
 use backend::{Board, Hs};
 
-pub fn choose_color<W: IsA<gtk::Widget>, F: Fn(Option<Hs>) + 'static>(
+pub async fn choose_color<W: IsA<gtk::Widget>>(
     board: Board,
     w: &W,
     title: &'static str,
     color: Option<Hs>,
     index: KeyboardColorIndex,
-    cb: F,
-) {
+) -> Option<Hs> {
     let index = Rc::new(index);
-    let cb = Rc::new(cb);
-    let original_colors = Rc::new(index.get_colors(&board));
+    let original_colors = index.get_colors(&board);
     let abort_handle = Rc::new(RefCell::new(None));
     board.block_led_save();
 
@@ -104,7 +102,7 @@ pub fn choose_color<W: IsA<gtk::Widget>, F: Fn(Option<Hs>) + 'static>(
         .get_toplevel()
         .and_then(|x| x.downcast::<gtk::Window>().ok());
 
-    cascade! {
+    let dialog = cascade! {
         gtk::DialogBuilder::new()
             .title(title)
             .use_header_bar(1)
@@ -114,30 +112,24 @@ pub fn choose_color<W: IsA<gtk::Widget>, F: Fn(Option<Hs>) + 'static>(
         ..add_button("Save", gtk::ResponseType::Ok);
         ..get_content_area().add(&vbox);
         ..set_transient_for(window.as_ref());
-        ..connect_response(move |dialog, response| {
-            if response == gtk::ResponseType::DeleteEvent {
-                return;
-            }
-
-            let hs = color_wheel.hs();
-            dialog.close();
-            board.unblock_led_save();
-
-            glib::MainContext::default().spawn_local(clone!(@strong board, @strong cb, @strong original_colors, @strong index, => async move {
-                if response != gtk::ResponseType::Ok {
-                    if let Err(err) = index.set_colors(&board, &original_colors).await {
-                        error!("Failed to set keyboard color: {}", err);
-                    }
-                }
-
-                let cb = cb.clone();
-                cb(if response == gtk::ResponseType::Ok {
-                    Some(hs)
-                } else {
-                    None
-                })
-            }));
-        });
         ..show_all();
     };
+
+    let response = dialog.run_future().await;
+
+    let hs = color_wheel.hs();
+    dialog.close();
+    board.unblock_led_save();
+
+    if response != gtk::ResponseType::Ok {
+        if let Err(err) = index.set_colors(&board, &original_colors).await {
+            error!("Failed to set keyboard color: {}", err);
+        }
+    }
+
+    if response == gtk::ResponseType::Ok {
+        Some(hs)
+    } else {
+        None
+    }
 }

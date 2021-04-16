@@ -184,19 +184,18 @@ impl KeyboardColor {
 
     fn circle_clicked(&self) {
         let self_ = self;
-        let board = self.board().unwrap().clone();
-        choose_color(
-            board.clone(),
-            self,
-            "Set Color",
-            Some(self.hs()),
-            self.index().clone(),
-            clone!(@weak self_ => move |resp| {
-                if let Some(color) = resp {
-                    self_.set_hs(color);
-                }
-            }),
-        );
+        glib::MainContext::default().spawn_local(clone!(@weak self_ => async move {
+            let resp = choose_color(
+                self_.board().unwrap().clone(),
+                &self_,
+                "Set Color",
+                Some(self_.hs()),
+                self_.index().clone(),
+            );
+            if let Some(color) = resp.await {
+                self_.set_hs(color);
+            }
+        }));
     }
 
     fn board(&self) -> Option<Ref<Board>> {
