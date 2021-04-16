@@ -332,7 +332,11 @@ impl Backlight {
         debug!("Brightness: {}", value)
     }
 
-    pub fn set_layer(&self, layer: usize) {
+    pub fn set_layer(&self, mut layer: usize) {
+        if !self.inner().board.layout().meta.has_per_layer {
+            layer = 0;
+        }
+
         self.inner().layer.set(layer);
 
         let layer = &self.board().layers()[layer];

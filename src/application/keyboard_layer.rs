@@ -83,7 +83,12 @@ impl WidgetImpl for KeyboardLayerInner {
     fn draw(&self, widget: &KeyboardLayer, cr: &cairo::Context) -> Inhibit {
         self.parent_draw(widget, cr);
 
-        let layer = widget.page().layer().map(|i| &self.board.layers()[i]);
+        let layer = if self.board.layout().meta.has_per_layer {
+            widget.page().layer()
+        } else {
+            widget.page().layer().and(Some(0))
+        }
+        .map(|i| &self.board.layers()[i]);
         let (is_per_key, has_hue) = layer
             .and_then(Layer::mode)
             .map(|x| (x.0.is_per_key(), x.0.has_hue))
