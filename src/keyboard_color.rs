@@ -14,7 +14,7 @@ use backend::{Board, Hs};
 #[derive(Clone)]
 pub enum KeyboardColorIndex {
     Keys(SelectedKeys),
-    Layer(u8),
+    Layer(usize),
 }
 
 impl KeyboardColorIndex {

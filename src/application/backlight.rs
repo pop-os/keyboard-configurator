@@ -21,7 +21,7 @@ pub struct BacklightInner {
     mode_row: DerefCell<gtk::ListBoxRow>,
     speed_scale: DerefCell<gtk::Scale>,
     speed_row: DerefCell<gtk::ListBoxRow>,
-    layer: Cell<u8>,
+    layer: Cell<usize>,
     do_not_set: Cell<bool>,
     selected: RefCell<SelectedKeys>,
 }
@@ -332,10 +332,10 @@ impl Backlight {
         debug!("Brightness: {}", value)
     }
 
-    pub fn set_layer(&self, layer: u8) {
+    pub fn set_layer(&self, layer: usize) {
         self.inner().layer.set(layer);
 
-        let layer = &self.board().layers()[layer as usize];
+        let layer = &self.board().layers()[layer];
 
         let (mode, speed) = layer.mode().unwrap_or((&Mode::all()[0], 128));
         let brightness = layer.brightness() as f64;

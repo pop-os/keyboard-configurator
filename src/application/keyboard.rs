@@ -56,7 +56,7 @@ impl ObjectImpl for KeyboardInner {
                         keyboard.set_selected(keyboard.selected());
                         keyboard.inner().backlight.set_sensitive(layer.is_some());
                         if let Some(layer) = layer {
-                            keyboard.inner().backlight.set_layer(layer as u8);
+                            keyboard.inner().backlight.set_layer(layer);
                         }
                     }
                 })
