@@ -1,17 +1,17 @@
-use std::collections::HashSet;
+use std::collections::BTreeSet;
 
 #[derive(Clone, Default, glib::GBoxed)]
 #[gboxed(type_name = "S76SelectedKeys")]
-pub struct SelectedKeys(HashSet<usize>);
+pub struct SelectedKeys(BTreeSet<usize>);
 
 impl SelectedKeys {
     pub fn new() -> Self {
-        Self(HashSet::new())
+        Self(BTreeSet::new())
     }
 }
 
 impl std::ops::Deref for SelectedKeys {
-    type Target = HashSet<usize>;
+    type Target = BTreeSet<usize>;
 
     fn deref(&self) -> &Self::Target {
         &self.0
