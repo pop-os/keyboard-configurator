@@ -310,10 +310,7 @@ impl Thread {
         let response_channel = &self.response_channel;
         boards.retain(|id, _| {
             if new_ids.iter().find(|i| *i == id).is_none() {
-                // XXX unwrap?
-                response_channel
-                    .unbounded_send(ThreadResponse::BoardRemoved(*id))
-                    .unwrap();
+                let _ = response_channel.unbounded_send(ThreadResponse::BoardRemoved(*id));
                 return false;
             }
             true
@@ -341,10 +338,9 @@ impl Thread {
                 matrix_reciever,
             ) {
                 Ok(board) => {
-                    // XXX unwrap?
-                    self.response_channel
-                        .unbounded_send(ThreadResponse::BoardAdded(board))
-                        .unwrap();
+                    let _ = self
+                        .response_channel
+                        .unbounded_send(ThreadResponse::BoardAdded(board));
                     boards.insert(*i, ThreadBoard::new(matrix_sender));
                 }
                 Err(err) => error!("Failed to add board: {}", err),
