@@ -1,6 +1,6 @@
 use futures::{
     channel::{mpsc as async_mpsc, oneshot},
-    executor::{block_on, LocalPool},
+    executor::LocalPool,
     future::{abortable, AbortHandle},
     prelude::*,
     task::LocalSpawnExt,
@@ -14,7 +14,7 @@ use std::{
     hash::{Hash, Hasher},
     rc::Rc,
     sync::{Arc, Mutex},
-    thread,
+    thread::{self, JoinHandle},
     time::Duration,
 };
 
@@ -55,8 +55,8 @@ enum SetEnum {
     Mode(Item<(BoardId, u8), (u8, u8)>),
     LedSave(BoardId),
     MatrixGetRate(Item<(), Option<Duration>>),
-    Refresh(()),
-    Exit(()),
+    Refresh,
+    Exit,
 }
 
 #[derive(Debug)]
@@ -78,7 +78,10 @@ pub struct ThreadClient {
 }
 
 impl ThreadClient {
-    pub fn new<F: Fn(ThreadResponse) + 'static>(daemon: Box<dyn Daemon>, cb: F) -> Self {
+    pub fn new<F: Fn(ThreadResponse) + 'static>(
+        daemon: Box<dyn Daemon>,
+        cb: F,
+    ) -> (Self, JoinHandle<()>) {
         let (sender, reciever) = async_mpsc::unbounded();
         let client = Self {
             cancels: Arc::new(Mutex::new(HashMap::new())),
@@ -91,8 +94,8 @@ impl ThreadClient {
             }
         });
 
-        Thread::new(daemon, client.clone(), response_sender).spawn(reciever);
-        client
+        let join_handle = Thread::new(daemon, client.clone(), response_sender).spawn(reciever);
+        (client, join_handle)
     }
 
     async fn send(&self, set_enum: SetEnum) -> Result<(), String> {
@@ -117,7 +120,7 @@ impl ThreadClient {
     }
 
     pub async fn refresh(&self) -> Result<(), String> {
-        self.send(SetEnum::Refresh(())).await
+        self.send(SetEnum::Refresh).await
     }
 
     pub async fn keymap_set(
@@ -174,8 +177,13 @@ impl ThreadClient {
         self.send(SetEnum::LedSave(board)).await
     }
 
+    // Returns immediately; wait on `ThreadHandle` to for completion
     pub fn exit(&self) {
-        let _ = block_on(self.send(SetEnum::Exit(())));
+        let (sender, _receiver) = oneshot::channel();
+        let _ = self.channel.unbounded_send(Set {
+            inner: SetEnum::Exit,
+            oneshot: sender,
+        });
     }
 }
 
@@ -223,7 +231,7 @@ impl Thread {
         }
     }
 
-    fn spawn(self, mut channel: async_mpsc::UnboundedReceiver<Set>) {
+    fn spawn(self, mut channel: async_mpsc::UnboundedReceiver<Set>) -> JoinHandle<()> {
         thread::spawn(move || {
             let mut pool = LocalPool::new();
             let spawner = pool.spawner();
@@ -250,11 +258,11 @@ impl Thread {
                     }
                 }
             });
-        });
+        })
     }
 
     fn handle_set(&self, set: Set) -> bool {
-        if set.oneshot.is_canceled() {
+        if set.oneshot.is_canceled() && set.inner != SetEnum::Exit {
             return true;
         }
 
@@ -274,8 +282,8 @@ impl Thread {
                 self.matrix_get_rate.set(value);
                 Ok(())
             }
-            SetEnum::Refresh(()) => self.refresh(),
-            SetEnum::Exit(()) => return false,
+            SetEnum::Refresh => self.refresh(),
+            SetEnum::Exit => return false,
         };
 
         set.reply(resp);

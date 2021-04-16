@@ -4,7 +4,7 @@ use glib::{
     subclass::{prelude::*, Signal},
 };
 use once_cell::sync::Lazy;
-use std::{cell::RefCell, collections::HashMap, process, time::Duration};
+use std::{cell::RefCell, collections::HashMap, process, thread::JoinHandle, time::Duration};
 
 use crate::daemon::*;
 use crate::{Board, DerefCell};
@@ -14,6 +14,7 @@ use crate::{Board, DerefCell};
 pub struct BackendInner {
     thread_client: DerefCell<ThreadClient>,
     boards: RefCell<HashMap<BoardId, Board>>,
+    join_handle: RefCell<Option<JoinHandle<()>>>,
 }
 
 #[glib::object_subclass]
@@ -48,6 +49,12 @@ impl ObjectImpl for BackendInner {
 
     fn dispose(&self, _obj: &Self::Type) {
         self.thread_client.exit();
+        self.join_handle
+            .borrow_mut()
+            .take()
+            .unwrap()
+            .join()
+            .unwrap();
     }
 }
 
@@ -58,7 +65,7 @@ glib::wrapper! {
 impl Backend {
     fn new_internal<T: Daemon + 'static>(daemon: T) -> Result<Self, String> {
         let self_ = glib::Object::new::<Self>(&[]).unwrap();
-        let thread_client = ThreadClient::new(
+        let (thread_client, join_handle) = ThreadClient::new(
             Box::new(daemon),
             clone!(@weak self_ => move |response| {
                 match response {
@@ -80,6 +87,7 @@ impl Backend {
             }),
         );
         self_.inner().thread_client.set(thread_client);
+        self_.inner().join_handle.replace(Some(join_handle));
         Ok(self_)
     }
 
