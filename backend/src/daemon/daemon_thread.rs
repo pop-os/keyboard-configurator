@@ -180,6 +180,8 @@ impl ThreadClient {
 }
 
 pub enum ThreadResponse {
+    BoardLoading,
+    BoardLoadingDone,
     BoardAdded(Board),
     BoardRemoved(BoardId),
 }
@@ -318,9 +320,17 @@ impl Thread {
         });
 
         // Added boards
+        let mut have_new_board = false;
         for i in &new_ids {
             if boards.contains_key(i) {
                 continue;
+            }
+
+            if !have_new_board {
+                let _ = self
+                    .response_channel
+                    .unbounded_send(ThreadResponse::BoardLoading);
+                have_new_board = true;
             }
 
             let (matrix_sender, matrix_reciever) = async_mpsc::unbounded();
@@ -339,6 +349,12 @@ impl Thread {
                 }
                 Err(err) => error!("Failed to add board: {}", err),
             }
+        }
+
+        if have_new_board {
+            let _ = self
+                .response_channel
+                .unbounded_send(ThreadResponse::BoardLoadingDone);
         }
 
         Ok(())

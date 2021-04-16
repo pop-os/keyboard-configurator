@@ -38,6 +38,7 @@ pub struct MainWindowInner {
     picker: DerefCell<Picker>,
     stack: DerefCell<gtk::Stack>,
     keyboards: RefCell<Vec<(Keyboard, gtk::ListBoxRow)>>,
+    board_loading: RefCell<Option<Loader>>,
 }
 
 #[glib::object_subclass]
@@ -201,6 +202,13 @@ impl MainWindow {
 
         let backend = cascade! {
             daemon();
+            ..connect_board_loading(clone!(@weak window => move || {
+                let loader = window.display_loader("Keyboard(s) detected. Loading...");
+                *window.inner().board_loading.borrow_mut() = Some(loader);
+            }));
+            ..connect_board_loading_done(clone!(@weak window => move || {
+                window.inner().board_loading.borrow_mut().take();
+            }));
             ..connect_board_added(clone!(@weak window => move |board| window.add_keyboard(board)));
             ..connect_board_removed(clone!(@weak window => move |board| {
                 let mut boards = window.inner().keyboards.borrow_mut();

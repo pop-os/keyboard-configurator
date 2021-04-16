@@ -27,6 +27,8 @@ impl ObjectImpl for BackendInner {
     fn signals() -> &'static [Signal] {
         static SIGNALS: Lazy<Vec<Signal>> = Lazy::new(|| {
             vec![
+                Signal::builder("board-loading", &[], glib::Type::UNIT.into()).build(),
+                Signal::builder("board-loading-done", &[], glib::Type::UNIT.into()).build(),
                 Signal::builder(
                     "board-added",
                     &[Board::static_type().into()],
@@ -60,6 +62,12 @@ impl Backend {
             Box::new(daemon),
             clone!(@weak self_ => move |response| {
                 match response {
+                    ThreadResponse::BoardLoading => {
+                        self_.emit_by_name("board-loading", &[]).unwrap();
+                    },
+                    ThreadResponse::BoardLoadingDone => {
+                        self_.emit_by_name("board-loading-done", &[]).unwrap();
+                    },
                     ThreadResponse::BoardAdded(board) => {
                         self_.emit_by_name("board-added", &[&board]).unwrap();
                         self_.inner().boards.borrow_mut().insert(board.board(), board);
@@ -113,6 +121,22 @@ impl Backend {
         glib::MainContext::default().spawn_local(async move {
             let _ = self_.inner().thread_client.set_matrix_get_rate(rate).await;
         });
+    }
+
+    pub fn connect_board_loading<F: Fn() + 'static>(&self, cb: F) {
+        self.connect_local("board-loading", false, move |_values| {
+            cb();
+            None
+        })
+        .unwrap();
+    }
+
+    pub fn connect_board_loading_done<F: Fn() + 'static>(&self, cb: F) {
+        self.connect_local("board-loading-done", false, move |_values| {
+            cb();
+            None
+        })
+        .unwrap();
     }
 
     pub fn connect_board_added<F: Fn(Board) + 'static>(&self, cb: F) {
