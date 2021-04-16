@@ -38,11 +38,7 @@ fn add_boards(stack: &gtk::Stack) -> Result<(), String> {
         let name = board.model().to_owned();
         stack.add_titled(&page(board), &name, &name);
     }));
-    glib::MainContext::default().spawn_local(async move {
-        if let Err(err) = backend.refresh().await {
-            error!("Failed to refresh boards: {}", err);
-        }
-    });
+    backend.refresh();
 
     Ok(())
 }

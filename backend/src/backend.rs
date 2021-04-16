@@ -97,8 +97,15 @@ impl Backend {
     }
 
     /// Test for added/removed boards, emitting `board-added`/`board-removed` signals
-    pub async fn refresh(&self) -> Result<(), String> {
-        self.inner().thread_client.refresh().await
+    ///
+    /// This function does not block, and loads new boards in the background.
+    pub fn refresh(&self) {
+        let self_ = self.clone();
+        glib::MainContext::default().spawn_local(async move {
+            if let Err(err) = self_.inner().thread_client.refresh().await {
+                error!("Failed to refresh boards: {}", err);
+            }
+        });
     }
 
     pub fn set_matrix_get_rate(&self, rate: Option<Duration>) {

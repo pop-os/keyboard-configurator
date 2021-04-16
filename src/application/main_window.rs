@@ -210,15 +210,8 @@ impl MainWindow {
                     window.inner().keyboard_list_box.remove(&row);
                 }
             }));
+            ..refresh();
         };
-        window.inner().backend.set(backend.clone());
-
-        glib::MainContext::default().spawn_local(clone!(@strong window => async move {
-            let _loader = window.display_loader("Loading keyboards...");
-            if let Err(err) = window.inner().backend.refresh().await {
-                error!("Failed to refresh boards: {}", err);
-            }
-        }));
 
         // Refresh key matrix only when window is visible
         backend.set_matrix_get_rate(if window.is_active() {
@@ -240,19 +233,14 @@ impl MainWindow {
             backend.connect_board_added(
                 clone!(@weak window => move |board| window.add_keyboard(board)),
             );
-            glib::MainContext::default().spawn_local(async move {
-                let _ = backend.refresh().await;
-            });
+            backend.refresh();
         }
 
+        window.inner().backend.set(backend);
         glib::timeout_add_seconds_local(
             1,
             clone!(@weak window => @default-return glib::Continue(false), move || {
-                glib::MainContext::default().spawn_local(async move {
-                    if let Err(err) = window.inner().backend.refresh().await {
-                        error!("Failed to refresh boards: {}", err);
-                    }
-                });
+                window.inner().backend.refresh();
                 glib::Continue(true)
             }),
         );
