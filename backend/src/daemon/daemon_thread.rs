@@ -1,6 +1,7 @@
 use futures::{
     channel::{mpsc as async_mpsc, oneshot},
     executor::{block_on, LocalPool},
+    future::{abortable, AbortHandle},
     prelude::*,
     task::LocalSpawnExt,
 };
@@ -12,10 +13,7 @@ use std::{
     collections::HashMap,
     hash::{Hash, Hasher},
     rc::Rc,
-    sync::{
-        atomic::{AtomicBool, Ordering},
-        Arc, Mutex,
-    },
+    sync::{Arc, Mutex},
     thread,
     time::Duration,
 };
@@ -65,7 +63,6 @@ enum SetEnum {
 struct Set {
     inner: SetEnum,
     oneshot: oneshot::Sender<Result<(), String>>,
-    cancel: Arc<AtomicBool>,
 }
 
 impl Set {
@@ -76,7 +73,7 @@ impl Set {
 
 #[derive(Clone)]
 pub struct ThreadClient {
-    cancels: Arc<Mutex<HashMap<SetEnum, Arc<AtomicBool>>>>,
+    cancels: Arc<Mutex<HashMap<SetEnum, AbortHandle>>>,
     channel: async_mpsc::UnboundedSender<Set>,
 }
 
@@ -101,20 +98,22 @@ impl ThreadClient {
     async fn send(&self, set_enum: SetEnum) -> Result<(), String> {
         let mut cancels = self.cancels.lock().unwrap();
         if let Some(cancel) = cancels.remove(&set_enum) {
-            cancel.store(true, Ordering::SeqCst);
+            cancel.abort();
         }
-        let cancel = Arc::new(AtomicBool::new(false));
         let (sender, receiver) = oneshot::channel();
-        cancels.insert(set_enum.clone(), cancel.clone());
+        let (receiver, cancel) = abortable(receiver);
+        cancels.insert(set_enum.clone(), cancel);
         drop(cancels);
 
         let _ = self.channel.unbounded_send(Set {
             inner: set_enum,
             oneshot: sender,
-            cancel,
         });
         // XXX let caller know it was canceled?
-        receiver.await.unwrap_or(Ok(()))
+        match receiver.await {
+            Ok(Ok(res)) => res,
+            _ => Ok(()),
+        }
     }
 
     pub async fn refresh(&self) -> Result<(), String> {
@@ -253,7 +252,7 @@ impl Thread {
     }
 
     fn handle_set(&self, set: Set) -> bool {
-        if set.cancel.load(Ordering::SeqCst) {
+        if set.oneshot.is_canceled() {
             return true;
         }
 
