@@ -1,4 +1,5 @@
 use cascade::cascade;
+use futures::{prelude::*, stream::FuturesUnordered};
 use glib::clone;
 use gtk::prelude::*;
 use gtk::subclass::prelude::*;
@@ -379,10 +380,13 @@ impl Backlight {
         let board = self.board().clone();
         let selected = self.inner().selected.borrow().clone();
         glib::MainContext::default().spawn_local(async move {
-            for i in selected.iter() {
-                if let Err(err) = board.keys()[*i].set_color(None).await {
-                    error!("Failed to disable key: {}", err);
-                }
+            let res = selected
+                .iter()
+                .map(|i| board.keys()[*i].set_color(None))
+                .collect::<FuturesUnordered<_>>()
+                .try_collect::<()>();
+            if let Err(err) = res.await {
+                error!("Failed to disable key: {}", err);
             }
         });
     }
