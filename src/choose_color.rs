@@ -117,19 +117,15 @@ pub async fn choose_color<W: IsA<gtk::Widget>>(
 
     let response = dialog.run_future().await;
 
-    let hs = color_wheel.hs();
     dialog.close();
     board.unblock_led_save();
 
-    if response != gtk::ResponseType::Ok {
+    if response == gtk::ResponseType::Ok {
+        Some(color_wheel.hs())
+    } else {
         if let Err(err) = index.set_colors(&board, &original_colors).await {
             error!("Failed to set keyboard color: {}", err);
         }
-    }
-
-    if response == gtk::ResponseType::Ok {
-        Some(hs)
-    } else {
         None
     }
 }
