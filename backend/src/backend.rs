@@ -2,6 +2,7 @@ use glib::{
     clone,
     prelude::*,
     subclass::{prelude::*, Signal},
+    SignalHandlerId,
 };
 use once_cell::sync::Lazy;
 use std::{cell::RefCell, collections::HashMap, process, thread::JoinHandle, time::Duration};
@@ -81,7 +82,9 @@ impl Backend {
                     },
                     ThreadResponse::BoardRemoved(id) => {
                         let boards = self_.inner().boards.borrow();
-                        self_.emit_by_name("board-removed", &[&boards[&id]]).unwrap();
+                        let board = &boards[&id];
+                        self_.emit_by_name("board-removed", &[board]).unwrap();
+                        board.emit_by_name("removed", &[]).unwrap();
                     },
                 }
             }),
@@ -131,36 +134,36 @@ impl Backend {
         });
     }
 
-    pub fn connect_board_loading<F: Fn() + 'static>(&self, cb: F) {
+    pub fn connect_board_loading<F: Fn() + 'static>(&self, cb: F) -> SignalHandlerId {
         self.connect_local("board-loading", false, move |_values| {
             cb();
             None
         })
-        .unwrap();
+        .unwrap()
     }
 
-    pub fn connect_board_loading_done<F: Fn() + 'static>(&self, cb: F) {
+    pub fn connect_board_loading_done<F: Fn() + 'static>(&self, cb: F) -> SignalHandlerId {
         self.connect_local("board-loading-done", false, move |_values| {
             cb();
             None
         })
-        .unwrap();
+        .unwrap()
     }
 
-    pub fn connect_board_added<F: Fn(Board) + 'static>(&self, cb: F) {
+    pub fn connect_board_added<F: Fn(Board) + 'static>(&self, cb: F) -> SignalHandlerId {
         self.connect_local("board-added", false, move |values| {
             cb(values[1].get::<Board>().unwrap().unwrap());
             None
         })
-        .unwrap();
+        .unwrap()
     }
 
-    pub fn connect_board_removed<F: Fn(Board) + 'static>(&self, cb: F) {
+    pub fn connect_board_removed<F: Fn(Board) + 'static>(&self, cb: F) -> SignalHandlerId {
         self.connect_local("board-removed", false, move |values| {
             cb(values[1].get::<Board>().unwrap().unwrap());
             None
         })
-        .unwrap();
+        .unwrap()
     }
 }
 

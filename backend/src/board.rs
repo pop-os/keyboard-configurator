@@ -2,6 +2,7 @@ use futures::{channel::mpsc as async_mpsc, prelude::*};
 use glib::{
     prelude::*,
     subclass::{prelude::*, Signal},
+    SignalHandlerId,
 };
 use once_cell::sync::Lazy;
 use std::{cell::Cell, collections::HashMap};
@@ -39,6 +40,7 @@ impl ObjectImpl for BoardInner {
             vec![
                 Signal::builder("leds-changed", &[], glib::Type::UNIT.into()).build(),
                 Signal::builder("matrix-changed", &[], glib::Type::UNIT.into()).build(),
+                Signal::builder("removed", &[], glib::Type::UNIT.into()).build(),
             ]
         });
         SIGNALS.as_ref()
@@ -127,17 +129,25 @@ impl Board {
         BoardInner::from_instance(self)
     }
 
+    pub fn connect_removed<F: Fn() + 'static>(&self, cb: F) -> SignalHandlerId {
+        self.connect_local("removed", false, move |_| {
+            cb();
+            None
+        })
+        .unwrap()
+    }
+
     pub(crate) fn set_leds_changed(&self) {
         self.inner().leds_changed.set(true);
         self.emit_by_name("leds-changed", &[]).unwrap();
     }
 
-    pub fn connect_leds_changed<F: Fn() + 'static>(&self, cb: F) {
+    pub fn connect_leds_changed<F: Fn() + 'static>(&self, cb: F) -> SignalHandlerId {
         self.connect_local("leds-changed", false, move |_| {
             cb();
             None
         })
-        .unwrap();
+        .unwrap()
     }
 
     pub fn board(&self) -> BoardId {
@@ -156,12 +166,12 @@ impl Board {
         *self.inner().has_matrix
     }
 
-    pub fn connect_matrix_changed<F: Fn() + 'static>(&self, cb: F) {
+    pub fn connect_matrix_changed<F: Fn() + 'static>(&self, cb: F) -> SignalHandlerId {
         self.connect_local("matrix-changed", false, move |_| {
             cb();
             None
         })
-        .unwrap();
+        .unwrap()
     }
 
     pub fn max_brightness(&self) -> i32 {

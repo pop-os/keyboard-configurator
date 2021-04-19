@@ -115,7 +115,11 @@ pub async fn choose_color<W: IsA<gtk::Widget>>(
         ..show_all();
     };
 
+    let signal_id = board.connect_removed(clone!(@strong dialog => move || dialog.close()));
+
     let response = dialog.run_future().await;
+
+    board.disconnect(signal_id);
 
     dialog.close();
     board.unblock_led_save();
