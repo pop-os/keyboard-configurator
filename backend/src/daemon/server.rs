@@ -236,7 +236,7 @@ impl<R: Read + Send + 'static, W: Write + Send + 'static> Daemon for DaemonServe
                         }
 
                         match info.open_device(&api) {
-                            Ok(device) => match AccessHid::new(device, 10, 100) {
+                            Ok(device) => match AccessHid::new(device, 10, 1000) {
                                 Ok(access) => match unsafe { Ec::new(access) } {
                                     Ok(ec) => {
                                         info!("Adding USB HID EC at {:?}", info.path());
