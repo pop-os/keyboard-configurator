@@ -14,6 +14,7 @@ pub struct BacklightInner {
     board: DerefCell<Board>,
     disable_color_button: DerefCell<gtk::Button>,
     keyboard_color: DerefCell<KeyboardColor>,
+    color_label: DerefCell<gtk::Label>,
     color_row: DerefCell<gtk::ListBoxRow>,
     brightness_scale: DerefCell<gtk::Scale>,
     saturation_scale: DerefCell<gtk::Scale>,
@@ -94,21 +95,25 @@ impl ObjectImpl for BacklightInner {
             ..set_size_request(200, 0);
         };
 
-        fn row(label: &str, widget: &impl IsA<gtk::Widget>) -> gtk::ListBoxRow {
+        fn row(widget: &impl IsA<gtk::Widget>) -> gtk::ListBoxRow {
             cascade! {
                 gtk::ListBoxRow::new();
                 ..set_selectable(false);
                 ..set_activatable(false);
                 ..set_property_margin(8);
-                ..add(&cascade! {
-                    gtk::Box::new(gtk::Orientation::Horizontal, 8);
-                    ..add(&cascade! {
-                        gtk::Label::new(Some(label));
-                        ..set_halign(gtk::Align::Start);
-                    });
-                    ..pack_end(widget, false, false, 0);
-                });
+                ..add(widget);
             }
+        }
+
+        fn label_row(label: &str, widget: &impl IsA<gtk::Widget>) -> gtk::ListBoxRow {
+            row(&cascade! {
+                gtk::Box::new(gtk::Orientation::Horizontal, 8);
+                ..add(&cascade! {
+                    gtk::Label::new(Some(label));
+                    ..set_halign(gtk::Align::Start);
+                });
+                ..pack_end(widget, false, false, 0);
+            })
         }
 
         let disable_color_button = cascade! {
@@ -116,17 +121,17 @@ impl ObjectImpl for BacklightInner {
             ..connect_clicked(clone!(@weak obj => move |_| obj.disable_color_clicked()));
         };
 
-        let mode_row = row("Layer Color Pattern:", &mode_combobox);
-        let speed_row = row("Layer Animation Speed:", &speed_scale);
-        let saturation_row = row("Layer Saturation:", &saturation_scale);
-        let color_row = row(
-            "Layer Color:",
-            &cascade! {
-                gtk::Box::new(gtk::Orientation::Horizontal, 8);
-                ..add(&disable_color_button);
-                ..add(&keyboard_color);
-            },
-        );
+        let color_label = gtk::Label::new(Some("Layer Color:"));
+
+        let mode_row = label_row("Layer Color Pattern:", &mode_combobox);
+        let speed_row = label_row("Layer Animation Speed:", &speed_scale);
+        let saturation_row = label_row("Layer Saturation:", &saturation_scale);
+        let color_row = row(&cascade! {
+            gtk::Box::new(gtk::Orientation::Horizontal, 8);
+            ..add(&color_label);
+            ..pack_end(&disable_color_button, false, false, 0);
+            ..pack_end(&keyboard_color, false, false, 0);
+        });
 
         cascade! {
             obj;
@@ -137,12 +142,13 @@ impl ObjectImpl for BacklightInner {
             ..add(&saturation_row);
             ..add(&color_row);
             ..add(&cascade! {
-                row("Brightness (all layers):", &brightness_scale);
+                label_row("Brightness (all layers):", &brightness_scale);
             });
         };
 
         self.disable_color_button.set(disable_color_button);
         self.keyboard_color.set(keyboard_color);
+        self.color_label.set(color_label);
         self.color_row.set(color_row);
         self.brightness_scale.set(brightness_scale);
         self.mode_combobox.set(mode_combobox);
@@ -290,11 +296,13 @@ impl Backlight {
 
         if self.mode().is_per_key() {
             self.update_per_key();
+            self.inner().color_label.set_label("Key color:");
         } else {
             self.inner().keyboard_color.set_sensitive(true);
             self.inner()
                 .keyboard_color
                 .set_index(KeyboardColorIndex::Layer(self.inner().layer.get()));
+            self.inner().color_label.set_label("Layer color:");
         }
         self.inner()
             .disable_color_button
