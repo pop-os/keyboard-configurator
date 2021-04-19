@@ -377,17 +377,18 @@ impl Backlight {
     }
 
     fn disable_color_clicked(&self) {
-        let board = self.board().clone();
+        let self_ = self.clone();
         let selected = self.inner().selected.borrow().clone();
         glib::MainContext::default().spawn_local(async move {
             let res = selected
                 .iter()
-                .map(|i| board.keys()[*i].set_color(None))
+                .map(|i| self_.board().keys()[*i].set_color(None))
                 .collect::<FuturesUnordered<_>>()
                 .try_collect::<()>();
             if let Err(err) = res.await {
                 error!("Failed to disable key: {}", err);
             }
+            self_.update_per_key();
         });
     }
 

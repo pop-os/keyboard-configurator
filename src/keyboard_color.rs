@@ -221,9 +221,6 @@ impl KeyboardColor {
         let self_ = self.clone();
         let board = self.board().unwrap().clone();
         if self.inner().hs.replace(hs) != hs {
-            let mut colors = BTreeSet::new();
-            colors.insert(hs);
-            self.inner().circle.set_colors(colors);
             self.inner().circle.set_colors(cascade! {
                 BTreeSet::new();
                 ..insert(hs);
