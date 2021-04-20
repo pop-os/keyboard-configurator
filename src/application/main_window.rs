@@ -110,6 +110,7 @@ impl ObjectImpl for MainWindowInner {
                 ..set_justify(gtk::Justification::Center);
                 ..set_use_markup(true);
             });
+            ..set_property_margin(12);
             ..show_all();
         };
 
@@ -320,8 +321,7 @@ impl MainWindow {
             ..set_activatable(false);
             ..set_selectable(false);
             ..add(&keyboard_box);
-            ..set_margin_top(12);
-            ..set_margin_bottom(12);
+            ..set_property_margin(12);
             ..show_all();
         };
         self.inner().keyboard_list_box.add(&row);
