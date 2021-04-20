@@ -88,10 +88,7 @@ pub async fn choose_color<W: IsA<gtk::Widget>>(
 
     let vbox = cascade! {
         gtk::Box::new(gtk::Orientation::Vertical, 12);
-        ..set_margin_start(24);
-        ..set_margin_end(24);
-        ..set_margin_top(24);
-        ..set_margin_bottom(24);
+        ..set_property_margin(24);
         ..add(&color_wheel);
         ..add(&preview);
         ..add(&hue_box);

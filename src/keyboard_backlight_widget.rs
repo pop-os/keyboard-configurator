@@ -96,10 +96,7 @@ fn row<W: IsA<gtk::Widget>>(text: &str, widget: &W, expand: bool) -> gtk::ListBo
         gtk::ListBoxRow::new();
         ..set_selectable(false);
         ..set_activatable(false);
-        ..set_margin_top(12);
-        ..set_margin_bottom(12);
-        ..set_margin_start(12);
-        ..set_margin_end(12);
+        ..set_property_margin(12);
         ..add(&hbox);
     };
 

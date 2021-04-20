@@ -124,6 +124,9 @@ impl ObjectImpl for MainWindowInner {
         let keyboard_list_box = cascade! {
             gtk::ListBox::new();
             ..set_placeholder(Some(&no_boards));
+            ..set_halign(gtk::Align::Center);
+            ..get_style_context().add_class("frame");
+            ..set_property_margin(6);
         };
 
         let stack = cascade! {
