@@ -19,6 +19,8 @@ ADWAITA_FILES = [
     'scalable/actions/edit-delete-symbolic.svg',
     'scalable/actions/go-previous-symbolic.svg',
     'scalable/devices/input-keyboard-symbolic.svg',
+    'scalable/actions/list-remove-symbolic.svg',
+    'scalable/actions/list-add-symbolic.svg',
 ]
 ADWAITA_FILES = [f'share/icons/Adwaita/{i}' for i in ADWAITA_FILES]
 

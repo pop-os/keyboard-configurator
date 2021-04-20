@@ -37,6 +37,8 @@ ADWAITA_FILES = [
     'scalable/actions/edit-delete-symbolic.svg',
     'scalable/actions/go-previous-symbolic.svg',
     'scalable/devices/input-keyboard-symbolic.svg',
+    'scalable/actions/list-remove-symbolic.svg',
+    'scalable/actions/list-add-symbolic.svg',
 ]
 ADWAITA_FILES = [f'share/icons/Adwaita/{i}' for i in ADWAITA_FILES]
 ADDITIONAL_FILES = ['share/glib-2.0/schemas/org.gtk.Settings.FileChooser.gschema.xml', 'share/icons/hicolor/index.theme', 'lib/p11-kit', 'lib/gdk-pixbuf-2.0'] + ADWAITA_FILES
