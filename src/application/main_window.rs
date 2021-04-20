@@ -123,6 +123,7 @@ impl ObjectImpl for MainWindowInner {
 
         let stack = cascade! {
             gtk::Stack::new();
+            ..set_homogeneous(false);
             ..add(&keyboard_list_box);
         };
 
