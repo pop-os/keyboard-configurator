@@ -88,30 +88,34 @@ with open('libraries.wxi', 'w') as f:
 
     f.write('</Include>\n')
 
-# Copy executables and libraries
-if os.path.exists('out'):
-    shutil.rmtree('out')
-os.mkdir('out')
-for i in EXES:
-    filename = i.split('/')[-1]
-    print(f"Strip {i} -> out/{filename}")
-    subprocess.check_call([f"strip.exe", '-o', f"out/{filename}", i])
-for src, filename in dlls:
-    dest = "out/" + filename
-    print(f"Copy {src} -> {dest}")
-    shutil.copy(src, 'out')
-
-# Copy additional data
-os.mkdir("out/lib")
-for i in ADDITIONAL_FILES:
-    src = mingw_dir + '\\' + i.replace('/', '\\')
-    dest = "out/" + i
+def copy(srcdir, destdir, path):
+    src = f"{srcdir}/{path}"
+    dest = f"{destdir}/{path}"
     os.makedirs(os.path.dirname(dest), exist_ok=True)
     print(f"Copy {src} -> {dest}")
     if os.path.isdir(src):
         shutil.copytree(src, dest)
     else:
         shutil.copy(src, dest)
+
+def strip(srcdir, destdir, path):
+    src = f"{srcdir}/{path}"
+    dest = f"{destdir}/{path}"
+    os.makedirs(os.path.dirname(dest), exist_ok=True)
+    print(f"Strip {src} -> {dest}")
+    subprocess.check_call([f"strip.exe", '-o', dest, src])
+
+# Copy executables and libraries
+if os.path.exists('out'):
+    shutil.rmtree('out')
+for i in EXES:
+    strip(os.path.dirname(i), 'out', os.path.basename(i))
+for src, filename in dlls:
+    copy(os.path.dirname(src), 'out', filename)
+
+# Copy additional data
+for i in ADDITIONAL_FILES:
+    copy(mingw_dir, 'out', i)
 subprocess.check_call(["glib-compile-schemas", "out/share/glib-2.0/schemas"])
 
 # Extract crate version from cargo
