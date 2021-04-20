@@ -102,10 +102,7 @@ impl ObjectImpl for MainWindowInner {
             gtk::Box::new(gtk::Orientation::Vertical, 24);
             ..add(&cascade! {
                 gtk::Image::from_pixbuf(
-                    cascade! {
-                        gtk::IconTheme::default();
-                        ..add_resource_path("/com/system76/keyboard-configurator/icons");
-                    }
+                    gtk::IconTheme::default()
                     .load_icon(
                         "input-keyboard-symbolic",
                         256,

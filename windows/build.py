@@ -27,6 +27,19 @@ ICON = "../data/icons/scalable/apps/com.system76.keyboardconfigurator.svg"
 
 DLL_RE = r"(?<==> )(.*\\mingw32)\\bin\\(\S+.dll)"
 
+ADWAITA_FILES = [
+    'index.theme',
+    'scalable/actions/open-menu-symbolic.svg',
+    'scalable/ui/window-close-symbolic.svg',
+    'scalable/ui/window-maximize-symbolic.svg',
+    'scalable/ui/window-minimize-symbolic.svg',
+    'scalable/ui/window-restore-symbolic.svg',
+    'scalable/actions/edit-delete-symbolic.svg',
+    'scalable/actions/go-previous-symbolic.svg',
+    'scalable/devices/input-keyboard-symbolic.svg',
+]
+ADWAITA_FILES = [f'share/icons/Adwaita/{i}' for i in ADWAITA_FILES]
+ADDITIONAL_FILES = ['share/glib-2.0/schemas/org.gtk.Settings.FileChooser.gschema.xml', 'share/icons/hicolor/index.theme', 'lib/p11-kit', 'lib/gdk-pixbuf-2.0'] + ADWAITA_FILES
 
 # Use ntldd to find the mingw dlls required by a .exe
 def find_depends(exe):
@@ -88,11 +101,10 @@ for src, filename in dlls:
 
 # Copy additional data
 os.mkdir("out/lib")
-os.makedirs("out/share/glib-2.0/schemas")
-os.makedirs("out/share/icons/hicolor")
-for i in ('share/glib-2.0/schemas/org.gtk.Settings.FileChooser.gschema.xml', 'share/icons/hicolor/index.theme', 'lib/p11-kit', 'lib/gdk-pixbuf-2.0'):
+for i in ADDITIONAL_FILES:
     src = mingw_dir + '\\' + i.replace('/', '\\')
     dest = "out/" + i
+    os.makedirs(os.path.dirname(dest), exist_ok=True)
     print(f"Copy {src} -> {dest}")
     if os.path.isdir(src):
         shutil.copytree(src, dest)

@@ -72,7 +72,7 @@ jobs:
   macos:
     runs-on: macos-latest
     steps:
-    - run: brew install gtk+3 imagemagick librsvg
+    - run: brew install gtk+3 imagemagick librsvg adwaita-icon-theme
     - run: npm install -g appdmg
     - run: echo "$HOME/.local/bin" >> $GITHUB_PATH
     - uses: actions/checkout@v2
