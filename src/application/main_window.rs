@@ -101,16 +101,8 @@ impl ObjectImpl for MainWindowInner {
         let no_boards = cascade! {
             gtk::Box::new(gtk::Orientation::Vertical, 24);
             ..add(&cascade! {
-                gtk::Image::from_pixbuf(
-                    gtk::IconTheme::default()
-                    .load_icon(
-                        "input-keyboard-symbolic",
-                        256,
-                        gtk::IconLookupFlags::empty(),
-                    )
-                    .unwrap_or(None)
-                    .as_ref(),
-                );
+                gtk::Image::from_icon_name(Some("input-keyboard-symbolic"), gtk::IconSize::Invalid);
+                ..set_pixel_size(256);
                 ..set_halign(gtk::Align::Center);
             });
             ..add(&cascade! {
