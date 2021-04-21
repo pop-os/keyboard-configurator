@@ -21,12 +21,12 @@ jobs:
     steps:
     - run: sudo apt-get update && sudo apt-get install cargo libgtk-3-dev libudev-dev
     - uses: actions/checkout@v2
-    - run: cd linux && ./build.py $RELEASE
+    - run: cd packaging/linux && ./build.py $RELEASE
     - uses: actions/upload-artifact@v2
       with:
         if-no-files-found: error
         name: keyboard-configurator-linux-x86_64-${{ github.sha }}
-        path: linux/keyboard-configurator-x86_64.AppImage
+        path: packaging/linux/keyboard-configurator-x86_64.AppImage
 
   linux-x86_64-test:
     runs-on: ubuntu-latest
@@ -52,12 +52,12 @@ jobs:
     - uses: actions/checkout@v2
     - name: Build and package
       shell: msys2 {0}
-      run: cd windows && python build.py --rustup="C:/Rust/.cargo/bin/rustup.exe" $RELEASE
+      run: cd packaging/windows && python build.py --rustup="C:/Rust/.cargo/bin/rustup.exe" $RELEASE
     - uses: actions/upload-artifact@v2
       with:
         if-no-files-found: error
         name: keyboard-configurator-mingw32-${{ github.sha }}
-        path: windows/keyboard-configurator.msi
+        path: packaging/windows/keyboard-configurator.msi
 
   windows-mingw32-test:
     runs-on: windows-latest
@@ -76,12 +76,12 @@ jobs:
     - run: npm install -g appdmg
     - run: echo "$HOME/.local/bin" >> $GITHUB_PATH
     - uses: actions/checkout@v2
-    - run: cd macos && ./build.py $RELEASE
+    - run: cd packaging/macos && ./build.py $RELEASE
     - uses: actions/upload-artifact@v2
       with:
         if-no-files-found: error
         name: keyboard-configurator-macos-${{ github.sha }}
-        path: macos/keyboard-configurator.dmg
+        path: packaging/macos/keyboard-configurator.dmg
 
   macos-test:
     runs-on: macos-latest

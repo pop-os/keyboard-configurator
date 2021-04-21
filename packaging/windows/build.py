@@ -19,11 +19,11 @@ args = parser.parse_args()
 RUST_TOOLCHAIN = 'stable-i686-pc-windows-gnu'
 CARGO = [args.rustup, "run", RUST_TOOLCHAIN, "cargo"]
 # Executables to install
-TARGET_DIR = "../target/" + ('release' if args.release else 'debug')
+TARGET_DIR = "../../target/" + ('release' if args.release else 'debug')
 EXES = {
     f"{TARGET_DIR}/system76-keyboard-configurator.exe",
 }
-ICON = "../data/icons/scalable/apps/com.system76.keyboardconfigurator.svg"
+ICON = "../../data/icons/scalable/apps/com.system76.keyboardconfigurator.svg"
 
 DLL_RE = r"(?<==> )(.*\\mingw32)\\bin\\(\S+.dll)"
 

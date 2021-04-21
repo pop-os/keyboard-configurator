@@ -16,8 +16,8 @@ parser.add_argument('--release', action='store_true')
 args = parser.parse_args()
 
 # Executables to install
-TARGET_DIR = "../target/" + ('release' if args.release else 'debug')
-ICON = "../data/icons/scalable/apps/com.system76.keyboardconfigurator.svg"
+TARGET_DIR = "../../target/" + ('release' if args.release else 'debug')
+ICON = "../../data/icons/scalable/apps/com.system76.keyboardconfigurator.svg"
 APPDIR = 'System76 Keyboard Configurator.app'
 
 # Build the application
