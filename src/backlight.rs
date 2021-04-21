@@ -6,8 +6,8 @@ use gtk::subclass::prelude::*;
 use once_cell::sync::Lazy;
 use std::cell::{Cell, RefCell};
 
-use crate::{DerefCell, KeyboardColor, KeyboardColorIndex, SelectedKeys};
-use backend::{Board, Hs, Mode};
+use backend::{Board, DerefCell, Hs, Mode};
+use widgets::{KeyboardColor, KeyboardColorIndex, SelectedKeys};
 
 #[derive(Default)]
 pub struct BacklightInner {

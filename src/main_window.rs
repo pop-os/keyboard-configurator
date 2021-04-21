@@ -8,9 +8,8 @@ use std::{
     time::Duration,
 };
 
-use super::{shortcuts_window, ConfiguratorApp, Keyboard, KeyboardLayer, Page, Picker};
-use crate::DerefCell;
-use backend::{Backend, Board};
+use crate::{shortcuts_window, ConfiguratorApp, Keyboard, KeyboardLayer, Page, Picker};
+use backend::{Backend, Board, DerefCell};
 
 pub struct Loader(MainWindow, gtk::Box);
 

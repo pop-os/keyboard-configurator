@@ -5,7 +5,7 @@ use gio::prelude::*;
 use gtk::prelude::*;
 use std::process;
 
-use system76_keyboard_configurator::keyboard_backlight_widget;
+use system76_keyboard_configurator_widgets::keyboard_backlight_widget;
 
 fn main() {
     gtk::init().unwrap();

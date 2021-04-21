@@ -7,9 +7,9 @@ use std::{
     f64::consts::PI,
 };
 
-use super::Page;
-use crate::{DerefCell, SelectedKeys};
-use backend::{Board, Key, Layer, Rect, Rgb};
+use crate::Page;
+use backend::{Board, DerefCell, Key, Layer, Rect, Rgb};
+use widgets::SelectedKeys;
 
 const SCALE: f64 = 64.0;
 const MARGIN: f64 = 2.;

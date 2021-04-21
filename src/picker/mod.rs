@@ -5,8 +5,8 @@ use gtk::subclass::prelude::*;
 use once_cell::sync::Lazy;
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
-use super::Keyboard;
-use crate::DerefCell;
+use crate::Keyboard;
+use backend::DerefCell;
 
 mod picker_group;
 mod picker_json;
@@ -214,7 +214,7 @@ impl Picker {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use crate::*;
     use backend::{layouts, Layout};
     use std::collections::HashSet;
 

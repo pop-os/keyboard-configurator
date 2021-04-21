@@ -1,5 +1,5 @@
 use std::env;
-use system76_keyboard_configurator::backend::{run_daemon, Backend};
+use system76_keyboard_configurator_backend::{run_daemon, Backend};
 
 #[cfg(target_os = "linux")]
 fn with_daemon<F: Fn(Backend)>(f: F) {

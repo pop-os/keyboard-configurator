@@ -15,7 +15,7 @@ pub struct PickerJsonGroup {
 }
 
 pub fn picker_json() -> Vec<PickerJsonGroup> {
-    let picker_json = include_str!("../../../layouts/picker.json");
+    let picker_json = include_str!("../../layouts/picker.json");
     serde_json::from_str(picker_json).unwrap()
 }
 

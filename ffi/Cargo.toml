@@ -12,4 +12,4 @@ crate-type = [ "cdylib" ]
 glib = { git = "https://github.com/pop-os/gtk-rs" }
 gtk-sys = { git = "https://github.com/pop-os/gtk-rs" }
 gtk = { git = "https://github.com/pop-os/gtk-rs" }
-system76-keyboard-configurator = { path = "../" }
+system76-keyboard-configurator-widgets = { path = "../widgets" }

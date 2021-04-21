@@ -11,9 +11,9 @@ use std::{
     str,
 };
 
-use super::{show_error_dialog, Backlight, KeyboardLayer, MainWindow, Page, Picker};
-use crate::{DerefCell, SelectedKeys};
-use backend::{Board, KeyMap, Layout};
+use crate::{show_error_dialog, Backlight, KeyboardLayer, MainWindow, Page, Picker};
+use backend::{Board, DerefCell, KeyMap, Layout};
+use widgets::SelectedKeys;
 
 #[derive(Default)]
 pub struct KeyboardInner {

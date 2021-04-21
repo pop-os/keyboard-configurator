@@ -1,4 +1,4 @@
-use super::picker::SCANCODE_LABELS;
+use crate::picker::SCANCODE_LABELS;
 use backend::Key;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]

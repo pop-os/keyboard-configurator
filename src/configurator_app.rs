@@ -3,8 +3,8 @@ use gtk::prelude::*;
 use gtk::subclass::prelude::*;
 use std::cell::Cell;
 
-use super::{about_dialog, MainWindow, Page};
-use crate::DerefCell;
+use crate::{about_dialog, MainWindow, Page};
+use backend::DerefCell;
 
 #[derive(Default)]
 pub struct ConfiguratorAppInner {

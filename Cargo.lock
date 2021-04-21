@@ -262,7 +262,7 @@ dependencies = [
  "glib",
  "gtk",
  "gtk-sys",
- "system76-keyboard-configurator",
+ "system76-keyboard-configurator-widgets",
 ]
 
 [[package]]
@@ -1209,6 +1209,7 @@ dependencies = [
  "serde",
  "serde_json",
  "system76-keyboard-configurator-backend",
+ "system76-keyboard-configurator-widgets",
  "winreg",
 ]
 
@@ -1218,9 +1219,9 @@ version = "0.1.0"
 dependencies = [
  "futures",
  "futures-timer",
- "gio",
  "glib",
  "hidapi",
+ "libc",
  "log",
  "once_cell",
  "ordered-float",
@@ -1230,6 +1231,27 @@ dependencies = [
  "system76_ectool",
  "uuid",
  "zbus",
+]
+
+[[package]]
+name = "system76-keyboard-configurator-widgets"
+version = "0.1.0"
+dependencies = [
+ "cairo-rs",
+ "cascade",
+ "futures",
+ "gdk",
+ "gio",
+ "glib",
+ "gtk",
+ "libc",
+ "log",
+ "once_cell",
+ "pango",
+ "serde",
+ "serde_json",
+ "system76-keyboard-configurator-backend",
+ "winreg",
 ]
 
 [[package]]
