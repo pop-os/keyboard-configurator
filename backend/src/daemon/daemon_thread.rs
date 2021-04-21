@@ -197,13 +197,15 @@ pub enum ThreadResponse {
 struct ThreadBoard {
     matrix: Matrix,
     matrix_channel: async_mpsc::UnboundedSender<Matrix>,
+    has_matrix: bool,
 }
 
 impl ThreadBoard {
-    fn new(matrix_channel: async_mpsc::UnboundedSender<Matrix>) -> Self {
+    fn new(matrix_channel: async_mpsc::UnboundedSender<Matrix>, has_matrix: bool) -> Self {
         Self {
             matrix: Matrix::default(),
             matrix_channel,
+            has_matrix,
         }
     }
 }
@@ -293,6 +295,9 @@ impl Thread {
 
     fn matrix_refresh_all(&self) {
         for (k, v) in self.boards.borrow_mut().iter_mut() {
+            if !v.has_matrix {
+                continue;
+            }
             let matrix = match self.daemon.matrix_get(*k) {
                 Ok(matrix) => matrix,
                 Err(err) => {
@@ -346,10 +351,10 @@ impl Thread {
                 matrix_reciever,
             ) {
                 Ok(board) => {
+                    boards.insert(*i, ThreadBoard::new(matrix_sender, board.has_matrix()));
                     let _ = self
                         .response_channel
                         .unbounded_send(ThreadResponse::BoardAdded(board));
-                    boards.insert(*i, ThreadBoard::new(matrix_sender));
                 }
                 Err(err) => error!("Failed to add board: {}", err),
             }
