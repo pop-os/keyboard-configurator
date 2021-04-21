@@ -17,3 +17,6 @@
 *.app
 .DS_Store
 __pycache__
+vendor
+vendor.tar
+gschemas.compiled
