@@ -5,7 +5,7 @@ use glib::{
     SignalHandlerId,
 };
 use once_cell::sync::Lazy;
-use std::{cell::Cell, collections::HashMap};
+use std::{cell::Cell, collections::HashMap, sync::Arc};
 
 use crate::daemon::ThreadClient;
 use crate::{BoardId, Daemon, DerefCell, Key, KeyMap, Layer, Layout, Matrix};
@@ -13,7 +13,7 @@ use crate::{BoardId, Daemon, DerefCell, Key, KeyMap, Layer, Layout, Matrix};
 #[derive(Default)]
 #[doc(hidden)]
 pub struct BoardInner {
-    thread_client: DerefCell<ThreadClient>,
+    thread_client: DerefCell<Arc<ThreadClient>>,
     board: DerefCell<BoardId>,
     model: DerefCell<String>,
     layout: DerefCell<Layout>,
@@ -56,7 +56,7 @@ unsafe impl Send for Board {}
 impl Board {
     pub fn new(
         daemon: &dyn Daemon,
-        thread_client: ThreadClient,
+        thread_client: Arc<ThreadClient>,
         board: BoardId,
         mut matrix_reciever: async_mpsc::UnboundedReceiver<Matrix>,
     ) -> Result<Self, String> {

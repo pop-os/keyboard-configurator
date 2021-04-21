@@ -13,7 +13,7 @@ use std::{
     collections::HashMap,
     hash::{Hash, Hasher},
     rc::Rc,
-    sync::{Arc, Mutex},
+    sync::{Arc, Mutex, Weak},
     thread::{self, JoinHandle},
     time::Duration,
 };
@@ -71,22 +71,20 @@ impl Set {
     }
 }
 
-#[derive(Clone)]
 pub struct ThreadClient {
-    cancels: Arc<Mutex<HashMap<SetEnum, AbortHandle>>>,
+    cancels: Mutex<HashMap<SetEnum, AbortHandle>>,
     channel: async_mpsc::UnboundedSender<Set>,
+    join_handle: Mutex<Option<JoinHandle<()>>>,
 }
 
 impl ThreadClient {
-    pub fn new<F: Fn(ThreadResponse) + 'static>(
-        daemon: Box<dyn Daemon>,
-        cb: F,
-    ) -> (Self, JoinHandle<()>) {
+    pub fn new<F: Fn(ThreadResponse) + 'static>(daemon: Box<dyn Daemon>, cb: F) -> Arc<Self> {
         let (sender, reciever) = async_mpsc::unbounded();
-        let client = Self {
-            cancels: Arc::new(Mutex::new(HashMap::new())),
+        let client = Arc::new(Self {
+            cancels: Mutex::new(HashMap::new()),
             channel: sender,
-        };
+            join_handle: Mutex::new(None),
+        });
         let (response_sender, mut response_reciever) = async_mpsc::unbounded();
         glib::MainContext::default().spawn_local(async move {
             while let Some(response) = response_reciever.next().await {
@@ -95,7 +93,8 @@ impl ThreadClient {
         });
 
         let join_handle = Thread::new(daemon, client.clone(), response_sender).spawn(reciever);
-        (client, join_handle)
+        *client.join_handle.lock().unwrap() = Some(join_handle);
+        client
     }
 
     async fn send(&self, set_enum: SetEnum) -> Result<(), String> {
@@ -177,13 +176,23 @@ impl ThreadClient {
         self.send(SetEnum::LedSave(board)).await
     }
 
-    // Returns immediately; wait on `ThreadHandle` to for completion
-    pub fn exit(&self) {
+    pub fn close(&self) {
+        let join_handle = match self.join_handle.lock().unwrap().take() {
+            Some(join_handle) => join_handle,
+            None => {
+                return;
+            }
+        };
+
+        // Send exit command to thread
         let (sender, _receiver) = oneshot::channel();
         let _ = self.channel.unbounded_send(Set {
             inner: SetEnum::Exit,
             oneshot: sender,
         });
+
+        // Wait for thread to terminate
+        join_handle.join().unwrap();
     }
 }
 
@@ -213,7 +222,7 @@ impl ThreadBoard {
 struct Thread {
     daemon: Box<dyn Daemon>,
     boards: RefCell<HashMap<BoardId, ThreadBoard>>,
-    client: ThreadClient,
+    client: Weak<ThreadClient>,
     response_channel: async_mpsc::UnboundedSender<ThreadResponse>,
     matrix_get_rate: Cell<Option<Duration>>,
 }
@@ -221,12 +230,12 @@ struct Thread {
 impl Thread {
     fn new(
         daemon: Box<dyn Daemon>,
-        client: ThreadClient,
+        client: Arc<ThreadClient>,
         response_channel: async_mpsc::UnboundedSender<ThreadResponse>,
     ) -> Self {
         Self {
             daemon,
-            client,
+            client: Arc::downgrade(&client),
             response_channel,
             boards: RefCell::new(HashMap::new()),
             matrix_get_rate: Cell::new(None),
@@ -346,7 +355,7 @@ impl Thread {
             let (matrix_sender, matrix_reciever) = async_mpsc::unbounded();
             match Board::new(
                 self.daemon.as_ref(),
-                self.client.clone(),
+                self.client.upgrade().unwrap(),
                 *i,
                 matrix_reciever,
             ) {
