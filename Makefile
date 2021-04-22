@@ -33,7 +33,7 @@ clean:
 distclean: clean
 	rm -rf .cargo vendor vendor.tar
 
-$(BIN): Cargo.toml Cargo.lock src/lib.rs vendor-check
+$(BIN): Cargo.toml Cargo.lock src/main.rs vendor-check
 	cargo build $(ARGS)
 
 $(FFI): Cargo.toml Cargo.lock ffi/src/lib.rs vendor-check
