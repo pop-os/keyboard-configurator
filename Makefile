@@ -24,6 +24,7 @@ BIN = system76-keyboard-configurator
 FFI = lib$(PACKAGE).so
 APPDATA = $(APPID).appdata.xml
 DESKTOP = $(APPID).desktop
+ICON = data/icons/scalable/apps/$(APPID).svg
 
 all: $(BIN) $(PKGCONFIG)
 
@@ -46,6 +47,7 @@ install:
 	install -Dm0644 ffi/$(PACKAGE).h "$(DESTDIR)$(includedir)/$(PACKAGE).h"
 	install -Dm0644 "linux/$(DESKTOP)" "$(DESTDIR)$(datadir)/applications/$(DESKTOP)"
 	install -Dm0644 "linux/$(APPDATA)" "$(DESTDIR)$(datadir)/metainfo/$(APPDATA)"
+	install -Dm0644 $(ICON) "$(DESTDIR)$(datadir)/icons/hicolor/scalable/apps/$(APPID).svg"
 
 $(PKGCONFIG): $(FFI) tools/src/pkgconfig.rs
 	cargo run -p tools --bin pkgconfig $(DESKTOP_ARGS) -- \

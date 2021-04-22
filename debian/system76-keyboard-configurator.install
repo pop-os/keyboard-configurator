@@ -1,3 +1,4 @@
 usr/bin/system76-keyboard-configurator
 usr/share/applications/com.system76.keyboardconfigurator.desktop
 usr/share/metainfo/com.system76.keyboardconfigurator.appdata.xml
+usr/share/icons
