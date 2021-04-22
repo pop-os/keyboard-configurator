@@ -1,1 +1,0 @@
-C:\msys64\mingw32\bin\python build.py

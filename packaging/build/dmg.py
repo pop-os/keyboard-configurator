@@ -1,28 +1,8 @@
-import hashlib
 import os
 import re
 import shutil
 import subprocess
-
-APPDIR = 'System76 Keyboard Configurator.app'
-BINDIR = APPDIR + '/Contents/MacOS'
-RESOURCEDIR = APPDIR + '/Contents/Resources'
-PREFIX = '/usr/local'
-
-ADWAITA_FILES = [
-    'index.theme',
-    'scalable/actions/open-menu-symbolic.svg',
-    'scalable/ui/window-close-symbolic.svg',
-    'scalable/ui/window-maximize-symbolic.svg',
-    'scalable/ui/window-minimize-symbolic.svg',
-    'scalable/ui/window-restore-symbolic.svg',
-    'scalable/actions/edit-delete-symbolic.svg',
-    'scalable/actions/go-previous-symbolic.svg',
-    'scalable/devices/input-keyboard-symbolic.svg',
-    'scalable/actions/list-remove-symbolic.svg',
-    'scalable/actions/list-add-symbolic.svg',
-]
-ADWAITA_FILES = [f'share/icons/Adwaita/{i}' for i in ADWAITA_FILES]
+import tempfile
 
 def otool_recursive(path, libs=set()):
     output = subprocess.check_output(["otool", "-L", path]).decode()
@@ -34,12 +14,6 @@ def otool_recursive(path, libs=set()):
                 libs.add(dep)
                 otool_recursive(dep, libs)
     return libs
-
-def shasum(path):
-    m = hashlib.sha256()
-    with open(path, 'rb') as f:
-        m.update(f.read())
-    return m.digest()
 
 def newpath(path):
     relpath = os.path.relpath(path, PREFIX)
@@ -95,3 +69,38 @@ def deploy_with_deps(binpath):
     with open(f"{module_dir}/loaders.cache", 'w') as cachefile:
         cache = subprocess.check_output(['gdk-pixbuf-query-loaders'], env=dict(os.environ, GDK_PIXBUF_MODULEDIR=f"{module_dir}/loaders")).decode()
         cachefile.write(cache.replace(APPDIR + '/Contents', '@executable_path/..'))
+
+def build_dmg():
+    # Remove old app dir
+    if os.path.exists(APPDIR):
+        shutil.rmtree(APPDIR)
+    os.makedirs(APPDIR + '/Contents/Resources', exist_ok=True)
+
+    # Generate Info.plist from Info.plist.in
+    with open("Info.plist.in") as f:
+        plist = f.read().format(crate_version=crate_version)
+    with open(APPDIR + '/Contents/Info.plist', "w") as f:
+        f.write(plist)
+
+    # Generate .icns icon file
+    with tempfile.TemporaryDirectory('.iconset') as d:
+        for i in [16, 32, 64, 128, 256, 512]:
+            functs.rsvg_convert(ICON, "{}/icon_{}x{}.png".format(d, i, i), i, i)
+            functs.rsvg_convert(ICON, "{}/icon_{}x{}x2.png".format(d, i, i), i * 2, i * 2)
+
+        subprocess.check_call(["iconutil", "--convert", "icns", "--output", 'keyboard-configurator.icns', d])
+        shutil.copy('keyboard-configurator.icns', f'{APPDIR}/Contents/Resources/keyboard-configurator.icns')
+
+    # Generate background png
+    functs.rsvg_convert("background.svg", "background.png", 640, 480)
+
+    # Copy executable
+    subprocess.check_call([f"strip", '-o', f"keyboard-configurator", f"{TARGET_DIR}/system76-keyboard-configurator"])
+
+    # Build .app bundle
+    deploy_with_deps('keyboard-configurator')
+
+    # Build .dmg
+    if os.path.exists("keyboard-configurator.dmg"):
+        os.remove("keyboard-configurator.dmg")
+    subprocess.check_call(["appdmg", "appdmg.json", "keyboard-configurator.dmg"])

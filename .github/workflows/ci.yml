@@ -21,7 +21,7 @@ jobs:
     steps:
     - run: sudo apt-get update && sudo apt-get install cargo libgtk-3-dev libudev-dev
     - uses: actions/checkout@v2
-    - run: cd packaging/linux && ./build.py $RELEASE
+    - run: cd packaging && ./build.sh $RELEASE
     - uses: actions/upload-artifact@v2
       with:
         if-no-files-found: error
@@ -52,7 +52,7 @@ jobs:
     - uses: actions/checkout@v2
     - name: Build and package
       shell: msys2 {0}
-      run: cd packaging/windows && python build.py --rustup="C:/Rust/.cargo/bin/rustup.exe" $RELEASE
+      run: cd packaging && ./build.sh --rustup="C:/Rust/.cargo/bin/rustup.exe" $RELEASE
     - uses: actions/upload-artifact@v2
       with:
         if-no-files-found: error
@@ -76,7 +76,7 @@ jobs:
     - run: npm install -g appdmg
     - run: echo "$HOME/.local/bin" >> $GITHUB_PATH
     - uses: actions/checkout@v2
-    - run: cd packaging/macos && ./build.py $RELEASE
+    - run: cd packaging && ./build.sh $RELEASE
     - uses: actions/upload-artifact@v2
       with:
         if-no-files-found: error
