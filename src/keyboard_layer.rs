@@ -22,6 +22,8 @@ pub struct KeyboardLayerInner {
     selected: RefCell<SelectedKeys>,
     selectable: Cell<bool>,
     multiple: Cell<bool>,
+    width: DerefCell<i32>,
+    height: DerefCell<i32>,
 }
 
 #[glib::object_subclass]
@@ -96,7 +98,7 @@ impl WidgetImpl for KeyboardLayerInner {
         let selected = Rgb::new(0xfb, 0xb8, 0x6c).to_floats();
 
         for (i, k) in widget.keys().iter().enumerate() {
-            let Rect { x, y, w, h } = scale_rect(&k.physical);
+            let Rect { x, y, w, h } = widget.key_position(&k);
 
             let mut bg = k.background_color.to_floats();
 
@@ -173,7 +175,7 @@ impl WidgetImpl for KeyboardLayerInner {
         let pressed = widget
             .keys()
             .iter()
-            .position(|k| scale_rect(&k.physical).contains(pos.0, pos.1));
+            .position(|k| widget.key_position(&k).contains(pos.0, pos.1));
 
         if let Some(pressed) = pressed {
             let shift = evt.get_state().contains(gdk::ModifierType::SHIFT_MASK);
@@ -199,6 +201,18 @@ impl WidgetImpl for KeyboardLayerInner {
 
         Inhibit(false)
     }
+
+    fn get_request_mode(&self, widget: &Self::Type) -> gtk::SizeRequestMode {
+        gtk::SizeRequestMode::ConstantSize
+    }
+
+    fn get_preferred_width(&self, widget: &Self::Type) -> (i32, i32) {
+        (*self.width, *self.width)
+    }
+
+    fn get_preferred_height(&self, widget: &Self::Type) -> (i32, i32) {
+        (*self.height, *self.height)
+    }
 }
 
 impl DrawingAreaImpl for KeyboardLayerInner {}
@@ -221,14 +235,13 @@ impl KeyboardLayer {
             .max()
             .unwrap();
 
-        let obj = cascade! {
-            glib::Object::new::<Self>(&[]).unwrap();
-            ..set_size_request(width, height);
-        };
+        let obj = glib::Object::new::<Self>(&[]).unwrap();
         board.connect_leds_changed(clone!(@weak obj => move || obj.queue_draw()));
         board.connect_matrix_changed(clone!(@weak obj => move || obj.queue_draw()));
         obj.inner().page.set(page);
         obj.inner().board.set(board);
+        obj.inner().width.set(width);
+        obj.inner().height.set(height);
         obj
     }
 
@@ -264,13 +277,13 @@ impl KeyboardLayer {
     pub fn set_multiple(&self, multiple: bool) {
         self.inner().multiple.set(multiple)
     }
-}
 
-fn scale_rect(rect: &Rect) -> Rect {
-    Rect {
-        x: (rect.x * SCALE) + MARGIN,
-        y: -(rect.y * SCALE) + MARGIN,
-        w: (rect.w * SCALE) - MARGIN * 2.,
-        h: (rect.h * SCALE) - MARGIN * 2.,
+    fn key_position(&self, k: &Key) -> Rect {
+        Rect {
+            x: (k.physical.x * SCALE) + MARGIN,
+            y: -(k.physical.y * SCALE) + MARGIN,
+            w: (k.physical.w * SCALE) - MARGIN * 2.,
+            h: (k.physical.h * SCALE) - MARGIN * 2.,
+        }
     }
 }
