@@ -202,15 +202,15 @@ impl WidgetImpl for KeyboardLayerInner {
         Inhibit(false)
     }
 
-    fn get_request_mode(&self, widget: &Self::Type) -> gtk::SizeRequestMode {
+    fn get_request_mode(&self, _widget: &Self::Type) -> gtk::SizeRequestMode {
         gtk::SizeRequestMode::ConstantSize
     }
 
-    fn get_preferred_width(&self, widget: &Self::Type) -> (i32, i32) {
+    fn get_preferred_width(&self, _widget: &Self::Type) -> (i32, i32) {
         (*self.width, *self.width)
     }
 
-    fn get_preferred_height(&self, widget: &Self::Type) -> (i32, i32) {
+    fn get_preferred_height(&self, _widget: &Self::Type) -> (i32, i32) {
         (*self.height, *self.height)
     }
 }
