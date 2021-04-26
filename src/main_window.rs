@@ -149,6 +149,7 @@ impl ObjectImpl for MainWindowInner {
             ..set_titlebar(Some(&header_bar));
             ..add(&cascade! {
                 gtk::ScrolledWindow::new::<gtk::Adjustment, gtk::Adjustment>(None, None);
+                ..set_property_hscrollbar_policy(gtk::PolicyType::Never);
                 ..add(&cascade! {
                     gtk::Box::new(gtk::Orientation::Vertical, 0);
                     ..add(&load_revealer);

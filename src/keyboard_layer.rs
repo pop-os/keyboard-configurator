@@ -2,6 +2,7 @@ use cascade::cascade;
 use glib::clone;
 use gtk::prelude::*;
 use gtk::subclass::prelude::*;
+use once_cell::unsync::OnceCell;
 use std::{
     cell::{Cell, RefCell},
     f64::consts::PI,
@@ -11,9 +12,10 @@ use crate::Page;
 use backend::{Board, DerefCell, Key, Layer, Rect, Rgb};
 use widgets::SelectedKeys;
 
-const SCALE: f64 = 64.0;
+const SCALE: f64 = 64.;
 const MARGIN: f64 = 2.;
 const RADIUS: f64 = 4.;
+const HALF_KEYBOARD_VSPACING: f64 = 16.;
 
 #[derive(Default)]
 pub struct KeyboardLayerInner {
@@ -22,8 +24,9 @@ pub struct KeyboardLayerInner {
     selected: RefCell<SelectedKeys>,
     selectable: Cell<bool>,
     multiple: Cell<bool>,
-    width: DerefCell<i32>,
-    height: DerefCell<i32>,
+    wide_width: OnceCell<i32>,
+    wide_height: OnceCell<i32>,
+    narrow_width: OnceCell<i32>,
 }
 
 #[glib::object_subclass]
@@ -209,15 +212,20 @@ impl WidgetImpl for KeyboardLayerInner {
     }
 
     fn get_request_mode(&self, _widget: &Self::Type) -> gtk::SizeRequestMode {
-        gtk::SizeRequestMode::ConstantSize
+        gtk::SizeRequestMode::HeightForWidth
     }
 
-    fn get_preferred_width(&self, _widget: &Self::Type) -> (i32, i32) {
-        (*self.width, *self.width)
+    fn get_preferred_width(&self, widget: &Self::Type) -> (i32, i32) {
+        (widget.narrow_width(), widget.wide_width())
     }
 
-    fn get_preferred_height(&self, _widget: &Self::Type) -> (i32, i32) {
-        (*self.height, *self.height)
+    fn get_preferred_height_for_width(&self, widget: &Self::Type, width: i32) -> (i32, i32) {
+        let height = if width < widget.wide_width() {
+            widget.narrow_height()
+        } else {
+            widget.wide_height()
+        };
+        (height, height)
     }
 }
 
@@ -230,24 +238,11 @@ glib::wrapper! {
 
 impl KeyboardLayer {
     pub fn new(page: Page, board: Board) -> Self {
-        let (width, height) = board
-            .keys()
-            .iter()
-            .map(|k| {
-                let w = (k.physical.w + k.physical.x) * SCALE - MARGIN;
-                let h = (k.physical.h - k.physical.y) * SCALE - MARGIN;
-                (w as i32, h as i32)
-            })
-            .max()
-            .unwrap();
-
         let obj = glib::Object::new::<Self>(&[]).unwrap();
         board.connect_leds_changed(clone!(@weak obj => move || obj.queue_draw()));
         board.connect_matrix_changed(clone!(@weak obj => move || obj.queue_draw()));
         obj.inner().page.set(page);
         obj.inner().board.set(board);
-        obj.inner().width.set(width);
-        obj.inner().height.set(height);
         obj
     }
 
@@ -285,12 +280,71 @@ impl KeyboardLayer {
         self.notify("multiple");
     }
 
-    fn key_position(&self, k: &Key) -> Rect {
+    fn keys_maximize<F: Fn(&Key) -> i32>(&self, cb: F) -> i32 {
+        self.keys().iter().map(cb).max().unwrap()
+    }
+
+    fn wide_width(&self) -> i32 {
+        *self.inner().wide_width.get_or_init(|| {
+            self.keys_maximize(|k| {
+                let pos = self.key_position_wide(k);
+                (pos.x + pos.w) as i32
+            })
+        })
+    }
+
+    fn wide_height(&self) -> i32 {
+        *self.inner().wide_height.get_or_init(|| {
+            self.keys_maximize(|k| {
+                let pos = self.key_position_wide(k);
+                (pos.y + pos.h) as i32
+            })
+        })
+    }
+
+    fn narrow_width(&self) -> i32 {
+        *self.inner().narrow_width.get_or_init(|| {
+            self.keys_maximize(|k| {
+                let mut pos = self.key_position_wide(k);
+                let width = self.wide_width() as f64 / 2.;
+                if pos.x + pos.w / 2. > width {
+                    pos.x -= width;
+                }
+                (pos.x + pos.w) as i32
+            })
+        })
+    }
+
+    fn narrow_height(&self) -> i32 {
+        self.wide_height() * 2 + HALF_KEYBOARD_VSPACING as i32
+    }
+
+    fn key_position_wide(&self, k: &Key) -> Rect {
         Rect {
             x: (k.physical.x * SCALE) + MARGIN,
             y: -(k.physical.y * SCALE) + MARGIN,
             w: (k.physical.w * SCALE) - MARGIN * 2.,
             h: (k.physical.h * SCALE) - MARGIN * 2.,
         }
+    }
+
+    fn key_position_narrow(&self, k: &Key) -> Rect {
+        let mut rect = self.key_position_wide(k);
+        let width = self.wide_width() as f64 / 2.;
+        if rect.x + rect.w / 2. > width {
+            rect.x -= (self.wide_width() - self.narrow_width()) as f64;
+            rect.y += self.wide_height() as f64 + HALF_KEYBOARD_VSPACING;
+        }
+        rect
+    }
+
+    fn key_position(&self, k: &Key) -> Rect {
+        let (mut pos, width) = if self.get_allocated_width() < self.wide_width() {
+            (self.key_position_narrow(k), self.narrow_width())
+        } else {
+            (self.key_position_wide(k), self.wide_width())
+        };
+        pos.x += (self.get_allocated_width() - width) as f64 / 2.;
+        pos
     }
 }
