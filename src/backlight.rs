@@ -129,8 +129,8 @@ impl ObjectImpl for BacklightInner {
         let color_row = row(&cascade! {
             gtk::Box::new(gtk::Orientation::Horizontal, 8);
             ..add(&color_label);
-            ..pack_end(&disable_color_button, false, false, 0);
             ..pack_end(&keyboard_color, false, false, 0);
+            ..pack_end(&disable_color_button, false, false, 0);
         });
 
         cascade! {
