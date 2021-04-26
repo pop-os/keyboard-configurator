@@ -73,16 +73,21 @@ impl ObjectImpl for KeyboardInner {
         let stack_switcher = cascade! {
             gtk::StackSwitcher::new();
             ..set_halign(gtk::Align::Center);
-            ..set_margin_top(8);
+            ..set_margin_top(18);
             ..set_stack(Some(&stack));
         };
 
         cascade! {
             keyboard;
             ..set_orientation(gtk::Orientation::Vertical);
-            ..set_spacing(8);
+            ..set_spacing(18);
             ..add(&stack_switcher);
             ..add(&layer_stack);
+            ..add(&cascade! {
+                gtk::Label::new(Some("Select a key on the keymap to change its settings. Shift + click to select more than one key."));
+                ..set_halign(gtk::Align::Start);
+                ..set_margin_bottom(18);
+            });
             ..add(&stack);
         };
 
