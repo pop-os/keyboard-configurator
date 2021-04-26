@@ -124,10 +124,7 @@ impl WidgetImpl for KeyboardLayerInner {
             });
 
             if k.pressed() {
-                // Invert colors if pressed
-                bg.0 = 1.0 - bg.0;
-                bg.1 = 1.0 - bg.1;
-                bg.2 = 1.0 - bg.2;
+                bg = (0.1, 0.1, 0.1);
             }
 
             let fg = if (bg.0 + bg.1 + bg.2) / 3. >= 0.5 {
