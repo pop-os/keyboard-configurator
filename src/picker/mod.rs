@@ -16,7 +16,9 @@ use picker_group::PickerGroup;
 use picker_json::picker_json;
 use picker_key::PickerKey;
 
-const DEFAULT_COLS: i32 = 3;
+const DEFAULT_COLS: usize = 3;
+const HSPACING: i32 = 64;
+const VSPACING: i32 = 32;
 const PICKER_CSS: &str = r#"
 button {
     margin: 0;
@@ -50,7 +52,7 @@ pub struct PickerInner {
 #[glib::object_subclass]
 impl ObjectSubclass for PickerInner {
     const NAME: &'static str = "S76KeyboardPicker";
-    type ParentType = gtk::Box;
+    type ParentType = gtk::Container;
     type Type = Picker;
 }
 
@@ -84,53 +86,136 @@ impl ObjectImpl for PickerInner {
             groups.push(group);
         }
 
+        for group in &groups {
+            group.vbox.show();
+            group.vbox.set_parent(picker);
+        }
+
         self.keys.set(keys);
         self.groups.set(groups);
 
-        let mut picker_hbox_opt: Option<gtk::Box> = None;
-        let mut picker_col = 0;
-        let picker_cols = DEFAULT_COLS;
-
-        for group in &*picker.inner().groups {
-            let picker_hbox = match picker_hbox_opt.take() {
-                Some(some) => some,
-                None => {
-                    let picker_hbox = cascade! {
-                        gtk::Box::new(gtk::Orientation::Horizontal, 64);
-                    };
-                    picker.add(&picker_hbox);
-                    picker_hbox
-                }
-            };
-
-            picker_hbox.add(&group.vbox);
-
-            picker_col += 1;
-            if picker_col >= picker_cols {
-                picker_col = 0;
-            } else {
-                picker_hbox_opt = Some(picker_hbox);
-            }
-        }
-
         cascade! {
             picker;
-            ..set_orientation(gtk::Orientation::Vertical);
-            ..set_halign(gtk::Align::Center);
-            ..set_spacing(32);
+            ..set_has_window(false);
             ..connect_signals();
             ..show_all();
         };
     }
 }
 
-impl WidgetImpl for PickerInner {}
-impl ContainerImpl for PickerInner {}
-impl BoxImpl for PickerInner {}
+impl WidgetImpl for PickerInner {
+    fn get_request_mode(&self, _widget: &Self::Type) -> gtk::SizeRequestMode {
+        gtk::SizeRequestMode::HeightForWidth
+    }
+
+    fn get_preferred_width(&self, _widget: &Self::Type) -> (i32, i32) {
+        let minimum_width = self
+            .groups
+            .iter()
+            .map(|x| x.vbox.get_preferred_width().1)
+            .max()
+            .unwrap();
+        let natural_width = self
+            .groups
+            .chunks(3)
+            .map(|row| {
+                row.iter()
+                    .map(|x| x.vbox.get_preferred_width().1)
+                    .sum::<i32>()
+            })
+            .max()
+            .unwrap()
+            + 2 * HSPACING;
+        (minimum_width, natural_width)
+    }
+
+    fn get_preferred_height_for_width(&self, widget: &Self::Type, width: i32) -> (i32, i32) {
+        let rows = widget.rows_for_width(width);
+        let height = rows
+            .iter()
+            .map(|row| {
+                row.iter()
+                    .map(|x| x.vbox.get_preferred_height().1)
+                    .max()
+                    .unwrap()
+            })
+            .sum::<i32>()
+            + (rows.len() as i32 - 1) * VSPACING;
+
+        (height, height)
+    }
+
+    fn size_allocate(&self, obj: &Self::Type, allocation: &gtk::Allocation) {
+        self.parent_size_allocate(obj, allocation);
+
+        let mut y = 0;
+        let mut row_start = 0;
+
+        let place_row = |y: &mut i32, row: &[PickerGroup]| {
+            let width = row
+                .iter()
+                .map(|x| x.vbox.get_preferred_width().1)
+                .sum::<i32>()
+                + (row.len() as i32 - 1) * HSPACING;
+            let mut x = (allocation.width - width) / 2;
+            for group in row {
+                let height = group.vbox.get_preferred_height().1;
+                let width = group.vbox.get_preferred_width().1;
+                group.vbox.size_allocate(&gtk::Allocation {
+                    x,
+                    y: *y,
+                    width,
+                    height,
+                });
+                x += width + HSPACING;
+            }
+            *y += row
+                .iter()
+                .map(|x| x.vbox.get_preferred_height().1)
+                .max()
+                .unwrap()
+                + VSPACING;
+        };
+
+        let mut row_width = 0;
+        for (i, group) in self.groups.iter().enumerate() {
+            let width = group.vbox.get_preferred_width().1;
+
+            if i - row_start >= DEFAULT_COLS || row_width + width > allocation.width {
+                place_row(&mut y, &self.groups[row_start..i]);
+                row_start = i;
+                row_width = 0;
+            } else {
+                if row_width != 0 {
+                    row_width += HSPACING;
+                }
+                row_width += width;
+            }
+        }
+        place_row(&mut y, &self.groups[row_start..]);
+    }
+}
+
+impl ContainerImpl for PickerInner {
+    fn forall(
+        &self,
+        _obj: &Self::Type,
+        _include_internals: bool,
+        cb: &gtk::subclass::container::Callback,
+    ) {
+        for group in self.groups.iter() {
+            cb.call(group.vbox.upcast_ref());
+        }
+    }
+
+    fn remove(&self, _obj: &Self::Type, child: &gtk::Widget) {
+        child.unparent();
+    }
+}
 
 glib::wrapper! {
     pub struct Picker(ObjectSubclass<PickerInner>)
-        @extends gtk::Box, gtk::Container, gtk::Widget, @implements gtk::Orientable;
+        @extends gtk::Container, gtk::Widget, @implements gtk::Orientable;
 }
 
 impl Picker {
@@ -209,6 +294,34 @@ impl Picker {
                 button.get_style_context().add_class("selected");
             }
         }
+    }
+
+    fn rows_for_width(&self, container_width: i32) -> Vec<&[PickerGroup]> {
+        let mut rows = Vec::new();
+        let mut row_start = 0;
+        let groups = &*self.inner().groups;
+
+        let mut row_width = 0;
+        for (i, group) in groups.iter().enumerate() {
+            let width = group.vbox.get_preferred_width().1;
+
+            if i - row_start >= DEFAULT_COLS || row_width + width > container_width {
+                rows.push(&groups[row_start..i]);
+                row_start = i;
+                row_width = 0;
+            } else {
+                if row_width != 0 {
+                    row_width += HSPACING;
+                }
+                row_width += width;
+            }
+        }
+
+        if !groups[row_start..].is_empty() {
+            rows.push(&groups[row_start..]);
+        }
+
+        rows
     }
 }
 
