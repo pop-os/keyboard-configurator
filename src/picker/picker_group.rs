@@ -18,6 +18,10 @@ impl PickerGroup {
     pub(super) fn new(name: String, cols: i32) -> Self {
         let label = cascade! {
             gtk::Label::new(Some(&name));
+            ..set_attributes(Some(&cascade! {
+                pango::AttrList::new();
+                ..insert(pango::Attribute::new_weight(pango::Weight::Bold));
+            } ));
             ..set_halign(gtk::Align::Start);
             ..set_margin_bottom(8);
         };
