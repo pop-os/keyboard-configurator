@@ -72,5 +72,5 @@ static MODES: &[Mode] = &[
     Mode::new(10, "RAINDROPS", "Elements", false, false),
     Mode::new(11, "SPLASH", "Splashdown", false, true),
     Mode::new(12, "MULTISPLASH", "Meteor Shower", false, true),
-    Mode::new(13, "ACTIVE_KEYS", "Active Keys", true, false),
+    Mode::new(13, "ACTIVE_KEYS", "Bound Keys", true, false),
 ];
