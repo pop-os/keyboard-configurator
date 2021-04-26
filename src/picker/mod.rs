@@ -149,9 +149,7 @@ impl WidgetImpl for PickerInner {
         self.parent_size_allocate(obj, allocation);
 
         let mut y = 0;
-        let mut row_start = 0;
-
-        let place_row = |y: &mut i32, row: &[PickerGroup]| {
+        for row in obj.rows_for_width(allocation.width) {
             let width = row
                 .iter()
                 .map(|x| x.vbox.get_preferred_width().1)
@@ -163,36 +161,19 @@ impl WidgetImpl for PickerInner {
                 let width = group.vbox.get_preferred_width().1;
                 group.vbox.size_allocate(&gtk::Allocation {
                     x,
-                    y: *y,
+                    y,
                     width,
                     height,
                 });
                 x += width + HSPACING;
             }
-            *y += row
+            y += row
                 .iter()
                 .map(|x| x.vbox.get_preferred_height().1)
                 .max()
                 .unwrap()
                 + VSPACING;
-        };
-
-        let mut row_width = 0;
-        for (i, group) in self.groups.iter().enumerate() {
-            let width = group.vbox.get_preferred_width().1;
-
-            if i - row_start >= DEFAULT_COLS || row_width + width > allocation.width {
-                place_row(&mut y, &self.groups[row_start..i]);
-                row_start = i;
-                row_width = 0;
-            } else {
-                if row_width != 0 {
-                    row_width += HSPACING;
-                }
-                row_width += width;
-            }
         }
-        place_row(&mut y, &self.groups[row_start..]);
     }
 }
 
