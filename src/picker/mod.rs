@@ -279,22 +279,23 @@ impl Picker {
 
     fn rows_for_width(&self, container_width: i32) -> Vec<&[PickerGroup]> {
         let mut rows = Vec::new();
-        let mut row_start = 0;
         let groups = &*self.inner().groups;
 
+        let mut row_start = 0;
         let mut row_width = 0;
         for (i, group) in groups.iter().enumerate() {
             let width = group.vbox.get_preferred_width().1;
 
-            if i - row_start >= DEFAULT_COLS || row_width + width > container_width {
+            let mut new_row_width = row_width + width;
+            if i != 0 {
+                new_row_width += HSPACING;
+            }
+            if i - row_start >= DEFAULT_COLS || new_row_width > container_width {
                 rows.push(&groups[row_start..i]);
                 row_start = i;
-                row_width = 0;
+                row_width = width;
             } else {
-                if row_width != 0 {
-                    row_width += HSPACING;
-                }
-                row_width += width;
+                row_width = new_row_width;
             }
         }
 
