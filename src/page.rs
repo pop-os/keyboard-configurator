@@ -38,7 +38,10 @@ impl Page {
     }
 
     pub fn is_debug(&self) -> bool {
-        matches!(self, Self::Logical | Self::Electrical | Self::Leds)
+        matches!(
+            self,
+            Self::Keycaps | Self::Logical | Self::Electrical | Self::Leds
+        )
     }
 
     pub fn iter_all() -> impl Iterator<Item = Self> {
