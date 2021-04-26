@@ -384,6 +384,11 @@ impl Keyboard {
             self.bind_property("selected", &keyboard_layer, "selected")
                 .flags(glib::BindingFlags::BIDIRECTIONAL)
                 .build();
+            self.inner()
+                .backlight
+                .bind_property("is-per-key", &keyboard_layer, "multiple")
+                .flags(glib::BindingFlags::SYNC_CREATE)
+                .build();
             layer_stack.add_titled(&keyboard_layer, page.name(), page.name());
 
             self.inner().action_group.add_action(&cascade! {

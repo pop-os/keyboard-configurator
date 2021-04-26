@@ -43,13 +43,22 @@ impl ObjectImpl for KeyboardLayerInner {
     fn properties() -> &'static [glib::ParamSpec] {
         use once_cell::sync::Lazy;
         static PROPERTIES: Lazy<Vec<glib::ParamSpec>> = Lazy::new(|| {
-            vec![glib::ParamSpec::boxed(
-                "selected",
-                "selected",
-                "selected",
-                SelectedKeys::get_type(),
-                glib::ParamFlags::READWRITE,
-            )]
+            vec![
+                glib::ParamSpec::boxed(
+                    "selected",
+                    "selected",
+                    "selected",
+                    SelectedKeys::get_type(),
+                    glib::ParamFlags::READWRITE,
+                ),
+                glib::ParamSpec::boolean(
+                    "multiple",
+                    "multiple",
+                    "multiple",
+                    false,
+                    glib::ParamFlags::READWRITE,
+                ),
+            ]
         });
 
         PROPERTIES.as_ref()
@@ -64,6 +73,7 @@ impl ObjectImpl for KeyboardLayerInner {
     ) {
         match pspec.get_name() {
             "selected" => widget.set_selected(value.get_some::<&SelectedKeys>().unwrap().clone()),
+            "multiple" => widget.set_multiple(value.get_some().unwrap()),
             _ => unimplemented!(),
         }
     }
@@ -76,6 +86,7 @@ impl ObjectImpl for KeyboardLayerInner {
     ) -> glib::Value {
         match pspec.get_name() {
             "selected" => self.selected.borrow().to_value(),
+            "multiple" => self.multiple.get().to_value(),
             _ => unimplemented!(),
         }
     }
@@ -180,9 +191,7 @@ impl WidgetImpl for KeyboardLayerInner {
         if let Some(pressed) = pressed {
             let shift = evt.get_state().contains(gdk::ModifierType::SHIFT_MASK);
             let mut selected = widget.selected();
-            if shift
-            /*&& self.multiple.get()*/
-            {
+            if shift && self.multiple.get() {
                 if selected.contains(&pressed) {
                     selected.remove(&pressed);
                 } else {
@@ -275,7 +284,8 @@ impl KeyboardLayer {
     }
 
     pub fn set_multiple(&self, multiple: bool) {
-        self.inner().multiple.set(multiple)
+        self.inner().multiple.set(multiple);
+        self.notify("multiple");
     }
 
     fn key_position(&self, k: &Key) -> Rect {

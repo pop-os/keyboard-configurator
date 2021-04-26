@@ -174,6 +174,13 @@ impl ObjectImpl for BacklightInner {
                     SelectedKeys::get_type(),
                     glib::ParamFlags::WRITABLE,
                 ),
+                glib::ParamSpec::boolean(
+                    "is-per-key",
+                    "is-per-key",
+                    "is-per-key",
+                    false,
+                    glib::ParamFlags::READABLE,
+                ),
             ]
         });
 
@@ -200,6 +207,7 @@ impl ObjectImpl for BacklightInner {
     fn get_property(&self, obj: &Self::Type, _id: usize, pspec: &glib::ParamSpec) -> glib::Value {
         match pspec.get_name() {
             "mode" => obj.mode().id.to_value(),
+            "is-per-key" => obj.mode().is_per_key().to_value(),
             _ => unimplemented!(),
         }
     }
@@ -293,6 +301,7 @@ impl Backlight {
 
     fn mode_speed_changed(&self) {
         self.notify("mode");
+        self.notify("is-per-key");
 
         if self.mode().is_per_key() {
             self.update_per_key();
