@@ -145,7 +145,7 @@ impl ObjectImpl for MainWindowInner {
             window;
             ..set_title("System76 Keyboard Configurator");
             ..set_position(gtk::WindowPosition::Center);
-            ..set_default_size(1024, 768);
+            ..set_default_size(1280, 768);
             ..set_titlebar(Some(&header_bar));
             ..add(&cascade! {
                 gtk::ScrolledWindow::new::<gtk::Adjustment, gtk::Adjustment>(None, None);
