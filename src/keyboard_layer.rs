@@ -280,38 +280,32 @@ impl KeyboardLayer {
         self.notify("multiple");
     }
 
-    fn keys_maximize<F: Fn(&Key) -> i32>(&self, cb: F) -> i32 {
-        self.keys().iter().map(cb).max().unwrap()
+    fn keys_maximize<F: Fn(&Key) -> i32>(&self, cell: &OnceCell<i32>, cb: F) -> i32 {
+        *cell.get_or_init(|| self.keys().iter().map(cb).max().unwrap())
     }
 
     fn wide_width(&self) -> i32 {
-        *self.inner().wide_width.get_or_init(|| {
-            self.keys_maximize(|k| {
-                let pos = self.key_position_wide(k);
-                (pos.x + pos.w) as i32
-            })
+        self.keys_maximize(&self.inner().wide_width, |k| {
+            let pos = self.key_position_wide(k);
+            (pos.x + pos.w) as i32
         })
     }
 
     fn wide_height(&self) -> i32 {
-        *self.inner().wide_height.get_or_init(|| {
-            self.keys_maximize(|k| {
-                let pos = self.key_position_wide(k);
-                (pos.y + pos.h) as i32
-            })
+        self.keys_maximize(&self.inner().wide_height, |k| {
+            let pos = self.key_position_wide(k);
+            (pos.y + pos.h) as i32
         })
     }
 
     fn narrow_width(&self) -> i32 {
-        *self.inner().narrow_width.get_or_init(|| {
-            self.keys_maximize(|k| {
-                let mut pos = self.key_position_wide(k);
-                let width = self.wide_width() as f64 / 2.;
-                if pos.x + pos.w / 2. > width {
-                    pos.x -= width;
-                }
-                (pos.x + pos.w) as i32
-            })
+        self.keys_maximize(&self.inner().narrow_width, |k| {
+            let mut pos = self.key_position_wide(k);
+            let width = self.wide_width() as f64 / 2.;
+            if pos.x + pos.w / 2. > width {
+                pos.x -= width;
+            }
+            (pos.x + pos.w) as i32
         })
     }
 
