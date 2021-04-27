@@ -1,5 +1,7 @@
 // A hue/saturation color wheel that allows a color to be selected.
 
+use futures::future::{abortable, AbortHandle};
+use glib::clone;
 use gtk::prelude::*;
 use gtk::subclass::prelude::*;
 use std::cell::{Cell, RefCell};
@@ -11,7 +13,9 @@ use backend::{Hs, Rgb};
 #[derive(Default)]
 pub struct ColorWheelInner {
     selected_hs: Cell<Hs>,
-    surface: DerefCell<RefCell<cairo::ImageSurface>>,
+    surface: RefCell<Option<cairo::ImageSurface>>,
+    thread_pool: DerefCell<glib::ThreadPool>,
+    abort_handle: RefCell<Option<AbortHandle>>,
 }
 
 #[glib::object_subclass]
@@ -25,9 +29,8 @@ impl ObjectImpl for ColorWheelInner {
     fn constructed(&self, wheel: &ColorWheel) {
         self.parent_constructed(wheel);
 
-        self.surface.set(RefCell::new(
-            cairo::ImageSurface::create(cairo::Format::Rgb24, 0, 0).unwrap(),
-        ));
+        self.thread_pool
+            .set(glib::ThreadPool::new_shared(None).unwrap());
 
         wheel.add_events(gdk::EventMask::POINTER_MOTION_MASK | gdk::EventMask::BUTTON_PRESS_MASK);
     }
@@ -118,8 +121,17 @@ impl WidgetImpl for ColorWheelInner {
 
         let radius = width.min(height) / 2.;
 
+        cr.translate(width / 2. - radius, 0.);
+
         // Draw color wheel
-        cr.set_source_surface(&self.surface.borrow(), 0., 0.);
+        if let Some(surface) = self.surface.borrow().as_ref() {
+            let pattern = cairo::SurfacePattern::create(surface);
+            let scale = surface.get_width() as f64 / (radius * 2.);
+            let mut matrix = cairo::Matrix::identity();
+            matrix.scale(scale, scale);
+            pattern.set_matrix(matrix);
+            cr.set_source(&pattern);
+        }
         cr.arc(radius, radius, radius, 0., 2. * PI);
         cr.fill();
 
@@ -139,7 +151,17 @@ impl WidgetImpl for ColorWheelInner {
 
     fn size_allocate(&self, wheel: &ColorWheel, rect: &gdk::Rectangle) {
         self.parent_size_allocate(wheel, rect);
-        wheel.generate_surface(rect);
+        let (future, abort_handle) = abortable(clone!(@weak wheel, @strong rect => async move {
+            let surface = Some(wheel.generate_surface(&rect).await);
+            wheel.inner().surface.replace(surface);
+            wheel.queue_draw();
+        }));
+        if let Some(abort_handle) = self.abort_handle.replace(Some(abort_handle)) {
+            abort_handle.abort();
+        }
+        glib::MainContext::default().spawn_local(async {
+            let _ = future.await;
+        });
     }
 
     fn button_press_event(&self, wheel: &ColorWheel, evt: &gdk::EventButton) -> Inhibit {
@@ -152,6 +174,26 @@ impl WidgetImpl for ColorWheelInner {
             wheel.mouse_select(evt.get_position());
         }
         Inhibit(false)
+    }
+
+    fn get_request_mode(&self, _widget: &Self::Type) -> gtk::SizeRequestMode {
+        gtk::SizeRequestMode::HeightForWidth
+    }
+
+    fn get_preferred_width(&self, _widget: &Self::Type) -> (i32, i32) {
+        (0, 300)
+    }
+
+    fn get_preferred_height(&self, _widget: &Self::Type) -> (i32, i32) {
+        (0, 300)
+    }
+
+    fn get_preferred_height_for_width(&self, _widget: &Self::Type, width: i32) -> (i32, i32) {
+        (0, width)
+    }
+
+    fn get_preferred_width_for_height(&self, _widget: &Self::Type, height: i32) -> (i32, i32) {
+        (0, height)
     }
 }
 
@@ -187,34 +229,6 @@ impl ColorWheel {
         self.connect_notify_local(Some("hs"), move |wheel, _| f(wheel));
     }
 
-    fn generate_surface(&self, rect: &gtk::Rectangle) {
-        let size = rect.width.min(rect.height);
-        let stride = cairo::Format::Rgb24.stride_for_width(size as u32).unwrap();
-        let mut data = vec![0; (size * stride) as usize];
-
-        for row in 0..size {
-            for col in 0..size {
-                let radius = size as f64 / 2.;
-                let (x, y) = (col as f64 - radius, radius - row as f64);
-
-                let angle = y.atan2(x);
-                let distance = y.hypot(x);
-
-                let Rgb { r, g, b } = Hs::new(angle, distance / radius).to_rgb();
-
-                let offset = (row * stride + col * 4) as usize;
-                data[offset] = b;
-                data[offset + 1] = g;
-                data[offset + 2] = r;
-            }
-        }
-
-        let image_surface =
-            cairo::ImageSurface::create_for_data(data, cairo::Format::Rgb24, size, size, stride)
-                .unwrap();
-        self.inner().surface.replace(image_surface);
-    }
-
     fn mouse_select(&self, pos: (f64, f64)) {
         let width = f64::from(self.get_allocated_width());
         let height = f64::from(self.get_allocated_height());
@@ -226,5 +240,41 @@ impl ColorWheel {
         let distance = y.hypot(x);
 
         self.set_hs(Hs::new(angle, (distance / radius).min(1.)));
+    }
+
+    async fn generate_surface(&self, rect: &gtk::Rectangle) -> cairo::ImageSurface {
+        let size = rect.width.min(rect.height);
+        let stride = cairo::Format::Rgb24.stride_for_width(size as u32).unwrap();
+
+        let data = self
+            .inner()
+            .thread_pool
+            .push_future(move || {
+                let mut data = vec![0; (size * stride) as usize];
+
+                for row in 0..size {
+                    for col in 0..size {
+                        let radius = size as f64 / 2.;
+                        let (x, y) = (col as f64 - radius, radius - row as f64);
+
+                        let angle = y.atan2(x);
+                        let distance = y.hypot(x);
+
+                        let Rgb { r, g, b } = Hs::new(angle, distance / radius).to_rgb();
+
+                        let offset = (row * stride + col * 4) as usize;
+                        data[offset] = b;
+                        data[offset + 1] = g;
+                        data[offset + 2] = r;
+                    }
+                }
+
+                data
+            })
+            .unwrap()
+            .await;
+
+        cairo::ImageSurface::create_for_data(data, cairo::Format::Rgb24, size, size, stride)
+            .unwrap()
     }
 }
