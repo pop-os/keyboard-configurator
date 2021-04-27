@@ -56,9 +56,14 @@ impl Mode {
     pub fn is_per_key(&self) -> bool {
         self.index == 1
     }
+
+    pub fn is_disabled(&self) -> bool {
+        self.index == 14
+    }
 }
 
 static MODES: &[Mode] = &[
+    Mode::new(14, "DISABLED", "Disabled", false, false),
     Mode::new(0, "SOLID_COLOR", "Solid Color", true, false),
     Mode::new(1, "PER_KEY", "Per Key", true, false),
     Mode::new(2, "CYCLE_ALL", "Cosmic Background", false, true),

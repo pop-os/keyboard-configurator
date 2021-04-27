@@ -17,6 +17,7 @@ pub struct BacklightInner {
     color_label: DerefCell<gtk::Label>,
     color_row: DerefCell<gtk::ListBoxRow>,
     brightness_scale: DerefCell<gtk::Scale>,
+    brightness_row: DerefCell<gtk::ListBoxRow>,
     saturation_scale: DerefCell<gtk::Scale>,
     saturation_row: DerefCell<gtk::ListBoxRow>,
     mode_combobox: DerefCell<gtk::ComboBoxText>,
@@ -132,6 +133,9 @@ impl ObjectImpl for BacklightInner {
             ..pack_end(&keyboard_color, false, false, 0);
             ..pack_end(&disable_color_button, false, false, 0);
         });
+        let brightness_row = cascade! {
+            label_row("Brightness (all layers):", &brightness_scale);
+        };
 
         cascade! {
             obj;
@@ -141,9 +145,7 @@ impl ObjectImpl for BacklightInner {
             ..add(&speed_row);
             ..add(&saturation_row);
             ..add(&color_row);
-            ..add(&cascade! {
-                label_row("Brightness (all layers):", &brightness_scale);
-            });
+            ..add(&brightness_row);
         };
 
         self.disable_color_button.set(disable_color_button);
@@ -151,6 +153,7 @@ impl ObjectImpl for BacklightInner {
         self.color_label.set(color_label);
         self.color_row.set(color_row);
         self.brightness_scale.set(brightness_scale);
+        self.brightness_row.set(brightness_row);
         self.mode_combobox.set(mode_combobox);
         self.mode_row.set(mode_row);
         self.speed_scale.set(speed_scale);
@@ -293,7 +296,9 @@ impl Backlight {
         } else if row == &*inner.color_row {
             self.mode().has_hue
         } else if row == &*inner.saturation_row {
-            !self.mode().has_hue
+            !self.mode().has_hue && !self.mode().is_disabled()
+        } else if row == &*inner.brightness_row {
+            !self.mode().is_disabled()
         } else {
             true
         }
