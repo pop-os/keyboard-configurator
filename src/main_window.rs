@@ -285,7 +285,7 @@ impl MainWindow {
         let app: ConfiguratorApp = self.get_application().unwrap().downcast().unwrap();
 
         let keyboard = cascade! {
-            Keyboard::new(board, app.debug_layers());
+            Keyboard::new(board, app.debug_layers(), app.launch_test());
             ..set_halign(gtk::Align::Center);
             ..show_all();
         };

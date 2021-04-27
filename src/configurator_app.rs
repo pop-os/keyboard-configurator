@@ -10,6 +10,7 @@ use backend::DerefCell;
 pub struct ConfiguratorAppInner {
     phony_board_names: DerefCell<Vec<String>>,
     debug_layers: Cell<bool>,
+    launch_test: Cell<bool>,
 }
 
 #[glib::object_subclass]
@@ -41,6 +42,14 @@ impl ObjectImpl for ConfiguratorAppInner {
             "",
             None,
         );
+        app.add_main_option(
+            "launch-test",
+            glib::Char::new('\0').unwrap(),
+            glib::OptionFlags::NONE,
+            glib::OptionArg::None,
+            "",
+            None,
+        );
     }
 }
 
@@ -60,6 +69,7 @@ impl ApplicationImpl for ConfiguratorAppInner {
 
         self.phony_board_names.set(board_names);
         self.debug_layers.set(opts.contains("debug-layers"));
+        self.launch_test.set(opts.contains("launch-test"));
         -1
     }
 
@@ -114,6 +124,10 @@ impl ConfiguratorApp {
 
     pub fn debug_layers(&self) -> bool {
         self.inner().debug_layers.get()
+    }
+
+    pub fn launch_test(&self) -> bool {
+        self.inner().launch_test.get()
     }
 }
 

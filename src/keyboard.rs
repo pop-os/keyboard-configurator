@@ -11,7 +11,7 @@ use std::{
     str,
 };
 
-use crate::{show_error_dialog, Backlight, KeyboardLayer, MainWindow, Page, Picker};
+use crate::{show_error_dialog, Backlight, KeyboardLayer, MainWindow, Page, Picker, Testing};
 use backend::{Board, DerefCell, KeyMap, Layout};
 use widgets::SelectedKeys;
 
@@ -26,6 +26,7 @@ pub struct KeyboardInner {
     stack: DerefCell<gtk::Stack>,
     picker_box: DerefCell<gtk::Box>,
     backlight: DerefCell<Backlight>,
+    testing: DerefCell<Testing>,
 }
 
 #[glib::object_subclass]
@@ -65,8 +66,14 @@ impl ObjectImpl for KeyboardInner {
 
         let picker_box = gtk::Box::new(gtk::Orientation::Vertical, 0);
 
+        let testing = cascade! {
+            Testing::new();
+            ..set_halign(gtk::Align::Center);
+        };
+
         let stack = cascade! {
             gtk::Stack::new();
+            ..add_titled(&testing, "testing", "Testing");
             ..add_titled(&picker_box, "keymap", "Keymap");
         };
 
@@ -117,6 +124,7 @@ impl ObjectImpl for KeyboardInner {
         self.layer_stack.set(layer_stack);
         self.stack.set(stack);
         self.picker_box.set(picker_box);
+        self.testing.set(testing);
     }
 
     fn properties() -> &'static [glib::ParamSpec] {
@@ -170,7 +178,7 @@ glib::wrapper! {
 }
 
 impl Keyboard {
-    pub fn new(board: Board, debug_layers: bool) -> Self {
+    pub fn new(board: Board, debug_layers: bool, launch_test: bool) -> Self {
         let keyboard: Self = glib::Object::new(&[]).unwrap();
 
         let backlight = cascade! {
@@ -184,6 +192,9 @@ impl Keyboard {
             .inner()
             .stack
             .add_titled(&backlight, "leds", "LEDs");
+        if !launch_test {
+            keyboard.inner().stack.remove(&*keyboard.inner().testing);
+        }
 
         keyboard.inner().board.set(board);
         keyboard.inner().backlight.set(backlight);

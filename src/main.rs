@@ -16,11 +16,12 @@ mod main_window;
 mod page;
 mod picker;
 mod shortcuts_window;
+mod testing;
 
 pub use self::configurator_app::run;
 use self::{
     backlight::*, configurator_app::*, error_dialog::*, keyboard::*, keyboard_layer::*,
-    main_window::*, page::*, picker::*, shortcuts_window::*,
+    main_window::*, page::*, picker::*, shortcuts_window::*, testing::*,
 };
 
 fn main() {
