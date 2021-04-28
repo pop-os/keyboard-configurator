@@ -1,9 +1,14 @@
+use backend::DerefCell;
 use cascade::cascade;
 use gtk::prelude::*;
 use gtk::subclass::prelude::*;
 
 #[derive(Default)]
-pub struct TestingInner {}
+pub struct TestingInner {
+    num_runs_entry: DerefCell<gtk::Entry>,
+    serial_entry: DerefCell<gtk::Entry>,
+    test_button: DerefCell<gtk::Button>,
+}
 
 #[glib::object_subclass]
 impl ObjectSubclass for TestingInner {
@@ -35,6 +40,10 @@ impl ObjectImpl for TestingInner {
             })
         }
 
+        let num_runs_entry = gtk::Entry::new();
+        let serial_entry = gtk::Entry::new();
+        let test_button = gtk::Button::with_label("Test");
+
         cascade! {
             obj;
             ..set_valign(gtk::Align::Start);
@@ -42,12 +51,25 @@ impl ObjectImpl for TestingInner {
             ..add(&row(&cascade! {
                 gtk::Label::new(Some("Testing"));
             }));
-            ..add(&label_row("Number of runs", &gtk::Entry::new()));
-            ..add(&row(&cascade! {
-                gtk::Button::with_label("Test");
-            }));
+            ..add(&label_row("Number of runs", &num_runs_entry));
+            ..add(&label_row("Serial", &serial_entry));
+            ..add(&row(&test_button));
+            ..set_header_func(Some(Box::new(|row, before| {
+                if before.is_none() {
+                    row.set_header::<gtk::Widget>(None)
+                } else if row.get_header().is_none() {
+                    row.set_header(Some(&cascade! {
+                        gtk::Separator::new(gtk::Orientation::Horizontal);
+                        ..show();
+                    }));
+                }
+            })));
             ..show_all();
         };
+
+        self.num_runs_entry.set(num_runs_entry);
+        self.serial_entry.set(serial_entry);
+        self.test_button.set(test_button);
     }
 }
 
