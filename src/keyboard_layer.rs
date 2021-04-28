@@ -315,7 +315,7 @@ impl KeyboardLayer {
     fn wide_height(&self) -> i32 {
         self.keys_maximize(&self.inner().wide_height, |k| {
             let pos = self.key_position_wide(k);
-            (pos.y + pos.h) as i32
+            (pos.y + pos.h + 4.) as i32
         })
     }
 
