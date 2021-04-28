@@ -1,4 +1,4 @@
-use backend::{DerefCell, Rgb};
+use backend::{Board, DerefCell, Rgb};
 use cascade::cascade;
 use gtk::prelude::*;
 use gtk::subclass::prelude::*;
@@ -10,6 +10,7 @@ pub struct TestingColors(pub HashMap<usize, Rgb>);
 
 #[derive(Default)]
 pub struct TestingInner {
+    board: DerefCell<Board>,
     num_runs_entry: DerefCell<gtk::Entry>,
     serial_entry: DerefCell<gtk::Entry>,
     test_button: DerefCell<gtk::Button>,
@@ -73,8 +74,8 @@ impl ObjectImpl for TestingInner {
             ..show_all();
         };
 
-        //self.colors.borrow_mut().0.insert(0, Rgb::new(255, 0, 0));
-        //self.colors.borrow_mut().0.insert(1, Rgb::new(255, 255, 0));
+        self.colors.borrow_mut().0.insert(0, Rgb::new(255, 0, 0));
+        self.colors.borrow_mut().0.insert(1, Rgb::new(255, 255, 0));
 
         self.num_runs_entry.set(num_runs_entry);
         self.serial_entry.set(serial_entry);
@@ -115,8 +116,9 @@ glib::wrapper! {
 }
 
 impl Testing {
-    pub fn new() -> Self {
+    pub fn new(board: Board) -> Self {
         let obj: Self = glib::Object::new(&[]).unwrap();
+        obj.inner().board.set(board);
         obj
     }
 

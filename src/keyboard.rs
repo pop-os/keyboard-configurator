@@ -26,7 +26,7 @@ pub struct KeyboardInner {
     stack: DerefCell<gtk::Stack>,
     picker_box: DerefCell<gtk::Box>,
     backlight: DerefCell<Backlight>,
-    testing: DerefCell<Testing>,
+    testing: DerefCell<Option<Testing>>,
 }
 
 #[glib::object_subclass]
@@ -66,15 +66,9 @@ impl ObjectImpl for KeyboardInner {
 
         let picker_box = gtk::Box::new(gtk::Orientation::Vertical, 0);
 
-        let testing = cascade! {
-            Testing::new();
-            ..set_halign(gtk::Align::Center);
-        };
-
         let stack = cascade! {
             gtk::Stack::new();
-            ..add_titled(&testing, "testing", "Testing");
-            ..add_titled(&picker_box, "keymap", "Keymap");
+
         };
 
         let stack_switcher = cascade! {
@@ -124,7 +118,6 @@ impl ObjectImpl for KeyboardInner {
         self.layer_stack.set(layer_stack);
         self.stack.set(stack);
         self.picker_box.set(picker_box);
-        self.testing.set(testing);
     }
 
     fn properties() -> &'static [glib::ParamSpec] {
@@ -181,6 +174,21 @@ impl Keyboard {
     pub fn new(board: Board, debug_layers: bool, launch_test: bool) -> Self {
         let keyboard: Self = glib::Object::new(&[]).unwrap();
 
+        let stack = &keyboard.inner().stack;
+
+        if launch_test {
+            let testing = cascade! {
+                Testing::new(board.clone());
+                ..set_halign(gtk::Align::Center);
+            };
+            stack.add_titled(&testing, "testing", "Testing");
+            keyboard.inner().testing.set(Some(testing));
+        } else {
+            keyboard.inner().testing.set(None);
+        }
+
+        stack.add_titled(&*keyboard.inner().picker_box, "keymap", "Keymap");
+
         let backlight = cascade! {
             Backlight::new(board.clone());
             ..set_halign(gtk::Align::Center);
@@ -192,9 +200,6 @@ impl Keyboard {
             .inner()
             .stack
             .add_titled(&backlight, "leds", "LEDs");
-        if !launch_test {
-            keyboard.inner().stack.remove(&*keyboard.inner().testing);
-        }
 
         keyboard.inner().board.set(board);
         keyboard.inner().backlight.set(backlight);
@@ -400,11 +405,12 @@ impl Keyboard {
                 .bind_property("is-per-key", &keyboard_layer, "multiple")
                 .flags(glib::BindingFlags::SYNC_CREATE)
                 .build();
-            self.inner()
-                .testing
-                .bind_property("colors", &keyboard_layer, "testing-colors")
-                .flags(glib::BindingFlags::SYNC_CREATE)
-                .build();
+            if let Some(testing) = &*self.inner().testing {
+                testing
+                    .bind_property("colors", &keyboard_layer, "testing-colors")
+                    .flags(glib::BindingFlags::SYNC_CREATE)
+                    .build();
+            }
             layer_stack.add_titled(&keyboard_layer, page.name(), page.name());
 
             self.inner().action_group.add_action(&cascade! {
