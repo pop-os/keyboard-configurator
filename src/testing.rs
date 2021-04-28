@@ -1,13 +1,19 @@
-use backend::DerefCell;
+use backend::{DerefCell, Rgb};
 use cascade::cascade;
 use gtk::prelude::*;
 use gtk::subclass::prelude::*;
+use std::{cell::RefCell, collections::HashMap};
+
+#[derive(Clone, Default, glib::GBoxed)]
+#[gboxed(type_name = "S76TestingColor")]
+pub struct TestingColors(pub HashMap<usize, Rgb>);
 
 #[derive(Default)]
 pub struct TestingInner {
     num_runs_entry: DerefCell<gtk::Entry>,
     serial_entry: DerefCell<gtk::Entry>,
     test_button: DerefCell<gtk::Button>,
+    colors: RefCell<TestingColors>,
 }
 
 #[glib::object_subclass]
@@ -67,9 +73,35 @@ impl ObjectImpl for TestingInner {
             ..show_all();
         };
 
+        //self.colors.borrow_mut().0.insert(0, Rgb::new(255, 0, 0));
+        //self.colors.borrow_mut().0.insert(1, Rgb::new(255, 255, 0));
+
         self.num_runs_entry.set(num_runs_entry);
         self.serial_entry.set(serial_entry);
         self.test_button.set(test_button);
+    }
+
+    fn properties() -> &'static [glib::ParamSpec] {
+        use once_cell::sync::Lazy;
+
+        static PROPERTIES: Lazy<Vec<glib::ParamSpec>> = Lazy::new(|| {
+            vec![glib::ParamSpec::boxed(
+                "colors",
+                "colors",
+                "colors",
+                TestingColors::get_type(),
+                glib::ParamFlags::READABLE,
+            )]
+        });
+
+        PROPERTIES.as_ref()
+    }
+
+    fn get_property(&self, _obj: &Self::Type, _id: usize, pspec: &glib::ParamSpec) -> glib::Value {
+        match pspec.get_name() {
+            "colors" => self.colors.borrow().to_value(),
+            _ => unimplemented!(),
+        }
     }
 }
 

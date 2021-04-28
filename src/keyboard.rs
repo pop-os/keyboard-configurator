@@ -400,6 +400,11 @@ impl Keyboard {
                 .bind_property("is-per-key", &keyboard_layer, "multiple")
                 .flags(glib::BindingFlags::SYNC_CREATE)
                 .build();
+            self.inner()
+                .testing
+                .bind_property("colors", &keyboard_layer, "testing-colors")
+                .flags(glib::BindingFlags::SYNC_CREATE)
+                .build();
             layer_stack.add_titled(&keyboard_layer, page.name(), page.name());
 
             self.inner().action_group.add_action(&cascade! {

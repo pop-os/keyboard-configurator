@@ -8,7 +8,7 @@ use std::{
     f64::consts::PI,
 };
 
-use crate::Page;
+use crate::{Page, TestingColors};
 use backend::{Board, DerefCell, Key, Layer, Rect, Rgb};
 use widgets::SelectedKeys;
 
@@ -27,6 +27,7 @@ pub struct KeyboardLayerInner {
     wide_width: OnceCell<i32>,
     wide_height: OnceCell<i32>,
     narrow_width: OnceCell<i32>,
+    testing_colors: RefCell<TestingColors>,
 }
 
 #[glib::object_subclass]
@@ -61,6 +62,13 @@ impl ObjectImpl for KeyboardLayerInner {
                     false,
                     glib::ParamFlags::READWRITE,
                 ),
+                glib::ParamSpec::boxed(
+                    "testing-colors",
+                    "testing-colors",
+                    "testing-colors",
+                    TestingColors::get_type(),
+                    glib::ParamFlags::READWRITE,
+                ),
             ]
         });
 
@@ -77,6 +85,11 @@ impl ObjectImpl for KeyboardLayerInner {
         match pspec.get_name() {
             "selected" => widget.set_selected(value.get_some::<&SelectedKeys>().unwrap().clone()),
             "multiple" => widget.set_multiple(value.get_some().unwrap()),
+            "testing-colors" => {
+                self.testing_colors
+                    .replace(value.get_some::<&TestingColors>().unwrap().clone());
+                widget.queue_draw();
+            }
             _ => unimplemented!(),
         }
     }
@@ -90,6 +103,7 @@ impl ObjectImpl for KeyboardLayerInner {
         match pspec.get_name() {
             "selected" => self.selected.borrow().to_value(),
             "multiple" => self.multiple.get().to_value(),
+            "testing-colors" => self.testing_colors.borrow().to_value(),
             _ => unimplemented!(),
         }
     }
@@ -111,10 +125,17 @@ impl WidgetImpl for KeyboardLayerInner {
             .unwrap_or_default();
         let selected = Rgb::new(0xfb, 0xb8, 0x6c).to_floats();
 
+        let testing_colors = self.testing_colors.borrow();
+
         for (i, k) in widget.keys().iter().enumerate() {
             let Rect { x, y, w, h } = widget.key_position(&k);
 
-            let mut bg = k.background_color.to_floats();
+            let mut bg = if let Some(rgb) = testing_colors.0.get(&i) {
+                rgb
+            } else {
+                &k.background_color
+            }
+            .to_floats();
 
             let border_color = layer.and_then(|layer| {
                 if is_per_key {
