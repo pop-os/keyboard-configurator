@@ -47,6 +47,13 @@ impl Matrix {
     }
 }
 
+
+#[derive(Deserialize, Serialize)]
+pub struct Nelson {
+    pub missing: Matrix,
+    pub bouncing: Matrix,
+}
+
 pub trait DaemonClientTrait: Send + 'static {
     fn send_command(&self, command: DaemonCommand) -> Result<DaemonResponse, String>;
 }
@@ -114,6 +121,7 @@ commands! {
     fn keymap_get(&self, board: BoardId, layer: u8, output: u8, input: u8) -> Result<u16, String>;
     fn keymap_set(&self, board: BoardId, layer: u8, output: u8, input: u8, value: u16) -> Result<(), String>;
     fn matrix_get(&self, board: BoardId) -> Result<Matrix, String>;
+    fn nelson(&self, board: BoardId) -> Result<Nelson, String>;
     fn color(&self, board: BoardId, index: u8) -> Result<(u8, u8, u8), String>;
     fn set_color(&self, board: BoardId, index: u8, color: (u8, u8, u8)) -> Result<(), String>;
     fn max_brightness(&self, board: BoardId) -> Result<i32, String>;

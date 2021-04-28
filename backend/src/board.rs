@@ -8,7 +8,7 @@ use once_cell::sync::Lazy;
 use std::{cell::Cell, collections::HashMap, sync::Arc};
 
 use crate::daemon::ThreadClient;
-use crate::{BoardId, Daemon, DerefCell, Key, KeyMap, Layer, Layout, Matrix};
+use crate::{BoardId, Daemon, DerefCell, Key, KeyMap, Layer, Layout, Matrix, Nelson};
 
 #[derive(Default)]
 #[doc(hidden)]
@@ -176,6 +176,10 @@ impl Board {
 
     pub fn max_brightness(&self) -> i32 {
         *self.inner().max_brightness
+    }
+
+    pub async fn nelson(&self) -> Result<Nelson, String> {
+        self.thread_client().nelson(self.board()).await
     }
 
     pub async fn led_save(&self) -> Result<(), String> {

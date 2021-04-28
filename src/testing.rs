@@ -130,6 +130,13 @@ impl Testing {
     pub fn new(board: Board) -> Self {
         let obj: Self = glib::Object::new(&[]).unwrap();
         obj.inner().board.set(board);
+
+        let obj_test = obj.clone();
+        obj.test_button.connect_clicked(move |_| {
+            //TODO
+            let nelson = obj_test.inner().board.nelson().expect("Failed to get nelson result");
+        });
+
         obj
     }
 

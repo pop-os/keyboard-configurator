@@ -11,7 +11,7 @@ use std::{
 };
 use uuid::Uuid;
 
-use super::{err_str, BoardId, Daemon, DaemonCommand};
+use super::{err_str, BoardId, Daemon, DaemonCommand, Nelson};
 use crate::Matrix;
 
 pub struct DaemonServer<R: Read + Send + 'static, W: Write + Send + 'static> {
@@ -21,6 +21,7 @@ pub struct DaemonServer<R: Read + Send + 'static, W: Write + Send + 'static> {
     write: W,
     boards: RefCell<HashMap<BoardId, (Ec<Box<dyn Access>>, Option<DeviceInfo>)>>,
     board_ids: RefCell<Vec<BoardId>>,
+    nelson: RefCell<Option<Ec<AccessHid>>>,
 }
 
 impl DaemonServer<io::Stdin, io::Stdout> {
@@ -68,6 +69,7 @@ impl<R: Read + Send + 'static, W: Write + Send + 'static> DaemonServer<R, W> {
             write,
             boards: RefCell::new(boards),
             board_ids: RefCell::new(board_ids),
+            nelson: RefCell::new(None),
         })
     }
 
@@ -156,6 +158,10 @@ impl<R: Read + Send + 'static, W: Write + Send + 'static> Daemon for DaemonServe
         let rows = data.remove(0) as usize;
         let cols = data.remove(0) as usize;
         Ok(Matrix::new(rows, cols, data.into_boxed_slice()))
+    }
+
+    fn nelson(&self, board: BoardId) -> Result<Nelson, String> {
+        Err("Unimplemented".to_string())
     }
 
     fn color(&self, board: BoardId, index: u8) -> Result<(u8, u8, u8), String> {
@@ -262,7 +268,37 @@ impl<R: Read + Send + 'static, W: Write + Send + 'static> Daemon for DaemonServe
                                 error!("Failed to open USB HID EC at {:?}: {:?}", info.path(), err)
                             }
                         }
-                    }
+                    },
+                    // System76 launch-nelson
+                    (0x3384, 0x0002, 0) => {
+                        if self.nelson.borrow().is_some() {
+                            continue;
+                        }
+
+                        match info.open_device(&api) {
+                            Ok(device) => match AccessHid::new(device, 10, 1000) {
+                                Ok(access) => match unsafe { Ec::new(access) } {
+                                    Ok(ec) => {
+                                        info!("Adding Nelson at {:?}", info.path());
+                                        *self.nelson.borrow_mut() = Some(ec);
+                                    }
+                                    Err(err) => error!(
+                                        "Failed to probe Nelson at {:?}: {:?}",
+                                        info.path(),
+                                        err
+                                    ),
+                                },
+                                Err(err) => error!(
+                                    "Failed to access Nelson at {:?}: {:?}",
+                                    info.path(),
+                                    err
+                                ),
+                            },
+                            Err(err) => {
+                                error!("Failed to open Nelson at {:?}: {:?}", info.path(), err)
+                            }
+                        }
+                    },
                     _ => (),
                 }
             }

@@ -4,7 +4,7 @@ use std::{
 };
 
 use super::{BoardId, Daemon};
-use crate::Matrix;
+use crate::{Matrix, Nelson};
 
 #[derive(Default)]
 struct BoardDummy {
@@ -73,6 +73,13 @@ impl Daemon for DaemonDummy {
 
     fn matrix_get(&self, _board: BoardId) -> Result<Matrix, String> {
         Ok(Matrix::new(0, 0, Vec::new().into_boxed_slice()))
+    }
+
+    fn nelson(&self, _board: BoardId) -> Result<Nelson, String> {
+        Ok(Nelson {
+            missing: Matrix::new(0, 0, Vec::new().into_boxed_slice()),
+            bouncing: Matrix::new(0, 0, Vec::new().into_boxed_slice()),
+        })
     }
 
     fn color(&self, board: BoardId, index: u8) -> Result<(u8, u8, u8), String> {
