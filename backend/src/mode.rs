@@ -64,8 +64,9 @@ impl Mode {
 
 static MODES: &[Mode] = &[
     Mode::new(14, "DISABLED", "Disabled", false, false),
-    Mode::new(0, "SOLID_COLOR", "Solid Color", true, false),
-    Mode::new(1, "PER_KEY", "Per Key", true, false),
+    Mode::new(0, "SOLID_COLOR", "Per Layer Solid Color", true, false),
+    Mode::new(1, "PER_KEY", "Custom Per Key Solid", true, false),
+    Mode::new(13, "ACTIVE_KEYS", "Bound Keys Only", true, false),
     Mode::new(2, "CYCLE_ALL", "Cosmic Background", false, true),
     Mode::new(3, "CYCLE_LEFT_RIGHT", "Horizonal Scan", false, true),
     Mode::new(4, "CYCLE_UP_DOWN", "Vertical Scan", false, true),
@@ -77,5 +78,4 @@ static MODES: &[Mode] = &[
     Mode::new(10, "RAINDROPS", "Elements", false, false),
     Mode::new(11, "SPLASH", "Splashdown", false, true),
     Mode::new(12, "MULTISPLASH", "Meteor Shower", false, true),
-    Mode::new(13, "ACTIVE_KEYS", "Bound Keys", true, false),
 ];
