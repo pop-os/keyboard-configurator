@@ -47,6 +47,18 @@ impl ObjectImpl for TestingInner {
             })
         }
 
+        fn color_box(r: f64, g: f64, b: f64) -> gtk::DrawingArea {
+            cascade! {
+                gtk::DrawingArea::new();
+                ..set_size_request(18, 18);
+                ..connect_draw(move |_w, cr| {
+                    cr.set_source_rgb(r, g, b);
+                    cr.paint();
+                    Inhibit(false)
+                });
+            }
+        }
+
         let num_runs_entry = gtk::Entry::new();
         let serial_entry = gtk::Entry::new();
         let test_button = gtk::Button::with_label("Test");
@@ -55,9 +67,8 @@ impl ObjectImpl for TestingInner {
             obj;
             ..set_valign(gtk::Align::Start);
             ..get_style_context().add_class("frame");
-            ..add(&row(&cascade! {
-                gtk::Label::new(Some("Testing"));
-            }));
+            ..add(&label_row("Check pins", &color_box(1., 0., 0.)));
+            ..add(&label_row("Replace switch", &color_box(0., 0., 1.)));
             ..add(&label_row("Number of runs", &num_runs_entry));
             ..add(&label_row("Serial", &serial_entry));
             ..add(&row(&test_button));
@@ -75,7 +86,7 @@ impl ObjectImpl for TestingInner {
         };
 
         self.colors.borrow_mut().0.insert(0, Rgb::new(255, 0, 0));
-        self.colors.borrow_mut().0.insert(1, Rgb::new(255, 255, 0));
+        self.colors.borrow_mut().0.insert(1, Rgb::new(0, 0, 255));
 
         self.num_runs_entry.set(num_runs_entry);
         self.serial_entry.set(serial_entry);
