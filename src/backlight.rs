@@ -119,6 +119,7 @@ impl ObjectImpl for BacklightInner {
 
         let disable_color_button = cascade! {
             gtk::Button::with_label("Disable");
+            ..set_no_show_all(true);
             ..connect_clicked(clone!(@weak obj => move |_| obj.disable_color_clicked()));
         };
 
@@ -272,7 +273,7 @@ impl Backlight {
                 return mode;
             }
         }
-        &Mode::all()[0]
+        Mode::from_id("SOLID_COLOR").unwrap()
     }
 
     fn header_func(&self, row: &gtk::ListBoxRow, before: Option<&gtk::ListBoxRow>) {
@@ -294,11 +295,11 @@ impl Backlight {
         } else if row == &*inner.speed_row {
             layout.meta.has_mode && self.mode().has_speed
         } else if row == &*inner.color_row {
-            self.mode().has_hue
+            !layout.meta.has_mode || self.mode().has_hue
         } else if row == &*inner.saturation_row {
             !self.mode().has_hue && !self.mode().is_disabled()
         } else if row == &*inner.brightness_row {
-            !self.mode().is_disabled()
+            !layout.meta.has_mode || !self.mode().is_disabled()
         } else {
             true
         }
