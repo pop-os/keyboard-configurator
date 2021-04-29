@@ -286,16 +286,14 @@ impl Picker {
         for (i, group) in groups.iter().enumerate() {
             let width = group.vbox.get_preferred_width().1;
 
-            let mut new_row_width = row_width + width;
+            row_width += width;
             if i != 0 {
-                new_row_width += HSPACING;
+                row_width += HSPACING;
             }
-            if i - row_start >= DEFAULT_COLS || new_row_width > container_width {
+            if i - row_start >= DEFAULT_COLS || row_width > container_width {
                 rows.push(&groups[row_start..i]);
                 row_start = i;
                 row_width = width;
-            } else {
-                row_width = new_row_width;
             }
         }
 
