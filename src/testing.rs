@@ -130,7 +130,9 @@ impl Testing {
         obj.inner().board.set(board);
 
         let obj_btn = obj.clone();
-        obj.inner().test_button.connect_clicked(move |_| {
+        obj.inner().test_button.connect_clicked(move |button| {
+            button.set_sensitive(false);
+
             let obj_nelson = obj_btn.clone();
             glib::MainContext::default().spawn_local(async move {
                 let testing = obj_nelson.inner();
@@ -151,6 +153,8 @@ impl Testing {
                 }
 
                 obj_nelson.notify("colors");
+
+                testing.test_button.set_sensitive(true);
             });
         });
 
