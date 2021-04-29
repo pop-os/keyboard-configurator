@@ -81,13 +81,18 @@ impl ObjectImpl for KeyboardInner {
         cascade! {
             keyboard;
             ..set_orientation(gtk::Orientation::Vertical);
-            ..set_spacing(18);
+            ..set_spacing(32);
             ..add(&stack_switcher);
             ..add(&layer_stack);
             ..add(&cascade! {
-                gtk::Label::new(Some("Select a key on the keymap to change its settings. Shift + click to select more than one key."));
-                ..set_halign(gtk::Align::Start);
-                ..set_margin_bottom(18);
+                gtk::Label::new(Some(concat!(
+                    "Select a key on the keymap to change its settings. ",
+                    "Choose per key Solid Pattern to customize each key's LED color. ",
+                    "Shift + click to select more than one key. ",
+                    "Your settings are automatically saved to firmware.")));
+                ..set_line_wrap(true);
+                ..set_max_width_chars(100);
+                ..set_halign(gtk::Align::Center);
             });
             ..add(&stack);
         };
