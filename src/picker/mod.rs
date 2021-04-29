@@ -250,8 +250,8 @@ impl Picker {
             for group in self.inner().groups.iter() {
                 for key in group.iter_keys() {
                     // Check that scancode is available for the keyboard
-                    let sensitive = kb.has_scancode(&key.name);
-                    key.gtk.set_sensitive(sensitive);
+                    let visible = kb.has_scancode(&key.name);
+                    key.gtk.set_visible(visible);
                 }
             }
             kb.set_picker(Some(&self));
