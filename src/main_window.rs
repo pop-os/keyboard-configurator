@@ -65,8 +65,8 @@ impl ObjectImpl for MainWindowInner {
             gio::Menu::new();
             ..append_section(None, &cascade! {
                 gio::Menu::new();
-                ..append(Some("Load Layout"), Some("kbd.load"));
-                ..append(Some("Save Layout"), Some("kbd.save"));
+                ..append(Some("Import Layout"), Some("kbd.import"));
+                ..append(Some("Export Layout"), Some("kbd.export"));
                 ..append(Some("Reset Layout"), Some("kbd.reset"));
             });
             ..append_section(None, &cascade! {

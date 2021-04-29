@@ -13,15 +13,15 @@
             <child>
               <object class="GtkShortcutsShortcut">
                 <property name="visible">True</property>
-                <property name="title" translatable="yes">Load Layout</property>
-                <property name="action-name">kbd.load</property>
+                <property name="title" translatable="yes">Import Layout</property>
+                <property name="action-name">kbd.import</property>
               </object>
             </child>
             <child>
               <object class="GtkShortcutsShortcut">
                 <property name="visible">True</property>
-                <property name="title" translatable="yes">Save Layout</property>
-                <property name="action-name">kbd.save</property>
+                <property name="title" translatable="yes">Export Layout</property>
+                <property name="action-name">kbd.export</property>
               </object>
             </child>
           </object>

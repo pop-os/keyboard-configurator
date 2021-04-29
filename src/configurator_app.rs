@@ -82,8 +82,8 @@ impl ApplicationImpl for ConfiguratorAppInner {
         };
 
         app.add_action(&about_action);
-        app.set_accels_for_action("kbd.load", &["<Primary>o"]);
-        app.set_accels_for_action("kbd.save", &["<Primary>s"]);
+        app.set_accels_for_action("kbd.import", &["<Primary>o"]);
+        app.set_accels_for_action("kbd.export", &["<Primary>e"]);
         for (i, _) in Page::iter_all().enumerate() {
             app.set_accels_for_action(&format!("kbd.page{}", i), &[&format!("<Primary>{}", i + 1)]);
         }

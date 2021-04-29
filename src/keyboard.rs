@@ -95,15 +95,15 @@ impl ObjectImpl for KeyboardInner {
         let action_group = cascade! {
             gio::SimpleActionGroup::new();
             ..add_action(&cascade! {
-                gio::SimpleAction::new("load", None);
+                gio::SimpleAction::new("import", None);
                 ..connect_activate(clone!(@weak keyboard => move |_, _|
-                    keyboard.load();
+                    keyboard.import();
                 ));
             });
             ..add_action(&cascade! {
-                gio::SimpleAction::new("save", None);
+                gio::SimpleAction::new("export", None);
                 ..connect_activate(clone!(@weak keyboard => move |_, _|
-                    keyboard.save();
+                    keyboard.export();
                 ));
             });
             ..add_action(&cascade! {
@@ -312,7 +312,7 @@ impl Keyboard {
         });
     }
 
-    fn load(&self) {
+    fn import(&self) {
         let filter = cascade! {
             gtk::FileFilter::new();
             ..set_name(Some("JSON"));
@@ -320,7 +320,7 @@ impl Keyboard {
         };
 
         let chooser = cascade! {
-            gtk::FileChooserNative::new::<gtk::Window>(Some("Load Layout"), None, gtk::FileChooserAction::Open, Some("Load"), Some("Cancel"));
+            gtk::FileChooserNative::new::<gtk::Window>(Some("Import Layout"), None, gtk::FileChooserAction::Open, Some("Import"), Some("Cancel"));
             ..add_filter(&filter);
         };
 
@@ -338,7 +338,7 @@ impl Keyboard {
         }
     }
 
-    fn save(&self) {
+    fn export(&self) {
         let filter = cascade! {
             gtk::FileFilter::new();
             ..set_name(Some("JSON"));
@@ -346,7 +346,7 @@ impl Keyboard {
         };
 
         let chooser = cascade! {
-            gtk::FileChooserNative::new::<gtk::Window>(Some("Save Layout"), None, gtk::FileChooserAction::Save, Some("Save"), Some("Cancel"));
+            gtk::FileChooserNative::new::<gtk::Window>(Some("Export Layout"), None, gtk::FileChooserAction::Save, Some("Export"), Some("Cancel"));
             ..add_filter(&filter);
         };
 
