@@ -84,16 +84,6 @@ impl ObjectImpl for KeyboardInner {
             ..set_spacing(32);
             ..add(&stack_switcher);
             ..add(&layer_stack);
-            ..add(&cascade! {
-                gtk::Label::new(Some(concat!(
-                    "Select a key on the keymap to change its settings. ",
-                    "Choose per key Solid Pattern to customize each key's LED color. ",
-                    "Shift + click to select more than one key. ",
-                    "Your settings are automatically saved to firmware.")));
-                ..set_line_wrap(true);
-                ..set_max_width_chars(100);
-                ..set_halign(gtk::Align::Center);
-            });
             ..add(&stack);
         };
 
@@ -192,19 +182,49 @@ impl Keyboard {
             keyboard.inner().testing.set(None);
         }
 
-        stack.add_titled(&*keyboard.inner().picker_box, "keymap", "Keymap");
+        stack.add_titled(
+            &cascade! {
+                gtk::Box::new(gtk::Orientation::Vertical, 32);
+                ..add(&cascade! {
+                    gtk::Label::new(Some(concat!(
+                        "Select a key on the keymap to change its settings. ",
+                        "Your settings are automatically saved to firmware.")));
+                    ..set_line_wrap(true);
+                    ..set_max_width_chars(100);
+                    ..set_halign(gtk::Align::Center);
+                });
+                ..add(&*keyboard.inner().picker_box);
+            },
+            "keymap",
+            "Keymap",
+        );
 
         let backlight = cascade! {
             Backlight::new(board.clone());
             ..set_halign(gtk::Align::Center);
         };
+
         keyboard
             .bind_property("selected", &backlight, "selected")
             .build();
-        keyboard
-            .inner()
-            .stack
-            .add_titled(&backlight, "leds", "LEDs");
+        stack.add_titled(
+            &cascade! {
+                gtk::Box::new(gtk::Orientation::Vertical, 32);
+                ..add(&cascade! {
+                    gtk::Label::new(Some(concat!(
+                        "Select a key on the keymap to change its settings. ",
+                        "Choose per key Solid Pattern to customize each key's LED color. ",
+                        "Shift + click to select more than one key. ",
+                        "Your settings are automatically saved to firmware.")));
+                    ..set_line_wrap(true);
+                    ..set_max_width_chars(100);
+                    ..set_halign(gtk::Align::Center);
+                });
+                ..add(&backlight);
+            },
+            "leds",
+            "LEDs",
+        );
 
         keyboard.inner().board.set(board);
         keyboard.inner().backlight.set(backlight);

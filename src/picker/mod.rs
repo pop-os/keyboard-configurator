@@ -96,7 +96,6 @@ impl ObjectImpl for PickerInner {
 
         cascade! {
             picker;
-            ..set_has_window(false);
             ..connect_signals();
             ..show_all();
         };
@@ -174,6 +173,26 @@ impl WidgetImpl for PickerInner {
                 .unwrap()
                 + VSPACING;
         }
+    }
+
+    fn realize(&self, widget: &Self::Type) {
+        let allocation = widget.get_allocation();
+        widget.set_realized(true);
+
+        let attrs = gdk::WindowAttr {
+            x: Some(allocation.x),
+            y: Some(allocation.y),
+            width: allocation.width,
+            height: allocation.height,
+            window_type: gdk::WindowType::Child,
+            event_mask: widget.get_events(),
+            wclass: gdk::WindowWindowClass::InputOutput,
+            ..Default::default()
+        };
+
+        let window = gdk::Window::new(widget.get_parent_window().as_ref(), &attrs);
+        widget.register_window(&window);
+        widget.set_window(&window);
     }
 }
 
