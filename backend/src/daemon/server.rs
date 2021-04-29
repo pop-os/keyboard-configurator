@@ -163,23 +163,27 @@ impl<R: Read + Send + 'static, W: Write + Send + 'static> Daemon for DaemonServe
 
     fn nelson(&self, board: BoardId) -> Result<Nelson, String> {
         if let Some(nelson) = &mut *self.nelson.borrow_mut() {
-            info!("Sleep 250 ms");
-            sleep(Duration::from_millis(250));
+            let delay_ms = 1000;
+            info!("Nelson delay is {} ms", delay_ms);
+            let delay = Duration::from_millis(delay_ms);
+
+            info!("Sleep");
+            sleep(delay);
 
             // Check if Nelson is already closed
             if unsafe { nelson.led_get_value(0).map_err(err_str)?.0 > 0 } {
                 info!("Open Nelson");
                 unsafe { nelson.led_set_value(0, 0).map_err(err_str)? };
 
-                info!("Sleep 250 ms");
-                sleep(Duration::from_millis(250));
+                info!("Sleep");
+                sleep(delay);
             }
 
             info!("Close Nelson");
             unsafe { nelson.led_set_value(0, 1).map_err(err_str)? };
 
-            info!("Sleep 250 ms");
-            sleep(Duration::from_millis(250));
+            info!("Sleep");
+            sleep(delay);
 
             // Check for missing (will not be set, so invert matrix)
             let mut missing = self.matrix_get(board)?;
@@ -193,8 +197,8 @@ impl<R: Read + Send + 'static, W: Write + Send + 'static> Daemon for DaemonServe
             info!("Open Nelson");
             unsafe { nelson.led_set_value(0, 0).map_err(err_str)? };
 
-            info!("Sleep 250 ms");
-            sleep(Duration::from_millis(250));
+            info!("Sleep");
+            sleep(delay);
 
             //TODO: detect bouncing
             let mut bouncing = self.matrix_get(board)?;
