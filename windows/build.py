@@ -36,7 +36,6 @@ ADWAITA_FILES = [
     'scalable/ui/window-restore-symbolic.svg',
     'scalable/actions/edit-delete-symbolic.svg',
     'scalable/actions/go-previous-symbolic.svg',
-    'scalable/devices/input-keyboard-symbolic.svg',
     'scalable/actions/list-remove-symbolic.svg',
     'scalable/actions/list-add-symbolic.svg',
 ]

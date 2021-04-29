@@ -2,5 +2,6 @@
 <gresources>
     <gresource prefix="/com/system76/keyboardconfigurator">
       <file>icons/scalable/apps/com.system76.keyboardconfigurator.svg</file>
+      <file>icons/scalable/status/launch-keyboard-not-found.svg</file>
     </gresource>
 </gresources>
