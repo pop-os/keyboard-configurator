@@ -179,6 +179,19 @@ impl<R: Read + Send + 'static, W: Write + Send + 'static> Daemon for DaemonServe
                 sleep(delay);
             }
 
+            info!("Save and clear keymap");
+            let mut keymap = HashMap::<(u8, u8, u8), u16>::new();
+            let matrix = self.matrix_get(board)?;
+            for layer in 0..4 /* TODO */ {
+                for row in 0..matrix.rows() as u8 {
+                    for col in 0..matrix.cols() as u8 {
+                        let key = self.keymap_get(board, layer, row, col)?;
+                        keymap.insert((layer, row, col), key);
+                        self.keymap_set(board, layer, row, col, 0)?;
+                    }
+                }
+            }
+
             info!("Close Nelson");
             unsafe { nelson.led_set_value(0, 1).map_err(err_str)? };
 
@@ -209,6 +222,17 @@ impl<R: Read + Send + 'static, W: Write + Send + 'static> Daemon for DaemonServe
             }
 
             let sticking = self.matrix_get(board)?;
+
+            info!("Restore keymap");
+            for layer in 0..4 /* TODO */ {
+                for row in 0..matrix.rows() as u8 {
+                    for col in 0..matrix.cols() as u8 {
+                        if let Some(key) = keymap.get(&(layer, row, col)) {
+                            self.keymap_set(board, layer, row, col, *key)?;
+                        }
+                    }
+                }
+            }
 
             Ok(Nelson { missing, bouncing, sticking })
         } else {
