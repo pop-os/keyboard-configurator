@@ -261,6 +261,7 @@ impl MainWindow {
             .set_transition_type(gtk::StackTransitionType::SlideRight);
         inner.stack.set_visible_child(&*inner.keyboard_list_box);
         inner.header_bar.set_custom_title::<gtk::Widget>(None);
+        self.insert_action_group::<gio::ActionGroup>("kbd", None);
         inner.back_button.set_visible(false);
     }
 
