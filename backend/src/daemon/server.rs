@@ -7,6 +7,7 @@ use std::{
     collections::HashMap,
     io::{self, BufRead, BufReader, Read, Write},
     str,
+    thread::sleep,
     time::Duration,
 };
 use uuid::Uuid;
@@ -161,7 +162,54 @@ impl<R: Read + Send + 'static, W: Write + Send + 'static> Daemon for DaemonServe
     }
 
     fn nelson(&self, board: BoardId) -> Result<Nelson, String> {
-        Err("Unimplemented".to_string())
+        if let Some(nelson) = &mut *self.nelson.borrow_mut() {
+            info!("Sleep 250 ms");
+            sleep(Duration::from_millis(250));
+
+            // Check if Nelson is already closed
+            if unsafe { nelson.led_get_value(0).map_err(err_str)?.0 > 0 } {
+                info!("Open Nelson");
+                unsafe { nelson.led_set_value(0, 0).map_err(err_str)? };
+
+                info!("Sleep 250 ms");
+                sleep(Duration::from_millis(250));
+            }
+
+            info!("Close Nelson");
+            unsafe { nelson.led_set_value(0, 1).map_err(err_str)? };
+
+            info!("Sleep 250 ms");
+            sleep(Duration::from_millis(250));
+
+            // Check for missing (will not be set, so invert matrix)
+            let mut missing = self.matrix_get(board)?;
+            for row in 0..missing.rows() {
+                for col in 0..missing.cols() {
+                    let value = missing.get(row, col).unwrap_or(false);
+                    missing.set(row, col, !value);
+                }
+            }
+
+            info!("Open Nelson");
+            unsafe { nelson.led_set_value(0, 0).map_err(err_str)? };
+
+            info!("Sleep 250 ms");
+            sleep(Duration::from_millis(250));
+
+            //TODO: detect bouncing
+            let mut bouncing = self.matrix_get(board)?;
+            for row in 0..bouncing.rows() {
+                for col in 0..bouncing.cols() {
+                    bouncing.set(row, col, false);
+                }
+            }
+
+            let sticking = self.matrix_get(board)?;
+
+            Ok(Nelson { missing, bouncing, sticking })
+        } else {
+            Err(format!("failed to find Nelson"))
+        }
     }
 
     fn color(&self, board: BoardId, index: u8) -> Result<(u8, u8, u8), String> {

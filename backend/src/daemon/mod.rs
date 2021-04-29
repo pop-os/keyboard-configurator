@@ -45,6 +45,19 @@ impl Matrix {
             None
         }
     }
+
+    pub fn set(&mut self, row: usize, col: usize, value: bool) {
+        if row < self.rows && col < self.cols {
+            let i = row * self.cols + col;
+            let byte = i / 8;
+            let bit = i % 8;
+            if value {
+                self.data[byte] |= 1 << bit;
+            } else {
+                self.data[byte] &= !(1 << bit);
+            }
+        }
+    }
 }
 
 
@@ -52,6 +65,7 @@ impl Matrix {
 pub struct Nelson {
     pub missing: Matrix,
     pub bouncing: Matrix,
+    pub sticking: Matrix,
 }
 
 pub trait DaemonClientTrait: Send + 'static {

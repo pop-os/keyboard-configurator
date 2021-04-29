@@ -79,6 +79,7 @@ impl Daemon for DaemonDummy {
         Ok(Nelson {
             missing: Matrix::new(0, 0, Vec::new().into_boxed_slice()),
             bouncing: Matrix::new(0, 0, Vec::new().into_boxed_slice()),
+            sticking: Matrix::new(0, 0, Vec::new().into_boxed_slice()),
         })
     }
 

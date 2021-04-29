@@ -6,7 +6,7 @@ use std::{cell::RefCell, collections::HashMap};
 
 #[derive(Clone, Default, glib::GBoxed)]
 #[gboxed(type_name = "S76TestingColor")]
-pub struct TestingColors(pub HashMap<usize, Rgb>);
+pub struct TestingColors(pub HashMap<(usize, usize), Rgb>);
 
 #[derive(Default)]
 pub struct TestingInner {
@@ -67,8 +67,9 @@ impl ObjectImpl for TestingInner {
             obj;
             ..set_valign(gtk::Align::Start);
             ..get_style_context().add_class("frame");
-            ..add(&label_row("Check pins", &color_box(1., 0., 0.)));
-            ..add(&label_row("Replace switch", &color_box(0., 0., 1.)));
+            ..add(&label_row("Check pins (missing)", &color_box(1., 0., 0.)));
+            ..add(&label_row("Check key (sticking)", &color_box(0., 1., 0.)));
+            ..add(&label_row("Replace switch (bouncing)", &color_box(0., 0., 1.)));
             ..add(&label_row("Number of runs", &num_runs_entry));
             ..add(&label_row("Serial", &serial_entry));
             ..add(&row(&test_button));
@@ -84,9 +85,6 @@ impl ObjectImpl for TestingInner {
             })));
             ..show_all();
         };
-
-        self.colors.borrow_mut().0.insert(0, Rgb::new(255, 0, 0));
-        self.colors.borrow_mut().0.insert(1, Rgb::new(0, 0, 255));
 
         self.num_runs_entry.set(num_runs_entry);
         self.serial_entry.set(serial_entry);
@@ -131,10 +129,29 @@ impl Testing {
         let obj: Self = glib::Object::new(&[]).unwrap();
         obj.inner().board.set(board);
 
-        let obj_test = obj.clone();
-        obj.test_button.connect_clicked(move |_| {
-            //TODO
-            let nelson = obj_test.inner().board.nelson().expect("Failed to get nelson result");
+        let obj_btn = obj.clone();
+        obj.inner().test_button.connect_clicked(move |_| {
+            let obj_nelson = obj_btn.clone();
+            glib::MainContext::default().spawn_local(async move {
+                let testing = obj_nelson.inner();
+                let nelson = testing.board.nelson().await.expect("failed to get nelson result");
+
+                //TODO: should we check matrix sizes for bouncing and sticking?
+                for row in 0..nelson.missing.rows() {
+                    for col in 0..nelson.missing.cols() {
+                        let r = if nelson.missing.get(row, col).unwrap_or(false) { 255 } else { 0 };
+                        let g = if nelson.sticking.get(row, col).unwrap_or(false) { 255 } else { 0 };
+                        let b = if nelson.bouncing.get(row, col).unwrap_or(false) { 255 } else { 0 };
+                        if r != 0 || g != 0 || b != 0 {
+                            testing.colors.borrow_mut().0.insert((row, col), Rgb::new(r, g, b));
+                        } else {
+                            testing.colors.borrow_mut().0.remove(&(row, col));
+                        }
+                    }
+                }
+
+                obj_nelson.notify("colors");
+            });
         });
 
         obj

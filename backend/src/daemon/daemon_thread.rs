@@ -7,6 +7,7 @@ use futures::{
 };
 use futures_timer::Delay;
 use glib::clone;
+use serde::{de::DeserializeOwned, Serialize};
 use std::{
     cell::{Cell, RefCell},
     cmp::PartialEq,
@@ -63,12 +64,16 @@ enum SetEnum {
 #[derive(Debug)]
 struct Set {
     inner: SetEnum,
-    oneshot: oneshot::Sender<Result<(), String>>,
+    oneshot: oneshot::Sender<Result<String, String>>,
 }
 
 impl Set {
-    fn reply(self, resp: Result<(), String>) {
-        let _ = self.oneshot.send(resp);
+    fn reply<T: Serialize>(self, resp: Result<T, String>) {
+        let _ = self.oneshot.send(resp.and_then(|x| {
+            serde_json::to_string(&x).map_err(|err| {
+                format!("failed to serialize: {}\n{:#?}", err, err)
+            })
+        }));
     }
 }
 
@@ -98,7 +103,7 @@ impl ThreadClient {
         client
     }
 
-    async fn send(&self, set_enum: SetEnum) -> Result<(), String> {
+    async fn send<T: DeserializeOwned>(&self, set_enum: SetEnum) -> Result<T, String> {
         let mut cancels = self.cancels.lock().unwrap();
         if let Some(cancel) = cancels.remove(&set_enum) {
             cancel.abort();
@@ -114,8 +119,12 @@ impl ThreadClient {
         });
         // XXX let caller know it was canceled?
         match receiver.await {
-            Ok(Ok(res)) => res,
-            _ => Ok(()),
+            Ok(Ok(res)) => res.and_then(|x| {
+                serde_json::from_str(&x).map_err(|err| {
+                    format!("failed to deserialize: {}\n{:#?}", err, err)
+                })
+            }),
+            err => Err(format!("receiver.await returned {:?}", err)),
         }
     }
 
@@ -282,28 +291,34 @@ impl Thread {
             return true;
         }
 
-        let resp = match set.inner {
-            SetEnum::KeyMap(Item { key, value }) => {
+        match set.inner {
+            SetEnum::KeyMap(Item { key, value }) => set.reply(
                 self.daemon.keymap_set(key.0, key.1, key.2, key.3, value)
-            }
-            SetEnum::Color(Item { key, value }) => self.daemon.set_color(key.0, key.1, value),
-            SetEnum::Brightness(Item { key, value }) => {
+            ),
+            SetEnum::Color(Item { key, value }) => set.reply(
+                self.daemon.set_color(key.0, key.1, value)
+            ),
+            SetEnum::Brightness(Item { key, value }) => set.reply(
                 self.daemon.set_brightness(key.0, key.1, value)
-            }
-            SetEnum::Mode(Item { key, value }) => {
+            ),
+            SetEnum::Mode(Item { key, value }) => set.reply(
                 self.daemon.set_mode(key.0, key.1, value.0, value.1)
-            }
-            SetEnum::Nelson(board) => self.daemon.nelson(board),
-            SetEnum::LedSave(board) => self.daemon.led_save(board),
+            ),
+            SetEnum::Nelson(board) => set.reply(
+                self.daemon.nelson(board)
+            ),
+            SetEnum::LedSave(board) => set.reply(
+                self.daemon.led_save(board)
+            ),
             SetEnum::MatrixGetRate(Item { value, .. }) => {
                 self.matrix_get_rate.set(value);
-                Ok(())
+                set.reply(Ok(()))
             }
-            SetEnum::Refresh => self.refresh(),
+            SetEnum::Refresh => set.reply(
+                self.refresh()
+            ),
             SetEnum::Exit => return false,
-        };
-
-        set.reply(resp);
+        }
 
         true
     }
