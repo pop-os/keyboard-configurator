@@ -146,7 +146,7 @@ impl Layout {
     }
 
     pub fn pressed_color(&self) -> Rgb {
-        self.physical.pressed_color
+        self.physical.meta.pressed_color
     }
 }
 

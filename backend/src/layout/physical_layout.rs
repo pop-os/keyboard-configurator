@@ -4,9 +4,7 @@ use serde::Deserialize;
 use crate::{Rect, Rgb};
 
 pub(crate) struct PhysicalLayout {
-    pub name: String,
-    pub author: String,
-    pub pressed_color: Rgb,
+    pub meta: PhysicalLayoutMeta,
     pub keys: Vec<PhysicalLayoutKey>,
 }
 
@@ -58,9 +56,7 @@ impl PhysicalLayout {
         }
 
         Self {
-            name: json.name,
-            author: json.author,
-            pressed_color: json.pressed_color,
+            meta: json.meta,
             keys,
         }
     }
@@ -74,10 +70,16 @@ pub(crate) struct PhysicalLayoutKey {
 }
 
 #[derive(Debug, Deserialize)]
+pub(crate) struct PhysicalLayoutMeta {
+    pub name: String,
+    pub author: String,
+    pub pressed_color: Rgb,
+}
+
+#[derive(Debug, Deserialize)]
 struct PhysicalLayoutJson {
-    name: String,
-    author: String,
-    pressed_color: Rgb,
+    #[serde(flatten)]
+    meta: PhysicalLayoutMeta,
     rows: Vec<PhysicalRow>,
 }
 
