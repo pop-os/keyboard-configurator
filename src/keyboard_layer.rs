@@ -137,6 +137,11 @@ impl WidgetImpl for KeyboardLayerInner {
                 (1., 1., 1.)
             };
 
+            let (text_alpha, bg_alpha) = match self.page.get().layer() {
+                Some(layer) if k.get_scancode(layer).unwrap().1 == "NONE" => (0.5, 0.75),
+                _ => (1., 1.),
+            };
+
             // Rounded rectangle
             cr.new_sub_path();
             cr.arc(x + w - RADIUS, y + RADIUS, RADIUS, -0.5 * PI, 0.);
@@ -145,7 +150,7 @@ impl WidgetImpl for KeyboardLayerInner {
             cr.arc(x + RADIUS, y + RADIUS, RADIUS, PI, 1.5 * PI);
             cr.close_path();
 
-            cr.set_source_rgb(bg.0, bg.1, bg.2);
+            cr.set_source_rgba(bg.0, bg.1, bg.2, bg_alpha);
             cr.fill_preserve();
 
             if widget.selected().contains(&i) {
@@ -164,7 +169,7 @@ impl WidgetImpl for KeyboardLayerInner {
             let text_height = layout.get_pixel_size().1 as f64;
             cr.new_path();
             cr.move_to(x, y + (h - text_height) / 2.);
-            cr.set_source_rgb(fg.0, fg.1, fg.2);
+            cr.set_source_rgba(fg.0, fg.1, fg.2, text_alpha);
             pangocairo::show_layout(cr, &layout);
         }
 
