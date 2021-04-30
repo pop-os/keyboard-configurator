@@ -2,11 +2,7 @@ use cascade::cascade;
 use glib::clone;
 use gtk::prelude::*;
 use gtk::subclass::prelude::*;
-use std::{
-    cell::RefCell,
-    sync::atomic::{AtomicUsize, Ordering},
-    time::Duration,
-};
+use std::{cell::RefCell, time::Duration};
 
 use crate::{shortcuts_window, ConfiguratorApp, Keyboard, KeyboardLayer, Page, Picker};
 use backend::{Backend, Board, DerefCell};
@@ -28,7 +24,6 @@ impl Drop for Loader {
 pub struct MainWindowInner {
     backend: DerefCell<Backend>,
     back_button: DerefCell<gtk::Button>,
-    count: AtomicUsize,
     header_bar: DerefCell<gtk::HeaderBar>,
     keyboard_box: DerefCell<gtk::Box>,
     layer_switcher: DerefCell<gtk::StackSwitcher>,
@@ -124,14 +119,6 @@ impl ObjectImpl for MainWindowInner {
             ..set_halign(gtk::Align::Center);
             ..set_property_margin(6);
             ..connect_add(clone!(@weak board_list_stack => move |_, _| {
-                board_list_stack.set_visible_child_name("keyboards");
-            }));
-            ..connect_remove(clone!(@weak board_list_stack => move |list_box, _| {
-                let mut count = 0;
-                list_box.foreach(|_| count += 1);
-                if count == 0 {
-                    board_list_stack.set_visible_child_name("no_boards");
-                }
             }));
         };
         board_list_stack.add_named(&keyboard_box, "keyboards");
@@ -226,6 +213,12 @@ impl MainWindow {
                     let (keyboard, row) = boards.remove(idx);
                     window.inner().stack.remove(&keyboard);
                     window.inner().keyboard_box.remove(&row);
+
+                    let mut count = 0;
+                    window.inner().keyboard_box.foreach(|_| count += 1);
+                    if count == 0 {
+                        window.inner().board_list_stack.set_visible_child_name("no_boards");
+                    }
                 }
             }));
             ..refresh();
@@ -346,8 +339,9 @@ impl MainWindow {
         self.inner().stack.add(&keyboard);
         self.inner().keyboards.borrow_mut().push((keyboard, row));
 
-        // XXX if only one keyboard, show that with no back button
-        self.inner().count.fetch_add(1, Ordering::Relaxed);
+        self.inner()
+            .board_list_stack
+            .set_visible_child_name("keyboards");
     }
 
     pub fn display_loader(&self, text: &str) -> Loader {
