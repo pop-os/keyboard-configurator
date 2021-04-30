@@ -4,6 +4,7 @@
   "switchMount": "cherry",
   "switchBrand": "kailh",
   "plate": true,
+  "pressed_color": "#202020",
   "rows": [
     [
       {

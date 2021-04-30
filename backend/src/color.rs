@@ -1,7 +1,7 @@
 use ordered_float::NotNan;
 use palette::{Component, IntoColor, RgbHue};
-use serde::{Deserialize, Serialize};
-use std::f64::consts::PI;
+use serde::{de, Deserialize, Serialize};
+use std::{f64::consts::PI, fmt};
 
 type PaletteHsv = palette::Hsv<palette::encoding::Srgb, f64>;
 type PaletteLinSrgb = palette::LinSrgb<f64>;
@@ -56,7 +56,7 @@ impl Hs {
 }
 
 /// Integer RGB color
-#[derive(Clone, Copy, Debug, Serialize, Deserialize, Default, glib::GBoxed)]
+#[derive(Clone, Copy, Debug, Default, glib::GBoxed)]
 #[gboxed(type_name = "S76Rgb")]
 pub struct Rgb {
     /// Red
@@ -84,17 +84,12 @@ impl Rgb {
         (self.r.convert(), self.g.convert(), self.b.convert())
     }
 
-    /// Convert to hexadecimal string
-    pub fn to_string(self) -> String {
-        format!("{:02x}{:02x}{:02x}", self.r, self.g, self.b)
-    }
-
     /// Parse from hexadecimal string
     pub fn parse(s: &str) -> Option<Self> {
-        if s.len() == 6 {
-            let r = u8::from_str_radix(&s[0..2], 16).ok()?;
-            let g = u8::from_str_radix(&s[2..4], 16).ok()?;
-            let b = u8::from_str_radix(&s[4..6], 16).ok()?;
+        if s.len() == 7 && s.starts_with('#') {
+            let r = u8::from_str_radix(&s[1..3], 16).ok()?;
+            let g = u8::from_str_radix(&s[3..5], 16).ok()?;
+            let b = u8::from_str_radix(&s[5..7], 16).ok()?;
             Some(Self::new(r, g, b))
         } else {
             None
@@ -108,6 +103,39 @@ impl Rgb {
         let hsv: PaletteHsv = rgb.into_hsv();
         let (h, s, _) = hsv.into_components();
         Hs::new(h.to_radians(), s)
+    }
+}
+
+/// Convert to hexadecimal string
+impl fmt::Display for Rgb {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "#{:02x}{:02x}{:02x}", self.r, self.g, self.b)
+    }
+}
+
+impl Serialize for Rgb {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(&self.to_string())
+    }
+}
+
+struct RgbVisitor;
+
+impl<'de> de::Visitor<'de> for RgbVisitor {
+    type Value = Rgb;
+
+    fn expecting(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "a hexadecimal rgb code prefixed with #")
+    }
+
+    fn visit_str<E: de::Error>(self, v: &str) -> Result<Rgb, E> {
+        Rgb::parse(v).ok_or_else(|| E::invalid_value(de::Unexpected::Str(v), &self))
+    }
+}
+
+impl<'de> Deserialize<'de> for Rgb {
+    fn deserialize<D: de::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        deserializer.deserialize_str(RgbVisitor)
     }
 }
 

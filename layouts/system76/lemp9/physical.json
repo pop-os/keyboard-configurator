@@ -1,6 +1,7 @@
 {
   "name": "System76 Lemur Pro - Simple",
   "author": "Jeremy Soller",
+  "pressed_color": "#dfdfdf",
   "rows": [
     [
       {

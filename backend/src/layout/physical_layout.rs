@@ -6,6 +6,7 @@ use crate::{Rect, Rgb};
 pub(crate) struct PhysicalLayout {
     pub name: String,
     pub author: String,
+    pub pressed_color: Rgb,
     pub keys: Vec<PhysicalLayoutKey>,
 }
 
@@ -29,14 +30,7 @@ impl PhysicalLayout {
                         physical.y -= meta.y;
                         physical.w = meta.w.unwrap_or(physical.w);
                         physical.h = meta.h.unwrap_or(physical.h);
-                        background_color = meta
-                            .c
-                            .as_ref()
-                            .map(|c| {
-                                let err = format!("Failed to parse color {}", c);
-                                Rgb::parse(&c[1..]).expect(&err)
-                            })
-                            .unwrap_or(background_color);
+                        background_color = meta.c.unwrap_or(background_color);
                     }
                     PhysicalKeyEnum::Name(name) => {
                         keys.push(PhysicalLayoutKey {
@@ -66,6 +60,7 @@ impl PhysicalLayout {
         Self {
             name: json.name,
             author: json.author,
+            pressed_color: json.pressed_color,
             keys,
         }
     }
@@ -82,6 +77,7 @@ pub(crate) struct PhysicalLayoutKey {
 struct PhysicalLayoutJson {
     name: String,
     author: String,
+    pressed_color: Rgb,
     rows: Vec<PhysicalRow>,
 }
 
@@ -103,5 +99,5 @@ struct PhysicalKeyMeta {
     y: f64,
     w: Option<f64>,
     h: Option<f64>,
-    c: Option<String>,
+    c: Option<Rgb>,
 }

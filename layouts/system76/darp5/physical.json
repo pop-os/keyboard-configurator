@@ -1,6 +1,7 @@
 {
   "name": "System76 Darter Pro - Simple",
   "author": "Jeremy Soller",
+  "pressed_color": "#dfdfdf",
   "rows": [
     [
       {
