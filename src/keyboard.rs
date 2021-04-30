@@ -6,7 +6,6 @@ use gtk::prelude::*;
 use gtk::subclass::prelude::*;
 use std::{
     cell::{Cell, RefCell},
-    ffi::OsStr,
     fs::File,
     str,
 };
@@ -340,7 +339,7 @@ impl Keyboard {
     fn import(&self) {
         let filter = cascade! {
             gtk::FileFilter::new();
-            ..set_name(Some("JSON"));
+            ..set_name(Some("json"));
             ..add_pattern("*.json");
         };
 
@@ -366,28 +365,19 @@ impl Keyboard {
     fn export(&self) {
         let filter = cascade! {
             gtk::FileFilter::new();
-            ..set_name(Some("JSON"));
+            ..set_name(Some("json"));
             ..add_pattern("*.json");
         };
 
         let chooser = cascade! {
             gtk::FileChooserNative::new::<gtk::Window>(Some("Export Layout"), None, gtk::FileChooserAction::Save, Some("Export"), Some("Cancel"));
             ..add_filter(&filter);
+            ..set_current_name("Untitled Layout.json");
+            ..set_do_overwrite_confirmation(true);
         };
 
         if chooser.run() == gtk::ResponseType::Accept {
-            let mut path = chooser.get_filename().unwrap();
-            match path.extension() {
-                None => {
-                    path.set_extension(OsStr::new("json"));
-                }
-                Some(ext) if ext == OsStr::new("json") => {}
-                Some(ext) => {
-                    let mut ext = ext.to_owned();
-                    ext.push(".json");
-                    path.set_extension(&ext);
-                }
-            }
+            let path = chooser.get_filename().unwrap();
             let keymap = self.export_keymap();
 
             match File::create(&path) {
