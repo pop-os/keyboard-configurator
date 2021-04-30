@@ -207,20 +207,7 @@ impl MainWindow {
                 window.inner().board_loading.borrow_mut().take();
             }));
             ..connect_board_added(clone!(@weak window => move |board| window.add_keyboard(board)));
-            ..connect_board_removed(clone!(@weak window => move |board| {
-                let mut boards = window.inner().keyboards.borrow_mut();
-                if let Some(idx) = boards.iter().position(|(kb, _)| kb.board() == &board) {
-                    let (keyboard, row) = boards.remove(idx);
-                    window.inner().stack.remove(&keyboard);
-                    window.inner().keyboard_box.remove(&row);
-
-                    let mut count = 0;
-                    window.inner().keyboard_box.foreach(|_| count += 1);
-                    if count == 0 {
-                        window.inner().board_list_stack.set_visible_child_name("no_boards");
-                    }
-                }
-            }));
+            ..connect_board_removed(clone!(@weak window => move |board| window.remove_keyboard(board)));
             ..refresh();
         };
 
@@ -342,6 +329,23 @@ impl MainWindow {
         self.inner()
             .board_list_stack
             .set_visible_child_name("keyboards");
+    }
+
+    fn remove_keyboard(&self, board: Board) {
+        let mut boards = self.inner().keyboards.borrow_mut();
+        if let Some(idx) = boards.iter().position(|(kb, _)| kb.board() == &board) {
+            let (keyboard, row) = boards.remove(idx);
+            self.inner().stack.remove(&keyboard);
+            self.inner().keyboard_box.remove(&row);
+
+            let mut count = 0;
+            self.inner().keyboard_box.foreach(|_| count += 1);
+            if count == 0 {
+                self.inner()
+                    .board_list_stack
+                    .set_visible_child_name("no_boards");
+            }
+        }
     }
 
     pub fn display_loader(&self, text: &str) -> Loader {
