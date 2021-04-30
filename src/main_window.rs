@@ -30,7 +30,7 @@ pub struct MainWindowInner {
     back_button: DerefCell<gtk::Button>,
     count: AtomicUsize,
     header_bar: DerefCell<gtk::HeaderBar>,
-    keyboard_list_box: DerefCell<gtk::ListBox>,
+    keyboard_box: DerefCell<gtk::Box>,
     layer_switcher: DerefCell<gtk::StackSwitcher>,
     load_box: DerefCell<gtk::Box>,
     load_revealer: DerefCell<gtk::Revealer>,
@@ -38,6 +38,7 @@ pub struct MainWindowInner {
     stack: DerefCell<gtk::Stack>,
     keyboards: RefCell<Vec<(Keyboard, gtk::ListBoxRow)>>,
     board_loading: RefCell<Option<Loader>>,
+    board_list_stack: DerefCell<gtk::Stack>,
 }
 
 #[glib::object_subclass]
@@ -99,6 +100,7 @@ impl ObjectImpl for MainWindowInner {
         };
         let no_boards = cascade! {
             gtk::Box::new(gtk::Orientation::Vertical, 24);
+            ..set_property_margin(12);
             ..add(&cascade! {
                 gtk::Image::from_icon_name(Some("launch-keyboard-not-found"), gtk::IconSize::Invalid);
                 ..set_pixel_size(256);
@@ -109,22 +111,35 @@ impl ObjectImpl for MainWindowInner {
                 ..set_justify(gtk::Justification::Center);
                 ..set_use_markup(true);
             });
-            ..set_property_margin(12);
-            ..show_all();
         };
 
-        let keyboard_list_box = cascade! {
-            gtk::ListBox::new();
-            ..set_placeholder(Some(&no_boards));
-            ..set_halign(gtk::Align::Center);
-            ..get_style_context().add_class("frame");
-            ..set_property_margin(6);
+        let board_list_stack = cascade! {
+            gtk::Stack::new();
+            ..set_homogeneous(false);
+            ..add_named(&no_boards, "no_boards");
         };
+
+        let keyboard_box = cascade! {
+            gtk::Box::new(gtk::Orientation::Vertical, 0);
+            ..set_halign(gtk::Align::Center);
+            ..set_property_margin(6);
+            ..connect_add(clone!(@weak board_list_stack => move |_, _| {
+                board_list_stack.set_visible_child_name("keyboards");
+            }));
+            ..connect_remove(clone!(@weak board_list_stack => move |list_box, _| {
+                let mut count = 0;
+                list_box.foreach(|_| count += 1);
+                if count == 0 {
+                    board_list_stack.set_visible_child_name("no_boards");
+                }
+            }));
+        };
+        board_list_stack.add_named(&keyboard_box, "keyboards");
 
         let stack = cascade! {
             gtk::Stack::new();
             ..set_homogeneous(false);
-            ..add(&keyboard_list_box);
+            ..add(&board_list_stack);
         };
 
         let picker = Picker::new();
@@ -164,12 +179,13 @@ impl ObjectImpl for MainWindowInner {
 
         self.back_button.set(back_button);
         self.header_bar.set(header_bar);
-        self.keyboard_list_box.set(keyboard_list_box);
+        self.keyboard_box.set(keyboard_box);
         self.layer_switcher.set(layer_switcher);
         self.load_box.set(load_box);
         self.load_revealer.set(load_revealer);
         self.picker.set(picker);
         self.stack.set(stack);
+        self.board_list_stack.set(board_list_stack);
     }
 }
 impl WidgetImpl for MainWindowInner {
@@ -209,7 +225,7 @@ impl MainWindow {
                 if let Some(idx) = boards.iter().position(|(kb, _)| kb.board() == &board) {
                     let (keyboard, row) = boards.remove(idx);
                     window.inner().stack.remove(&keyboard);
-                    window.inner().keyboard_list_box.remove(&row);
+                    window.inner().keyboard_box.remove(&row);
                 }
             }));
             ..refresh();
@@ -259,7 +275,7 @@ impl MainWindow {
         inner
             .stack
             .set_transition_type(gtk::StackTransitionType::SlideRight);
-        inner.stack.set_visible_child(&*inner.keyboard_list_box);
+        inner.stack.set_visible_child(&*inner.board_list_stack);
         inner.header_bar.set_custom_title::<gtk::Widget>(None);
         self.insert_action_group::<gio::ActionGroup>("kbd", None);
         inner.back_button.set_visible(false);
@@ -325,7 +341,7 @@ impl MainWindow {
             ..set_property_margin(12);
             ..show_all();
         };
-        self.inner().keyboard_list_box.add(&row);
+        self.inner().keyboard_box.add(&row);
 
         self.inner().stack.add(&keyboard);
         self.inner().keyboards.borrow_mut().push((keyboard, row));
