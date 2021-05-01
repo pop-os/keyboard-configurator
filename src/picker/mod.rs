@@ -147,14 +147,22 @@ impl WidgetImpl for PickerInner {
     fn size_allocate(&self, obj: &Self::Type, allocation: &gtk::Allocation) {
         self.parent_size_allocate(obj, allocation);
 
+        let rows = obj.rows_for_width(allocation.width);
+
+        let total_width = rows
+            .iter()
+            .map(|row| {
+                row.iter()
+                    .map(|x| x.vbox.get_preferred_width().1)
+                    .sum::<i32>()
+                    + (row.len() as i32 - 1) * HSPACING
+            })
+            .max()
+            .unwrap();
+
         let mut y = 0;
-        for row in obj.rows_for_width(allocation.width) {
-            let width = row
-                .iter()
-                .map(|x| x.vbox.get_preferred_width().1)
-                .sum::<i32>()
-                + (row.len() as i32 - 1) * HSPACING;
-            let mut x = (allocation.width - width) / 2;
+        for row in rows {
+            let mut x = (allocation.width - total_width) / 2;
             for group in row {
                 let height = group.vbox.get_preferred_height().1;
                 let width = group.vbox.get_preferred_width().1;
