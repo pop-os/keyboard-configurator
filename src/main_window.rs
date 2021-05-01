@@ -141,6 +141,8 @@ impl ObjectImpl for MainWindowInner {
 
         let load_revealer = cascade! {
             gtk::Revealer::new();
+            ..set_valign(gtk::Align::Start);
+            ..set_vexpand(false);
             ..set_transition_type(gtk::RevealerTransitionType::SlideDown);
             ..add(&load_box);
         };
@@ -155,8 +157,8 @@ impl ObjectImpl for MainWindowInner {
                 gtk::ScrolledWindow::new::<gtk::Adjustment, gtk::Adjustment>(None, None);
                 ..set_property_hscrollbar_policy(gtk::PolicyType::Never);
                 ..add(&cascade! {
-                    gtk::Box::new(gtk::Orientation::Vertical, 0);
-                    ..add(&load_revealer);
+                    gtk::Overlay::new();
+                    ..add_overlay(&load_revealer);
                     ..add(&stack);
                 });
             });
