@@ -87,6 +87,7 @@ impl ObjectImpl for MainWindowInner {
         };
 
         let no_boards_msg = concat! {
+            "<span size='xx-large' weight='bold'>No keyboard detected</span>\n\n",
             "Make sure your built-in keyboard has up to date\n",
             "System76 Open Firmware.\n",
             "If using an external keyboard, make sure it is\n",
@@ -95,24 +96,18 @@ impl ObjectImpl for MainWindowInner {
         let no_boards = cascade! {
             gtk::Box::new(gtk::Orientation::Vertical, 24);
             ..set_vexpand(true);
+            ..set_valign(gtk::Align::Center);
             ..set_property_margin(12);
-            ..pack_start(&cascade! {
+            ..add(&cascade! {
                 gtk::Image::from_icon_name(Some("launch-keyboard-not-found"), gtk::IconSize::Invalid);
-                ..set_pixel_size(256);
+                ..set_pixel_size(384);
                 ..set_halign(gtk::Align::Center);
-                ..set_valign(gtk::Align::End);
-            }, true, true, 0);
-            ..set_center_widget(Some(&cascade! {
-                gtk::Label::new(Some("<span size='x-large' weight='bold'>No keyboard detected</span>"));
-                ..set_justify(gtk::Justification::Center);
-                ..set_use_markup(true);
-            }));
-            ..pack_end(&cascade! {
+            });
+            ..add(&cascade! {
                 gtk::Label::new(Some(no_boards_msg));
-                ..set_valign(gtk::Align::Start);
                 ..set_justify(gtk::Justification::Center);
                 ..set_use_markup(true);
-            }, true, true, 0);
+            });
         };
 
         let board_list_stack = cascade! {
