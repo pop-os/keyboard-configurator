@@ -137,10 +137,15 @@ impl WidgetImpl for KeyboardLayerInner {
                 (1., 1., 1.)
             };
 
-            let (text_alpha, bg_alpha) = match self.page.get().layer() {
-                Some(layer) if k.get_scancode(layer).unwrap().1 == "NONE" => (0.5, 0.75),
-                _ => (1., 1.),
-            };
+            let mut text_alpha = 1.;
+            let mut bg_alpha = 1.;
+            if let Some(layer) = self.page.get().layer() {
+                let scancode_name = k.get_scancode(layer).unwrap().1;
+                if scancode_name == "NONE" || scancode_name == "ROLL_OVER" {
+                    text_alpha = 0.5;
+                    bg_alpha = 0.75;
+                }
+            }
 
             // Rounded rectangle
             cr.new_sub_path();
