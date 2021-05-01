@@ -72,8 +72,8 @@ impl ObjectImpl for KeyboardInner {
 
         let stack_switcher = cascade! {
             gtk::StackSwitcher::new();
+            ..set_margin_top(12);
             ..set_halign(gtk::Align::Center);
-            ..set_margin_top(18);
             ..set_stack(Some(&stack));
         };
 

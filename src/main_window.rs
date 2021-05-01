@@ -117,7 +117,6 @@ impl ObjectImpl for MainWindowInner {
         let keyboard_box = cascade! {
             gtk::Box::new(gtk::Orientation::Vertical, 0);
             ..set_halign(gtk::Align::Center);
-            ..set_property_margin(6);
             ..connect_add(clone!(@weak board_list_stack => move |_, _| {
             }));
         };
@@ -125,6 +124,7 @@ impl ObjectImpl for MainWindowInner {
 
         let stack = cascade! {
             gtk::Stack::new();
+            ..set_property_margin(6);
             ..set_homogeneous(false);
             ..add(&board_list_stack);
         };
