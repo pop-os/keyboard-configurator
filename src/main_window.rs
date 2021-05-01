@@ -338,14 +338,18 @@ impl MainWindow {
             self.inner().stack.remove(&keyboard);
             self.inner().keyboard_box.remove(&row);
 
-            let mut count = 0;
-            self.inner().keyboard_box.foreach(|_| count += 1);
-            if count == 0 {
+            if self.num_keyboards() == 0 {
                 self.inner()
                     .board_list_stack
                     .set_visible_child_name("no_boards");
             }
         }
+    }
+
+    fn num_keyboards(&self) -> usize {
+        let mut count = 0;
+        self.inner().keyboard_box.foreach(|_| count += 1);
+        count
     }
 
     pub fn display_loader(&self, text: &str) -> Loader {
