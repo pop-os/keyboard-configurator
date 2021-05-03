@@ -154,11 +154,11 @@ impl ObjectImpl for MainWindowInner {
             ..set_default_size(1280, 768);
             ..set_titlebar(Some(&header_bar));
             ..add(&cascade! {
-                gtk::ScrolledWindow::new::<gtk::Adjustment, gtk::Adjustment>(None, None);
-                ..set_property_hscrollbar_policy(gtk::PolicyType::Never);
+                gtk::Overlay::new();
+                ..add_overlay(&load_revealer);
                 ..add(&cascade! {
-                    gtk::Overlay::new();
-                    ..add_overlay(&load_revealer);
+                    gtk::ScrolledWindow::new::<gtk::Adjustment, gtk::Adjustment>(None, None);
+                    ..set_property_hscrollbar_policy(gtk::PolicyType::Never);
                     ..add(&stack);
                 });
             });
