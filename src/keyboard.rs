@@ -327,25 +327,24 @@ impl Keyboard {
                 .map(|(i, k)| (&k.logical_name, i))
                 .collect::<HashMap<_, _>>();
 
-            let mut futures = FuturesUnordered::<Pin<Box<dyn Future<Output = ()>>>>::new();
+            let futures = FuturesUnordered::<Pin<Box<dyn Future<Output = ()>>>>::new();
 
-            futures.extend(keymap.map.iter().flat_map(|(k, v)| {
-                let n = key_indices[&k];
-                let self_ = &self_;
-                v.iter().enumerate().map(move |(layer, scancode_name)| {
-                    Box::pin(self_.keymap_set(n, layer, scancode_name)) as _
-                })
-            }));
+            for (k, v) in &keymap.map {
+                for (layer, scancode_name) in v.iter().enumerate() {
+                    let n = key_indices[&k];
+                    futures.push(Box::pin(self_.keymap_set(n, layer, scancode_name)));
+                }
+            }
 
-            futures.extend(keymap.key_leds.iter().map(|(k, hs)| {
-                let n = key_indices[&k];
+            for (k, hs) in &keymap.key_leds {
                 let self_ = &self_;
-                Box::pin(async move {
+                let n = key_indices[&k];
+                futures.push(Box::pin(async move {
                     if let Err(err) = self_.board().keys()[n].set_color(*hs).await {
                         error!("Failed to key LED: {}", err);
                     }
-                }) as _
-            }));
+                }));
+            }
 
             for (i, keymap_layer) in keymap.layers.iter().enumerate() {
                 let self_ = &self_;
