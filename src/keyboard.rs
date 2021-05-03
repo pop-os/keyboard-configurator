@@ -313,7 +313,7 @@ impl Keyboard {
             let _loader = self_.get_toplevel().and_then(|x| {
                 Some(
                     x.downcast_ref::<MainWindow>()?
-                        .display_loader(&format!("Loading keymap for {}...", self_.display_name())),
+                        .display_loader(&format!("Loading keymap and LEDs for {}...", self_.display_name())),
                 )
             });
 
