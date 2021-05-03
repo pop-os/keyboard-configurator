@@ -230,11 +230,22 @@ def gen_leds_json(path: str, leds: Dict[str, List[int]]) -> None:
     with open(path, 'w') as f:
        json.dump(leds, f, indent=2)
 
-def gen_default_json(path: str, board: str, keymap: Dict[str, List[str]]) -> None:
+def gen_default_json(path: str, board: str, keymap: Dict[str, List[str]], is_qmk: bool) -> None:
     "Generate default.json file"
 
     with open(path, 'w') as f:
-        json.dump({"board": board, "map": keymap}, f, indent=2)
+        if is_qmk:
+            key_leds = {k: None for k in keymap.keys()}
+            layers = [
+                {"mode": (7, 127), "brightness": 176, "color": (142, 255)},
+                {"mode": (13, 127), "brightness": 176, "color": (142, 255)},
+                {"mode": (13, 127), "brightness": 176, "color": (142, 255)},
+                {"mode": (13, 127), "brightness": 176, "color": (142, 255)},
+            ]
+        else:
+            key_leds = {}
+            layers = [{"mode": None, "brightness": 0, "color": (0, 0)}]
+        json.dump({"model": board, "map": keymap, "key_leds": key_leds, "layers": layers}, f, indent=2)
 
 
 def generate_layout_dir(ecdir: str, board: str, is_qmk: bool) -> None:
@@ -263,7 +274,7 @@ def generate_layout_dir(ecdir: str, board: str, is_qmk: bool) -> None:
     gen_layout_json(f'{layoutdir}/layout.json', physical, physical2)
     gen_leds_json(f'{layoutdir}/leds.json', leds)
     gen_keymap_json(f'{layoutdir}/keymap.json', scancodes)
-    gen_default_json(f'{layoutdir}/default.json', board, default_keymap)
+    gen_default_json(f'{layoutdir}/default.json', board, default_keymap, is_qmk)
 
 
 parser = argparse.ArgumentParser()

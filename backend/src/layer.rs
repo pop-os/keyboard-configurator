@@ -8,7 +8,7 @@ pub struct Layer {
     layer: u8,
     index: u8,
     board: glib::WeakRef<Board>,
-    mode: Cell<Option<(u8, u8)>>,
+    pub(crate) mode: Cell<Option<(u8, u8)>>,
     brightness: Cell<i32>,
     color: Cell<Hs>,
 }

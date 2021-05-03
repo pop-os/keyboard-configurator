@@ -1,5 +1,5 @@
 {
-  "board": "system76/ortho_split_2u",
+  "model": "system76/ortho_split_2u",
   "map": {
     "LA1": [
       "ESC",
@@ -345,5 +345,139 @@
       "RIGHT",
       "ROLL_OVER"
     ]
-  }
+  },
+  "key_leds": {
+    "LA1": null,
+    "LA2": null,
+    "LA3": null,
+    "LA4": null,
+    "LA5": null,
+    "LA6": null,
+    "LA7": null,
+    "RA1": null,
+    "RA2": null,
+    "RA3": null,
+    "RA4": null,
+    "RA5": null,
+    "RA6": null,
+    "RA7": null,
+    "RA8": null,
+    "RA9": null,
+    "LB1": null,
+    "LB2": null,
+    "LB3": null,
+    "LB4": null,
+    "LB5": null,
+    "LB6": null,
+    "LB7": null,
+    "RB1": null,
+    "RB2": null,
+    "RB3": null,
+    "RB4": null,
+    "RB5": null,
+    "RB6": null,
+    "RB7": null,
+    "RB9": null,
+    "LC2": null,
+    "LC3": null,
+    "LC4": null,
+    "LC5": null,
+    "LC6": null,
+    "LC7": null,
+    "RC1": null,
+    "RC2": null,
+    "RC3": null,
+    "RC4": null,
+    "RC5": null,
+    "RC6": null,
+    "RC7": null,
+    "RC8": null,
+    "RC9": null,
+    "LD2": null,
+    "LD3": null,
+    "LD4": null,
+    "LD5": null,
+    "LD6": null,
+    "LD7": null,
+    "RD1": null,
+    "RD2": null,
+    "RD3": null,
+    "RD4": null,
+    "RD5": null,
+    "RD6": null,
+    "RD7": null,
+    "RD9": null,
+    "LE2": null,
+    "LE3": null,
+    "LE4": null,
+    "LE5": null,
+    "LE6": null,
+    "LE7": null,
+    "RE1": null,
+    "RE2": null,
+    "RE3": null,
+    "RE4": null,
+    "RE5": null,
+    "RE6": null,
+    "RE8": null,
+    "RE9": null,
+    "LF2": null,
+    "LF3": null,
+    "LF4": null,
+    "LF5": null,
+    "LF7": null,
+    "RF1": null,
+    "RF3": null,
+    "RF4": null,
+    "RF5": null,
+    "RF7": null,
+    "RF8": null,
+    "RF9": null
+  },
+  "layers": [
+    {
+      "mode": [
+        7,
+        127
+      ],
+      "brightness": 176,
+      "color": [
+        142,
+        255
+      ]
+    },
+    {
+      "mode": [
+        13,
+        127
+      ],
+      "brightness": 176,
+      "color": [
+        142,
+        255
+      ]
+    },
+    {
+      "mode": [
+        13,
+        127
+      ],
+      "brightness": 176,
+      "color": [
+        142,
+        255
+      ]
+    },
+    {
+      "mode": [
+        13,
+        127
+      ],
+      "brightness": 176,
+      "color": [
+        142,
+        255
+      ]
+    }
+  ]
 }

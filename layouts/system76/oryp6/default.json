@@ -1,5 +1,5 @@
 {
-  "board": "system76/oryp6",
+  "model": "system76/oryp6",
   "map": {
     "K00": [
       "ESC",
@@ -409,5 +409,16 @@
       "NUM_PERIOD",
       "NUM_PERIOD"
     ]
-  }
+  },
+  "key_leds": {},
+  "layers": [
+    {
+      "mode": null,
+      "brightness": 0,
+      "color": [
+        0,
+        0
+      ]
+    }
+  ]
 }

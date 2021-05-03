@@ -1,5 +1,5 @@
 {
-  "board": "system76/galp3-c",
+  "model": "system76/galp3-c",
   "map": {
     "K00": [
       "ESC",
@@ -345,5 +345,16 @@
       "RIGHT",
       "RIGHT"
     ]
-  }
+  },
+  "key_leds": {},
+  "layers": [
+    {
+      "mode": null,
+      "brightness": 0,
+      "color": [
+        0,
+        0
+      ]
+    }
+  ]
 }

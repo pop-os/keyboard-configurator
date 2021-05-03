@@ -6,12 +6,13 @@ use gtk::prelude::*;
 use gtk::subclass::prelude::*;
 use std::{
     cell::{Cell, RefCell},
+    collections::HashMap,
     fs::File,
     str,
 };
 
 use crate::{show_error_dialog, Backlight, KeyboardLayer, MainWindow, Page, Picker, Testing};
-use backend::{Board, DerefCell, KeyMap, Layout};
+use backend::{Board, DerefCell, KeyMap, Layout, Mode};
 use widgets::SelectedKeys;
 
 #[derive(Default)]
@@ -297,11 +298,11 @@ impl Keyboard {
     pub fn import_keymap(&self, keymap: KeyMap) {
         // TODO: Ideally don't want this function to be O(Keys^2)
 
-        if keymap.board != self.board().model() {
+        if keymap.model != self.board().model() {
             show_error_dialog(
                 &self.window().unwrap(),
                 "Failed to import keymap",
-                format!("Keymap is for board '{}'", keymap.board),
+                format!("Keymap is for board '{}'", keymap.model),
             );
             return;
         }
@@ -315,16 +316,21 @@ impl Keyboard {
                 )
             });
 
+            // TODO: Make sure it doesn't panic with invalid json with invalid indexes?
+
+            let key_indices = self_
+                .board()
+                .keys()
+                .iter()
+                .enumerate()
+                .map(|(i, k)| (&k.logical_name, i))
+                .collect::<HashMap<_, _>>();
+
             keymap
                 .map
                 .iter()
                 .flat_map(|(k, v)| {
-                    let n = self_
-                        .board()
-                        .keys()
-                        .iter()
-                        .position(|i| &i.logical_name == k)
-                        .unwrap();
+                    let n = key_indices[&k];
                     let self_ = &self_;
                     v.iter().enumerate().map(move |(layer, scancode_name)| {
                         self_.keymap_set(n, layer, scancode_name)
@@ -333,6 +339,37 @@ impl Keyboard {
                 .collect::<FuturesUnordered<_>>()
                 .collect::<()>()
                 .await;
+
+            keymap
+                .key_leds
+                .iter()
+                .map(|(k, hs)| {
+                    let n = key_indices[&k];
+                    let self_ = &self_;
+                    async move {
+                        if let Err(err) = self_.board().keys()[n].set_color(*hs).await {
+                            error!("Failed to key LED: {}", err);
+                        }
+                    }
+                })
+                .collect::<FuturesUnordered<_>>()
+                .collect::<()>()
+                .await;
+
+            for (i, keymap_layer) in keymap.layers.iter().enumerate() {
+                let layer = &self_.board().layers()[i];
+                if let Some((mode, speed)) = keymap_layer.mode {
+                    if let Err(err) = layer.set_mode(Mode::from_index(mode).unwrap(), speed).await {
+                        error!("Failed to set layer mode: {}", err)
+                    }
+                }
+                if let Err(err) = layer.set_brightness(keymap_layer.brightness).await {
+                    error!("Failed to set layer brightness: {}", err)
+                }
+                if let Err(err) = layer.set_color(keymap_layer.color).await {
+                    error!("Failed to set layer color: {}", err)
+                }
+            }
         });
     }
 

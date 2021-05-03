@@ -1,5 +1,5 @@
 {
-  "board": "system76/launch_test",
+  "model": "system76/launch_test",
   "map": {
     "K00": [
       "KBD_TOGGLE"
@@ -67,5 +67,75 @@
     "K1A": [
       "0"
     ]
-  }
+  },
+  "key_leds": {
+    "K00": null,
+    "K01": null,
+    "K02": null,
+    "K03": null,
+    "K04": null,
+    "K05": null,
+    "K06": null,
+    "K07": null,
+    "K08": null,
+    "K09": null,
+    "K0A": null,
+    "K10": null,
+    "K11": null,
+    "K12": null,
+    "K13": null,
+    "K14": null,
+    "K15": null,
+    "K16": null,
+    "K17": null,
+    "K18": null,
+    "K19": null,
+    "K1A": null
+  },
+  "layers": [
+    {
+      "mode": [
+        7,
+        127
+      ],
+      "brightness": 176,
+      "color": [
+        142,
+        255
+      ]
+    },
+    {
+      "mode": [
+        13,
+        127
+      ],
+      "brightness": 176,
+      "color": [
+        142,
+        255
+      ]
+    },
+    {
+      "mode": [
+        13,
+        127
+      ],
+      "brightness": 176,
+      "color": [
+        142,
+        255
+      ]
+    },
+    {
+      "mode": [
+        13,
+        127
+      ],
+      "brightness": 176,
+      "color": [
+        142,
+        255
+      ]
+    }
+  ]
 }

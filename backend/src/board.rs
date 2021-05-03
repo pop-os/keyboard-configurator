@@ -8,7 +8,7 @@ use once_cell::sync::Lazy;
 use std::{cell::Cell, collections::HashMap, sync::Arc};
 
 use crate::daemon::ThreadClient;
-use crate::{BoardId, Daemon, DerefCell, Key, KeyMap, Layer, Layout, Matrix};
+use crate::{BoardId, Daemon, DerefCell, Key, KeyMap, KeyMapLayer, Layer, Layout, Matrix};
 
 #[derive(Default)]
 #[doc(hidden)]
@@ -220,15 +220,30 @@ impl Board {
 
     pub fn export_keymap(&self) -> KeyMap {
         let mut map = HashMap::new();
+        let mut key_leds = HashMap::new();
         for key in self.keys().iter() {
             let scancodes = (0..self.layout().meta.num_layers as usize)
                 .map(|layer| key.get_scancode(layer).unwrap().1)
                 .collect();
             map.insert(key.logical_name.clone(), scancodes);
+            if !key.leds.is_empty() {
+                key_leds.insert(key.logical_name.clone(), key.color());
+            }
         }
+        let layers = self
+            .layers()
+            .iter()
+            .map(|layer| KeyMapLayer {
+                mode: layer.mode.get(),
+                brightness: layer.brightness(),
+                color: layer.color(),
+            })
+            .collect();
         KeyMap {
-            board: self.model().to_string(),
+            model: self.model().to_string(),
             map,
+            key_leds,
+            layers,
         }
     }
 }
