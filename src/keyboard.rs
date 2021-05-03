@@ -337,19 +337,17 @@ impl Keyboard {
             }
 
             for (k, hs) in &keymap.key_leds {
-                let self_ = &self_;
-                let n = key_indices[&k];
+                let res = self_.board().keys()[key_indices[&k]].set_color(*hs);
                 futures.push(Box::pin(async move {
-                    if let Err(err) = self_.board().keys()[n].set_color(*hs).await {
+                    if let Err(err) = res.await {
                         error!("Failed to key LED: {}", err);
                     }
                 }));
             }
 
             for (i, keymap_layer) in keymap.layers.iter().enumerate() {
-                let self_ = &self_;
+                let layer = &self_.board().layers()[i];
                 futures.push(Box::pin(async move {
-                    let layer = &self_.board().layers()[i];
                     if let Some((mode, speed)) = keymap_layer.mode {
                         if let Err(err) =
                             layer.set_mode(Mode::from_index(mode).unwrap(), speed).await
