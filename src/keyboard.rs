@@ -8,6 +8,7 @@ use std::{
     cell::{Cell, RefCell},
     collections::HashMap,
     fs::File,
+    pin::Pin,
     str,
 };
 
@@ -326,50 +327,47 @@ impl Keyboard {
                 .map(|(i, k)| (&k.logical_name, i))
                 .collect::<HashMap<_, _>>();
 
-            keymap
-                .map
-                .iter()
-                .flat_map(|(k, v)| {
-                    let n = key_indices[&k];
-                    let self_ = &self_;
-                    v.iter().enumerate().map(move |(layer, scancode_name)| {
-                        self_.keymap_set(n, layer, scancode_name)
-                    })
-                })
-                .collect::<FuturesUnordered<_>>()
-                .collect::<()>()
-                .await;
+            let mut futures = FuturesUnordered::<Pin<Box<dyn Future<Output = ()>>>>::new();
 
-            keymap
-                .key_leds
-                .iter()
-                .map(|(k, hs)| {
-                    let n = key_indices[&k];
-                    let self_ = &self_;
-                    async move {
-                        if let Err(err) = self_.board().keys()[n].set_color(*hs).await {
-                            error!("Failed to key LED: {}", err);
-                        }
-                    }
+            futures.extend(keymap.map.iter().flat_map(|(k, v)| {
+                let n = key_indices[&k];
+                let self_ = &self_;
+                v.iter().enumerate().map(move |(layer, scancode_name)| {
+                    Box::pin(self_.keymap_set(n, layer, scancode_name)) as _
                 })
-                .collect::<FuturesUnordered<_>>()
-                .collect::<()>()
-                .await;
+            }));
+
+            futures.extend(keymap.key_leds.iter().map(|(k, hs)| {
+                let n = key_indices[&k];
+                let self_ = &self_;
+                Box::pin(async move {
+                    if let Err(err) = self_.board().keys()[n].set_color(*hs).await {
+                        error!("Failed to key LED: {}", err);
+                    }
+                }) as _
+            }));
 
             for (i, keymap_layer) in keymap.layers.iter().enumerate() {
-                let layer = &self_.board().layers()[i];
-                if let Some((mode, speed)) = keymap_layer.mode {
-                    if let Err(err) = layer.set_mode(Mode::from_index(mode).unwrap(), speed).await {
-                        error!("Failed to set layer mode: {}", err)
+                let self_ = &self_;
+                futures.push(Box::pin(async move {
+                    let layer = &self_.board().layers()[i];
+                    if let Some((mode, speed)) = keymap_layer.mode {
+                        if let Err(err) =
+                            layer.set_mode(Mode::from_index(mode).unwrap(), speed).await
+                        {
+                            error!("Failed to set layer mode: {}", err)
+                        }
                     }
-                }
-                if let Err(err) = layer.set_brightness(keymap_layer.brightness).await {
-                    error!("Failed to set layer brightness: {}", err)
-                }
-                if let Err(err) = layer.set_color(keymap_layer.color).await {
-                    error!("Failed to set layer color: {}", err)
-                }
+                    if let Err(err) = layer.set_brightness(keymap_layer.brightness).await {
+                        error!("Failed to set layer brightness: {}", err)
+                    }
+                    if let Err(err) = layer.set_color(keymap_layer.color).await {
+                        error!("Failed to set layer color: {}", err)
+                    }
+                }));
             }
+
+            futures.collect::<()>().await;
         });
     }
 
