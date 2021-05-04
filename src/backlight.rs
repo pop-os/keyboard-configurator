@@ -403,12 +403,11 @@ impl Backlight {
         let self_ = self.clone();
         let selected = self.inner().selected.borrow().clone();
         glib::MainContext::default().spawn_local(async move {
-            let res = selected
-                .iter()
-                .map(|i| self_.board().keys()[*i].set_color(None))
-                .collect::<FuturesUnordered<_>>()
-                .try_collect::<()>();
-            if let Err(err) = res.await {
+            let futures = FuturesUnordered::new();
+            for i in selected.iter() {
+                futures.push(self_.board().keys()[*i].set_color(None));
+            }
+            if let Err(err) = futures.try_collect::<()>().await {
                 error!("Failed to disable key: {}", err);
             }
             self_.update_per_key();

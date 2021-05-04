@@ -21,11 +21,11 @@ impl KeyboardColorIndex {
     pub async fn set_color(&self, board: &Board, hs: Hs) -> Result<(), String> {
         match self {
             KeyboardColorIndex::Keys(keys) => {
-                keys.iter()
-                    .map(|i| board.keys()[*i as usize].set_color(Some(hs)))
-                    .collect::<FuturesUnordered<_>>()
-                    .try_collect::<()>()
-                    .await?
+                let futures = FuturesUnordered::new();
+                for i in keys.iter() {
+                    futures.push(board.keys()[*i as usize].set_color(Some(hs)));
+                }
+                futures.try_collect::<()>().await?
             }
             KeyboardColorIndex::Layer(i) => board.layers()[*i as usize].set_color(hs).await?,
         };
@@ -65,11 +65,11 @@ impl KeyboardColorIndex {
     ) -> Result<(), String> {
         match self {
             KeyboardColorIndex::Keys(keys) => {
-                keys.iter()
-                    .map(|i| board.keys()[*i as usize].set_color(colors.get(i).copied()))
-                    .collect::<FuturesUnordered<_>>()
-                    .try_collect::<()>()
-                    .await?
+                let futures = FuturesUnordered::new();
+                for i in keys.iter() {
+                    futures.push(board.keys()[*i as usize].set_color(colors.get(i).copied()));
+                }
+                futures.try_collect::<()>().await?
             }
             KeyboardColorIndex::Layer(i) => {
                 board.layers()[*i as usize]

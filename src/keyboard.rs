@@ -311,10 +311,10 @@ impl Keyboard {
         let self_ = self.clone();
         glib::MainContext::default().spawn_local(async move {
             let _loader = self_.get_toplevel().and_then(|x| {
-                Some(
-                    x.downcast_ref::<MainWindow>()?
-                        .display_loader(&format!("Loading keymap and LEDs for {}...", self_.display_name())),
-                )
+                Some(x.downcast_ref::<MainWindow>()?.display_loader(&format!(
+                    "Loading keymap and LEDs for {}...",
+                    self_.display_name()
+                )))
             });
 
             // TODO: Make sure it doesn't panic with invalid json with invalid indexes?
