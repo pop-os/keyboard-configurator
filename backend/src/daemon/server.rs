@@ -12,8 +12,8 @@ use std::{
 };
 use uuid::Uuid;
 
-use super::{err_str, BoardId, Daemon, DaemonCommand, Nelson};
-use crate::Matrix;
+use super::{err_str, BoardId, Daemon, DaemonCommand};
+use crate::{Matrix, Nelson};
 
 pub struct DaemonServer<R: Read + Send + 'static, W: Write + Send + 'static> {
     hidapi: RefCell<Option<HidApi>>,

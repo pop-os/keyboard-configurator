@@ -11,9 +11,10 @@ pub struct TestingColors(pub HashMap<(usize, usize), Rgb>);
 #[derive(Default)]
 pub struct TestingInner {
     board: DerefCell<Board>,
-    num_runs_entry: DerefCell<gtk::Entry>,
+    num_runs_spin: DerefCell<gtk::SpinButton>,
     serial_entry: DerefCell<gtk::Entry>,
     test_button: DerefCell<gtk::Button>,
+    test_label: DerefCell<gtk::Label>,
     colors: RefCell<TestingColors>,
 }
 
@@ -59,9 +60,10 @@ impl ObjectImpl for TestingInner {
             }
         }
 
-        let num_runs_entry = gtk::Entry::new();
+        let num_runs_spin = gtk::SpinButton::with_range(1.0, 1000.0, 1.0);
         let serial_entry = gtk::Entry::new();
         let test_button = gtk::Button::with_label("Test");
+        let test_label = gtk::Label::new(None);
 
         cascade! {
             obj;
@@ -70,9 +72,10 @@ impl ObjectImpl for TestingInner {
             ..add(&label_row("Check pins (missing)", &color_box(1., 0., 0.)));
             ..add(&label_row("Check key (sticking)", &color_box(0., 1., 0.)));
             ..add(&label_row("Replace switch (bouncing)", &color_box(0., 0., 1.)));
-            ..add(&label_row("Number of runs", &num_runs_entry));
+            ..add(&label_row("Number of runs", &num_runs_spin));
             ..add(&label_row("Serial", &serial_entry));
             ..add(&row(&test_button));
+            ..add(&row(&test_label));
             ..set_header_func(Some(Box::new(|row, before| {
                 if before.is_none() {
                     row.set_header::<gtk::Widget>(None)
@@ -86,9 +89,10 @@ impl ObjectImpl for TestingInner {
             ..show_all();
         };
 
-        self.num_runs_entry.set(num_runs_entry);
+        self.num_runs_spin.set(num_runs_spin);
         self.serial_entry.set(serial_entry);
         self.test_button.set(test_button);
+        self.test_label.set(test_label);
     }
 
     fn properties() -> &'static [glib::ParamSpec] {
@@ -136,23 +140,41 @@ impl Testing {
             let obj_nelson = obj_btn.clone();
             glib::MainContext::default().spawn_local(async move {
                 let testing = obj_nelson.inner();
-                let nelson = testing.board.nelson().await.expect("failed to get nelson result");
 
-                //TODO: should we check matrix sizes for bouncing and sticking?
-                for row in 0..nelson.missing.rows() {
-                    for col in 0..nelson.missing.cols() {
-                        let r = if nelson.missing.get(row, col).unwrap_or(false) { 255 } else { 0 };
-                        let g = if nelson.sticking.get(row, col).unwrap_or(false) { 255 } else { 0 };
-                        let b = if nelson.bouncing.get(row, col).unwrap_or(false) { 255 } else { 0 };
-                        if r != 0 || g != 0 || b != 0 {
-                            testing.colors.borrow_mut().0.insert((row, col), Rgb::new(r, g, b));
-                        } else {
-                            testing.colors.borrow_mut().0.remove(&(row, col));
+                let test_runs = testing.num_runs_spin.get_value_as_int();
+                for test_run in 1..=test_runs {
+                    testing.test_label.set_text(&format!("Test {}/{} running", test_run, test_runs));
+
+                    let nelson = match testing.board.nelson().await {
+                        Ok(ok) => ok,
+                        Err(err) => {
+                            testing.test_label.set_text(&format!("Test {}/{} failed to run: {}", test_run, test_runs, err));
+                            break;
+                        }
+                    };
+
+                    for row in 0..nelson.max_rows() {
+                        for col in 0..nelson.max_cols() {
+                            let r = if nelson.missing.get(row, col).unwrap_or(false) { 255 } else { 0 };
+                            let g = if nelson.sticking.get(row, col).unwrap_or(false) { 255 } else { 0 };
+                            let b = if nelson.bouncing.get(row, col).unwrap_or(false) { 255 } else { 0 };
+                            if r != 0 || g != 0 || b != 0 {
+                                testing.colors.borrow_mut().0.insert((row, col), Rgb::new(r, g, b));
+                            } else {
+                                testing.colors.borrow_mut().0.remove(&(row, col));
+                            }
                         }
                     }
-                }
 
-                obj_nelson.notify("colors");
+                    obj_nelson.notify("colors");
+
+                    if nelson.success() {
+                        testing.test_label.set_text(&format!("Test {}/{} successful", test_run, test_runs));
+                    } else {
+                        testing.test_label.set_text(&format!("Test {}/{} failed", test_run, test_runs));
+                        break;
+                    }
+                }
 
                 testing.test_button.set_sensitive(true);
             });

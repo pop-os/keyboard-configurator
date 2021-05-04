@@ -5,8 +5,8 @@
 use std::iter::Iterator;
 use zbus::{dbus_proxy, fdo::ObjectManagerProxy, Connection};
 
-use super::{err_str, BoardId, Daemon, Matrix, Nelson};
-use crate::Rgb;
+use super::{err_str, BoardId, Daemon};
+use crate::{Matrix, Nelson, Rgb};
 
 const DBUS_NAME: &str = "com.system76.PowerDaemon";
 

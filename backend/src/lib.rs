@@ -23,11 +23,23 @@ mod key;
 mod keymap;
 mod layer;
 mod layout;
+mod matrix;
 mod mode;
+mod nelson;
 mod rect;
 
 use crate::daemon::*;
 pub use crate::{
-    backend::*, board::*, color::*, deref_cell::*, key::*, keymap::*, layer::*, layout::*, mode::*,
+    backend::*,
+    board::*,
+    color::*,
+    deref_cell::*,
+    key::*,
+    keymap::*,
+    layer::*,
+    layout::*,
+    matrix::*,
+    mode::*,
+    nelson::*,
     rect::*,
 };
