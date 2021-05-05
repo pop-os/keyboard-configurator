@@ -53,6 +53,7 @@ pub struct KeyMapLayer {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct KeyMap {
     pub model: String,
+    pub version: u8,
     pub map: HashMap<String, Vec<String>>,
     #[serde(with = "hs_map_serde")]
     pub key_leds: HashMap<String, Option<Hs>>,

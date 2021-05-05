@@ -1,5 +1,6 @@
 {
   "model": "system76/addw1",
+  "version": 1,
   "map": {
     "K00": [
       "ESC",

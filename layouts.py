@@ -245,7 +245,7 @@ def gen_default_json(path: str, board: str, keymap: Dict[str, List[str]], is_qmk
         else:
             key_leds = {}
             layers = [{"mode": None, "brightness": 0, "color": (0, 0)}]
-        json.dump({"model": board, "map": keymap, "key_leds": key_leds, "layers": layers}, f, indent=2)
+        json.dump({"model": board, "version": 1, "map": keymap, "key_leds": key_leds, "layers": layers}, f, indent=2)
 
 
 def generate_layout_dir(ecdir: str, board: str, is_qmk: bool) -> None:

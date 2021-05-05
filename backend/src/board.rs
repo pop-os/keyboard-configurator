@@ -241,6 +241,7 @@ impl Board {
             .collect();
         KeyMap {
             model: self.model().to_string(),
+            version: 1,
             map,
             key_leds,
             layers,

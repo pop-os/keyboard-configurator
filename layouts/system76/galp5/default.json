@@ -1,5 +1,6 @@
 {
   "model": "system76/galp5",
+  "version": 1,
   "map": {
     "K00": [
       "ESC",

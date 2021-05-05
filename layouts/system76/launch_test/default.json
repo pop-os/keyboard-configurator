@@ -1,5 +1,6 @@
 {
   "model": "system76/launch_test",
+  "version": 1,
   "map": {
     "K00": [
       "KBD_TOGGLE"

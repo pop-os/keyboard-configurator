@@ -1,5 +1,6 @@
 {
   "model": "system76/oryp6",
+  "version": 1,
   "map": {
     "K00": [
       "ESC",

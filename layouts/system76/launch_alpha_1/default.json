@@ -1,5 +1,6 @@
 {
   "model": "system76/launch_alpha_1",
+  "version": 1,
   "map": {
     "K00": [
       "ESC",

@@ -412,6 +412,14 @@ impl Keyboard {
             let path = chooser.get_filename().unwrap();
             let keymap = self.export_keymap();
 
+            if keymap.version != 1 {
+                show_error_dialog(
+                    &self.window().unwrap(),
+                    "Unsupported keymap file",
+                    "Keymap file appears to be from newer Configurator version.",
+                )
+            }
+
             match File::create(&path) {
                 Ok(file) => match keymap.to_writer_pretty(file) {
                     Ok(()) => {}
