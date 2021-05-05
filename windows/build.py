@@ -99,6 +99,10 @@ for i in EXES:
 for src, filename in dlls:
     copy(os.path.dirname(src), 'out', filename)
 
+# This shouldn't be necessary
+# https://github.com/pop-os/keyboard-configurator/issues/39
+copy('../data/icons', 'out/share/icons/Adwaita', 'scalable')
+
 # Copy additional data
 for i in ADDITIONAL_FILES:
     copy(mingw_dir, 'out', i)
