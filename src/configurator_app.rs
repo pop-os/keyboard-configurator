@@ -164,7 +164,7 @@ fn windows_init() {
         hkcu.open_subkey("Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize")
     {
         if let Ok(dword) = subkey.get_value::<u32, _>("AppsUseLightTheme") {
-            prefer_dark = (dword == 0);
+            prefer_dark = dword == 0;
         }
     }
 
