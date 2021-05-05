@@ -9,6 +9,7 @@ pub fn show_about_dialog() {
         ..set_version(Some(env!("CARGO_PKG_VERSION")));
         ..set_license_type(gtk::License::Gpl30);
         ..set_logo_icon_name(Some("com.system76.keyboardconfigurator"));
+        ..connect_response(|dialog, _| dialog.close());
         ..show();
     };
 }
