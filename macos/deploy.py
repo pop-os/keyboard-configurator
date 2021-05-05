@@ -20,6 +20,7 @@ ADWAITA_FILES = [
     'scalable/actions/go-previous-symbolic.svg',
     'scalable/actions/list-remove-symbolic.svg',
     'scalable/actions/list-add-symbolic.svg',
+    'scalable/actions/edit-find-symbolic.svg',
 ]
 ADWAITA_FILES = [f'share/icons/Adwaita/{i}' for i in ADWAITA_FILES]
 ADDITIONAL_FILES = ['share/glib-2.0/schemas/org.gtk.Settings.FileChooser.gschema.xml'] + ADWAITA_FILES
