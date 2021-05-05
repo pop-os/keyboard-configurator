@@ -163,12 +163,9 @@ impl<R: Read + Send + 'static, W: Write + Send + 'static> Daemon for DaemonServe
 
     fn nelson(&self, board: BoardId) -> Result<Nelson, String> {
         if let Some(nelson) = &mut *self.nelson.borrow_mut() {
-            let delay_ms = 250;
+            let delay_ms = 300;
             info!("Nelson delay is {} ms", delay_ms);
             let delay = Duration::from_millis(delay_ms);
-
-            info!("Sleep");
-            sleep(delay);
 
             // Check if Nelson is already closed
             if unsafe { nelson.led_get_value(0).map_err(err_str)?.0 > 0 } {
@@ -177,19 +174,6 @@ impl<R: Read + Send + 'static, W: Write + Send + 'static> Daemon for DaemonServe
 
                 info!("Sleep");
                 sleep(delay);
-            }
-
-            info!("Save and clear keymap");
-            let mut keymap = HashMap::<(u8, u8, u8), u16>::new();
-            let matrix = self.matrix_get(board)?;
-            for layer in 0..4 /* TODO */ {
-                for row in 0..matrix.rows() as u8 {
-                    for col in 0..matrix.cols() as u8 {
-                        let key = self.keymap_get(board, layer, row, col)?;
-                        keymap.insert((layer, row, col), key);
-                        self.keymap_set(board, layer, row, col, 0)?;
-                    }
-                }
             }
 
             info!("Close Nelson");
@@ -222,17 +206,6 @@ impl<R: Read + Send + 'static, W: Write + Send + 'static> Daemon for DaemonServe
             }
 
             let sticking = self.matrix_get(board)?;
-
-            info!("Restore keymap");
-            for layer in 0..4 /* TODO */ {
-                for row in 0..matrix.rows() as u8 {
-                    for col in 0..matrix.cols() as u8 {
-                        if let Some(key) = keymap.get(&(layer, row, col)) {
-                            self.keymap_set(board, layer, row, col, *key)?;
-                        }
-                    }
-                }
-            }
 
             Ok(Nelson { missing, bouncing, sticking })
         } else {

@@ -128,6 +128,17 @@ glib::wrapper! {
         @extends gtk::ListBox, gtk::Container, gtk::Widget;
 }
 
+async fn import_keymap_hack(board: &Board, keymap: &backend::KeyMap) -> Result<(), String> {
+    for key in board.keys() {
+        if let Some(scancodes) = keymap.map.get(&key.logical_name) {
+            for layer in 0..scancodes.len() {
+                key.set_scancode(layer, &scancodes[layer]).await?;
+            }
+        }
+    }
+    Ok(())
+}
+
 impl Testing {
     pub fn new(board: Board) -> Self {
         let obj: Self = glib::Object::new(&[]).unwrap();
@@ -135,20 +146,39 @@ impl Testing {
 
         let obj_btn = obj.clone();
         obj.inner().test_button.connect_clicked(move |button| {
+            info!("Disabling test button");
             button.set_sensitive(false);
 
             let obj_nelson = obj_btn.clone();
             glib::MainContext::default().spawn_local(async move {
                 let testing = obj_nelson.inner();
 
+                info!("Save and clear keymap");
+                let keymap = testing.board.export_keymap();
+                {
+                    let mut empty = keymap.clone();
+                    for (_name, codes) in empty.map.iter_mut() {
+                        for code in codes.iter_mut() {
+                            *code = "NONE".to_string();
+                        }
+                    }
+                    if let Err(err) = import_keymap_hack(&testing.board, &empty).await {
+                        error!("Failed to clear keymap: {}", err);
+                    }
+                }
+
                 let test_runs = testing.num_runs_spin.get_value_as_int();
                 for test_run in 1..=test_runs {
-                    testing.test_label.set_text(&format!("Test {}/{} running", test_run, test_runs));
+                    let message = format!("Test {}/{} running", test_run, test_runs);
+                    info!("{}", message);
+                    testing.test_label.set_text(&message);
 
                     let nelson = match testing.board.nelson().await {
                         Ok(ok) => ok,
                         Err(err) => {
-                            testing.test_label.set_text(&format!("Test {}/{} failed to run: {}", test_run, test_runs, err));
+                            let message = format!("Test {}/{} failed to run: {}", test_run, test_runs, err);
+                            error!("{}", message);
+                            testing.test_label.set_text(&message);
                             break;
                         }
                     };
@@ -169,13 +199,23 @@ impl Testing {
                     obj_nelson.notify("colors");
 
                     if nelson.success() {
-                        testing.test_label.set_text(&format!("Test {}/{} successful", test_run, test_runs));
+                        let message = format!("Test {}/{} successful", test_run, test_runs);
+                        info!("{}", message);
+                        testing.test_label.set_text(&message);
                     } else {
-                        testing.test_label.set_text(&format!("Test {}/{} failed", test_run, test_runs));
+                        let message = format!("Test {}/{} failed", test_run, test_runs);
+                        error!("{}", message);
+                        testing.test_label.set_text(&message);
                         break;
                     }
                 }
 
+                info!("Restore keymap");
+                if let Err(err) = import_keymap_hack(&testing.board, &keymap).await {
+                    error!("Failed to restore keymap: {}", err);
+                }
+
+                info!("Enabling test button");
                 testing.test_button.set_sensitive(true);
             });
         });
