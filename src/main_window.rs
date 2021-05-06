@@ -304,7 +304,7 @@ impl MainWindow {
         };
         let window = self;
         let button = cascade! {
-            gtk::Button::with_label("Configure Layout");
+            gtk::Button::with_label("Configure Keyboard");
             ..set_halign(gtk::Align::Center);
             ..connect_clicked(clone!(@weak window, @weak keyboard => move |_| {
                 window.show_keyboard(&keyboard);

@@ -556,15 +556,15 @@
     "keys": [
       {
         "keysym": "KBD_TOGGLE",
-        "label": "LED Toggle"
+        "label": "LED On Off"
       },
       {
         "keysym": "KBD_UP",
-        "label": "LED Up"
+        "label": "LED Brighten"
       },
       {
         "keysym": "KBD_DOWN",
-        "label": "LED Down"
+        "label": "LED Darken"
       },
       {
         "keysym": "KBD_BKL",
