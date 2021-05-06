@@ -55,7 +55,10 @@ impl ObjectImpl for MainWindowInner {
             }));
         };
 
-        let layer_switcher = gtk::StackSwitcher::new();
+        let layer_switcher = cascade! {
+            gtk::StackSwitcher::new();
+            ..show();
+        };
 
         let menu = cascade! {
             gio::Menu::new();
@@ -74,9 +77,9 @@ impl ObjectImpl for MainWindowInner {
 
         let header_bar = cascade! {
             gtk::HeaderBar::new();
+            ..set_title(Some("System76 Keyboard Configurator"));
             ..set_show_close_button(true);
             ..pack_start(&back_button);
-            ..set_custom_title(Some(&layer_switcher));
             ..pack_end(&cascade! {
                 gtk::MenuButton::new();
                 ..set_menu_model(Some(&menu));
