@@ -78,7 +78,12 @@ jobs:
     - run: npm install -g appdmg
     - run: echo "$HOME/.local/bin" >> $GITHUB_PATH
     - uses: actions/checkout@v2
-    - run: cd macos && ./build.py $RELEASE
+    - env:
+        AC_PASSWORD: ${{ github.event_name == 'release' && secrets.AC_PASSWORD || '' }}
+        AC_USERNAME: ${{ github.event_name == 'release' && secrets.AC_USERNAME || '' }}
+        MACOS_CERTIFICATE: ${{ github.event_name == 'release' && secrets.MACOS_CERTIFICATE || '' }}
+        MACOS_SCRIPT: ${{ github.event_name == 'release' && './signing.sh' || './build.py' }}
+      run: cd macos && "${MACOS_SCRIPT}" $RELEASE
     - uses: actions/upload-artifact@v2
       with:
         if-no-files-found: error

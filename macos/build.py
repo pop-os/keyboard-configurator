@@ -13,6 +13,7 @@ from deploy import deploy_with_deps
 # Handle commandline arguments
 parser = argparse.ArgumentParser()
 parser.add_argument('--release', action='store_true')
+parser.add_argument('--sign')
 args = parser.parse_args()
 
 # Executables to install
@@ -64,6 +65,20 @@ subprocess.check_call([f"strip", '-o', f"keyboard-configurator", f"{TARGET_DIR}/
 
 # Build .app bundle
 deploy_with_deps('keyboard-configurator')
+
+if args.sign is not None:
+    # Sign all .dylib files in the Resources folder
+    subprocess.check_call([
+        "find", APPDIR + "/Contents/Resources",
+        "-name", "*.dylib",
+        "-exec", "codesign", "--verbose", "--sign", args.sign, "{}", ";"])
+    # Sign all .so files in the Resources folder
+    subprocess.check_call([
+        "find", APPDIR + "/Contents/Resources",
+        "-name", "*.so",
+        "-exec", "codesign", "--verbose", "--sign", args.sign, "{}", ";"])
+    # Sign app bundle (with hardened runtime)
+    subprocess.check_call(["codesign", "--verbose", "--deep", "--options", "runtime", "--sign", args.sign, APPDIR])
 
 # Build .dmg
 if os.path.exists("keyboard-configurator.dmg"):
