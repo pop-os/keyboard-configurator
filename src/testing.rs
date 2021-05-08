@@ -1,3 +1,4 @@
+use crate::fl;
 use backend::{Board, DerefCell, Rgb};
 use cascade::cascade;
 use gtk::prelude::*;
@@ -61,16 +62,16 @@ impl ObjectImpl for TestingInner {
 
         let num_runs_entry = gtk::Entry::new();
         let serial_entry = gtk::Entry::new();
-        let test_button = gtk::Button::with_label("Test");
+        let test_button = gtk::Button::with_label(&fl!("button-test"));
 
         cascade! {
             obj;
             ..set_valign(gtk::Align::Start);
             ..get_style_context().add_class("frame");
-            ..add(&label_row("Check pins", &color_box(1., 0., 0.)));
-            ..add(&label_row("Replace switch", &color_box(0., 0., 1.)));
-            ..add(&label_row("Number of runs", &num_runs_entry));
-            ..add(&label_row("Serial", &serial_entry));
+            ..add(&label_row(&fl!("test-check-pins"), &color_box(1., 0., 0.)));
+            ..add(&label_row(&fl!("test-replace-switch"), &color_box(0., 0., 1.)));
+            ..add(&label_row(&fl!("test-number-of-runs"), &num_runs_entry));
+            ..add(&label_row(&fl!("test-serial"), &serial_entry));
             ..add(&row(&test_button));
             ..set_header_func(Some(Box::new(|row, before| {
                 if before.is_none() {

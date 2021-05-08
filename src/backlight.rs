@@ -1,3 +1,4 @@
+use crate::fl;
 use cascade::cascade;
 use futures::{prelude::*, stream::FuturesUnordered};
 use glib::clone;
@@ -48,7 +49,7 @@ impl ObjectImpl for BacklightInner {
         };
 
         for mode in Mode::all() {
-            mode_combobox.append(Some(mode.id), mode.name);
+            mode_combobox.append(Some(mode.id), &mode.name);
         }
 
         let speed_scale = cascade! {
@@ -118,16 +119,16 @@ impl ObjectImpl for BacklightInner {
         }
 
         let disable_color_button = cascade! {
-            gtk::Button::with_label("Disable");
+            gtk::Button::with_label(&fl!("button-disable"));
             ..set_no_show_all(true);
             ..connect_clicked(clone!(@weak obj => move |_| obj.disable_color_clicked()));
         };
 
-        let color_label = gtk::Label::new(Some("Layer Color:"));
+        let color_label = gtk::Label::new(Some(&fl!("layer-color")));
 
-        let mode_row = label_row("Layer Color Pattern:", &mode_combobox);
-        let speed_row = label_row("Layer Animation Speed:", &speed_scale);
-        let saturation_row = label_row("Layer Saturation:", &saturation_scale);
+        let mode_row = label_row(&fl!("layer-color-pattern"), &mode_combobox);
+        let speed_row = label_row(&fl!("layer-animation-speed"), &speed_scale);
+        let saturation_row = label_row(&fl!("layer-saturation"), &saturation_scale);
         let color_row = row(&cascade! {
             gtk::Box::new(gtk::Orientation::Horizontal, 8);
             ..add(&color_label);
@@ -135,7 +136,7 @@ impl ObjectImpl for BacklightInner {
             ..pack_end(&disable_color_button, false, false, 0);
         });
         let brightness_row = cascade! {
-            label_row("Brightness (all layers):", &brightness_scale);
+            label_row(&fl!("layer-all-brightness"), &brightness_scale);
         };
 
         cascade! {
@@ -311,13 +312,13 @@ impl Backlight {
 
         if self.mode().is_per_key() {
             self.update_per_key();
-            self.inner().color_label.set_label("Key color:");
+            self.inner().color_label.set_label(&fl!("key-color"));
         } else {
             self.inner().keyboard_color.set_sensitive(true);
             self.inner()
                 .keyboard_color
                 .set_index(KeyboardColorIndex::Layer(self.inner().layer.get()));
-            self.inner().color_label.set_label("Layer color:");
+            self.inner().color_label.set_label(&fl!("layer-color"));
         }
         self.inner()
             .disable_color_button
@@ -335,7 +336,7 @@ impl Backlight {
         glib::MainContext::default().spawn_local(async move {
             let layer = &board.layers()[layer];
             if let Err(err) = layer.set_mode(mode, speed as u8).await {
-                error!("Error setting keyboard mode: {}", err);
+                error!("{}: {}", fl!("error-set-keyboard-mode"), err);
             }
         });
     }
@@ -349,7 +350,7 @@ impl Backlight {
         glib::MainContext::default().spawn_local(async move {
             for layer in board.layers() {
                 if let Err(err) = layer.set_brightness(value).await {
-                    error!("Error setting brightness: {}", err);
+                    error!("{}: {}", fl!("error-set-keyboard-brightness"), err);
                 }
             }
         });
@@ -408,7 +409,7 @@ impl Backlight {
                 futures.push(self_.board().keys()[*i].set_color(None));
             }
             if let Err(err) = futures.try_collect::<()>().await {
-                error!("Failed to disable key: {}", err);
+                error!("{}: {}", fl!("error-disable-key"), err);
             }
             self_.update_per_key();
         });
@@ -419,7 +420,7 @@ impl Backlight {
             let board = self.board().clone();
             glib::MainContext::default().spawn_local(async move {
                 if let Err(err) = board.led_save().await {
-                    error!("Failed to save LEDs: {}", err);
+                    error!("{}: {}", fl!("error-save-leds"), err);
                 }
             });
         }

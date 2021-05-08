@@ -23,11 +23,12 @@ mod key;
 mod keymap;
 mod layer;
 mod layout;
+mod localize;
 mod mode;
 mod rect;
 
 use crate::daemon::*;
 pub use crate::{
-    backend::*, board::*, color::*, deref_cell::*, key::*, keymap::*, layer::*, layout::*, mode::*,
-    rect::*,
+    backend::*, board::*, color::*, deref_cell::*, key::*, keymap::*, layer::*, layout::*,
+    localize::*, mode::*, rect::*,
 };

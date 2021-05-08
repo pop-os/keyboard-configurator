@@ -1,7 +1,7 @@
 use std::{cell::RefCell, collections::HashMap};
 
 use super::{BoardId, Daemon};
-use crate::{Layout, Matrix};
+use crate::{fl, Layout, Matrix};
 
 struct BoardDummy {
     name: String,
@@ -54,7 +54,7 @@ impl DaemonDummy {
     fn board(&self, board: BoardId) -> Result<&BoardDummy, String> {
         self.boards
             .get(board.0 as usize)
-            .ok_or_else(|| "No board".to_string())
+            .ok_or_else(|| fl!("no-board"))
     }
 }
 

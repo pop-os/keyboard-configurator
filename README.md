@@ -12,7 +12,7 @@ cd qmk_firmware
 git checkout master
 git pull
 
-# Flash the firmware with the default keymap. Press Fn-Esc to reset the keyboard. 
+# Flash the firmware with the default keymap. Press Fn-Esc to reset the keyboard.
 make system76/launch_alpha_1:default:flash
 ```
 
@@ -34,3 +34,17 @@ git pull
 # Build and run the configurator
 cargo run --release
 ```
+
+## Translators
+
+Translators are welcome to submit translations directly as a pull request to this project. It is generally expected that your pull requests will contain a single commit for each language that was added or improved, using a syntax like so:
+
+```
+i18n(eo): Add Esperanto language support
+```
+
+```
+i18n(pl): Improvements to Polish language support
+```
+
+Translation files can be found [here](./i18n/). We are using [Project Fluent](https://projectfluent.org) for our translations, which should be easier than working with gettext.

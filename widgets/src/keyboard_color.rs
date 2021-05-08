@@ -1,3 +1,4 @@
+use crate::fl;
 use cascade::cascade;
 use futures::{prelude::*, stream::FuturesUnordered};
 use glib::clone;
@@ -185,10 +186,11 @@ impl KeyboardColor {
     fn circle_clicked(&self) {
         let self_ = self;
         glib::MainContext::default().spawn_local(clone!(@weak self_ => async move {
+            let title = fl!("choose-color");
             let resp = choose_color(
                 self_.board().unwrap().clone(),
                 &self_,
-                "Set Color",
+                &title,
                 Some(self_.hs()),
                 self_.index().clone(),
             );

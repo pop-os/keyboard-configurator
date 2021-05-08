@@ -6,7 +6,7 @@ use std::iter::Iterator;
 use zbus::{dbus_proxy, fdo::ObjectManagerProxy, Connection};
 
 use super::{err_str, BoardId, Daemon, Matrix};
-use crate::Rgb;
+use crate::{fl, Rgb};
 
 const DBUS_NAME: &str = "com.system76.PowerDaemon";
 
@@ -51,7 +51,7 @@ impl DaemonS76Power {
     fn board(&self, board: BoardId) -> Result<&Keyboard, String> {
         self.boards
             .get(board.0 as usize)
-            .ok_or_else(|| "No board".to_string())
+            .ok_or_else(|| fl!("no-board"))
     }
 }
 

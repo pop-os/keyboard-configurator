@@ -1,3 +1,4 @@
+use crate::fl;
 use cascade::cascade;
 use futures::future::abortable;
 use glib::clone;
@@ -10,7 +11,7 @@ use backend::{Board, Hs};
 pub async fn choose_color<W: IsA<gtk::Widget>>(
     board: Board,
     w: &W,
-    title: &'static str,
+    title: &str,
     color: Option<Hs>,
     index: KeyboardColorIndex,
 ) -> Option<Hs> {
@@ -45,7 +46,7 @@ pub async fn choose_color<W: IsA<gtk::Widget>>(
                     handle.abort();
                 }
                 if let Ok(Err(err)) = res.await {
-                    error!("Failed to set keyboard color: {}", err);
+                    error!("{}: {}", fl!("error-set-color"), err);
                 }
             }));
             preview.queue_draw();
@@ -66,7 +67,7 @@ pub async fn choose_color<W: IsA<gtk::Widget>>(
 
     let hue_box = cascade! {
         gtk::Box::new(gtk::Orientation::Horizontal, 0);
-        ..add(&gtk::Label::new(Some("Hue")));
+        ..add(&gtk::Label::new(Some(&fl!("label-hue"))));
         ..add(&cascade! {
             gtk::Scale::new(gtk::Orientation::Horizontal, Some(&hue_adjustment));
             ..set_hexpand(true);
@@ -77,7 +78,7 @@ pub async fn choose_color<W: IsA<gtk::Widget>>(
 
     let saturation_box = cascade! {
         gtk::Box::new(gtk::Orientation::Horizontal, 0);
-        ..add(&gtk::Label::new(Some("Saturation")));
+        ..add(&gtk::Label::new(Some(&fl!("label-saturation"))));
         ..add(&cascade! {
             gtk::Scale::new(gtk::Orientation::Horizontal, Some(&saturation_adjustment));
             ..set_hexpand(true);
@@ -105,8 +106,8 @@ pub async fn choose_color<W: IsA<gtk::Widget>>(
             .use_header_bar(1)
             .modal(true)
             .build();
-        ..add_button("Cancel", gtk::ResponseType::Cancel);
-        ..add_button("Save", gtk::ResponseType::Ok);
+        ..add_button(&fl!("button-cancel"), gtk::ResponseType::Cancel);
+        ..add_button(&fl!("button-save"), gtk::ResponseType::Ok);
         ..get_content_area().add(&vbox);
         ..set_transient_for(window.as_ref());
         ..show_all();
@@ -125,7 +126,7 @@ pub async fn choose_color<W: IsA<gtk::Widget>>(
         Some(color_wheel.hs())
     } else {
         if let Err(err) = index.set_colors(&board, &original_colors).await {
-            error!("Failed to set keyboard color: {}", err);
+            error!("{}: {}", fl!("error-set-color"), err);
         }
         None
     }

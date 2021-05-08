@@ -11,16 +11,14 @@
           <object class="GtkShortcutsGroup">
             <property name="visible">True</property>
             <child>
-              <object class="GtkShortcutsShortcut">
+              <object class="GtkShortcutsShortcut" id="import-layout">
                 <property name="visible">True</property>
-                <property name="title" translatable="yes">Import Layout</property>
                 <property name="action-name">kbd.import</property>
               </object>
             </child>
             <child>
-              <object class="GtkShortcutsShortcut">
+              <object class="GtkShortcutsShortcut" id="export-layout">
                 <property name="visible">True</property>
-                <property name="title" translatable="yes">Export Layout</property>
                 <property name="action-name">kbd.export</property>
               </object>
             </child>

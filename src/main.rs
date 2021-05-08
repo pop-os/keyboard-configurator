@@ -3,6 +3,7 @@
 #[macro_use]
 extern crate log;
 
+use i18n_embed::DesktopLanguageRequester;
 use std::env;
 use std::process;
 
@@ -12,6 +13,7 @@ mod configurator_app;
 mod error_dialog;
 mod keyboard;
 mod keyboard_layer;
+mod localize;
 mod main_window;
 mod page;
 mod picker;
@@ -25,6 +27,7 @@ use self::{
 };
 
 fn main() {
+    translate();
     env_logger::Builder::from_env(
         env_logger::Env::default().filter_or(env_logger::DEFAULT_FILTER_ENV, "info"),
     )
@@ -40,4 +43,20 @@ fn main() {
     }
 
     process::exit(crate::run());
+}
+
+fn translate() {
+    let requested_languages = DesktopLanguageRequester::requested_languages();
+
+    let localizers = vec![
+        ("keyboard-configurator", crate::localize::localizer()),
+        ("backend", backend::localizer()),
+        ("widgets", widgets::localizer()),
+    ];
+
+    for (crate_name, localizer) in localizers {
+        if let Err(error) = localizer.select(&requested_languages) {
+            eprintln!("Error while loading languages for {} {}", crate_name, error);
+        }
+    }
 }

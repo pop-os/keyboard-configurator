@@ -1,5 +1,6 @@
 // Intended for use in Gnome Control Center's Keyboard panel
 
+use crate::fl;
 use cascade::cascade;
 use glib::clone;
 use gtk::prelude::*;
@@ -54,7 +55,7 @@ fn page(board: Board) -> gtk::Widget {
         ..connect_change_value(clone!(@strong board => move |_scale, _, value| {
             glib::MainContext::default().spawn_local(clone!(@strong board => async move {
                 if let Err(err) = board.layers()[0].set_brightness(value as i32).await {
-                    eprintln!("Failed to set keyboard brightness: {}", err);
+                    eprintln!("{}: {}", fl!("error-set-brightness"), err);
                 }
             }));
             Inhibit(false)
@@ -71,8 +72,8 @@ fn page(board: Board) -> gtk::Widget {
             let separator = gtk::Separator::new(gtk::Orientation::Horizontal);
             row.set_header(before.and(Some(&separator)));
         })));
-        ..add(&row("Brightness", &brightness_scale, true));
-        ..add(&row("Color", &button, false));
+        ..add(&row(&fl!("scale-brightness"), &brightness_scale, true));
+        ..add(&row(&fl!("button-color"), &button, false));
     };
 
     listbox.upcast()

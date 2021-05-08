@@ -1,3 +1,4 @@
+use crate::fl;
 use cascade::cascade;
 use glib::clone;
 use gtk::prelude::*;
@@ -64,20 +65,20 @@ impl ObjectImpl for MainWindowInner {
             gio::Menu::new();
             ..append_section(None, &cascade! {
                 gio::Menu::new();
-                ..append(Some("Import Layout"), Some("kbd.import"));
-                ..append(Some("Export Layout"), Some("kbd.export"));
-                ..append(Some("Reset Layout"), Some("kbd.reset"));
+                ..append(Some(&fl!("layout-import")), Some("kbd.import"));
+                ..append(Some(&fl!("layout-export")), Some("kbd.export"));
+                ..append(Some(&fl!("layout-reset")), Some("kbd.reset"));
             });
             ..append_section(None, &cascade! {
                 gio::Menu::new();
-                ..append(Some("Keyboard Shortcuts"), Some("win.show-help-overlay"));
-                ..append(Some("About Keyboard Configurator"), Some("app.about"));
+                ..append(Some(&fl!("show-help-overlay")), Some("win.show-help-overlay"));
+                ..append(Some(&fl!("app-about")), Some("app.about"));
             });
         };
 
         let header_bar = cascade! {
             gtk::HeaderBar::new();
-            ..set_title(Some("System76 Keyboard Configurator"));
+            ..set_title(Some(&fl!("app-title")));
             ..set_show_close_button(true);
             ..pack_start(&back_button);
             ..pack_end(&cascade! {
@@ -89,13 +90,12 @@ impl ObjectImpl for MainWindowInner {
             });
         };
 
-        let no_boards_msg = concat! {
-            "<span size='xx-large' weight='bold'>No keyboard detected</span>\n\n",
-            "Make sure your built-in keyboard has up to date\n",
-            "System76 Open Firmware.\n",
-            "If using an external keyboard, make sure it is\n",
-            "plugged in properly.",
-        };
+        let no_boards_msg = format!(
+            "<span size='xx-large' weight='bold'>{}</span>\n\n{}",
+            fl!("no-boards"),
+            fl!("no-boards-msg")
+        );
+
         let no_boards = cascade! {
             gtk::Box::new(gtk::Orientation::Vertical, 24);
             ..set_vexpand(true);
@@ -107,7 +107,7 @@ impl ObjectImpl for MainWindowInner {
                 ..set_halign(gtk::Align::Center);
             });
             ..add(&cascade! {
-                gtk::Label::new(Some(no_boards_msg));
+                gtk::Label::new(Some(&no_boards_msg));
                 ..set_justify(gtk::Justification::Center);
                 ..set_use_markup(true);
             });
@@ -152,7 +152,7 @@ impl ObjectImpl for MainWindowInner {
 
         cascade! {
             window;
-            ..set_title("System76 Keyboard Configurator");
+            ..set_title(&fl!("app-title"));
             ..set_position(gtk::WindowPosition::Center);
             ..set_default_size(1280, 768);
             ..set_titlebar(Some(&header_bar));
@@ -207,7 +207,7 @@ impl MainWindow {
         let backend = cascade! {
             daemon();
             ..connect_board_loading(clone!(@weak window => move || {
-                let loader = window.display_loader("Keyboard(s) detected. Loading...");
+                let loader = window.display_loader(&fl!("loading"));
                 *window.inner().board_loading.borrow_mut() = Some(loader);
             }));
             ..connect_board_loading_done(clone!(@weak window => move || {
@@ -304,7 +304,7 @@ impl MainWindow {
         };
         let window = self;
         let button = cascade! {
-            gtk::Button::with_label("Configure Keyboard");
+            gtk::Button::with_label(&fl!("button-configure"));
             ..set_halign(gtk::Align::Center);
             ..connect_clicked(clone!(@weak window, @weak keyboard => move |_| {
                 window.show_keyboard(&keyboard);

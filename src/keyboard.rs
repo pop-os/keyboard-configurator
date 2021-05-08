@@ -1,3 +1,4 @@
+use crate::fl;
 use cascade::cascade;
 use futures::{prelude::*, stream::FuturesUnordered};
 use glib::clone;
@@ -177,7 +178,7 @@ impl Keyboard {
                 Testing::new(board.clone());
                 ..set_halign(gtk::Align::Center);
             };
-            stack.add_titled(&testing, "testing", "Testing");
+            stack.add_titled(&testing, "testing", &fl!("stack-testing"));
             keyboard.inner().testing.set(Some(testing));
         } else {
             keyboard.inner().testing.set(None);
@@ -187,9 +188,7 @@ impl Keyboard {
             &cascade! {
                 gtk::Box::new(gtk::Orientation::Vertical, 32);
                 ..add(&cascade! {
-                    gtk::Label::new(Some(concat!(
-                        "Select a key on the keymap to change its settings. ",
-                        "Your settings are automatically saved to firmware.")));
+                    gtk::Label::new(Some(&fl!("stack-keymap-desc")));
                     ..set_line_wrap(true);
                     ..set_max_width_chars(100);
                     ..set_halign(gtk::Align::Center);
@@ -197,7 +196,7 @@ impl Keyboard {
                 ..add(&*keyboard.inner().picker_box);
             },
             "keymap",
-            "Keymap",
+            &fl!("stack-keymap"),
         );
 
         let backlight = cascade! {
@@ -213,11 +212,7 @@ impl Keyboard {
                 &cascade! {
                     gtk::Box::new(gtk::Orientation::Vertical, 32);
                     ..add(&cascade! {
-                        gtk::Label::new(Some(concat!(
-                            "Select a key on the keymap to change its settings. ",
-                            "Choose per key Solid Pattern to customize each key's LED color. ",
-                            "Shift + click to select more than one key. ",
-                            "Your settings are automatically saved to firmware.")));
+                        gtk::Label::new(Some(&fl!("stack-leds-desc")));
                         ..set_line_wrap(true);
                         ..set_max_width_chars(100);
                         ..set_halign(gtk::Align::Center);
@@ -225,7 +220,7 @@ impl Keyboard {
                     ..add(&backlight);
                 },
                 "leds",
-                "LEDs",
+                &fl!("stack-leds"),
             );
         }
 
@@ -253,7 +248,7 @@ impl Keyboard {
         let name = &self.layout().meta.display_name;
         let model = self.board().model().splitn(2, '/').nth(1).unwrap();
         if self.board().is_fake() {
-            format!("{} ({}, fake)", name, model)
+            format!("{} ({})", name, fl!("board-fake", model = model))
         } else {
             format!("{} ({})", name, model)
         }
@@ -288,7 +283,7 @@ impl Keyboard {
             .set_scancode(layer, scancode_name)
             .await
         {
-            error!("Failed to set keymap: {:?}", err);
+            error!("{}: {:?}", fl!("error-set-keymap"), err);
         }
 
         self.set_selected(self.selected());
@@ -304,8 +299,8 @@ impl Keyboard {
         if keymap.model != self.board().model() {
             show_error_dialog(
                 &self.window().unwrap(),
-                "Failed to import keymap",
-                format!("Keymap is for board '{}'", keymap.model),
+                &fl!("error-import-keymap"),
+                fl!("keymap-for-board", model = keymap.model),
             );
             return;
         }
@@ -313,10 +308,10 @@ impl Keyboard {
         let self_ = self.clone();
         glib::MainContext::default().spawn_local(async move {
             let _loader = self_.get_toplevel().and_then(|x| {
-                Some(x.downcast_ref::<MainWindow>()?.display_loader(&format!(
-                    "Loading keymap and LEDs for {}...",
-                    self_.display_name()
-                )))
+                Some(
+                    x.downcast_ref::<MainWindow>()?
+                        .display_loader(&fl!("loading-keyboard", keyboard = self_.display_name())),
+                )
             });
 
             // TODO: Make sure it doesn't panic with invalid json with invalid indexes?
@@ -342,7 +337,7 @@ impl Keyboard {
                 let res = self_.board().keys()[key_indices[&k]].set_color(*hs);
                 futures.push(Box::pin(async move {
                     if let Err(err) = res.await {
-                        error!("Failed to key LED: {}", err);
+                        error!("{}: {}", fl!("error-key-led"), err);
                     }
                 }));
             }
@@ -354,14 +349,14 @@ impl Keyboard {
                         if let Err(err) =
                             layer.set_mode(Mode::from_index(mode).unwrap(), speed).await
                         {
-                            error!("Failed to set layer mode: {}", err)
+                            error!("{}: {}", fl!("error-set-layer-mode"), err)
                         }
                     }
                     if let Err(err) = layer.set_brightness(keymap_layer.brightness).await {
-                        error!("Failed to set layer brightness: {}", err)
+                        error!("{}: {}", fl!("error-set-layer-brightness"), err)
                     }
                     if let Err(err) = layer.set_color(keymap_layer.color).await {
-                        error!("Failed to set layer color: {}", err)
+                        error!("{}: {}", fl!("error-set-layer-color"), err)
                     }
                 }));
             }
@@ -378,7 +373,7 @@ impl Keyboard {
         };
 
         let chooser = cascade! {
-            gtk::FileChooserNative::new::<gtk::Window>(Some("Import Layout"), None, gtk::FileChooserAction::Open, Some("Import"), Some("Cancel"));
+            gtk::FileChooserNative::new::<gtk::Window>(Some(&fl!("layout-import")), None, gtk::FileChooserAction::Open, Some(&fl!("button-import")), Some(&fl!("button-cancel")));
             ..add_filter(&filter);
         };
 
@@ -404,9 +399,9 @@ impl Keyboard {
         };
 
         let chooser = cascade! {
-            gtk::FileChooserNative::new::<gtk::Window>(Some("Export Layout"), None, gtk::FileChooserAction::Save, Some("Export"), Some("Cancel"));
+            gtk::FileChooserNative::new::<gtk::Window>(Some(&fl!("layout-export")), None, gtk::FileChooserAction::Save, Some("Export"), Some("Cancel"));
             ..add_filter(&filter);
-            ..set_current_name("Untitled Layout.json");
+            ..set_current_name(&format!("{}.json", fl!("untitled-layout")));
             ..set_do_overwrite_confirmation(true);
         };
 
@@ -417,8 +412,8 @@ impl Keyboard {
             if keymap.version != 1 {
                 show_error_dialog(
                     &self.window().unwrap(),
-                    "Unsupported keymap file",
-                    "Keymap file appears to be from newer Configurator version.",
+                    &fl!("error-unsupported-keymap"),
+                    &fl!("error-unsupported-keymap-desc"),
                 )
             }
 
@@ -426,10 +421,12 @@ impl Keyboard {
                 Ok(file) => match keymap.to_writer_pretty(file) {
                     Ok(()) => {}
                     Err(err) => {
-                        show_error_dialog(&self.window().unwrap(), "Failed to export keymap", err)
+                        show_error_dialog(&self.window().unwrap(), &fl!("error-export-keymap"), err)
                     }
                 },
-                Err(err) => show_error_dialog(&self.window().unwrap(), "Failed to open file", err),
+                Err(err) => {
+                    show_error_dialog(&self.window().unwrap(), &fl!("error-open-file"), err)
+                }
             }
         }
     }
@@ -468,7 +465,7 @@ impl Keyboard {
                     .flags(glib::BindingFlags::SYNC_CREATE)
                     .build();
             }
-            layer_stack.add_titled(&keyboard_layer, page.name(), page.name());
+            layer_stack.add_titled(&keyboard_layer, &page.name(), &page.name());
 
             self.inner().action_group.add_action(&cascade! {
                 gio::SimpleAction::new(&format!("page{}", i), None);
