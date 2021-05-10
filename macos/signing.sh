@@ -35,6 +35,7 @@ xcrun altool \
     --file keyboard-configurator.dmg
 
 # Try to staple notarization
+set +e
 attempts=30
 for attempt in {1..$attempts}
 do
