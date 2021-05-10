@@ -1,3 +1,5 @@
 {
-  "display_name": "Gazelle Pro"
+  "display_name": "Gazelle Pro",
+  "has_brightness": true,
+  "has_color": true
 }

@@ -1,3 +1,5 @@
 {
-  "display_name": "Bonobo WS"
+  "display_name": "Bonobo WS",
+  "has_brightness": false,
+  "has_color": false
 }

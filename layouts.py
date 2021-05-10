@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse
+from collections import OrderedDict
 import json
 import os
 import re
@@ -248,9 +249,25 @@ def gen_default_json(path: str, board: str, keymap: Dict[str, List[str]], is_qmk
         json.dump({"model": board, "version": 1, "map": keymap, "key_leds": key_leds, "layers": layers}, f, indent=2)
 
 
+def update_meta_json(meta_json: str, has_brightness: bool, has_color: bool):
+    meta = {}
+    if os.path.exists(meta_json):
+        with open(meta_json, 'r') as f:
+            meta = json.load(f, object_pairs_hook=OrderedDict)
+
+    meta['has_brightness'] = has_brightness
+    meta['has_color'] = has_color
+
+    with open(meta_json, 'w') as f:
+        json.dump(meta, f, indent=2)
+
+
 def generate_layout_dir(ecdir: str, board: str, is_qmk: bool) -> None:
     layoutdir = f'layouts/{board}'
     print(f'Generating {layoutdir}...')
+
+    has_brightness = True
+    has_color = True
 
     if is_qmk:
         keymap_h = open(
@@ -260,6 +277,19 @@ def generate_layout_dir(ecdir: str, board: str, is_qmk: bool) -> None:
         led_c = open(
             f"{ecdir}/keyboards/{board}/{board.split('/')[-1]}.c").read()
     else:
+        with open(f"{ecdir}/src/board/{board}/board.mk") as f:
+            m = re.search('^KBLED=(.*)$', f.read(), re.MULTILINE)
+            assert m is not None
+            kbled = m.group(1)
+            if kbled == 'white_dac':
+                has_color = False
+            # bonw14: Handled through USB. Can configurator support this?
+            elif kbled in ['none', 'bonw14']:
+                has_brightness = False
+                has_color = False
+            elif kbled not in ['rgb_pwm', 'oryp5', 'darp5']:
+                raise Exception(f"KBLED='{kbled}' not handled by layouts.py")
+
         keymap_h = open(
             f"{ecdir}/src/board/{board}/include/board/keymap.h").read()
         default_c = open(f"{ecdir}/src/board/{board}/keymap/default.c").read()
@@ -275,7 +305,7 @@ def generate_layout_dir(ecdir: str, board: str, is_qmk: bool) -> None:
     gen_leds_json(f'{layoutdir}/leds.json', leds)
     gen_keymap_json(f'{layoutdir}/keymap.json', scancodes)
     gen_default_json(f'{layoutdir}/default.json', board, default_keymap, is_qmk)
-
+    update_meta_json(f'{layoutdir}/meta.json', has_brightness, has_color)
 
 parser = argparse.ArgumentParser()
 parser.add_argument("ecdir")

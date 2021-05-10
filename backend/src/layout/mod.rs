@@ -57,6 +57,7 @@ keyboards![
     "system76/bonw14",
     "system76/darp5",
     "system76/darp6",
+    "system76/darp7",
     "system76/gaze15",
     "system76/launch_alpha_1",
     "system76/launch_alpha_2",
