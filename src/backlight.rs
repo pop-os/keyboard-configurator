@@ -295,11 +295,11 @@ impl Backlight {
         } else if row == &*inner.speed_row {
             layout.meta.has_mode && self.mode().has_speed
         } else if row == &*inner.color_row {
-            !layout.meta.has_mode || self.mode().has_hue
+            layout.meta.has_color && (!layout.meta.has_mode || self.mode().has_hue)
         } else if row == &*inner.saturation_row {
             !self.mode().has_hue && !self.mode().is_disabled()
         } else if row == &*inner.brightness_row {
-            !layout.meta.has_mode || !self.mode().is_disabled()
+            layout.meta.has_brightness && (!layout.meta.has_mode || !self.mode().is_disabled())
         } else {
             true
         }
