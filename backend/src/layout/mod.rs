@@ -63,6 +63,7 @@ keyboards![
     "system76/launch_alpha_2",
     "system76/launch_1",
     "system76/lemp9",
+    "system76/lemp10",
     "system76/oryp5",
     "system76/oryp6",
     "system76/oryp7",
