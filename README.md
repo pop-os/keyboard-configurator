@@ -31,6 +31,6 @@ git clone https://github.com/pop-os/keyboard-configurator
 cd keyboard-configurator
 git pull
 
-# Build and run the configurator example
-./keyboard-layout.sh
+# Build and run the configurator
+cargo run --release
 ```
