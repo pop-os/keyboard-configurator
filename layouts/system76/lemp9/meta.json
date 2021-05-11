@@ -1,5 +1,6 @@
 {
   "display_name": "Lemur Pro",
   "has_brightness": true,
-  "has_color": false
+  "has_color": false,
+  "pressed_color": "#dfdfdf"
 }

@@ -5,7 +5,7 @@ mod physical_layout;
 pub use self::meta::Meta;
 pub(crate) use physical_layout::{PhysicalLayout, PhysicalLayoutKey};
 
-use crate::{KeyMap, Rgb};
+use crate::KeyMap;
 
 pub struct Layout {
     /// Metadata for keyboard
@@ -148,10 +148,6 @@ impl Layout {
     /// Get the name corresponding to a scancode number
     pub fn scancode_from_name(&self, name: &str) -> Option<u16> {
         self.keymap.get(name).copied()
-    }
-
-    pub fn pressed_color(&self) -> Rgb {
-        self.physical.meta.pressed_color
     }
 }
 

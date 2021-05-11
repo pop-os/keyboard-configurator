@@ -1,3 +1,4 @@
+use crate::Rgb;
 use serde::Deserialize;
 
 fn num_layers_default() -> u8 {
@@ -22,4 +23,5 @@ pub struct Meta {
     /// Number or layers; e.g. 2 where layer 2 is used when `Fn` is held
     #[serde(default = "num_layers_default")]
     pub num_layers: u8,
+    pub pressed_color: Rgb,
 }

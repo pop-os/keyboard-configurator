@@ -1,5 +1,6 @@
 {
   "display_name": "Bonobo WS",
   "has_brightness": false,
-  "has_color": false
+  "has_color": false,
+  "pressed_color": "#dfdfdf"
 }

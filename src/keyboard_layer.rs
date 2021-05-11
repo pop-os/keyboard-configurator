@@ -128,7 +128,7 @@ impl WidgetImpl for KeyboardLayerInner {
             .to_floats();
 
             if k.pressed() {
-                bg = self.board.layout().pressed_color().to_floats();
+                bg = self.board.layout().meta.pressed_color.to_floats();
             }
 
             let fg = if (bg.0 + bg.1 + bg.2) / 3. >= 0.5 {
