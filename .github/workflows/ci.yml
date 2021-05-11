@@ -82,8 +82,8 @@ jobs:
         AC_PASSWORD: ${{ github.event_name == 'release' && secrets.AC_PASSWORD || '' }}
         AC_USERNAME: ${{ github.event_name == 'release' && secrets.AC_USERNAME || '' }}
         MACOS_CERTIFICATE: ${{ github.event_name == 'release' && secrets.MACOS_CERTIFICATE || '' }}
-        MACOS_SCRIPT: ${{ github.event_name == 'release' && './signing.sh' || './build.py' }}
-      run: cd macos && "${MACOS_SCRIPT}" $RELEASE
+        MACOS_SCRIPT: ${{ github.event_name == 'release' && 'bash ./signing.sh' || 'python3 ./build.py' }}
+      run: cd macos && $MACOS_SCRIPT $RELEASE
     - uses: actions/upload-artifact@v2
       with:
         if-no-files-found: error
