@@ -1,6 +1,6 @@
 [package]
 name = "system76-keyboard-configurator"
-version = "0.2.4"
+version = "0.2.5"
 authors = ["Ian Douglas Scott <idscott@system76.com>", "Jeremy Soller <jeremy@system76.com>"]
 license = "GPL-3.0-or-later"
 edition = "2018"
