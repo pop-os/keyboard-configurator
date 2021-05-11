@@ -37,7 +37,7 @@ xcrun altool \
 # Try to staple notarization
 set +e
 attempts=30
-for attempt in {1..$attempts}
+for attempt in $(seq 1 $attempts)
 do
     echo "Staple attempt $attempt/$attempts"
     xcrun stapler staple keyboard-configurator.dmg
