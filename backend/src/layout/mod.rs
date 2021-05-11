@@ -225,4 +225,30 @@ mod tests {
         }
         Ok(())
     }
+
+    #[test]
+    fn physical_layout_logical() {
+        for i in layouts() {
+            let layout = Layout::from_board(i).unwrap();
+            let logical_in_physical = layout
+                .physical
+                .keys
+                .iter()
+                .map(|i| i.logical_name())
+                .collect::<HashSet<_>>();
+            let logical_in_layout = layout.layout.keys().cloned().collect::<HashSet<_>>();
+            assert_eq!(
+                &logical_in_physical - &logical_in_layout,
+                HashSet::new(),
+                "{}",
+                i
+            );
+            assert_eq!(
+                &logical_in_layout - &logical_in_physical,
+                HashSet::new(),
+                "{}",
+                i
+            );
+        }
+    }
 }

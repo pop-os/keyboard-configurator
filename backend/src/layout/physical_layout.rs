@@ -1,5 +1,7 @@
 /// Serde based deserialization for physical.json
+/// From http://www.keyboard-layout-editor.com
 use serde::Deserialize;
+use std::char;
 
 use crate::{Rect, Rgb};
 
@@ -74,6 +76,16 @@ pub(crate) struct PhysicalLayoutKey {
     pub physical: Rect,
     pub physical_name: String,
     pub background_color: Rgb,
+}
+
+impl PhysicalLayoutKey {
+    pub fn logical_name(&self) -> String {
+        let row_char =
+            char::from_digit(self.logical.0 as u32, 36).expect("Failed to convert row to char");
+        let col_char =
+            char::from_digit(self.logical.1 as u32, 36).expect("Failed to convert col to char");
+        format!("K{}{}", row_char, col_char).to_uppercase()
+    }
 }
 
 #[derive(Debug, Deserialize)]
