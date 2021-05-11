@@ -227,7 +227,7 @@ mod tests {
     }
 
     #[test]
-    fn physical_layout_logical() {
+    fn physical_layout_leds_logical() {
         for i in layouts() {
             let layout = Layout::from_board(i).unwrap();
             let logical_in_physical = layout
@@ -237,6 +237,7 @@ mod tests {
                 .map(|i| i.logical_name())
                 .collect::<HashSet<_>>();
             let logical_in_layout = layout.layout.keys().cloned().collect::<HashSet<_>>();
+            let logical_in_leds = layout.layout.keys().cloned().collect::<HashSet<_>>();
             assert_eq!(
                 &logical_in_physical - &logical_in_layout,
                 HashSet::new(),
@@ -245,6 +246,18 @@ mod tests {
             );
             assert_eq!(
                 &logical_in_layout - &logical_in_physical,
+                HashSet::new(),
+                "{}",
+                i
+            );
+            assert_eq!(
+                &logical_in_physical - &logical_in_leds,
+                HashSet::new(),
+                "{}",
+                i
+            );
+            assert_eq!(
+                &logical_in_leds - &logical_in_physical,
                 HashSet::new(),
                 "{}",
                 i
