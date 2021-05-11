@@ -34,14 +34,7 @@ impl PhysicalLayout {
                                 physical.y -= meta.y;
                                 physical.w = meta.w.unwrap_or(physical.w);
                                 physical.h = meta.h.unwrap_or(physical.h);
-                                background_color = meta
-                                    .c
-                                    .as_ref()
-                                    .map(|c| {
-                                        let err = format!("Failed to parse color {}", c);
-                                        Rgb::parse(&c).expect(&err)
-                                    })
-                                    .unwrap_or(background_color);
+                                background_color = meta.c.unwrap_or(background_color);
                             }
                             PhysicalKeyEnum::Name(name) => {
                                 keys.push(PhysicalLayoutKey {
@@ -117,5 +110,5 @@ struct PhysicalKeyMeta {
     y: f64,
     w: Option<f64>,
     h: Option<f64>,
-    c: Option<String>,
+    c: Option<Rgb>,
 }
