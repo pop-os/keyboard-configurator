@@ -1,18 +1,34 @@
-use std::{
-    cell::{Cell, RefCell},
-    collections::HashMap,
-};
+use std::{cell::RefCell, collections::HashMap};
 
 use super::{BoardId, Daemon};
-use crate::Matrix;
+use crate::{Layout, Matrix};
 
-#[derive(Default)]
 struct BoardDummy {
     name: String,
+    layout: Layout,
     keymap: RefCell<HashMap<(u8, u8, u8), u16>>,
-    color: Cell<(u8, u8, u8)>,
-    brightness: Cell<i32>,
-    mode: Cell<(u8, u8)>,
+    colors: RefCell<HashMap<u8, (u8, u8, u8)>>,
+    brightnesses: RefCell<HashMap<u8, i32>>,
+    modes: RefCell<HashMap<u8, (u8, u8)>>,
+}
+
+impl BoardDummy {
+    fn valid_index(&self, index: u8, allow_key: bool) -> bool {
+        if !self.layout.meta.has_per_layer {
+            index == 0xff
+        } else if index >= 0xf0 {
+            index < 0xf0 + self.layout.meta.num_layers
+        } else {
+            allow_key
+                && self
+                    .layout
+                    .leds
+                    .values()
+                    .flatten()
+                    .find(|i| **i == index)
+                    .is_some()
+        }
+    }
 }
 
 pub struct DaemonDummy {
@@ -20,23 +36,25 @@ pub struct DaemonDummy {
 }
 
 impl DaemonDummy {
-    fn board(&self, board: BoardId) -> Result<&BoardDummy, String> {
-        self.boards
-            .get(board.0 as usize)
-            .ok_or_else(|| "No board".to_string())
-    }
-}
-
-impl DaemonDummy {
     pub fn new(board_names: Vec<String>) -> Self {
         let boards = board_names
             .into_iter()
             .map(|name| BoardDummy {
+                layout: Layout::from_board(&name).unwrap(),
                 name,
-                ..Default::default()
+                keymap: Default::default(),
+                colors: Default::default(),
+                brightnesses: Default::default(),
+                modes: Default::default(),
             })
             .collect();
         Self { boards }
+    }
+
+    fn board(&self, board: BoardId) -> Result<&BoardDummy, String> {
+        self.boards
+            .get(board.0 as usize)
+            .ok_or_else(|| "No board".to_string())
     }
 }
 
@@ -76,18 +94,19 @@ impl Daemon for DaemonDummy {
     }
 
     fn color(&self, board: BoardId, index: u8) -> Result<(u8, u8, u8), String> {
-        // TODO implement support for per-led
-        if index != 0xFF {
-            return Err(format!("Can't set color index {}", index));
+        let board = self.board(board)?;
+        if !board.valid_index(index, true) {
+            return Err(format!("Can't get color index {} {}", index, board.name));
         }
-        Ok(self.board(board)?.color.get())
+        Ok(*board.colors.borrow_mut().entry(index).or_default())
     }
 
     fn set_color(&self, board: BoardId, index: u8, color: (u8, u8, u8)) -> Result<(), String> {
-        if index != 0xFF {
+        let board = self.board(board)?;
+        if !board.valid_index(index, true) {
             return Err(format!("Can't set color index {}", index));
         }
-        self.board(board)?.color.set(color);
+        board.colors.borrow_mut().insert(index, color);
         Ok(())
     }
 
@@ -96,27 +115,38 @@ impl Daemon for DaemonDummy {
     }
 
     fn brightness(&self, board: BoardId, index: u8) -> Result<i32, String> {
-        if index != 0xFF {
-            return Err(format!("Can't set color index {}", index));
+        let board = self.board(board)?;
+        if !board.valid_index(index, false) {
+            return Err(format!("Can't get brightness index {}", index));
         }
-        Ok(self.board(board)?.brightness.get())
+        Ok(*board.brightnesses.borrow_mut().entry(index).or_default())
     }
 
     fn set_brightness(&self, board: BoardId, index: u8, brightness: i32) -> Result<(), String> {
-        if index != 0xFF {
-            return Err(format!("Can't set color index {}", index));
+        let board = self.board(board)?;
+        if !board.valid_index(index, false) {
+            return Err(format!("Can't set brightness index {}", index));
         }
-        self.board(board)?.brightness.set(brightness);
+        board.brightnesses.borrow_mut().insert(index, brightness);
         Ok(())
     }
 
-    fn mode(&self, board: BoardId, _layer: u8) -> Result<(u8, u8), String> {
-        // TODO layer
-        Ok(self.board(board)?.mode.get())
+    fn mode(&self, board: BoardId, layer: u8) -> Result<(u8, u8), String> {
+        let index = layer + 0xf0;
+        let board = self.board(board)?;
+        if !board.valid_index(index, false) {
+            return Err(format!("Can't get mode index {}", index));
+        }
+        Ok(*board.modes.borrow_mut().entry(index).or_default())
     }
 
-    fn set_mode(&self, board: BoardId, _layer: u8, mode: u8, speed: u8) -> Result<(), String> {
-        self.board(board)?.mode.set((mode, speed));
+    fn set_mode(&self, board: BoardId, layer: u8, mode: u8, speed: u8) -> Result<(), String> {
+        let index = layer + 0xf0;
+        let board = self.board(board)?;
+        if !board.valid_index(index, false) {
+            return Err(format!("Can't get mode index {}", index));
+        }
+        board.modes.borrow_mut().insert(index, (mode, speed));
         Ok(())
     }
 
