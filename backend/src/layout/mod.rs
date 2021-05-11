@@ -180,17 +180,16 @@ mod tests {
 
     #[test]
     fn default_keys_exist() {
-        let mut missing = HashSet::new();
         for i in layouts() {
-            println!("Parsing {} layout", i);
+            let mut missing = HashSet::new();
             let layout = Layout::from_board(i).unwrap();
             for j in layout.default.map.values().flatten() {
                 if layout.keymap.keys().find(|x| x == &j).is_none() {
                     missing.insert(j.to_owned());
                 }
             }
+            assert_eq!(missing, HashSet::new(), "Mssing in keymap for {}", i);
         }
-        assert_eq!(missing, HashSet::new());
     }
 
     #[test]

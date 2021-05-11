@@ -80,7 +80,7 @@ ALIAS_RE = '#define\s+KC_([A-Z_]*)\s+KC_([A-Z_]+]*)\s*$'
 def call_preprocessor(path: str) -> str:
     return subprocess.check_output(["gcc", "-E", path], stderr=subprocess.DEVNULL, universal_newlines=True)
 
-def extract_scancodes(ecdir: str, is_qmk: bool, has_brightness: bool, has_color: bool) -> Tuple[List[Tuple[str, int]], Dict[str, str]]:
+def extract_scancodes(ecdir: str, board: str, is_qmk: bool, has_brightness: bool, has_color: bool) -> Tuple[List[Tuple[str, int]], Dict[str, str]]:
     "Extract mapping from scancode names to numbers"
 
     if is_qmk:
@@ -149,12 +149,12 @@ def extract_scancodes(ecdir: str, is_qmk: bool, has_brightness: bool, has_color:
         scancode_list.append(('NONE', 0x0000))
 
     excluded_scancodes = ['INT_1', 'INT_2']
-    if has_color:
-        excluded_scancodes += ["KBD_BKL"]
+    if has_color or board == 'system76/bonw14':
+        excluded_scancodes += ['KBD_BKL']
     elif has_brightness:
-        excluded_scancodes += ["KBD_COLOR"]
+        excluded_scancodes += ['KBD_COLOR']
     else:
-        excluded_scancodes += ["KBD_COLOR", "KBD_DOWN", "KBD_UP", "KBD_BKL", "KBD_TOGGLE"]
+        excluded_scancodes += ['KBD_COLOR', 'KBD_DOWN', 'KBD_UP', 'KBD_BKL', 'KBD_TOGGLE']
 
     scancode_list = [(name, code) for (name, code) in scancode_list if name not in excluded_scancodes]
 
@@ -312,7 +312,7 @@ def generate_layout_dir(ecdir: str, board: str, is_qmk: bool) -> None:
 
     physical, physical2 = parse_layout_define(keymap_h, is_qmk)
     leds = parse_led_config(led_c, physical)
-    scancodes, mapping = extract_scancodes(ecdir, is_qmk, has_brightness, has_color)
+    scancodes, mapping = extract_scancodes(ecdir, board, is_qmk, has_brightness, has_color)
     default_keymap = parse_keymap(default_c, mapping, physical, is_qmk)
     gen_layout_json(f'{layoutdir}/layout.json', physical, physical2)
     gen_leds_json(f'{layoutdir}/leds.json', leds)
