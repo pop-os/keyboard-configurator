@@ -58,6 +58,9 @@ keyboards![
     "system76/darp5",
     "system76/darp6",
     "system76/darp7",
+    "system76/galp3-c",
+    "system76/galp4",
+    "system76/galp5",
     "system76/gaze15",
     "system76/launch_alpha_1",
     "system76/launch_alpha_2",
@@ -166,7 +169,7 @@ fn parse_keymap_json(keymap_json: &str) -> (HashMap<String, u16>, HashMap<u16, S
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::collections::HashSet;
+    use std::{collections::HashSet, fs, io};
 
     #[test]
     fn layout_from_board() {
@@ -208,5 +211,23 @@ mod tests {
             }
             assert_eq!(layout_qmk.keymap.keys().find(|x| x == &k), Some(k));
         }
+    }
+
+    #[test]
+    fn has_all_layouts_in_dir() -> io::Result<()> {
+        let layouts = layouts();
+        for i in fs::read_dir("../layouts/system76")? {
+            let i = i?;
+            if i.file_type()?.is_dir() {
+                let name = format!("system76/{}", i.file_name().into_string().unwrap());
+                assert!(
+                    layouts.contains(&name.as_str()),
+                    "{} not listed in {}",
+                    name,
+                    file!()
+                );
+            }
+        }
+        Ok(())
     }
 }

@@ -66,6 +66,11 @@ QMK_MAPPING = {
     'SYSTEM_SLEEP': 'SUSPEND',
     'TRANSPARENT': 'ROLL_OVER',
 }
+EXCLUDE_BOARDS = [
+    'system76/ortho_split_2u',
+    'system76/launch_test',
+    'system76/virgo',
+]
 
 ALIAS_RE = '#define\s+KC_([A-Z_]*)\s+KC_([A-Z_]+]*)\s*$'
 
@@ -319,7 +324,7 @@ if args.board == 'all':
     else:
         boarddir = f'{args.ecdir}/src/board/system76'
     for i in os.listdir(boarddir):
-        if i == 'common' or not os.path.isdir(f'{boarddir}/{i}'):
+        if i == 'common' or not os.path.isdir(f'{boarddir}/{i}') or f"system76/{i}" in EXCLUDE_BOARDS:
             continue
         generate_layout_dir(args.ecdir, f'system76/{i}', args.qmk)
 else:
