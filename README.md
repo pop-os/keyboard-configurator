@@ -1,28 +1,21 @@
-# keyboard-configurator
+# System76 Keyboard Configurator
 
-WORK IN PROGRESS, ONLY RECOMMENDED FOR INTERNAL USE
+**Currently in beta. Should be working fairly well now, but not yet "stable".**
 
-First, flash the correct firmware:
-```
-# Clone qmk_firmware if necessary
-git clone https://github.com/system76/qmk_firmware
+Tool for configuring System76 keyboards, internal and external, with support for changing the keymap and LED settings.
 
-# Make sure it is up to date with the master branch
-cd qmk_firmware
-git checkout master
-git pull
+This requires a System76 laptop with recent open EC firmware, or a Launch keyboard. Note that LED settings are not currently persisted on internal keyboards.
 
-# Flash the firmware with the default keymap. Press Fn-Esc to reset the keyboard.
-make system76/launch_alpha_1:default:flash
-```
 
-After flashing the latest firmware, if you for any reason need to revert to the default keyboard mapping, unplug the keyboard and hold Escape while plugging it in. This will clear the keyboard mapping and restart to the bootloader. Then you can flash the keyboard again.
+## Releases
+See [releases](https://github.com/pop-os/keyboard-configurator/releases) page for pre-built binaries of the latest tagged release.
 
-Next, run the configurator. Let me know if there are errors, especially when running `cargo`:
+
+## Building
 
 ```
 # Install dependencies if necessary
-sudo apt-get install cargo libgtk-3-dev libhidapi-dev libusb-1.0-0-dev
+sudo apt-get install cargo libgtk-3-dev libhidapi-dev libudev-dev
 
 # Clone keyboard-configurator if necessary
 git clone https://github.com/pop-os/keyboard-configurator
