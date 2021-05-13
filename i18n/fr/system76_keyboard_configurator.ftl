@@ -3,10 +3,10 @@
 app-about = À propos du {-name}
 app-title = System76 {-name}
 
-board-fake = {$model}, fausse
+board-fake = {$model}, simulé
 
 button-cancel = Annuler
-button-configure = Configurer un clavier
+button-configure = Configurer ce clavier
 button-disable = Déactiver
 button-import = Importer
 button-test = Vérifier
@@ -61,10 +61,10 @@ show-help-overlay = Raccourcis du clavier
 
 stack-keymap = Plan de codage
 stack-keymap-desc =
- Choisir une clé sur le plan de codage afin de modifier ses paramètres. Les changements seront sauvegardés dans le microcode.
+ Choisir une clé sur le plan de codage afin de modifier ses paramètres. Les changements seront sauvegardés automatiquement dans le microcode.
 
 stack-leds = DELs
-stack-leds-desc = Choisir une clé sur le plan de codage afin de modifier ses paramètres. La couleur de la clé individuelle est réglée à partir de l'option patron solide par clé. La sélection de clés multiple se fait à partir de Shift et clique. Les changements seront sauvegardés dans le microcode.
+stack-leds-desc = Choisir une clé sur le plan de codage afin de modifier ses paramètres. La couleur de la clé individuelle est réglée à partir de l'option Solide par clé. La sélection de clés multiple se fait à partir de Shift et clique. Les changements seront sauvegardés automatiquement dans le microcode.
 
 
 stack-testing = Vérification
