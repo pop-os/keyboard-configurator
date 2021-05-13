@@ -203,7 +203,21 @@ impl Testing {
                                 .borrow_mut()
                                 .get_mut(port_desc.as_str())
                             {
-                                *bench_result = port_result.clone();
+                                match bench_result {
+                                    Ok(old) => match port_result {
+                                        Ok(new) => {
+                                            // Replace good results with better results
+                                            if new > old {
+                                                *bench_result = Ok(*new);
+                                            }
+                                        }
+                                        Err(_) => (),
+                                    },
+                                    Err(err) => {
+                                        // Replace errors with newest results
+                                        *bench_result = port_result.clone();
+                                    }
+                                }
                             } else {
                                 error!("{} label result not found", port_desc);
                             }
