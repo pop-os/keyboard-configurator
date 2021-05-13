@@ -81,14 +81,14 @@ impl Benchmark {
                         }
                     }
                     if best_speed < 0.0 {
-                        Err(format!("no benchmarks performed"))
+                        Err(format!("no accessible disks"))
                     } else if best_speed > required_speed {
                         Ok(best_speed)
                     } else {
                         Err(format!("benchmarked speed of {:.2} MB/s was less than required speed of {:.2} MB/s", best_speed, required_speed))
                     }
                 } else {
-                    Err(format!("no device found"))
+                    Err(format!("no devices"))
                 };
 
                 port_results.insert(format!("{}: {}", speed_name, port_desc), port_result);

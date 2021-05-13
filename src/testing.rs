@@ -11,6 +11,9 @@ pub struct TestingColors(pub HashMap<(usize, usize), Rgb>);
 #[derive(Default)]
 pub struct TestingInner {
     board: DerefCell<Board>,
+    bench_button: DerefCell<gtk::Button>,
+    bench_labels: DerefCell<HashMap<&'static str, gtk::Label>>,
+    bench_results: RefCell<HashMap<&'static str, Result<f64, String>>>,
     num_runs_spin: DerefCell<gtk::SpinButton>,
     serial_entry: DerefCell<gtk::Entry>,
     test_button: DerefCell<gtk::Button>,
@@ -60,15 +63,35 @@ impl ObjectImpl for TestingInner {
             }
         }
 
+        let bench_button = gtk::Button::with_label("Benchmark");
         let num_runs_spin = gtk::SpinButton::with_range(1.0, 1000.0, 1.0);
         let serial_entry = gtk::Entry::new();
         let test_button = gtk::Button::with_label("Test");
         let test_label = gtk::Label::new(None);
 
+        let mut bench_labels = HashMap::new();
+        let mut bench_results = HashMap::new();
+        for port_desc in &[
+            "USB 2.0: USB-A Left",
+            "USB 2.0: USB-A Right",
+            "USB 2.0: USB-C Left",
+            "USB 2.0: USB-C Right",
+            "USB 3.2 Gen 2: USB-A Left",
+            "USB 3.2 Gen 2: USB-A Right",
+            "USB 3.2 Gen 2: USB-C Left",
+            "USB 3.2 Gen 2: USB-C Right",
+        ] {
+            let bench_label = gtk::Label::new(None);
+            obj.add(&label_row(port_desc, &bench_label));
+            bench_labels.insert(*port_desc, bench_label);
+            bench_results.insert(*port_desc, Err("no benchmarks performed".to_string()));
+        }
+
         cascade! {
             obj;
             ..set_valign(gtk::Align::Start);
             ..get_style_context().add_class("frame");
+            ..add(&row(&bench_button));
             ..add(&label_row("Check pins (missing)", &color_box(1., 0., 0.)));
             ..add(&label_row("Check key (sticking)", &color_box(0., 1., 0.)));
             ..add(&label_row("Replace switch (bouncing)", &color_box(0., 0., 1.)));
@@ -89,6 +112,9 @@ impl ObjectImpl for TestingInner {
             ..show_all();
         };
 
+        self.bench_button.set(bench_button);
+        self.bench_labels.set(bench_labels);
+        *self.bench_results.borrow_mut() = bench_results;
         self.num_runs_spin.set(num_runs_spin);
         self.serial_entry.set(serial_entry);
         self.test_button.set(test_button);
@@ -140,12 +166,70 @@ async fn import_keymap_hack(board: &Board, keymap: &backend::KeyMap) -> Result<(
 }
 
 impl Testing {
-    pub fn new(board: Board) -> Self {
-        let obj: Self = glib::Object::new(&[]).unwrap();
-        obj.inner().board.set(board);
+    fn update_benchmarks(&self) {
+        for (port_desc, port_result) in self.inner().bench_results.borrow().iter() {
+            if let Some(bench_label) = self.inner().bench_labels.get(port_desc) {
+                match port_result {
+                    Ok(ok) => {
+                        bench_label.set_text(&format!("{:.2} MB/s", ok));
+                    }
+                    Err(err) => {
+                        bench_label.set_text(&format!("{}", err));
+                    }
+                }
+            } else {
+                error!("{} label not found", port_desc);
+            }
+        }
+    }
 
-        let obj_btn = obj.clone();
-        obj.inner().test_button.connect_clicked(move |button| {
+    fn connect_bench_button(&self) {
+        let obj_btn = self.clone();
+        self.inner().bench_button.connect_clicked(move |button| {
+            info!("Disabling benchmark button");
+            button.set_sensitive(false);
+
+            let obj_spawn = obj_btn.clone();
+            glib::MainContext::default().spawn_local(async move {
+                let testing = obj_spawn.inner();
+
+                match testing.board.benchmark().await {
+                    Ok(benchmark) => {
+                        for (port_desc, port_result) in benchmark.port_results.iter() {
+                            let text = format!("{:.2?}", port_result);
+                            info!("{}: {}", port_desc, text);
+                            if let Some(bench_result) = testing
+                                .bench_results
+                                .borrow_mut()
+                                .get_mut(port_desc.as_str())
+                            {
+                                *bench_result = port_result.clone();
+                            } else {
+                                error!("{} label result not found", port_desc);
+                            }
+                        }
+                    }
+                    Err(err) => {
+                        let message = format!("Benchmark failed to run: {}", err);
+                        error!("{}", message);
+                        //TODO: have a global label?
+                        for (_, bench_label) in testing.bench_labels.iter() {
+                            bench_label.set_text(&message);
+                        }
+                    }
+                }
+
+                obj_spawn.update_benchmarks();
+
+                info!("Enabling benchmark button");
+                testing.bench_button.set_sensitive(true);
+            });
+        });
+    }
+
+    fn connect_test_button(&self) {
+        let obj_btn = self.clone();
+        self.inner().test_button.connect_clicked(move |button| {
             info!("Disabling test button");
             button.set_sensitive(false);
 
@@ -236,7 +320,14 @@ impl Testing {
                 testing.test_button.set_sensitive(true);
             });
         });
+    }
 
+    pub fn new(board: Board) -> Self {
+        let obj: Self = glib::Object::new(&[]).unwrap();
+        obj.inner().board.set(board);
+        obj.connect_bench_button();
+        obj.connect_test_button();
+        obj.update_benchmarks();
         obj
     }
 
