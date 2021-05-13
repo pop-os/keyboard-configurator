@@ -4,7 +4,7 @@ use std::{
 };
 
 use super::{BoardId, Daemon};
-use crate::{Matrix, Nelson};
+use crate::{Benchmark, Matrix, Nelson};
 
 #[derive(Default)]
 struct BoardDummy {
@@ -75,12 +75,12 @@ impl Daemon for DaemonDummy {
         Ok(Matrix::new(0, 0, Vec::new().into_boxed_slice()))
     }
 
+    fn benchmark(&self, _board: BoardId) -> Result<Benchmark, String> {
+        Err("Unimplemented".to_string())
+    }
+
     fn nelson(&self, _board: BoardId) -> Result<Nelson, String> {
-        Ok(Nelson {
-            missing: Matrix::new(0, 0, Vec::new().into_boxed_slice()),
-            bouncing: Matrix::new(0, 0, Vec::new().into_boxed_slice()),
-            sticking: Matrix::new(0, 0, Vec::new().into_boxed_slice()),
-        })
+        Err("Unimplemented".to_string())
     }
 
     fn color(&self, board: BoardId, index: u8) -> Result<(u8, u8, u8), String> {

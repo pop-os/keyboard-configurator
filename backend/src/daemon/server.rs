@@ -13,7 +13,7 @@ use std::{
 use uuid::Uuid;
 
 use super::{err_str, BoardId, Daemon, DaemonCommand};
-use crate::{Matrix, Nelson};
+use crate::{Benchmark, Matrix, Nelson};
 
 pub struct DaemonServer<R: Read + Send + 'static, W: Write + Send + 'static> {
     hidapi: RefCell<Option<HidApi>>,
@@ -159,6 +159,10 @@ impl<R: Read + Send + 'static, W: Write + Send + 'static> Daemon for DaemonServe
         let rows = data.remove(0) as usize;
         let cols = data.remove(0) as usize;
         Ok(Matrix::new(rows, cols, data.into_boxed_slice()))
+    }
+
+    fn benchmark(&self, _board: BoardId) -> Result<Benchmark, String> {
+        Benchmark::new().map_err(err_str)
     }
 
     fn nelson(&self, board: BoardId) -> Result<Nelson, String> {

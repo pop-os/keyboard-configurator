@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{Matrix, Nelson};
+use crate::{Benchmark, Matrix, Nelson};
 
 mod client;
 mod daemon_thread;
@@ -84,6 +84,7 @@ commands! {
     fn keymap_get(&self, board: BoardId, layer: u8, output: u8, input: u8) -> Result<u16, String>;
     fn keymap_set(&self, board: BoardId, layer: u8, output: u8, input: u8, value: u16) -> Result<(), String>;
     fn matrix_get(&self, board: BoardId) -> Result<Matrix, String>;
+    fn benchmark(&self, board: BoardId) -> Result<Benchmark, String>;
     fn nelson(&self, board: BoardId) -> Result<Nelson, String>;
     fn color(&self, board: BoardId, index: u8) -> Result<(u8, u8, u8), String>;
     fn set_color(&self, board: BoardId, index: u8, color: (u8, u8, u8)) -> Result<(), String>;

@@ -1,3 +1,4 @@
+use serde::{Deserialize, Serialize};
 use std::{collections::BTreeMap, io};
 
 use self::usb_hub::UsbHub;
@@ -6,6 +7,7 @@ mod block_dev;
 mod usb_dev;
 mod usb_hub;
 
+#[derive(Deserialize, Serialize)]
 pub struct Benchmark {
     pub port_results: BTreeMap<String, Result<f64, String>>,
 }
