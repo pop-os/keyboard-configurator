@@ -242,6 +242,14 @@
         "label": "Ins"
       },
       {
+        "keysym": "SCROLL_LOCK",
+        "label": "Scroll Lock"
+      },
+      {
+        "keysym": "PAUSE",
+        "label": "Pause"
+      },
+      {
         "keysym": "RESET",
         "label": "Reset"
       },
