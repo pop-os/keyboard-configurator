@@ -11,7 +11,7 @@ pub struct TestingColors(pub HashMap<(usize, usize), Rgb>);
 #[derive(Default)]
 pub struct TestingInner {
     board: DerefCell<Board>,
-    bench_button: DerefCell<gtk::Button>,
+    bench_button: DerefCell<gtk::ToggleButton>,
     bench_labels: DerefCell<HashMap<&'static str, gtk::Label>>,
     bench_results: RefCell<HashMap<&'static str, Result<f64, String>>>,
     num_runs_spin: DerefCell<gtk::SpinButton>,
@@ -63,7 +63,7 @@ impl ObjectImpl for TestingInner {
             }
         }
 
-        let bench_button = gtk::Button::with_label("Benchmark");
+        let bench_button = gtk::ToggleButton::with_label("Run USB test");
         let num_runs_spin = gtk::SpinButton::with_range(1.0, 1000.0, 1.0);
         let serial_entry = gtk::Entry::new();
         let test_button = gtk::Button::with_label("Test");
@@ -171,10 +171,10 @@ impl Testing {
             if let Some(bench_label) = self.inner().bench_labels.get(port_desc) {
                 match port_result {
                     Ok(ok) => {
-                        bench_label.set_text(&format!("{:.2} MB/s", ok));
+                        bench_label.set_text(&format!("{:.2} MB/s ✅", ok));
                     }
                     Err(err) => {
-                        bench_label.set_text(&format!("{}", err));
+                        bench_label.set_text(&format!("{} ❌", err));
                     }
                 }
             } else {
@@ -186,57 +186,59 @@ impl Testing {
     fn connect_bench_button(&self) {
         let obj_btn = self.clone();
         self.inner().bench_button.connect_clicked(move |button| {
-            info!("Disabling benchmark button");
-            button.set_sensitive(false);
+            button.set_label("Running USB test");
 
             let obj_spawn = obj_btn.clone();
             glib::MainContext::default().spawn_local(async move {
                 let testing = obj_spawn.inner();
 
-                match testing.board.benchmark().await {
-                    Ok(benchmark) => {
-                        for (port_desc, port_result) in benchmark.port_results.iter() {
-                            let text = format!("{:.2?}", port_result);
-                            info!("{}: {}", port_desc, text);
-                            if let Some(bench_result) = testing
-                                .bench_results
-                                .borrow_mut()
-                                .get_mut(port_desc.as_str())
-                            {
-                                match bench_result {
-                                    Ok(old) => match port_result {
-                                        Ok(new) => {
-                                            // Replace good results with better results
-                                            if new > old {
-                                                *bench_result = Ok(*new);
+                while testing.bench_button.get_active() {
+                    match testing.board.benchmark().await {
+                        Ok(benchmark) => {
+                            for (port_desc, port_result) in benchmark.port_results.iter() {
+                                let text = format!("{:.2?}", port_result);
+                                info!("{}: {}", port_desc, text);
+                                if let Some(bench_result) = testing
+                                    .bench_results
+                                    .borrow_mut()
+                                    .get_mut(port_desc.as_str())
+                                {
+                                    match bench_result {
+                                        Ok(old) => match port_result {
+                                            Ok(new) => {
+                                                // Replace good results with better results
+                                                if new > old {
+                                                    *bench_result = Ok(*new);
+                                                }
                                             }
+                                            Err(_) => (),
+                                        },
+                                        Err(err) => {
+                                            // Replace errors with newest results
+                                            *bench_result = port_result.clone();
                                         }
-                                        Err(_) => (),
-                                    },
-                                    Err(err) => {
-                                        // Replace errors with newest results
-                                        *bench_result = port_result.clone();
                                     }
+                                } else {
+                                    error!("{} label result not found", port_desc);
                                 }
-                            } else {
-                                error!("{} label result not found", port_desc);
+                            }
+                        }
+                        Err(err) => {
+                            let message = format!("Benchmark failed to run: {}", err);
+                            error!("{}", message);
+                            //TODO: have a global label?
+                            for (_, bench_label) in testing.bench_labels.iter() {
+                                bench_label.set_text(&message);
                             }
                         }
                     }
-                    Err(err) => {
-                        let message = format!("Benchmark failed to run: {}", err);
-                        error!("{}", message);
-                        //TODO: have a global label?
-                        for (_, bench_label) in testing.bench_labels.iter() {
-                            bench_label.set_text(&message);
-                        }
-                    }
+
+                    obj_spawn.update_benchmarks();
+
+                    glib::timeout_future(std::time::Duration::new(1, 0)).await;
                 }
 
-                obj_spawn.update_benchmarks();
-
-                info!("Enabling benchmark button");
-                testing.bench_button.set_sensitive(true);
+                testing.bench_button.set_label("Run USB test");
             });
         });
     }
