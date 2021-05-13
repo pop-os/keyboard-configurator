@@ -31,17 +31,6 @@ mod rect;
 
 use crate::daemon::*;
 pub use crate::{
-    backend::*,
-    benchmark::*,
-    board::*,
-    color::*,
-    deref_cell::*,
-    key::*,
-    keymap::*,
-    layer::*,
-    layout::*,
-    matrix::*,
-    mode::*,
-    nelson::*,
-    rect::*,
+    backend::*, benchmark::*, board::*, color::*, deref_cell::*, key::*, keymap::*, layer::*,
+    layout::*, matrix::*, mode::*, nelson::*, rect::*,
 };

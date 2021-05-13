@@ -1,6 +1,5 @@
 use std::{
-    fs,
-    io,
+    fs, io,
     path::{Path, PathBuf},
 };
 
@@ -20,23 +19,15 @@ impl UsbDev {
     pub fn vendor_id(&self) -> io::Result<u16> {
         let vid_path = self.path().join("idVendor");
         let vid_str = fs::read_to_string(&vid_path)?;
-        u16::from_str_radix(vid_str.trim(), 16).map_err(|err| {
-            io::Error::new(
-                io::ErrorKind::InvalidData,
-                err
-            )
-        })
+        u16::from_str_radix(vid_str.trim(), 16)
+            .map_err(|err| io::Error::new(io::ErrorKind::InvalidData, err))
     }
 
     pub fn product_id(&self) -> io::Result<u16> {
         let pid_path = self.path().join("idProduct");
         let pid_str = fs::read_to_string(&pid_path)?;
-        u16::from_str_radix(pid_str.trim(), 16).map_err(|err| {
-            io::Error::new(
-                io::ErrorKind::InvalidData,
-                err
-            )
-        })
+        u16::from_str_radix(pid_str.trim(), 16)
+            .map_err(|err| io::Error::new(io::ErrorKind::InvalidData, err))
     }
 
     pub fn block_devs(&self) -> io::Result<Vec<BlockDev>> {

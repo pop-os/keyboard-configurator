@@ -207,7 +207,11 @@ impl<R: Read + Send + 'static, W: Write + Send + 'static> Daemon for DaemonServe
 
             let sticking = self.matrix_get(board)?;
 
-            Ok(Nelson { missing, bouncing, sticking })
+            Ok(Nelson {
+                missing,
+                bouncing,
+                sticking,
+            })
         } else {
             Err(format!("failed to find Nelson"))
         }
@@ -317,7 +321,7 @@ impl<R: Read + Send + 'static, W: Write + Send + 'static> Daemon for DaemonServe
                                 error!("Failed to open USB HID EC at {:?}: {:?}", info.path(), err)
                             }
                         }
-                    },
+                    }
                     // System76 launch-nelson
                     (0x3384, 0x0002, 0) => {
                         if self.nelson.borrow().is_some() {
@@ -347,7 +351,7 @@ impl<R: Read + Send + 'static, W: Write + Send + 'static> Daemon for DaemonServe
                                 error!("Failed to open Nelson at {:?}: {:?}", info.path(), err)
                             }
                         }
-                    },
+                    }
                     _ => (),
                 }
             }

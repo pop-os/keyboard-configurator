@@ -1,9 +1,4 @@
-use std::{
-    collections::BTreeMap,
-    fs,
-    io,
-    path::Path,
-};
+use std::{collections::BTreeMap, fs, io, path::Path};
 
 use super::usb_dev::UsbDev;
 
@@ -50,12 +45,13 @@ impl UsbHub {
     pub fn ports(&self) -> io::Result<BTreeMap<String, UsbDev>> {
         let mut hub_ports = BTreeMap::new();
         let hub_path = self.path();
-        let hub_name = hub_path.file_name().and_then(|x| x.to_str()).ok_or(
-            io::Error::new(
+        let hub_name = hub_path
+            .file_name()
+            .and_then(|x| x.to_str())
+            .ok_or(io::Error::new(
                 io::ErrorKind::InvalidData,
-                "hub_ports file_name not found or not UTF-8"
-            )
-        )?;
+                "hub_ports file_name not found or not UTF-8",
+            ))?;
         let if_path = hub_path.join(format!("{}:1.0", hub_name));
         let port_prefix = format!("{}-port", hub_name);
         for entry_res in fs::read_dir(&if_path)? {

@@ -130,9 +130,10 @@ impl WidgetImpl for KeyboardLayerInner {
         for (i, k) in widget.keys().iter().enumerate() {
             let Rect { x, y, w, h } = widget.key_position(&k);
 
-            let mut bg = if let Some(rgb) = testing_colors.0.get(
-                &(k.electrical.0 as usize, k.electrical.1 as usize)
-            ) {
+            let mut bg = if let Some(rgb) = testing_colors
+                .0
+                .get(&(k.electrical.0 as usize, k.electrical.1 as usize))
+            {
                 rgb
             } else {
                 &k.background_color

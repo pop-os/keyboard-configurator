@@ -176,7 +176,8 @@ impl Testing {
                     let nelson = match testing.board.nelson().await {
                         Ok(ok) => ok,
                         Err(err) => {
-                            let message = format!("Test {}/{} failed to run: {}", test_run, test_runs, err);
+                            let message =
+                                format!("Test {}/{} failed to run: {}", test_run, test_runs, err);
                             error!("{}", message);
                             testing.test_label.set_text(&message);
                             break;
@@ -185,11 +186,27 @@ impl Testing {
 
                     for row in 0..nelson.max_rows() {
                         for col in 0..nelson.max_cols() {
-                            let r = if nelson.missing.get(row, col).unwrap_or(false) { 255 } else { 0 };
-                            let g = if nelson.sticking.get(row, col).unwrap_or(false) { 255 } else { 0 };
-                            let b = if nelson.bouncing.get(row, col).unwrap_or(false) { 255 } else { 0 };
+                            let r = if nelson.missing.get(row, col).unwrap_or(false) {
+                                255
+                            } else {
+                                0
+                            };
+                            let g = if nelson.sticking.get(row, col).unwrap_or(false) {
+                                255
+                            } else {
+                                0
+                            };
+                            let b = if nelson.bouncing.get(row, col).unwrap_or(false) {
+                                255
+                            } else {
+                                0
+                            };
                             if r != 0 || g != 0 || b != 0 {
-                                testing.colors.borrow_mut().0.insert((row, col), Rgb::new(r, g, b));
+                                testing
+                                    .colors
+                                    .borrow_mut()
+                                    .0
+                                    .insert((row, col), Rgb::new(r, g, b));
                             } else {
                                 testing.colors.borrow_mut().0.remove(&(row, col));
                             }

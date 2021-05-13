@@ -12,11 +12,17 @@ pub struct Nelson {
 
 impl Nelson {
     pub fn max_rows(&self) -> usize {
-        cmp::max(self.missing.rows(), cmp::max(self.bouncing.rows(), self.sticking.rows()))
+        cmp::max(
+            self.missing.rows(),
+            cmp::max(self.bouncing.rows(), self.sticking.rows()),
+        )
     }
 
     pub fn max_cols(&self) -> usize {
-        cmp::max(self.missing.cols(), cmp::max(self.bouncing.cols(), self.sticking.cols()))
+        cmp::max(
+            self.missing.cols(),
+            cmp::max(self.bouncing.cols(), self.sticking.cols()),
+        )
     }
 
     pub fn success(&self) -> bool {

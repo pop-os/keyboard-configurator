@@ -1,7 +1,4 @@
-use std::{
-    collections::BTreeMap,
-    io,
-};
+use std::{collections::BTreeMap, io};
 
 use self::usb_hub::UsbHub;
 
@@ -35,14 +32,14 @@ impl Benchmark {
         if usb_2_hubs != 1 {
             return Err(io::Error::new(
                 io::ErrorKind::Other,
-                format!("Found {} USB 2 hubs instead of 1", usb_2_hubs)
+                format!("Found {} USB 2 hubs instead of 1", usb_2_hubs),
             ));
         }
 
         if usb_3_hubs != 1 {
             return Err(io::Error::new(
                 io::ErrorKind::Other,
-                format!("Found {} USB 3 hubs instead of 1", usb_3_hubs)
+                format!("Found {} USB 3 hubs instead of 1", usb_3_hubs),
             ));
         }
 
@@ -55,8 +52,8 @@ impl Benchmark {
                 ),
                 UsbHub::Usb3(_) => (
                     60.0, // USB 2.0 max speed is 480 Mbps or 60 MBps
-                    "USB 3.2 Gen 2"
-                )
+                    "USB 3.2 Gen 2",
+                ),
             };
 
             for (port_name, dev) in hub.ports()?.iter() {
@@ -75,10 +72,10 @@ impl Benchmark {
                                 if benchmark > best_speed {
                                     best_speed = benchmark;
                                 }
-                            },
+                            }
                             Err(err) => {
                                 //TODO: do something with error
-                            },
+                            }
                         }
                     }
                     if best_speed < 0.0 {
