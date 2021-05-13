@@ -33,17 +33,22 @@ impl BlockDev {
             return Err(io::Error::from_raw_os_error(res));
         }
 
-        let elapsed = {
+        let (res, elapsed) = {
             let data = unsafe { slice::from_raw_parts_mut(ptr as *mut u8, size) };
 
             let start = time::Instant::now();
-            file.read(data)?;
-            start.elapsed()
+            (
+                file.read(data),
+                start.elapsed(),
+            )
         };
 
         unsafe {
             libc::free(ptr);
         }
+
+        // Do this after free to ensure no memory leaks
+        res?;
 
         Ok(4.0 / elapsed.as_secs_f64())
     }
