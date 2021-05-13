@@ -15,6 +15,7 @@
 extern crate log;
 
 mod backend;
+mod benchmark;
 mod board;
 mod color;
 mod daemon;
@@ -31,6 +32,7 @@ mod rect;
 use crate::daemon::*;
 pub use crate::{
     backend::*,
+    benchmark::*,
     board::*,
     color::*,
     deref_cell::*,
