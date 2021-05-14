@@ -16,7 +16,16 @@ impl TestResults {
     }
 
     fn new() -> Self {
-        let mut bench = HashMap::new();
+        let test_results = Self {
+            bench: RwLock::new(HashMap::new()),
+        };
+        test_results.reset();
+        test_results
+    }
+
+    fn reset(&self) {
+        let mut bench = self.bench.write().unwrap();
+        bench.clear();
         for port_desc in &[
             "USB 2.0: USB-A Left",
             "USB 2.0: USB-A Right",
@@ -28,9 +37,6 @@ impl TestResults {
             "USB 3.2 Gen 2: USB-C Right",
         ] {
             bench.insert(*port_desc, Err("no benchmarks performed".to_string()));
-        }
-        Self {
-            bench: RwLock::new(bench),
         }
     }
 }
@@ -48,6 +54,7 @@ pub struct TestingInner {
     serial_entry: DerefCell<gtk::Entry>,
     test_button: DerefCell<gtk::Button>,
     test_label: DerefCell<gtk::Label>,
+    reset_button: DerefCell<gtk::Button>,
     colors: RefCell<TestingColors>,
 }
 
@@ -96,20 +103,12 @@ impl ObjectImpl for TestingInner {
         let bench_button = gtk::ToggleButton::with_label("Run USB test");
         let num_runs_spin = gtk::SpinButton::with_range(1.0, 1000.0, 1.0);
         let serial_entry = gtk::Entry::new();
-        let test_button = gtk::Button::with_label("Test");
+        let test_button = gtk::Button::with_label("Run Nelson test");
         let test_label = gtk::Label::new(None);
+        let reset_button = gtk::Button::with_label("Reset testing");
 
         let mut bench_labels = HashMap::new();
-        for port_desc in &[
-            "USB 2.0: USB-A Left",
-            "USB 2.0: USB-A Right",
-            "USB 2.0: USB-C Left",
-            "USB 2.0: USB-C Right",
-            "USB 3.2 Gen 2: USB-A Left",
-            "USB 3.2 Gen 2: USB-A Right",
-            "USB 3.2 Gen 2: USB-C Left",
-            "USB 3.2 Gen 2: USB-C Right",
-        ] {
+        for (port_desc, _port_result) in TestResults::global().bench.read().unwrap().iter() {
             let bench_label = gtk::Label::new(None);
             obj.add(&label_row(port_desc, &bench_label));
             bench_labels.insert(*port_desc, bench_label);
@@ -127,6 +126,7 @@ impl ObjectImpl for TestingInner {
             ..add(&label_row("Serial", &serial_entry));
             ..add(&row(&test_button));
             ..add(&row(&test_label));
+            ..add(&row(&reset_button));
             ..set_header_func(Some(Box::new(|row, before| {
                 if before.is_none() {
                     row.set_header::<gtk::Widget>(None)
@@ -146,6 +146,7 @@ impl ObjectImpl for TestingInner {
         self.serial_entry.set(serial_entry);
         self.test_button.set(test_button);
         self.test_label.set(test_label);
+        self.reset_button.set(reset_button);
     }
 
     fn properties() -> &'static [glib::ParamSpec] {
@@ -366,11 +367,20 @@ impl Testing {
         });
     }
 
+    fn connect_reset_button(&self) {
+        let obj_btn = self.clone();
+        self.inner().reset_button.connect_clicked(move |_button| {
+            TestResults::global().reset();
+            obj_btn.update_benchmarks();
+        });
+    }
+
     pub fn new(board: Board) -> Self {
         let obj: Self = glib::Object::new(&[]).unwrap();
         obj.inner().board.set(board);
         obj.connect_bench_button();
         obj.connect_test_button();
+        obj.connect_reset_button();
         obj.update_benchmarks();
         obj
     }
