@@ -70,7 +70,7 @@ stack-leds-desc = Choisir une touche sur le plan de codage afin de modifier ses 
 stack-testing = Vérification
 
 test-check-pins = Vérifier les broches
-test-number-of-runs = Nombre de cycle
+test-number-of-runs = Nombre de cycles
 test-replace-switch = Remplacé l'interrupteur
 test-serial = Séquentiel
 

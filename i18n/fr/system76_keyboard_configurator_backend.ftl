@@ -1,7 +1,7 @@
 mode-disabled = Désactiver
 mode-solid-color = Couleur solide par couche
 mode-per-key = Solide par touche
-mode-active-keys = Touches active seulement
+mode-active-keys = Touches actives seulement
 mode-cycle-all = Arrière-plan cosmique
 mode-cycle-left-right = Balayage horizontal
 mode-cycle-up-down = Balayage vertical
