@@ -2,7 +2,38 @@ use backend::{Board, DerefCell, Rgb};
 use cascade::cascade;
 use gtk::prelude::*;
 use gtk::subclass::prelude::*;
-use std::{cell::RefCell, collections::HashMap};
+use once_cell::sync::OnceCell;
+use std::{cell::RefCell, collections::HashMap, sync::RwLock};
+
+struct TestResults {
+    bench: RwLock<HashMap<&'static str, Result<f64, String>>>,
+}
+
+impl TestResults {
+    fn global() -> &'static Self {
+        static TEST_RESULTS: OnceCell<TestResults> = OnceCell::new();
+        TEST_RESULTS.get_or_init(Self::new)
+    }
+
+    fn new() -> Self {
+        let mut bench = HashMap::new();
+        for port_desc in &[
+            "USB 2.0: USB-A Left",
+            "USB 2.0: USB-A Right",
+            "USB 2.0: USB-C Left",
+            "USB 2.0: USB-C Right",
+            "USB 3.2 Gen 2: USB-A Left",
+            "USB 3.2 Gen 2: USB-A Right",
+            "USB 3.2 Gen 2: USB-C Left",
+            "USB 3.2 Gen 2: USB-C Right",
+        ] {
+            bench.insert(*port_desc, Err("no benchmarks performed".to_string()));
+        }
+        Self {
+            bench: RwLock::new(bench),
+        }
+    }
+}
 
 #[derive(Clone, Default, glib::GBoxed)]
 #[gboxed(type_name = "S76TestingColor")]
@@ -13,7 +44,6 @@ pub struct TestingInner {
     board: DerefCell<Board>,
     bench_button: DerefCell<gtk::ToggleButton>,
     bench_labels: DerefCell<HashMap<&'static str, gtk::Label>>,
-    bench_results: RefCell<HashMap<&'static str, Result<f64, String>>>,
     num_runs_spin: DerefCell<gtk::SpinButton>,
     serial_entry: DerefCell<gtk::Entry>,
     test_button: DerefCell<gtk::Button>,
@@ -70,7 +100,6 @@ impl ObjectImpl for TestingInner {
         let test_label = gtk::Label::new(None);
 
         let mut bench_labels = HashMap::new();
-        let mut bench_results = HashMap::new();
         for port_desc in &[
             "USB 2.0: USB-A Left",
             "USB 2.0: USB-A Right",
@@ -84,7 +113,6 @@ impl ObjectImpl for TestingInner {
             let bench_label = gtk::Label::new(None);
             obj.add(&label_row(port_desc, &bench_label));
             bench_labels.insert(*port_desc, bench_label);
-            bench_results.insert(*port_desc, Err("no benchmarks performed".to_string()));
         }
 
         cascade! {
@@ -114,7 +142,6 @@ impl ObjectImpl for TestingInner {
 
         self.bench_button.set(bench_button);
         self.bench_labels.set(bench_labels);
-        *self.bench_results.borrow_mut() = bench_results;
         self.num_runs_spin.set(num_runs_spin);
         self.serial_entry.set(serial_entry);
         self.test_button.set(test_button);
@@ -167,7 +194,7 @@ async fn import_keymap_hack(board: &Board, keymap: &backend::KeyMap) -> Result<(
 
 impl Testing {
     fn update_benchmarks(&self) {
-        for (port_desc, port_result) in self.inner().bench_results.borrow().iter() {
+        for (port_desc, port_result) in TestResults::global().bench.read().unwrap().iter() {
             if let Some(bench_label) = self.inner().bench_labels.get(port_desc) {
                 match port_result {
                     Ok(ok) => {
@@ -198,9 +225,10 @@ impl Testing {
                             for (port_desc, port_result) in benchmark.port_results.iter() {
                                 let text = format!("{:.2?}", port_result);
                                 info!("{}: {}", port_desc, text);
-                                if let Some(bench_result) = testing
-                                    .bench_results
-                                    .borrow_mut()
+                                if let Some(bench_result) = TestResults::global()
+                                    .bench
+                                    .write()
+                                    .unwrap()
                                     .get_mut(port_desc.as_str())
                                 {
                                     match bench_result {

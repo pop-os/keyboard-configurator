@@ -37,10 +37,7 @@ impl BlockDev {
             let data = unsafe { slice::from_raw_parts_mut(ptr as *mut u8, size) };
 
             let start = time::Instant::now();
-            (
-                file.read(data),
-                start.elapsed(),
-            )
+            (file.read(data), start.elapsed())
         };
 
         unsafe {
