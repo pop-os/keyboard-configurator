@@ -9,6 +9,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import typing
 from typing import List, Tuple, Dict
 
 QMK_MAPPING = {
@@ -81,7 +82,7 @@ ALIAS_RE = '#define\s+KC_([A-Z_]*)\s+KC_([A-Z_]+]*)\s*$'
 def call_preprocessor(path: str) -> str:
     return subprocess.check_output(["gcc", "-E", path], stderr=subprocess.DEVNULL, universal_newlines=True)
 
-def extract_scancodes(ecdir: str, board: str, is_qmk: bool, has_brightness: bool, has_color: bool) -> Tuple[List[Tuple[str, int]], Dict[str, str]]:
+def extract_scancodes(ecdir: str, board: str, is_qmk: bool, has_brightness: bool, has_color: bool) -> Tuple[typing.OrderedDict[str, int], Dict[str, str]]:
     "Extract mapping from scancode names to numbers"
 
     if is_qmk:
@@ -134,20 +135,20 @@ def extract_scancodes(ecdir: str, board: str, is_qmk: bool, has_brightness: bool
     if is_qmk:
         scancode_names = [mapping.get(i, i) for i in scancode_names]
     scancodes = (int(i) for i in output.split())
-    scancode_list = list(zip(scancode_names, scancodes))
+    scancode_list = OrderedDict(zip(scancode_names, scancodes))
 
     if is_qmk:
-        scancode_list.append(('LAYER_TOGGLE_1', 0x5300)) # TG(0)
-        scancode_list.append(('LAYER_TOGGLE_2', 0x5301)) # TG(1)
-        scancode_list.append(('LAYER_TOGGLE_3', 0x5302)) # TG(2)
-        scancode_list.append(('LAYER_TOGGLE_4', 0x5303)) # TG(3)
-        scancode_list.append(('LAYER_ACCESS_1', 0x5100)) # MO(0)
-        scancode_list.append(('FN', 0x5101)) # MO(1)
-        scancode_list.append(('LAYER_ACCESS_3', 0x5102)) # MO(2)
-        scancode_list.append(('LAYER_ACCESS_4', 0x5103)) # MO(3)
-        scancode_list.append(('RESET', 0x5C00))
+        scancode_list['LAYER_TOGGLE_1'] = 0x5300 # TG(0)
+        scancode_list['LAYER_TOGGLE_2'] = 0x5301 # TG(1)
+        scancode_list['LAYER_TOGGLE_3'] = 0x5302 # TG(2)
+        scancode_list['LAYER_TOGGLE_4'] = 0x5303 # TG(3)
+        scancode_list['LAYER_ACCESS_1'] = 0x5100 # MO(0)
+        scancode_list['FN'] = 0x5101 # MO(1)
+        scancode_list['LAYER_ACCESS_3'] = 0x5102 # MO(2)
+        scancode_list['LAYER_ACCESS_4'] = 0x5103 # MO(3)
+        scancode_list['RESET'] = 0x5C00
     else:
-        scancode_list.append(('NONE', 0x0000))
+        scancode_list['NONE'] = 0x0000
 
     excluded_scancodes = ['INT_1', 'INT_2']
     if has_color or board == 'system76/bonw14':
@@ -157,10 +158,10 @@ def extract_scancodes(ecdir: str, board: str, is_qmk: bool, has_brightness: bool
     else:
         excluded_scancodes += ['KBD_COLOR', 'KBD_DOWN', 'KBD_UP', 'KBD_BKL', 'KBD_TOGGLE']
 
-    scancode_list = [(name, code) for (name, code) in scancode_list if name not in excluded_scancodes]
+    scancode_list = OrderedDict((name, code) for (name, code) in scancode_list.items() if name not in excluded_scancodes)
 
     # Make sure scancodes are unique
-    assert len(scancode_list) == len(set(i for _, i in scancode_list))
+    assert len(scancode_list.keys()) == len(set(scancode_list.values()))
 
     return scancode_list, mapping
 
@@ -233,7 +234,7 @@ def gen_layout_json(path: str, physical: List[str], physical2: List[List[str]]) 
     with open(path, 'w') as f:
         json.dump(layout, f, indent=2)
 
-def gen_keymap_json(path: str, scancodes: List[Tuple[str, int]]) -> None:
+def gen_keymap_json(path: str, scancodes: typing.OrderedDict[str, int]) -> None:
     "Generate keymap.json file"
 
     with open(path, 'w') as f:

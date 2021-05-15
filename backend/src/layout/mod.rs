@@ -152,12 +152,10 @@ impl Layout {
 }
 
 fn parse_keymap_json(keymap_json: &str) -> (HashMap<String, u16>, HashMap<u16, String>) {
-    let mut keymap = HashMap::new();
     let mut scancode_names = HashMap::new();
-    let l: Vec<(String, u16)> = serde_json::from_str(keymap_json).unwrap();
-    for (scancode_name, scancode) in l {
-        keymap.insert(scancode_name.clone(), scancode);
-        scancode_names.insert(scancode, scancode_name);
+    let keymap: HashMap<String, u16> = serde_json::from_str(keymap_json).unwrap();
+    for (scancode_name, scancode) in &keymap {
+        scancode_names.insert(*scancode, scancode_name.clone());
     }
     (keymap, scancode_names)
 }
