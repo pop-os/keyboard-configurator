@@ -9,6 +9,7 @@ use gtk::{
 use once_cell::unsync::OnceCell;
 use std::{
     cell::{Cell, RefCell},
+    collections::HashMap,
     f64::consts::PI,
 };
 
@@ -31,6 +32,8 @@ pub struct KeyboardLayerInner {
     wide_height: OnceCell<i32>,
     narrow_width: OnceCell<i32>,
     testing_colors: RefCell<TestingColors>,
+    linux_keymap: DerefCell<HashMap<String, u32>>,
+    gdk_keymap: DerefCell<gdk::Keymap>,
 }
 
 #[glib::object_subclass]
@@ -43,6 +46,16 @@ impl ObjectSubclass for KeyboardLayerInner {
 impl ObjectImpl for KeyboardLayerInner {
     fn constructed(&self, widget: &KeyboardLayer) {
         self.parent_constructed(widget);
+
+        let display = gdk::Display::default().unwrap();
+        let gdk_keymap = cascade! {
+            gdk::Keymap::for_display(&display).unwrap();
+            ..connect_keys_changed(clone!(@weak widget => move |_| widget.queue_draw()));
+        };
+        self.gdk_keymap.set(gdk_keymap);
+
+        self.linux_keymap
+            .set(serde_json::from_str(include_str!("../layouts/linux_keymap.json")).unwrap());
 
         widget.add_events(gdk::EventMask::BUTTON_PRESS_MASK);
     }
@@ -134,10 +147,53 @@ impl WidgetImpl for KeyboardLayerInner {
                 (1., 1., 1.)
             };
 
+            let mut text = widget.page().get_label(k);
+
             let mut text_alpha = 1.;
             let mut bg_alpha = 1.;
             if let Some(layer) = self.page.get().layer() {
                 let scancode_name = k.get_scancode(layer).unwrap().1;
+
+                use glib::translate::from_glib_none;
+                if let Some(keycode) = self.linux_keymap.get(&scancode_name) {
+                    let mut level_texts = Vec::new();
+                    for level in 0..3 {
+                        let keymap_key = unsafe {
+                            from_glib_none(&gdk::ffi::GdkKeymapKey {
+                                keycode: *keycode + 8,
+                                group: 0,
+                                level,
+                            } as *const _)
+                        };
+
+                        if let Some(key) = self.gdk_keymap.lookup_key(&keymap_key) {
+                            use gdk::keys::constants;
+                            let level_text = match key {
+                                // TODO
+                                constants::BackSpace => "Backspace".to_string(),
+                                constants::Delete => "Delete".to_string(),
+                                constants::Escape => "Esc".to_string(),
+                                constants::Return => "Enter".to_string(),
+                                constants::space => "Space".to_string(),
+                                constants::Tab => "Tab".to_string(),
+                                _ => key
+                                    .to_unicode()
+                                    .map(|x| x.to_string())
+                                    .unwrap_or_else(|| key.name().unwrap().to_string()),
+                            };
+                            level_texts.push(level_text);
+                        } else {
+                            break;
+                        }
+                    }
+
+                    if level_texts.len() >= 2 {
+                        text = format!("{}\n{}", &level_texts[1], &level_texts[0]);
+                    } else if level_texts.len() >= 1 {
+                        text = level_texts[0].clone();
+                    }
+                }
+
                 if scancode_name == "NONE" || scancode_name == "ROLL_OVER" {
                     text_alpha = 0.5;
                     bg_alpha = 0.75;
@@ -162,7 +218,6 @@ impl WidgetImpl for KeyboardLayerInner {
             }
 
             // Draw label
-            let text = widget.page().get_label(k);
             let layout = cascade! {
                 widget.create_pango_layout(Some(&text));
                 ..set_width((w * pango::SCALE as f64) as i32);
