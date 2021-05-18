@@ -103,3 +103,10 @@ def deploy_with_deps(binpath):
     with open(f"{module_dir}/loaders.cache", 'w') as cachefile:
         cache = subprocess.check_output(['gdk-pixbuf-query-loaders'], env=dict(os.environ, GDK_PIXBUF_MODULEDIR=f"{module_dir}/loaders")).decode()
         cachefile.write(cache.replace(APPDIR + '/Contents', '@executable_path/..'))
+
+    if not os.path.exists('themes/macOS'):
+        subprocess.check_call(["git", "clone", "--depth", "1", "https://github.com/B00merang-Project/macOS", "themes/macOS"])
+    if not os.path.exists('themes/macOS-Dark'):
+        subprocess.check_call(["git", "clone", "--depth", "1", "https://github.com/B00merang-Project/macOS-Dark", "themes/macOS-Dark"])
+    copy("themes", f"{APPDIR}/Contents/Resources/share/themes", "macOS/gtk-3.0")
+    copy("themes", f"{APPDIR}/Contents/Resources/share/themes", "macOS-Dark/gtk-3.0")

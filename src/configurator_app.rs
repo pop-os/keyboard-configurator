@@ -149,6 +149,7 @@ fn macos_init() {
 
     if let Some(settings) = gtk::Settings::get_default() {
         settings.set_property_gtk_decoration_layout(Some("close,minimize,maximize:menu"));
+        settings.set_property_gtk_theme_name(Some("macOS"));
         settings.set_property_gtk_application_prefer_dark_theme(prefer_dark);
     }
 }
