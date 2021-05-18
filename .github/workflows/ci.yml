@@ -56,7 +56,13 @@ jobs:
     - uses: actions/checkout@v2
     - name: Build and package
       shell: msys2 {0}
-      run: cd windows && python build.py --rustup="C:/Rust/.cargo/bin/rustup.exe" $RELEASE
+      env:
+        SSL_COM_USERNAME: ${{ github.event_name == 'release' && secrets.SSL_COM_USERNAME || '' }}
+        SSL_COM_PASSWORD: ${{ github.event_name == 'release' && secrets.SSL_COM_PASSWORD || '' }}
+        SSL_COM_CREDENTIAL_ID: ${{ github.event_name == 'release' && secrets.SSL_COM_CREDENTIAL_ID || '' }}
+        SSL_COM_TOTP_SECRET: ${{ github.event_name == 'release' && secrets.SSL_COM_TOTP_SECRET || '' }}
+        SIGN: ${{ github.event_name == 'release' && '--sign' || '' }}
+      run: cd windows && python build.py --rustup="C:/Rust/.cargo/bin/rustup.exe" $RELEASE $SIGN
     - uses: actions/upload-artifact@v2
       with:
         if-no-files-found: error

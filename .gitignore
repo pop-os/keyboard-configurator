@@ -1,6 +1,7 @@
 /target
 /linux/system76-keyboard-configurator
 /windows/out
+/windows/sign
 /windows/libraries.wxi
 /windows/*.png
 /windows/*.bmp

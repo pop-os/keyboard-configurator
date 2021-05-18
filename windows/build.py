@@ -7,10 +7,13 @@ import shutil
 import subprocess
 import sys
 import json
+import urllib.request
+from zipfile import ZipFile
 
 # Handle commandline arguments
 parser = argparse.ArgumentParser()
 parser.add_argument('--release', action='store_true')
+parser.add_argument('--sign', action='store_true')
 parser.add_argument('--rustup', default=(os.environ['HOMEPATH'] + "/.cargo/bin/rustup.exe"))
 parser.add_argument('--wix', default="C:/Program Files (x86)/WiX Toolset v3.11")
 args = parser.parse_args()
@@ -154,3 +157,38 @@ with open('libraries.wxi', 'w') as f:
 # Build .msi
 subprocess.check_call([f"{args.wix}/bin/candle.exe", ".\keyboard-configurator.wxs", f"-dcrate_version={crate_version}"])
 subprocess.check_call([f"{args.wix}/bin/light.exe", "-ext", "WixUIExtension", ".\keyboard-configurator.wixobj"])
+
+if args.sign:
+    if not os.path.isdir('sign'):
+        os.mkdir("sign")
+
+    # Download signing tool
+    tool_url = "https://www.ssl.com/download/29773/"
+    tool_zip = "sign/CodeSignTool.zip"
+    if not os.path.isfile(tool_zip):
+        urllib.request.urlretrieve(tool_url, tool_zip + ".partial")
+        os.rename(tool_zip + ".partial", tool_zip)
+
+    # Extract signing tool
+    tool_dir = "sign/CodeSignTool"
+    if not os.path.isdir(tool_dir):
+        shutil.rmtree(tool_dir + ".partial")
+        os.mkdir(tool_dir + ".partial")
+        with ZipFile(tool_zip, "r") as zip:
+            zip.extractall(tool_dir + ".partial")
+        os.rename(tool_dir + ".partial", tool_dir)
+
+    # Sign with specified cloud signing key
+    subprocess.check_call([
+        "cmd", "/c", "CodeSignTool.bat",
+        "sign",
+        "-credential_id=" + os.environ["SSL_COM_CREDENTIAL_ID"],
+        "-username=" + os.environ["SSL_COM_USERNAME"],
+        "-password=" + os.environ["SSL_COM_PASSWORD"],
+        "-totp_secret=" + os.environ["SSL_COM_TOTP_SECRET"],
+        "-input_file_path=../../../keyboard-configurator.msi",
+        "-output_dir_path=../../",
+    ], cwd="sign/CodeSignTool/CodeSignTool-v1.0-windows")
+
+    # Update MSI
+    os.rename("sign/keyboard-configurator.msi", "keyboard-configurator.msi")
