@@ -166,13 +166,16 @@ if args.sign:
     tool_url = "https://www.ssl.com/download/29773/"
     tool_zip = "sign/CodeSignTool.zip"
     if not os.path.isfile(tool_zip):
+        if os.path.isfile(tool_zip + ".partial"):
+            os.remove(tool_zip + ".partial")
         urllib.request.urlretrieve(tool_url, tool_zip + ".partial")
         os.rename(tool_zip + ".partial", tool_zip)
 
     # Extract signing tool
     tool_dir = "sign/CodeSignTool"
     if not os.path.isdir(tool_dir):
-        shutil.rmtree(tool_dir + ".partial")
+        if os.path.isdir(tool_dir + ".partial"):
+            shutil.rmtree(tool_dir + ".partial")
         os.mkdir(tool_dir + ".partial")
         with ZipFile(tool_zip, "r") as zip:
             zip.extractall(tool_dir + ".partial")
@@ -191,4 +194,5 @@ if args.sign:
     ], cwd="sign/CodeSignTool/CodeSignTool-v1.0-windows")
 
     # Update MSI
+    os.remove("keyboard-configurator.msi")
     os.rename("sign/keyboard-configurator.msi", "keyboard-configurator.msi")
