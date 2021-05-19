@@ -6,7 +6,7 @@ use std::iter::Iterator;
 use zbus::{dbus_proxy, fdo::ObjectManagerProxy, Connection};
 
 use super::{err_str, BoardId, Daemon};
-use crate::{Benchmark, Matrix, Nelson, Rgb};
+use crate::{Benchmark, Matrix, Nelson, NelsonKind, Rgb};
 
 const DBUS_NAME: &str = "com.system76.PowerDaemon";
 
@@ -114,7 +114,7 @@ impl Daemon for DaemonS76Power {
         Err("Unimplemented".to_string())
     }
 
-    fn nelson(&self, _board: BoardId) -> Result<Nelson, String> {
+    fn nelson(&self, _board: BoardId, _kind: NelsonKind) -> Result<Nelson, String> {
         Err("Unimplemented".to_string())
     }
 

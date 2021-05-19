@@ -13,7 +13,7 @@ use std::{
 use uuid::Uuid;
 
 use super::{err_str, BoardId, Daemon, DaemonCommand};
-use crate::{Benchmark, Matrix, Nelson};
+use crate::{Benchmark, Matrix, Nelson, NelsonKind};
 
 pub struct DaemonServer<R: Read + Send + 'static, W: Write + Send + 'static> {
     hidapi: RefCell<Option<HidApi>>,
@@ -165,7 +165,7 @@ impl<R: Read + Send + 'static, W: Write + Send + 'static> Daemon for DaemonServe
         Benchmark::new().map_err(err_str)
     }
 
-    fn nelson(&self, board: BoardId) -> Result<Nelson, String> {
+    fn nelson(&self, board: BoardId, kind: NelsonKind) -> Result<Nelson, String> {
         if let Some(nelson) = &mut *self.nelson.borrow_mut() {
             let delay_ms = 300;
             info!("Nelson delay is {} ms", delay_ms);
@@ -186,8 +186,16 @@ impl<R: Read + Send + 'static, W: Write + Send + 'static> Daemon for DaemonServe
             info!("Sleep");
             sleep(delay);
 
-            // Check for missing (will not be set, so invert matrix)
-            let mut missing = self.matrix_get(board)?;
+            // Get pressed keys while nelson is closed
+            let matrix = self.matrix_get(board)?;
+
+            // Either missing or bouncing is set depending on test
+            let (mut missing, bouncing) = match kind {
+                NelsonKind::Normal => (matrix.clone(), Matrix::default()),
+                NelsonKind::Bouncing => (Matrix::default(), matrix.clone()),
+            };
+
+            // Missing must be inverted, since missing keys are not pressed
             for row in 0..missing.rows() {
                 for col in 0..missing.cols() {
                     let value = missing.get(row, col).unwrap_or(false);
@@ -201,14 +209,7 @@ impl<R: Read + Send + 'static, W: Write + Send + 'static> Daemon for DaemonServe
             info!("Sleep");
             sleep(delay);
 
-            //TODO: detect bouncing
-            let mut bouncing = self.matrix_get(board)?;
-            for row in 0..bouncing.rows() {
-                for col in 0..bouncing.cols() {
-                    bouncing.set(row, col, false);
-                }
-            }
-
+            // Anything still pressed after nelson is opened is sticking
             let sticking = self.matrix_get(board)?;
 
             Ok(Nelson {

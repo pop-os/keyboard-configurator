@@ -19,7 +19,7 @@ use std::{
     time::Duration,
 };
 
-use super::{Benchmark, BoardId, Daemon, Matrix, Nelson};
+use super::{Benchmark, BoardId, Daemon, Matrix, Nelson, NelsonKind};
 use crate::Board;
 
 #[derive(Clone, Debug)]
@@ -55,7 +55,7 @@ enum SetEnum {
     Brightness(Item<(BoardId, u8), i32>),
     Mode(Item<(BoardId, u8), (u8, u8)>),
     Benchmark(BoardId),
-    Nelson(BoardId),
+    Nelson(BoardId, NelsonKind),
     LedSave(BoardId),
     MatrixGetRate(Item<(), Option<Duration>>),
     Refresh,
@@ -185,8 +185,8 @@ impl ThreadClient {
         self.send(SetEnum::Benchmark(board)).await
     }
 
-    pub async fn nelson(&self, board: BoardId) -> Result<Nelson, String> {
-        self.send(SetEnum::Nelson(board)).await
+    pub async fn nelson(&self, board: BoardId, kind: NelsonKind) -> Result<Nelson, String> {
+        self.send(SetEnum::Nelson(board, kind)).await
     }
 
     pub async fn led_save(&self, board: BoardId) -> Result<(), String> {
@@ -308,7 +308,7 @@ impl Thread {
                 set.reply(self.daemon.set_mode(key.0, key.1, value.0, value.1))
             }
             SetEnum::Benchmark(board) => set.reply(self.daemon.benchmark(board)),
-            SetEnum::Nelson(board) => set.reply(self.daemon.nelson(board)),
+            SetEnum::Nelson(board, kind) => set.reply(self.daemon.nelson(board, kind)),
             SetEnum::LedSave(board) => set.reply(self.daemon.led_save(board)),
             SetEnum::MatrixGetRate(Item { value, .. }) => {
                 self.matrix_get_rate.set(value);

@@ -3,6 +3,12 @@ use std::cmp;
 
 use crate::Matrix;
 
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
+pub enum NelsonKind {
+    Normal,
+    Bouncing,
+}
+
 #[derive(Deserialize, Serialize)]
 pub struct Nelson {
     pub missing: Matrix,

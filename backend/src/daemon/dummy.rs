@@ -4,7 +4,7 @@ use std::{
 };
 
 use super::{BoardId, Daemon};
-use crate::{Benchmark, Matrix, Nelson};
+use crate::{Benchmark, Matrix, Nelson, NelsonKind};
 
 #[derive(Default)]
 struct BoardDummy {
@@ -79,7 +79,7 @@ impl Daemon for DaemonDummy {
         Err("Unimplemented".to_string())
     }
 
-    fn nelson(&self, _board: BoardId) -> Result<Nelson, String> {
+    fn nelson(&self, _board: BoardId, _kind: NelsonKind) -> Result<Nelson, String> {
         Err("Unimplemented".to_string())
     }
 

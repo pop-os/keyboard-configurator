@@ -1,4 +1,4 @@
-use backend::{Board, DerefCell, Rgb};
+use backend::{Board, DerefCell, NelsonKind, Rgb};
 use cascade::cascade;
 use gtk::prelude::*;
 use gtk::subclass::prelude::*;
@@ -392,7 +392,7 @@ impl Testing {
         self.inner().test_button_3.set_sensitive(sensitive);
     }
 
-    fn nelson(&self, test_runs: i32, test_index: i32) {
+    fn nelson(&self, test_runs: i32, test_index: i32, nelson_kind: NelsonKind) {
         info!("Disabling test buttons");
         self.test_buttons_sensitive(false);
 
@@ -426,7 +426,7 @@ impl Testing {
                 info!("{}", message);
                 test_label.set_text(&message);
 
-                let nelson = match testing.board.nelson().await {
+                let nelson = match testing.board.nelson(nelson_kind).await {
                     Ok(ok) => ok,
                     Err(err) => {
                         let message =
@@ -493,10 +493,7 @@ impl Testing {
     fn connect_test_button_1(&self) {
         let obj_btn = self.clone();
         self.inner().test_button_1.connect_clicked(move |_| {
-            obj_btn.nelson(
-                1,
-                1
-            );
+            obj_btn.nelson(1, 1, NelsonKind::Normal);
         });
     }
 
@@ -505,18 +502,19 @@ impl Testing {
         self.inner().test_button_2.connect_clicked(move |_| {
             obj_btn.nelson(
                 obj_btn.inner().num_runs_spin_2.get_value_as_int(),
-                2
+                2,
+                NelsonKind::Bouncing,
             );
         });
     }
-
 
     fn connect_test_button_3(&self) {
         let obj_btn = self.clone();
         self.inner().test_button_3.connect_clicked(move |_| {
             obj_btn.nelson(
                 obj_btn.inner().num_runs_spin_3.get_value_as_int(),
-                3
+                3,
+                NelsonKind::Normal,
             );
         });
     }
