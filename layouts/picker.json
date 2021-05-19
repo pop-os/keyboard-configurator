@@ -235,7 +235,7 @@
       },
       {
         "keysym": "PRINT_SCREEN",
-        "label": "PrtSc"
+        "label": "PrtSc\nSysrq"
       },
       {
         "keysym": "INSERT",
@@ -247,7 +247,7 @@
       },
       {
         "keysym": "PAUSE",
-        "label": "Pause"
+        "label": "Pause\nBreak"
       },
       {
         "keysym": "RESET",
