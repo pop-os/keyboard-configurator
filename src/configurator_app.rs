@@ -3,7 +3,7 @@ use gtk::prelude::*;
 use gtk::subclass::prelude::*;
 use std::cell::Cell;
 
-use crate::{about_dialog, MainWindow, Page};
+use crate::{about_dialog, fl, MainWindow, Page};
 use backend::DerefCell;
 
 #[derive(Default)]
@@ -178,6 +178,8 @@ pub fn run() -> i32 {
     gtk::init().unwrap();
 
     glib::set_prgname(Some("com.system76.keyboardconfigurator"));
+    glib::set_application_name(&fl!("app-title"));
+    gdk::set_program_class(&fl!("app-title"));
 
     #[cfg(target_os = "macos")]
     macos_init();
