@@ -2,9 +2,9 @@ use std::{collections::BTreeMap, fs, io, path::Path};
 
 use super::usb_dev::UsbDev;
 
-const MICROCHIP_VID: u16 = 0x0424;
-const USB_2_HUB_PID: u16 = 0x4206;
-const USB_3_HUB_PID: u16 = 0x7206;
+const SYSTEM76_VID: u16 = 0x3384;
+const USB_2_HUB_PID: u16 = 0x0003;
+const USB_3_HUB_PID: u16 = 0x0004;
 
 pub enum UsbHub {
     Usb2(UsbDev),
@@ -22,8 +22,8 @@ impl UsbHub {
             if vid_path.is_file() && pid_path.is_file() {
                 let usb = UsbDev::new(entry_path);
                 match (usb.vendor_id()?, usb.product_id()?) {
-                    (MICROCHIP_VID, USB_2_HUB_PID) => hubs.push(UsbHub::Usb2(usb)),
-                    (MICROCHIP_VID, USB_3_HUB_PID) => hubs.push(UsbHub::Usb3(usb)),
+                    (SYSTEM76_VID, USB_2_HUB_PID) => hubs.push(UsbHub::Usb2(usb)),
+                    (SYSTEM76_VID, USB_3_HUB_PID) => hubs.push(UsbHub::Usb3(usb)),
                     _ => (),
                 }
             }
