@@ -177,6 +177,8 @@ fn windows_init() {
 pub fn run() -> i32 {
     gtk::init().unwrap();
 
+    glib::set_prgname(Some("com.system76.keyboardconfigurator"));
+
     #[cfg(target_os = "macos")]
     macos_init();
 
