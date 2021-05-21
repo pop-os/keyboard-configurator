@@ -606,20 +606,20 @@
         "label": "Access Layer\u00a04"
       },
       {
-        "keysym": "LAYER_TOGGLE_1",
-        "label": "Toggle Layer\u00a01"
+        "keysym": "LAYER_SWITCH_1",
+        "label": "Switch to\nLayer\u00a01"
       },
       {
-        "keysym": "LAYER_TOGGLE_2",
-        "label": "Toggle Layer\u00a02"
+        "keysym": "LAYER_SWITCH_2",
+        "label": "Switch to\nLayer\u00a02"
       },
       {
-        "keysym": "LAYER_TOGGLE_3",
-        "label": "Toggle Layer\u00a03"
+        "keysym": "LAYER_SWITCH_3",
+        "label": "Switch to\nLayer\u00a03"
       },
       {
-        "keysym": "LAYER_TOGGLE_4",
-        "label": "Toggle Layer\u00a04"
+        "keysym": "LAYER_SWITCH_4",
+        "label": "Switch to\nLayer\u00a04"
       }
     ]
   }
