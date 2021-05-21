@@ -587,7 +587,7 @@
   {
     "label": "Layer keys",
     "cols": 4,
-    "width": 1,
+    "width": 2,
     "keys": [
       {
         "keysym": "LAYER_ACCESS_1",
