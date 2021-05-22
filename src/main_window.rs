@@ -342,6 +342,9 @@ impl MainWindow {
         let mut boards = self.inner().keyboards.borrow_mut();
         if let Some(idx) = boards.iter().position(|(kb, _)| kb.board() == &board) {
             let (keyboard, row) = boards.remove(idx);
+            if self.inner().stack.get_visible_child().as_ref() == Some(keyboard.upcast_ref()) {
+                self.show_keyboard_list();
+            }
             self.inner().stack.remove(&keyboard);
             self.inner().keyboard_box.remove(&row);
 
