@@ -441,6 +441,14 @@
       {
         "keysym": "BRACE_CLOSE",
         "label": "}\n]"
+      },
+      {
+        "keysym": "NONUS_HASH",
+	"label": "Non-US #"
+      },
+      {
+        "keysym": "NONUS_BSLASH",
+	"label": "Non-US \\"
       }
     ]
   },
