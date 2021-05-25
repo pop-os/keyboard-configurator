@@ -67,7 +67,33 @@ QMK_MAPPING = {
     'SCROLLLOCK': 'SCROLL_LOCK',
     'SYSTEM_SLEEP': 'SUSPEND',
     'TRANSPARENT': 'ROLL_OVER',
+    'TG(0)': 'LAYER_TOGGLE_1',
+    'TG(1)': 'LAYER_TOGGLE_2',
+    'TG(2)': 'LAYER_TOGGLE_3',
+    'TG(3)': 'LAYER_TOGGLE_4',
+    'TO(0)': 'LAYER_SWITCH_1',
+    'TO(1)': 'LAYER_SWITCH_2',
+    'TO(2)': 'LAYER_SWITCH_3',
+    'TO(3)': 'LAYER_SWITCH_4',
+    'MO(0)': 'LAYER_ACCESS_1',
+    'MO(1)': 'FN',
+    'MO(2)': 'LAYER_ACCESS_3',
+    'MO(3)': 'LAYER_ACCESS_4',
 }
+QMK_EXTRA_SCANCODES = [
+    "TG(0)",
+    "TG(1)",
+    "TG(2)",
+    "TG(3)",
+    "TO(0)",
+    "TO(1)",
+    "TO(2)",
+    "TO(3)",
+    "MO(0)",
+    "MO(1)",
+    "MO(2)",
+    "MO(3)",
+]
 EXCLUDE_BOARDS = [
     'system76/ortho_split_2u',
     'system76/launch_test',
@@ -86,18 +112,19 @@ def extract_scancodes(ecdir: str, board: str, is_qmk: bool, has_brightness: bool
     "Extract mapping from scancode names to numbers"
 
     if is_qmk:
-        includes = [f"{ecdir}/tmk_core/common/keycode.h", f"{ecdir}/quantum/quantum_keycodes.h"]
-        common_keymap_h = call_preprocessor(includes[0])
-        quantum_keycode_h = call_preprocessor(includes[1])
+        includes = ["stdint.h", f"{ecdir}/tmk_core/common/keycode.h", f"{ecdir}/quantum/quantum_keycodes.h", f"{ecdir}/tmk_core/common/action_code.h"]
+        common_keymap_h = call_preprocessor(includes[1])
+        quantum_keycode_h = call_preprocessor(includes[2])
         scancode_defines = re.findall(
             '    (KC_[^,\s]+)', common_keymap_h)
         scancode_defines += re.findall(
             '    (RGB_[^,\s]+)', quantum_keycode_h)
-        define_aliases = [(i.group(1), i.group(2)) for i in (re.match(ALIAS_RE, i) for i in open(includes[0])) if i]
+        define_aliases = [(i.group(1), i.group(2)) for i in (re.match(ALIAS_RE, i) for i in open(includes[1])) if i]
         mapping = QMK_MAPPING
         mapping.update({alias: QMK_MAPPING.get(keycode, keycode) for alias, keycode in define_aliases})
         for (alias, keycode) in define_aliases:
             mapping[alias] = QMK_MAPPING.get(keycode, keycode)
+        scancode_defines += QMK_EXTRA_SCANCODES
     else:
         includes = [f"{ecdir}/src/common/include/common/keymap.h"]
         common_keymap_h = open(includes[0]).read()
@@ -127,6 +154,9 @@ def extract_scancodes(ecdir: str, board: str, is_qmk: bool, has_brightness: bool
 
     scancode_names = []
     for i in scancode_defines:
+        if '_' not in i:
+            scancode_names.append(i)
+            continue
         a, b = i.split('_', 1)
         if a in ['RGB']:
             scancode_names.append(i)
@@ -138,18 +168,6 @@ def extract_scancodes(ecdir: str, board: str, is_qmk: bool, has_brightness: bool
     scancode_list = OrderedDict(zip(scancode_names, scancodes))
 
     if is_qmk:
-        scancode_list['LAYER_TOGGLE_1'] = 0x5300 # TG(0)
-        scancode_list['LAYER_TOGGLE_2'] = 0x5301 # TG(1)
-        scancode_list['LAYER_TOGGLE_3'] = 0x5302 # TG(2)
-        scancode_list['LAYER_TOGGLE_4'] = 0x5303 # TG(3)
-        scancode_list['LAYER_SWITCH_1'] = 0x5010 # TO(0)
-        scancode_list['LAYER_SWITCH_2'] = 0x5011 # TO(1)
-        scancode_list['LAYER_SWITCH_3'] = 0x5012 # TO(2)
-        scancode_list['LAYER_SWITCH_4'] = 0x5013 # TO(3)
-        scancode_list['LAYER_ACCESS_1'] = 0x5100 # MO(0)
-        scancode_list['FN'] = 0x5101 # MO(1)
-        scancode_list['LAYER_ACCESS_3'] = 0x5102 # MO(2)
-        scancode_list['LAYER_ACCESS_4'] = 0x5103 # MO(3)
         scancode_list['RESET'] = 0x5C00
     else:
         scancode_list['NONE'] = 0x0000
