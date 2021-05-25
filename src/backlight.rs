@@ -268,7 +268,7 @@ impl Backlight {
         &self.inner().board
     }
 
-    fn mode(&self) -> &'static Mode {
+    pub fn mode(&self) -> &'static Mode {
         if let Some(id) = self.inner().mode_combobox.get_active_id() {
             if let Some(mode) = Mode::from_id(id.as_str()) {
                 return mode;

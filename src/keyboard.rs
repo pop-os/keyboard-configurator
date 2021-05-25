@@ -70,7 +70,7 @@ impl ObjectImpl for KeyboardInner {
 
         let stack = cascade! {
             gtk::Stack::new();
-
+            ..connect_property_visible_child_notify(clone!(@weak keyboard => move |_| keyboard.update_selectable()));
         };
 
         let stack_switcher = cascade! {
@@ -202,6 +202,7 @@ impl Keyboard {
         let backlight = cascade! {
             Backlight::new(board.clone());
             ..set_halign(gtk::Align::Center);
+            ..connect_local("notify::is-per-key", false, clone!(@weak keyboard => @default-panic, move |_| { keyboard.update_selectable(); None })).unwrap();
         };
 
         keyboard
@@ -228,6 +229,7 @@ impl Keyboard {
         keyboard.inner().backlight.set(backlight);
 
         keyboard.add_pages(debug_layers);
+        keyboard.update_selectable();
 
         keyboard
     }
@@ -435,6 +437,21 @@ impl Keyboard {
         self.import_keymap(self.layout().default.clone());
     }
 
+    fn update_selectable(&self) {
+        let tab_name = self.inner().stack.get_visible_child_name();
+        let tab_name = tab_name.as_deref();
+        let is_per_key = self.inner().backlight.mode().is_per_key();
+
+        let multiple = tab_name == Some("leds") && is_per_key;
+        let selectable = tab_name == Some("keymap") || multiple;
+
+        self.inner().layer_stack.foreach(|layer| {
+            let layer = layer.downcast_ref::<KeyboardLayer>().unwrap();
+            layer.set_multiple(multiple);
+            layer.set_selectable(selectable);
+        });
+    }
+
     fn add_pages(&self, debug_layers: bool) {
         let layer_stack = &*self.inner().layer_stack;
 
@@ -453,11 +470,6 @@ impl Keyboard {
             };
             self.bind_property("selected", &keyboard_layer, "selected")
                 .flags(glib::BindingFlags::BIDIRECTIONAL)
-                .build();
-            self.inner()
-                .backlight
-                .bind_property("is-per-key", &keyboard_layer, "multiple")
-                .flags(glib::BindingFlags::SYNC_CREATE)
                 .build();
             if let Some(testing) = &*self.inner().testing {
                 testing
