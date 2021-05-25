@@ -149,22 +149,17 @@ def extract_scancodes(ecdir: str, board: str, is_qmk: bool, has_brightness: bool
 
     output = subprocess.check_output(
         f'{tmpdir}/keysym-extract', universal_newlines=True)
+    scancodes = (int(i) for i in output.split())
 
     shutil.rmtree(tmpdir)
 
     scancode_names = []
-    for i in scancode_defines:
-        if '_' not in i:
-            scancode_names.append(i)
-            continue
-        a, b = i.split('_', 1)
-        if a in ['RGB']:
-            scancode_names.append(i)
-        else:
-            scancode_names.append(b)
-    if is_qmk:
-        scancode_names = [mapping.get(i, i) for i in scancode_names]
-    scancodes = (int(i) for i in output.split())
+    for name in scancode_defines:
+        if '_' in name and name.split('_')[0] != 'RGB':
+            name = name.split('_', 1)[1]
+        if is_qmk:
+            name = mapping.get(name, name)
+        scancode_names.append(name)
     scancode_list = OrderedDict(zip(scancode_names, scancodes))
 
     if is_qmk:
