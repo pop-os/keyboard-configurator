@@ -158,7 +158,7 @@ impl WidgetImpl for KeyboardLayerInner {
             cr.set_source_rgba(bg.0, bg.1, bg.2, bg_alpha);
             cr.fill_preserve();
 
-            if widget.selected().contains(&i) {
+            if self.selectable.get() && widget.selected().contains(&i) {
                 cr.set_source_rgb(selected.0, selected.1, selected.2);
                 cr.set_line_width(4.);
                 cr.stroke();
@@ -280,9 +280,7 @@ impl KeyboardLayer {
 
     pub fn set_selectable(&self, selectable: bool) {
         self.inner().selectable.set(selectable);
-        if !selectable {
-            self.set_selected(SelectedKeys::new());
-        }
+        self.queue_draw();
     }
 
     pub fn set_multiple(&self, multiple: bool) {
