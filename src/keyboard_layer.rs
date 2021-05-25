@@ -259,6 +259,11 @@ impl KeyboardLayer {
         self.inner().page.get()
     }
 
+    pub fn set_page(&self, page: Page) {
+        self.inner().page.set(page);
+        self.queue_draw();
+    }
+
     pub fn keys(&self) -> &[Key] {
         &self.inner().board.keys()
     }
