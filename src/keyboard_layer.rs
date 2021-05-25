@@ -287,6 +287,13 @@ impl KeyboardLayer {
 
     pub fn set_multiple(&self, multiple: bool) {
         self.inner().multiple.set(multiple);
+        let selected = self.inner().selected.borrow();
+        if selected.len() > 1 {
+            let mut new_selected = SelectedKeys::new();
+            new_selected.insert(*selected.iter().next().unwrap());
+            drop(selected);
+            self.set_selected(new_selected);
+        }
         self.notify("multiple");
     }
 
