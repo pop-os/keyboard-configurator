@@ -23,7 +23,6 @@ pub struct KeyboardLayerInner {
     board: DerefCell<Board>,
     selected: RefCell<SelectedKeys>,
     selectable: Cell<bool>,
-    multiple: Cell<bool>,
     wide_width: OnceCell<i32>,
     wide_height: OnceCell<i32>,
     narrow_width: OnceCell<i32>,
@@ -55,13 +54,6 @@ impl ObjectImpl for KeyboardLayerInner {
                     SelectedKeys::get_type(),
                     glib::ParamFlags::READWRITE,
                 ),
-                glib::ParamSpec::boolean(
-                    "multiple",
-                    "multiple",
-                    "multiple",
-                    false,
-                    glib::ParamFlags::READWRITE,
-                ),
                 glib::ParamSpec::boxed(
                     "testing-colors",
                     "testing-colors",
@@ -84,7 +76,6 @@ impl ObjectImpl for KeyboardLayerInner {
     ) {
         match pspec.get_name() {
             "selected" => widget.set_selected(value.get_some::<&SelectedKeys>().unwrap().clone()),
-            "multiple" => widget.set_multiple(value.get_some().unwrap()),
             "testing-colors" => {
                 self.testing_colors
                     .replace(value.get_some::<&TestingColors>().unwrap().clone());
@@ -102,7 +93,6 @@ impl ObjectImpl for KeyboardLayerInner {
     ) -> glib::Value {
         match pspec.get_name() {
             "selected" => self.selected.borrow().to_value(),
-            "multiple" => self.multiple.get().to_value(),
             "testing-colors" => self.testing_colors.borrow().to_value(),
             _ => unimplemented!(),
         }
@@ -197,7 +187,7 @@ impl WidgetImpl for KeyboardLayerInner {
         if let Some(pressed) = pressed {
             let shift = evt.get_state().contains(gdk::ModifierType::SHIFT_MASK);
             let mut selected = widget.selected();
-            if shift && self.multiple.get() {
+            if shift {
                 if selected.contains(&pressed) {
                     selected.remove(&pressed);
                 } else {
@@ -281,18 +271,6 @@ impl KeyboardLayer {
     pub fn set_selectable(&self, selectable: bool) {
         self.inner().selectable.set(selectable);
         self.queue_draw();
-    }
-
-    pub fn set_multiple(&self, multiple: bool) {
-        self.inner().multiple.set(multiple);
-        let selected = self.inner().selected.borrow();
-        if selected.len() > 1 {
-            let mut new_selected = SelectedKeys::new();
-            new_selected.insert(*selected.iter().next().unwrap());
-            drop(selected);
-            self.set_selected(new_selected);
-        }
-        self.notify("multiple");
     }
 
     fn keys_maximize<F: Fn(&Key) -> i32>(&self, cell: &OnceCell<i32>, cb: F) -> i32 {

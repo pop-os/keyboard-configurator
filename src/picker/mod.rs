@@ -1,4 +1,5 @@
 use cascade::cascade;
+use futures::{prelude::*, stream::FuturesUnordered};
 use glib::clone;
 use gtk::prelude::*;
 use gtk::subclass::prelude::*;
@@ -46,7 +47,7 @@ pub struct PickerInner {
     groups: DerefCell<Vec<PickerGroup>>,
     keys: DerefCell<HashMap<String, Rc<PickerKey>>>,
     keyboard: RefCell<Option<Keyboard>>,
-    selected: RefCell<Option<String>>,
+    selected: RefCell<Vec<String>>,
 }
 
 #[glib::object_subclass]
@@ -251,14 +252,15 @@ impl Picker {
                     let layer = kb.layer();
 
                     info!("Clicked {} layer {:?}", name, layer);
-                    let selected = kb.selected();
-                    if selected.len() == 1 {
-                        let i = *selected.iter().next().unwrap();
-                        if let Some(layer) = layer {
-                            glib::MainContext::default().spawn_local(clone!(@strong kb, @strong name => async move {
+                    if let Some(layer) = layer {
+                        let futures = FuturesUnordered::new();
+                        for i in kb.selected().iter() {
+                            let i = *i;
+                            futures.push(clone!(@strong kb, @strong name => async move {
                                 kb.keymap_set(i, layer, &name).await;
                             }));
                         }
+                        glib::MainContext::default().spawn_local(async {futures.collect::<()>().await});
                     }
                 }));
             }
@@ -286,19 +288,19 @@ impl Picker {
         *self.inner().keyboard.borrow_mut() = keyboard;
     }
 
-    pub(crate) fn set_selected(&self, scancode_name: Option<String>) {
+    pub(crate) fn set_selected(&self, scancode_names: Vec<String>) {
         let mut selected = self.inner().selected.borrow_mut();
 
-        if let Some(selected) = selected.as_ref() {
-            if let Some(button) = self.get_button(selected) {
+        for i in selected.iter() {
+            if let Some(button) = self.get_button(i) {
                 button.get_style_context().remove_class("selected");
             }
         }
 
-        *selected = scancode_name;
+        *selected = scancode_names;
 
-        if let Some(selected) = selected.as_ref() {
-            if let Some(button) = self.get_button(selected) {
+        for i in selected.iter() {
+            if let Some(button) = self.get_button(i) {
                 button.get_style_context().add_class("selected");
             }
         }

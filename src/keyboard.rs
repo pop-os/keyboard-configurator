@@ -442,12 +442,10 @@ impl Keyboard {
         let tab_name = tab_name.as_deref();
         let is_per_key = self.inner().backlight.mode().is_per_key();
 
-        let multiple = tab_name == Some("leds") && is_per_key;
-        let selectable = tab_name == Some("keymap") || multiple;
+        let selectable = tab_name == Some("keymap") || (tab_name == Some("leds") && is_per_key);
 
         self.inner().layer_stack.foreach(|layer| {
             let layer = layer.downcast_ref::<KeyboardLayer>().unwrap();
-            layer.set_multiple(multiple);
             layer.set_selectable(selectable);
         });
     }
@@ -503,7 +501,7 @@ impl Keyboard {
         };
     }
 
-    fn set_selected(&self, i: SelectedKeys) {
+    fn set_selected(&self, selected: SelectedKeys) {
         let picker = match self.inner().picker.borrow().upgrade() {
             Some(picker) => picker,
             None => {
@@ -512,21 +510,21 @@ impl Keyboard {
         };
         let keys = self.board().keys();
 
-        picker.set_selected(None);
-
-        if i.len() == 1 {
-            let k = &keys[*i.iter().next().unwrap()];
+        let mut selected_scancodes = Vec::new();
+        for i in selected.iter() {
+            let k = &keys[*i];
             debug!("{:#?}", k);
             if let Some(layer) = self.layer() {
                 if let Some((_scancode, scancode_name)) = k.get_scancode(layer) {
-                    picker.set_selected(Some(scancode_name));
+                    selected_scancodes.push(scancode_name);
                 }
             }
         }
+        picker.set_selected(selected_scancodes);
 
-        picker.set_sensitive(i.len() == 1 && self.layer() != None);
+        picker.set_sensitive(selected.len() > 0 && self.layer() != None);
 
-        self.inner().selected.replace(i);
+        self.inner().selected.replace(selected);
 
         self.queue_draw();
         self.notify("selected");
