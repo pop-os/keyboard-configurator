@@ -1,5 +1,6 @@
 // A hue/saturation color wheel that allows a color to be selected.
 
+use cascade::cascade;
 use futures::future::{abortable, AbortHandle};
 use glib::clone;
 use gtk::prelude::*;
@@ -16,6 +17,8 @@ pub struct ColorWheelInner {
     surface: RefCell<Option<cairo::ImageSurface>>,
     thread_pool: DerefCell<glib::ThreadPool>,
     abort_handle: RefCell<Option<AbortHandle>>,
+    gesture_drag: DerefCell<gtk::GestureDrag>,
+    drag_start_xy: Cell<(f64, f64)>,
 }
 
 #[glib::object_subclass]
@@ -32,7 +35,18 @@ impl ObjectImpl for ColorWheelInner {
         self.thread_pool
             .set(glib::ThreadPool::new_shared(None).unwrap());
 
-        wheel.add_events(gdk::EventMask::POINTER_MOTION_MASK | gdk::EventMask::BUTTON_PRESS_MASK);
+        self.gesture_drag.set(cascade! {
+            gtk::GestureDrag::new(wheel);
+            ..set_propagation_phase(gtk::PropagationPhase::Bubble);
+            ..connect_drag_begin(clone!(@weak wheel => move |_, start_x, start_y| {
+                wheel.mouse_select((start_x, start_y));
+                wheel.inner().drag_start_xy.set((start_x, start_y))
+            }));
+            ..connect_drag_update(clone!(@weak wheel => move |_, offset_x, offset_y| {
+                let (start_x, start_y) = wheel.inner().drag_start_xy.get();
+                wheel.mouse_select((start_x + offset_x, start_y + offset_y));
+            }));
+        });
     }
 
     fn properties() -> &'static [glib::ParamSpec] {
@@ -162,18 +176,6 @@ impl WidgetImpl for ColorWheelInner {
         glib::MainContext::default().spawn_local(async {
             let _ = future.await;
         });
-    }
-
-    fn button_press_event(&self, wheel: &ColorWheel, evt: &gdk::EventButton) -> Inhibit {
-        wheel.mouse_select(evt.get_position());
-        Inhibit(false)
-    }
-
-    fn motion_notify_event(&self, wheel: &ColorWheel, evt: &gdk::EventMotion) -> Inhibit {
-        if evt.get_state().contains(gdk::ModifierType::BUTTON1_MASK) {
-            wheel.mouse_select(evt.get_position());
-        }
-        Inhibit(false)
     }
 
     fn get_request_mode(&self, _widget: &Self::Type) -> gtk::SizeRequestMode {
