@@ -234,7 +234,7 @@ impl ColorWheel {
         let height = f64::from(self.get_allocated_height());
 
         let radius = width.min(height) / 2.;
-        let (x, y) = (pos.0 - radius, radius - pos.1);
+        let (x, y) = (pos.0 - width / 2., radius - pos.1);
 
         let angle = y.atan2(x);
         let distance = y.hypot(x);
