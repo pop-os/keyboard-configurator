@@ -145,6 +145,8 @@ impl WidgetImpl for ColorWheelInner {
             matrix.scale(scale, scale);
             pattern.set_matrix(matrix);
             cr.set_source(&pattern);
+        } else {
+            cr.set_source_rgba(0., 0., 0., 0.);
         }
         cr.arc(radius, radius, radius, 0., 2. * PI);
         cr.fill();
