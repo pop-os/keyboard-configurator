@@ -151,6 +151,23 @@ fn macos_init() {
         settings.set_property_gtk_decoration_layout(Some("close,minimize,maximize:menu"));
         settings.set_property_gtk_application_prefer_dark_theme(prefer_dark);
     }
+
+    let css_provider = cascade! {
+        gtk::CssProvider::new();
+        ..load_from_data(b"
+            button, button:hover {
+                box-shadow: none;
+                -gtk-icon-shadow: none;
+                text-shadow: none;
+            }
+        ").unwrap();
+    };
+
+    gtk::StyleContext::add_provider_for_screen(
+        &gdk::Screen::get_default().unwrap(),
+        &css_provider,
+        gtk::STYLE_PROVIDER_PRIORITY_APPLICATION,
+    );
 }
 
 #[cfg(target_os = "windows")]
