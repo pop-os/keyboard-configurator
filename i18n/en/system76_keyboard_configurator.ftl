@@ -26,6 +26,9 @@ error-set-layer-mode = Failed to set layer mode
 error-unsupported-keymap = Unsupported keymap file
 error-unsupported-keymap-desc = Keymap file appears to be from newer Configurator version.
 
+keyboard-brightness = Brightness:
+keyboard-color = Color:
+
 key-color = Key Color:
 
 keymap-for-board = Keymap is for board '{$model}'

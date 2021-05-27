@@ -18,6 +18,7 @@ pub struct BacklightInner {
     color_label: DerefCell<gtk::Label>,
     color_row: DerefCell<gtk::ListBoxRow>,
     brightness_scale: DerefCell<gtk::Scale>,
+    brightness_label: DerefCell<gtk::Label>,
     brightness_row: DerefCell<gtk::ListBoxRow>,
     saturation_scale: DerefCell<gtk::Scale>,
     saturation_row: DerefCell<gtk::ListBoxRow>,
@@ -124,7 +125,8 @@ impl ObjectImpl for BacklightInner {
             ..connect_clicked(clone!(@weak obj => move |_| obj.disable_color_clicked()));
         };
 
-        let color_label = gtk::Label::new(Some(&fl!("layer-color")));
+        let color_label = gtk::Label::new(None);
+        let brightness_label = gtk::Label::new(Some(&fl!("layer-all-brightness")));
 
         let mode_row = label_row(&fl!("layer-color-pattern"), &mode_combobox);
         let speed_row = label_row(&fl!("layer-animation-speed"), &speed_scale);
@@ -135,9 +137,11 @@ impl ObjectImpl for BacklightInner {
             ..pack_end(&keyboard_color, false, false, 0);
             ..pack_end(&disable_color_button, false, false, 0);
         });
-        let brightness_row = cascade! {
-            label_row(&fl!("layer-all-brightness"), &brightness_scale);
-        };
+        let brightness_row = row(&cascade! {
+            gtk::Box::new(gtk::Orientation::Horizontal, 8);
+            ..add(&brightness_label);
+            ..pack_end(&brightness_scale, false, false, 0);
+        });
 
         cascade! {
             obj;
@@ -154,6 +158,7 @@ impl ObjectImpl for BacklightInner {
         self.keyboard_color.set(keyboard_color);
         self.color_label.set(color_label);
         self.color_row.set(color_row);
+        self.brightness_label.set(brightness_label);
         self.brightness_scale.set(brightness_scale);
         self.brightness_row.set(brightness_row);
         self.mode_combobox.set(mode_combobox);
@@ -247,6 +252,12 @@ impl Backlight {
             obj.header_func(row, before)
         ))));
 
+        if !obj.board().layout().meta.has_per_layer {
+            obj.inner()
+                .brightness_label
+                .set_label(&fl!("keyboard-brightness"));
+        }
+
         if has_led_save {
             glib::timeout_add_seconds_local(
                 10,
@@ -318,7 +329,11 @@ impl Backlight {
             self.inner()
                 .keyboard_color
                 .set_index(KeyboardColorIndex::Layer(self.inner().layer.get()));
-            self.inner().color_label.set_label(&fl!("layer-color"));
+            if self.board().layout().meta.has_per_layer {
+                self.inner().color_label.set_label(&fl!("layer-color"));
+            } else {
+                self.inner().color_label.set_label(&fl!("keyboard-color"));
+            }
         }
         self.inner()
             .disable_color_button
@@ -358,7 +373,7 @@ impl Backlight {
     }
 
     pub fn set_layer(&self, mut layer: usize) {
-        if !self.inner().board.layout().meta.has_per_layer {
+        if !self.board().layout().meta.has_per_layer {
             layer = 0;
         }
 
