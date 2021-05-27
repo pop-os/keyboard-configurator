@@ -205,6 +205,12 @@ impl Keyboard {
             ..connect_local("notify::is-per-key", false, clone!(@weak keyboard => @default-panic, move |_| { keyboard.update_selectable(); None })).unwrap();
         };
 
+        let leds_desc = if board.layout().meta.has_per_layer {
+            fl!("stack-leds-desc")
+        } else {
+            fl!("stack-leds-desc-builtin")
+        };
+
         keyboard
             .bind_property("selected", &backlight, "selected")
             .build();
@@ -213,7 +219,7 @@ impl Keyboard {
                 &cascade! {
                     gtk::Box::new(gtk::Orientation::Vertical, 32);
                     ..add(&cascade! {
-                        gtk::Label::new(Some(&fl!("stack-leds-desc")));
+                        gtk::Label::new(Some(&leds_desc));
                         ..set_line_wrap(true);
                         ..set_max_width_chars(100);
                         ..set_halign(gtk::Align::Center);

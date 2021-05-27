@@ -69,6 +69,7 @@ stack-keymap-desc =
 
 stack-leds = LEDs
 stack-leds-desc = Select a key on the keymap to change its settings. Choose per key Solid Pattern to customize each key's LED color. Shift + click to select more than one key. Your settings are automatically saved to firmware.
+stack-leds-desc-builtin = LED settings will not be saved after reboot. More functionality is coming in the future.
 
 stack-testing = Testing
 
