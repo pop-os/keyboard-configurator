@@ -62,7 +62,7 @@ show-help-overlay = Keyboard Shortcuts
 
 stack-keymap = Keymap
 stack-keymap-desc =
- Select a key on the keymap to change its settings. Your settings are automatically saved to firmware.
+ Select a key on the keymap to change its settings. Shift + click to select more than one click. Your settings are automatically saved to firmware.
 
 stack-leds = LEDs
 stack-leds-desc = Select a key on the keymap to change its settings. Choose per key Solid Pattern to customize each key's LED color. Shift + click to select more than one key. Your settings are automatically saved to firmware.
