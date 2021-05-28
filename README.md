@@ -1,7 +1,5 @@
 # System76 Keyboard Configurator
 
-**Currently in beta. Should be working fairly well now, but not yet "stable".**
-
 Tool for configuring System76 keyboards, internal and external, with support for changing the keymap and LED settings.
 
 This requires a System76 laptop with recent open EC firmware, or a Launch keyboard. Note that LED settings are not currently persisted on internal keyboards.
