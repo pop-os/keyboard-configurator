@@ -70,6 +70,7 @@ impl ObjectImpl for KeyboardInner {
 
         let stack = cascade! {
             gtk::Stack::new();
+            ..set_homogeneous(false);
             ..connect_property_visible_child_notify(clone!(@weak keyboard => move |_| keyboard.update_selectable()));
         };
 
