@@ -281,7 +281,7 @@ def gen_default_json(path: str, board: str, keymap: Dict[str, List[str]], is_qmk
         json.dump({"model": board, "version": 1, "map": keymap, "key_leds": key_leds, "layers": layers}, f, indent=2)
 
 
-def update_meta_json(meta_json: str, has_brightness: bool, has_color: bool):
+def update_meta_json(meta_json: str, has_brightness: bool, has_color: bool, keyboard: str):
     meta = {}
     if os.path.exists(meta_json):
         with open(meta_json, 'r') as f:
@@ -289,14 +289,14 @@ def update_meta_json(meta_json: str, has_brightness: bool, has_color: bool):
 
     meta['has_brightness'] = has_brightness
     meta['has_color'] = has_color
+    meta['keyboard'] = keyboard
 
     with open(meta_json, 'w') as f:
         json.dump(meta, f, indent=2)
 
 
 def generate_layout_dir(ecdir: str, board: str, is_qmk: bool) -> None:
-    layoutdir = f'layouts/{board}'
-    print(f'Generating {layoutdir}...')
+    print(f'Generating layouts/{board}...')
 
     has_brightness = True
     has_color = True
@@ -308,6 +308,7 @@ def generate_layout_dir(ecdir: str, board: str, is_qmk: bool) -> None:
             f"{ecdir}/keyboards/{board}/keymaps/default/keymap.c").read()
         led_c = open(
             f"{ecdir}/keyboards/{board}/{board.split('/')[-1]}.c").read()
+        keyboard = board
     else:
         with open(f"{ecdir}/src/board/{board}/board.mk") as f:
             board_mk = f.read()
@@ -333,17 +334,18 @@ def generate_layout_dir(ecdir: str, board: str, is_qmk: bool) -> None:
         default_c = open(f"{ecdir}/src/keyboard/{keyboard}/keymap/default.c").read()
         led_c = ""
 
-    os.makedirs(f'{layoutdir}', exist_ok=True)
+    os.makedirs(f'layouts/{board}', exist_ok=True)
+    os.makedirs(f'layouts/keyboards/{keyboard}', exist_ok=True)
 
     physical, physical2 = parse_layout_define(keymap_h, is_qmk)
     leds = parse_led_config(led_c, physical)
     scancodes, mapping = extract_scancodes(ecdir, board, is_qmk, has_brightness, has_color)
     default_keymap = parse_keymap(default_c, mapping, physical, is_qmk)
-    gen_layout_json(f'{layoutdir}/layout.json', physical, physical2)
-    gen_leds_json(f'{layoutdir}/leds.json', leds)
-    gen_keymap_json(f'{layoutdir}/keymap.json', scancodes)
-    gen_default_json(f'{layoutdir}/default.json', board, default_keymap, is_qmk)
-    update_meta_json(f'{layoutdir}/meta.json', has_brightness, has_color)
+    gen_layout_json(f'layouts/keyboards/{keyboard}/layout.json', physical, physical2)
+    gen_leds_json(f'layouts/keyboards/{keyboard}/leds.json', leds)
+    gen_keymap_json(f'layouts/keyboards/{keyboard}/keymap.json', scancodes)
+    gen_default_json(f'layouts/{board}/default.json', board, default_keymap, is_qmk)
+    update_meta_json(f'layouts/{board}/meta.json', has_brightness, has_color, keyboard)
 
 parser = argparse.ArgumentParser()
 parser.add_argument("ecdir")

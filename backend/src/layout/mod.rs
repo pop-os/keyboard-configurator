@@ -20,23 +20,23 @@ pub struct Layout {
 }
 
 macro_rules! keyboards {
-    ($( $board:expr ),* $(,)?) => {
+    ($( ($board:expr, $keyboard:expr) ),* $(,)?) => {
         fn layout_data(board: &str) -> Option<(&'static str, &'static str, &'static str, &'static str, &'static str, &'static str)> {
             match board {
                 $(
                 $board => {
                     let meta_json =
-                        include_str!(concat!("../../../layouts/", $board, "/meta.json"));
+                        include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/../layouts/", $board, "/meta.json"));
                     let default_json =
-                        include_str!(concat!("../../../layouts/", $board, "/default.json"));
+                        include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/../layouts/", $board, "/default.json"));
                     let keymap_json =
-                        include_str!(concat!("../../../layouts/", $board, "/keymap.json"));
+                        include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/../layouts/keyboards/", $keyboard, "/keymap.json"));
                     let layout_json =
-                        include_str!(concat!("../../../layouts/", $board, "/layout.json"));
+                        include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/../layouts/keyboards/", $keyboard, "/layout.json"));
                     let leds_json =
-                        include_str!(concat!("../../../layouts/", $board, "/leds.json"));
+                        include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/../layouts/keyboards/", $keyboard, "/leds.json"));
                     let physical_json =
-                        include_str!(concat!("../../../layouts/", $board, "/physical.json"));
+                        include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/../layouts/keyboards/", $keyboard, "/physical.json"));
                     Some((meta_json, default_json, keymap_json, layout_json, leds_json, physical_json))
                 }
                 )*
@@ -51,26 +51,8 @@ macro_rules! keyboards {
     };
 }
 
-keyboards![
-    "system76/addw1",
-    "system76/addw2",
-    "system76/bonw14",
-    "system76/darp5",
-    "system76/darp6",
-    "system76/darp7",
-    "system76/galp3-c",
-    "system76/galp4",
-    "system76/galp5",
-    "system76/gaze15",
-    "system76/launch_alpha_1",
-    "system76/launch_alpha_2",
-    "system76/launch_1",
-    "system76/lemp9",
-    "system76/lemp10",
-    "system76/oryp5",
-    "system76/oryp6",
-    "system76/oryp7",
-];
+// Calls the `keyboards!` macro
+include!(concat!(env!("OUT_DIR"), "/keyboards.rs"));
 
 impl Layout {
     pub fn from_data(
