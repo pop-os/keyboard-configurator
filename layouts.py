@@ -310,21 +310,27 @@ def generate_layout_dir(ecdir: str, board: str, is_qmk: bool) -> None:
             f"{ecdir}/keyboards/{board}/{board.split('/')[-1]}.c").read()
     else:
         with open(f"{ecdir}/src/board/{board}/board.mk") as f:
-            m = re.search('^KBLED=(.*)$', f.read(), re.MULTILINE)
-            assert m is not None
-            kbled = m.group(1)
-            if kbled == 'white_dac':
-                has_color = False
-            # bonw14: Handled through USB. Can configurator support this?
-            elif kbled in ['none', 'bonw14']:
-                has_brightness = False
-                has_color = False
-            elif kbled not in ['rgb_pwm', 'oryp5', 'darp5']:
-                raise Exception(f"KBLED='{kbled}' not handled by layouts.py")
+            board_mk = f.read()
+
+        m = re.search('^KEYBOARD=(.*)$', board_mk, re.MULTILINE)
+        assert m is not None
+        keyboard = board.rsplit('/', 1)[0] + '/' + m.group(1)
+
+        m = re.search('^KBLED=(.*)$', board_mk, re.MULTILINE)
+        assert m is not None
+        kbled = m.group(1)
+        if kbled == 'white_dac':
+            has_color = False
+        # bonw14: Handled through USB. Can configurator support this?
+        elif kbled in ['none', 'bonw14']:
+            has_brightness = False
+            has_color = False
+        elif kbled not in ['rgb_pwm', 'oryp5', 'darp5']:
+            raise Exception(f"KBLED='{kbled}' not handled by layouts.py")
 
         keymap_h = open(
-            f"{ecdir}/src/board/{board}/include/board/keymap.h").read()
-        default_c = open(f"{ecdir}/src/board/{board}/keymap/default.c").read()
+            f"{ecdir}/src/keyboard/{keyboard}/include/board/keymap.h").read()
+        default_c = open(f"{ecdir}/src/keyboard/{keyboard}/keymap/default.c").read()
         led_c = ""
 
     os.makedirs(f'{layoutdir}', exist_ok=True)
