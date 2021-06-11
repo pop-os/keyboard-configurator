@@ -26,6 +26,8 @@ error-set-layer-mode = Failed to set layer mode
 error-unsupported-keymap = Unsupported keymap file
 error-unsupported-keymap-desc = Keymap file appears to be from newer Configurator version.
 
+firmware-version = Firmware version {$version} does not support keymap configuration.
+
 keyboard-brightness = Brightness:
 keyboard-color = Color:
 

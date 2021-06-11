@@ -129,6 +129,15 @@ impl<R: Read + Send + 'static, W: Write + Send + 'static> Daemon for DaemonServe
         Ok(board.to_string())
     }
 
+    fn version(&self, board: BoardId) -> Result<String, String> {
+        let mut ec = self.board(board)?;
+        let data_size = unsafe { ec.access().data_size() };
+        let mut data = vec![0; data_size];
+        let len = unsafe { ec.version(&mut data).map_err(err_str)? };
+        let version = str::from_utf8(&data[..len]).map_err(err_str)?;
+        Ok(version.to_string())
+    }
+
     fn keymap_get(&self, board: BoardId, layer: u8, output: u8, input: u8) -> Result<u16, String> {
         let mut ec = self.board(board)?;
         unsafe { ec.keymap_get(layer, output, input).map_err(err_str) }

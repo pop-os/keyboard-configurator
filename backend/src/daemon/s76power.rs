@@ -85,6 +85,10 @@ impl Daemon for DaemonS76Power {
         Ok("system76/darp6".to_string())
     }
 
+    fn version(&self, _board: BoardId) -> Result<String, String> {
+        Err("Unimplemented".to_string())
+    }
+
     fn keymap_get(
         &self,
         _board: BoardId,

@@ -289,7 +289,7 @@ impl MainWindow {
         let app: ConfiguratorApp = self.get_application().unwrap().downcast().unwrap();
 
         let keyboard = cascade! {
-            Keyboard::new(board, app.debug_layers(), app.launch_test());
+            Keyboard::new(board.clone(), app.debug_layers(), app.launch_test());
             ..set_halign(gtk::Align::Center);
             ..show_all();
         };
@@ -329,6 +329,19 @@ impl MainWindow {
             ..show_all();
         };
         self.inner().keyboard_box.add(&row);
+
+        if !board.has_keymap() {
+            button.hide();
+            let label = cascade! {
+                gtk::Label::new(Some(&fl!("firmware-version", version = board.version())));
+                ..set_attributes(Some(&cascade! {
+                    pango::AttrList::new();
+                    ..insert(pango::Attribute::new_foreground(65535, 0, 0));
+                }));
+                ..show();
+            };
+            keyboard_box.add(&label);
+        }
 
         self.inner().stack.add(&keyboard);
         self.inner().keyboards.borrow_mut().push((keyboard, row));

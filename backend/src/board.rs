@@ -16,6 +16,7 @@ pub struct BoardInner {
     thread_client: DerefCell<Arc<ThreadClient>>,
     board: DerefCell<BoardId>,
     model: DerefCell<String>,
+    version: DerefCell<String>,
     layout: DerefCell<Layout>,
     keys: DerefCell<Vec<Key>>,
     layers: DerefCell<Vec<Layer>>,
@@ -25,6 +26,7 @@ pub struct BoardInner {
     led_save_blocked: Cell<bool>,
     has_matrix: DerefCell<bool>,
     is_fake: DerefCell<bool>,
+    has_keymap: DerefCell<bool>,
 }
 
 #[glib::object_subclass]
@@ -66,6 +68,10 @@ impl Board {
                 return Err(format!("Failed to get board model: {}", err));
             }
         };
+        let version = daemon.version(board).unwrap_or_else(|err| {
+            error!("Error getting firmware version: {}", err);
+            String::new()
+        });
         let layout = Layout::from_board(&model)
             .ok_or_else(|| format!("Failed to locate layout for '{}'", model))?;
 
@@ -82,16 +88,20 @@ impl Board {
 
         let has_led_save = daemon.led_save(board).is_ok();
         let has_matrix = daemon.matrix_get(board).is_ok();
+        let logical = layout.layout.values().next().unwrap();
+        let has_keymap = daemon.keymap_get(board, 0, logical.0, logical.1).is_ok();
 
         let self_ = glib::Object::new::<Board>(&[]).unwrap();
         self_.inner().thread_client.set(thread_client);
         self_.inner().board.set(board);
         self_.inner().model.set(model);
+        self_.inner().version.set(version);
         self_.inner().layout.set(layout);
         self_.inner().max_brightness.set(max_brightness);
         self_.inner().has_led_save.set(has_led_save);
         self_.inner().has_matrix.set(has_matrix);
         self_.inner().is_fake.set(daemon.is_fake());
+        self_.inner().has_keymap.set(has_keymap);
 
         let keys = self_
             .layout()
@@ -162,6 +172,10 @@ impl Board {
         &self.inner().model
     }
 
+    pub fn version(&self) -> &str {
+        &self.inner().version
+    }
+
     pub fn has_matrix(&self) -> bool {
         *self.inner().has_matrix
     }
@@ -204,6 +218,10 @@ impl Board {
 
     pub fn has_led_save(&self) -> bool {
         *self.inner().has_led_save
+    }
+
+    pub fn has_keymap(&self) -> bool {
+        *self.inner().has_keymap
     }
 
     pub fn layout(&self) -> &Layout {

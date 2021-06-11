@@ -67,6 +67,10 @@ impl Daemon for DaemonDummy {
         Ok(self.board(board)?.name.clone())
     }
 
+    fn version(&self, _board: BoardId) -> Result<String, String> {
+        Ok("1970-01-01-deadbee".to_string())
+    }
+
     fn is_fake(&self) -> bool {
         true
     }
