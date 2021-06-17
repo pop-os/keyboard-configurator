@@ -5,6 +5,9 @@ use super::usb_dev::UsbDev;
 const SYSTEM76_VID: u16 = 0x3384;
 const USB_2_HUB_PID: u16 = 0x0003;
 const USB_3_HUB_PID: u16 = 0x0004;
+//TODO: Determine why USB7216 doesn't respect PID updates
+const USB_2_HUB_PID_ALT: u16 = 0x4216;
+const USB_3_HUB_PID_ALT: u16 = 0x7216;
 
 pub enum UsbHub {
     Usb2(UsbDev),
@@ -22,7 +25,9 @@ impl UsbHub {
             if vid_path.is_file() && pid_path.is_file() {
                 let usb = UsbDev::new(entry_path);
                 match (usb.vendor_id()?, usb.product_id()?) {
+                    (SYSTEM76_VID, USB_2_HUB_PID_ALT) |
                     (SYSTEM76_VID, USB_2_HUB_PID) => hubs.push(UsbHub::Usb2(usb)),
+                    (SYSTEM76_VID, USB_3_HUB_PID_ALT) |
                     (SYSTEM76_VID, USB_3_HUB_PID) => hubs.push(UsbHub::Usb3(usb)),
                     _ => (),
                 }
