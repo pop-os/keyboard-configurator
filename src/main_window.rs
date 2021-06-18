@@ -162,6 +162,7 @@ impl ObjectImpl for MainWindowInner {
                 ..add(&cascade! {
                     gtk::ScrolledWindow::new::<gtk::Adjustment, gtk::Adjustment>(None, None);
                     ..set_property_hscrollbar_policy(gtk::PolicyType::Never);
+                    ..set_overlay_scrolling(false);
                     ..add(&stack);
                 });
             });
