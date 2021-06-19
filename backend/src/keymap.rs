@@ -1,6 +1,7 @@
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::collections::HashMap;
 use std::io::{Read, Write};
+use std::str::FromStr;
 
 use crate::Hs;
 
@@ -66,11 +67,6 @@ impl KeyMap {
         serde_json::from_reader(rdr)
     }
 
-    /// Parse layout from json string
-    pub fn from_str(s: &str) -> serde_json::Result<Self> {
-        serde_json::from_str(s)
-    }
-
     /// Write layout to json file, pretty printed
     pub fn to_writer_pretty<W: Write>(&self, wtr: W) -> serde_json::Result<()> {
         serde_json::to_writer_pretty(wtr, self)
@@ -79,5 +75,14 @@ impl KeyMap {
     /// Write layout to json string, pretty printed
     pub fn to_string_pretty(&self) -> String {
         serde_json::to_string_pretty(self).unwrap()
+    }
+}
+
+impl FromStr for KeyMap {
+    type Err = serde_json::Error;
+
+    /// Parse layout from json string
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        serde_json::from_str(s)
     }
 }
