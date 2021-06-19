@@ -26,7 +26,7 @@ mod hs_map_serde {
     ) -> Result<S::Ok, S::Error> {
         let map = map
             .iter()
-            .map(|(k, hs)| (k, hs.map(|hs| hs.to_ints())))
+            .map(|(k, hs)| (k, hs.map(Hs::to_ints)))
             .collect::<HashMap<_, _>>();
         map.serialize(serializer)
     }

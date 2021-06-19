@@ -214,7 +214,7 @@ mod tests {
                 .physical
                 .keys
                 .iter()
-                .map(|i| i.logical_name())
+                .map(PhysicalLayoutKey::logical_name)
                 .collect::<HashSet<_>>();
             let logical_in_layout = layout.layout.keys().cloned().collect::<HashSet<_>>();
             let logical_in_leds = layout.layout.keys().cloned().collect::<HashSet<_>>();

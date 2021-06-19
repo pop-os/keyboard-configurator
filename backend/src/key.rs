@@ -60,11 +60,12 @@ impl Key {
             .layout()
             .leds
             .get(logical_name.as_str())
-            .map_or(Vec::new(), |x| x.clone());
+            .cloned()
+            .unwrap_or_default();
         debug!("  LEDs: {:?}", leds);
 
         let mut led_name = String::new();
-        for led in leds.iter() {
+        for led in &leds {
             if !led_name.is_empty() {
                 led_name.push_str(", ");
             }
@@ -92,7 +93,7 @@ impl Key {
         }
 
         let mut led_color = None;
-        if board.layout().meta.has_mode && leds.len() > 0 {
+        if board.layout().meta.has_mode && !leds.is_empty() {
             match daemon.color(board.board(), leds[0]) {
                 Ok((0, 0, 0)) => {}
                 Ok((r, g, b)) => led_color = Some(Rgb::new(r, g, b).to_hs_lossy()),
