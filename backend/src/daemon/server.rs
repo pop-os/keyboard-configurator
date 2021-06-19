@@ -125,8 +125,8 @@ impl<R: Read + Send + 'static, W: Write + Send + 'static> Daemon for DaemonServe
         let data_size = unsafe { ec.access().data_size() };
         let mut data = vec![0; data_size];
         let len = unsafe { ec.board(&mut data).map_err(err_str)? };
-        let board = str::from_utf8(&data[..len]).map_err(err_str)?;
-        Ok(board.to_string())
+        let board_string = String::from_utf8(data[..len].to_vec()).map_err(err_str)?;
+        Ok(board_string)
     }
 
     fn version(&self, board: BoardId) -> Result<String, String> {
