@@ -92,7 +92,7 @@ impl ThreadClient {
             }
         });
 
-        let join_handle = Thread::new(daemon, client.clone(), response_sender).spawn(reciever);
+        let join_handle = Thread::new(daemon, &client, response_sender).spawn(reciever);
         *client.join_handle.lock().unwrap() = Some(join_handle);
         client
     }
@@ -230,7 +230,7 @@ struct Thread {
 impl Thread {
     fn new(
         daemon: Box<dyn Daemon>,
-        client: Arc<ThreadClient>,
+        client: &Arc<ThreadClient>,
         response_channel: async_mpsc::UnboundedSender<ThreadResponse>,
     ) -> Self {
         Self {
