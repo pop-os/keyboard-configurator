@@ -1,5 +1,5 @@
-/// Serde based deserialization for physical.json
-/// From http://www.keyboard-layout-editor.com
+//! Serde based deserialization for physical.json
+//! From <http://www.keyboard-layout-editor.com>
 use serde::Deserialize;
 use std::char;
 
