@@ -81,9 +81,9 @@ pub(crate) struct PhysicalLayoutKey {
 impl PhysicalLayoutKey {
     pub fn logical_name(&self) -> String {
         let row_char =
-            char::from_digit(self.logical.0 as u32, 36).expect("Failed to convert row to char");
+            char::from_digit(u32::from(self.logical.0), 36).expect("Failed to convert row to char");
         let col_char =
-            char::from_digit(self.logical.1 as u32, 36).expect("Failed to convert col to char");
+            char::from_digit(u32::from(self.logical.1), 36).expect("Failed to convert col to char");
         format!("K{}{}", row_char, col_char).to_uppercase()
     }
 }
