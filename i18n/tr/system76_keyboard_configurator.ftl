@@ -3,7 +3,7 @@
 app-about = {-name} Hakkında
 app-title = System76 {-name}
 
-board-fake = {$model}, fake
+board-fake = {$model}, sahte
 
 button-cancel = İptal
 button-configure = Klavyeyi Yapılandır
@@ -14,7 +14,7 @@ button-test = Test
 error-disable-key = Tuşu etkisizleştirmek başarısız oldu
 error-export-keymap = Tuş haritasını dışarı aktarmak başarısız oldu
 error-import-keymap = Tuş haritasını içeri aktarmak başarısız oldu
-error-key-led = Failed to key LED
+error-key-led = Tuş LED'i hatalı
 error-open-file = Dosya açılamadı
 error-save-leds = LED'ler kaydedilemedi
 error-set-keyboard-brightness = Parlaklık değeri atanamadı
