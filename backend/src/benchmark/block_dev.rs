@@ -1,8 +1,9 @@
+#[cfg(target_os = "linux")]
+use std::os::unix::fs::OpenOptionsExt;
 use std::{
     alloc::{alloc, dealloc, handle_alloc_error, Layout},
     fs,
     io::{self, Read},
-    os::unix::fs::OpenOptionsExt,
     path::{Path, PathBuf},
     slice, time,
 };
@@ -23,10 +24,12 @@ impl BlockDev {
     }
 
     pub fn benchmark(&self) -> io::Result<f64> {
-        let mut file = fs::OpenOptions::new()
-            .read(true)
-            .custom_flags(libc::O_DIRECT)
-            .open(self.path())?;
+        let mut open_options = fs::OpenOptions::new();
+        open_options.read(true);
+        #[cfg(target_os = "linux")]
+        open_options.custom_flags(libc::O_DIRECT);
+
+        let mut file = open_options.open(self.path())?;
 
         // Buffer needs to be aligned for direct reads
         let layout = Layout::from_size_align(SIZE, ALIGN).unwrap();
