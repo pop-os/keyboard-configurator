@@ -445,6 +445,10 @@ impl Keyboard {
     }
 
     fn update_selectable(&self) {
+        if !self.inner().backlight.is_some() {
+            return;
+        }
+
         let tab_name = self.inner().stack.get_visible_child_name();
         let tab_name = tab_name.as_deref();
         let is_per_key = self.inner().backlight.mode().is_per_key();
