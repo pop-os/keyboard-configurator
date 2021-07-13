@@ -1,10 +1,14 @@
 use std::{
+    alloc::{alloc, dealloc, handle_alloc_error, Layout},
     fs,
     io::{self, Read},
     os::unix::fs::OpenOptionsExt,
     path::{Path, PathBuf},
-    ptr, slice, time,
+    slice, time,
 };
+
+const ALIGN: usize = 4096;
+const SIZE: usize = ALIGN * 1024;
 
 #[derive(Eq, Ord, PartialEq, PartialOrd)]
 pub struct BlockDev(PathBuf);
@@ -25,23 +29,21 @@ impl BlockDev {
             .open(self.path())?;
 
         // Buffer needs to be aligned for direct reads
-        let mut ptr = ptr::null_mut();
-        let align = 4096;
-        let size = align * 1024;
-        let res = unsafe { libc::posix_memalign(&mut ptr, align, size) };
-        if res != 0 {
-            return Err(io::Error::from_raw_os_error(res));
+        let layout = Layout::from_size_align(SIZE, ALIGN).unwrap();
+        let ptr = unsafe { alloc(layout) };
+        if ptr.is_null() {
+            handle_alloc_error(layout);
         }
 
         let (res, elapsed) = {
-            let data = unsafe { slice::from_raw_parts_mut(ptr as *mut u8, size) };
+            let data = unsafe { slice::from_raw_parts_mut(ptr as *mut u8, SIZE) };
 
             let start = time::Instant::now();
             (file.read(data), start.elapsed())
         };
 
         unsafe {
-            libc::free(ptr);
+            dealloc(ptr, layout);
         }
 
         // Do this after free to ensure no memory leaks
