@@ -25,10 +25,12 @@ impl UsbHub {
             if vid_path.is_file() && pid_path.is_file() {
                 let usb = UsbDev::new(entry_path);
                 match (usb.vendor_id()?, usb.product_id()?) {
-                    (SYSTEM76_VID, USB_2_HUB_PID_ALT) |
-                    (SYSTEM76_VID, USB_2_HUB_PID) => hubs.push(UsbHub::Usb2(usb)),
-                    (SYSTEM76_VID, USB_3_HUB_PID_ALT) |
-                    (SYSTEM76_VID, USB_3_HUB_PID) => hubs.push(UsbHub::Usb3(usb)),
+                    (SYSTEM76_VID, USB_2_HUB_PID_ALT) | (SYSTEM76_VID, USB_2_HUB_PID) => {
+                        hubs.push(UsbHub::Usb2(usb))
+                    }
+                    (SYSTEM76_VID, USB_3_HUB_PID_ALT) | (SYSTEM76_VID, USB_3_HUB_PID) => {
+                        hubs.push(UsbHub::Usb3(usb))
+                    }
                     _ => (),
                 }
             }

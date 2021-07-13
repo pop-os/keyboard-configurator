@@ -1,7 +1,7 @@
 use std::{cell::RefCell, collections::HashMap};
 
 use super::{BoardId, Daemon};
-use crate::{Benchmark, fl, Layout, Matrix, Nelson, NelsonKind};
+use crate::{fl, Benchmark, Layout, Matrix, Nelson, NelsonKind};
 
 struct BoardDummy {
     name: String,

@@ -9,7 +9,8 @@ use std::{cell::Cell, collections::HashMap, sync::Arc};
 
 use crate::daemon::ThreadClient;
 use crate::{
-    Benchmark, BoardId, Daemon, DerefCell, Key, KeyMap, KeyMapLayer, Layer, Layout, Matrix, Nelson, NelsonKind,
+    Benchmark, BoardId, Daemon, DerefCell, Key, KeyMap, KeyMapLayer, Layer, Layout, Matrix, Nelson,
+    NelsonKind,
 };
 
 #[derive(Default)]

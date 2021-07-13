@@ -6,7 +6,7 @@ use std::iter::Iterator;
 use zbus::{dbus_proxy, fdo::ObjectManagerProxy, Connection};
 
 use super::{err_str, BoardId, Daemon, Matrix};
-use crate::{Benchmark, fl, Nelson, NelsonKind, Rgb};
+use crate::{fl, Benchmark, Nelson, NelsonKind, Rgb};
 
 const DBUS_NAME: &str = "com.system76.PowerDaemon";
 
