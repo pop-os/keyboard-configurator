@@ -9,7 +9,7 @@ pub enum NelsonKind {
     Bouncing,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct Nelson {
     pub missing: Matrix,
     pub bouncing: Matrix,

@@ -7,7 +7,7 @@ mod block_dev;
 mod usb_dev;
 mod usb_hub;
 
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct Benchmark {
     pub port_results: BTreeMap<String, Result<f64, String>>,
 }

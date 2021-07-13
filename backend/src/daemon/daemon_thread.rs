@@ -7,7 +7,6 @@ use futures::{
 };
 use futures_timer::Delay;
 use glib::clone;
-use serde::{de::DeserializeOwned, Serialize};
 use std::{
     cell::{Cell, RefCell},
     cmp::PartialEq,
@@ -62,18 +61,50 @@ enum SetEnum {
     Exit,
 }
 
+impl SetEnum {
+    fn is_cancelable(&self) -> bool {
+        match self {
+            Self::Nelson(_, _) | Self::Benchmark(_) => false,
+            _ => true,
+        }
+    }
+}
+
 #[derive(Debug)]
 struct Set {
     inner: SetEnum,
-    oneshot: oneshot::Sender<Result<String, String>>,
+    oneshot: oneshot::Sender<Result<Response, String>>,
+}
+
+#[derive(Debug)]
+enum Response {
+    Benchmark(Benchmark),
+    Canceled,
+    Empty,
+    Nelson(Box<Nelson>),
+}
+
+impl Into<Response> for Benchmark {
+    fn into(self) -> Response {
+        Response::Benchmark(self)
+    }
+}
+
+impl Into<Response> for () {
+    fn into(self) -> Response {
+        Response::Empty
+    }
+}
+
+impl Into<Response> for Nelson {
+    fn into(self) -> Response {
+        Response::Nelson(Box::new(self))
+    }
 }
 
 impl Set {
-    fn reply<T: Serialize>(self, resp: Result<T, String>) {
-        let _ = self.oneshot.send(resp.and_then(|x| {
-            serde_json::to_string(&x)
-                .map_err(|err| format!("failed to serialize: {}\n{:#?}", err, err))
-        }));
+    fn reply<T: Into<Response>>(self, resp: Result<T, String>) {
+        let _ = self.oneshot.send(resp.map(|x| x.into()));
     }
 }
 
@@ -103,11 +134,15 @@ impl ThreadClient {
         client
     }
 
-    async fn send<T: DeserializeOwned>(&self, set_enum: SetEnum) -> Result<T, String> {
+    async fn send(&self, set_enum: SetEnum) -> Result<Response, String> {
         let mut cancels = self.cancels.lock().unwrap();
-        if let Some(cancel) = cancels.remove(&set_enum) {
-            cancel.abort();
+
+        if set_enum.is_cancelable() {
+            if let Some(cancel) = cancels.remove(&set_enum) {
+                cancel.abort();
+            }
         }
+
         let (sender, receiver) = oneshot::channel();
         let (receiver, cancel) = abortable(receiver);
         cancels.insert(set_enum.clone(), cancel);
@@ -117,18 +152,18 @@ impl ThreadClient {
             inner: set_enum,
             oneshot: sender,
         });
-        // XXX let caller know it was canceled?
         match receiver.await {
-            Ok(Ok(res)) => res.and_then(|x| {
-                serde_json::from_str(&x)
-                    .map_err(|err| format!("failed to deserialize: {}\n{:#?}", err, err))
-            }),
-            err => Err(format!("receiver.await returned {:?}", err)),
+            Ok(Ok(res)) => res,
+            _ => Ok(Response::Canceled),
         }
     }
 
+    async fn send_noresp(&self, set_enum: SetEnum) -> Result<(), String> {
+        self.send(set_enum).await.and(Ok(()))
+    }
+
     pub async fn refresh(&self) -> Result<(), String> {
-        self.send(SetEnum::Refresh).await
+        self.send_noresp(SetEnum::Refresh).await
     }
 
     pub async fn keymap_set(
@@ -139,7 +174,7 @@ impl ThreadClient {
         input: u8,
         value: u16,
     ) -> Result<(), String> {
-        self.send(SetEnum::KeyMap(Item::new(
+        self.send_noresp(SetEnum::KeyMap(Item::new(
             (board, layer, output, input),
             value,
         )))
@@ -152,7 +187,7 @@ impl ThreadClient {
         index: u8,
         color: (u8, u8, u8),
     ) -> Result<(), String> {
-        self.send(SetEnum::Color(Item::new((board, index), color)))
+        self.send_noresp(SetEnum::Color(Item::new((board, index), color)))
             .await
     }
 
@@ -162,7 +197,7 @@ impl ThreadClient {
         index: u8,
         brightness: i32,
     ) -> Result<(), String> {
-        self.send(SetEnum::Brightness(Item::new((board, index), brightness)))
+        self.send_noresp(SetEnum::Brightness(Item::new((board, index), brightness)))
             .await
     }
 
@@ -173,24 +208,35 @@ impl ThreadClient {
         mode: u8,
         speed: u8,
     ) -> Result<(), String> {
-        self.send(SetEnum::Mode(Item::new((board, layer), (mode, speed))))
+        self.send_noresp(SetEnum::Mode(Item::new((board, layer), (mode, speed))))
             .await
     }
 
     pub async fn set_matrix_get_rate(&self, rate: Option<Duration>) -> Result<(), String> {
-        self.send(SetEnum::MatrixGetRate(Item::new((), rate))).await
+        self.send_noresp(SetEnum::MatrixGetRate(Item::new((), rate)))
+            .await
     }
 
     pub async fn benchmark(&self, board: BoardId) -> Result<Benchmark, String> {
-        self.send(SetEnum::Benchmark(board)).await
+        let resp = self.send(SetEnum::Benchmark(board)).await?;
+        if let Response::Benchmark(benchmark) = resp {
+            Ok(benchmark)
+        } else {
+            panic!(format!("'{:?}' unexpected", resp));
+        }
     }
 
     pub async fn nelson(&self, board: BoardId, kind: NelsonKind) -> Result<Nelson, String> {
-        self.send(SetEnum::Nelson(board, kind)).await
+        let resp = self.send(SetEnum::Nelson(board, kind)).await?;
+        if let Response::Nelson(nelson) = resp {
+            Ok(*nelson)
+        } else {
+            panic!(format!("'{:?}' unexpected", resp));
+        }
     }
 
     pub async fn led_save(&self, board: BoardId) -> Result<(), String> {
-        self.send(SetEnum::LedSave(board)).await
+        self.send_noresp(SetEnum::LedSave(board)).await
     }
 
     pub fn close(&self) {
