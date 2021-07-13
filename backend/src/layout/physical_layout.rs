@@ -1,5 +1,7 @@
 /// Serde based deserialization for physical.json
+/// From http://www.keyboard-layout-editor.com
 use serde::Deserialize;
+use std::char;
 
 use crate::{Rect, Rgb};
 
@@ -34,14 +36,7 @@ impl PhysicalLayout {
                                 physical.y -= meta.y;
                                 physical.w = meta.w.unwrap_or(physical.w);
                                 physical.h = meta.h.unwrap_or(physical.h);
-                                background_color = meta
-                                    .c
-                                    .as_ref()
-                                    .map(|c| {
-                                        let err = format!("Failed to parse color {}", c);
-                                        Rgb::parse(&c[1..]).expect(&err)
-                                    })
-                                    .unwrap_or(background_color);
+                                background_color = meta.c.unwrap_or(background_color);
                             }
                             PhysicalKeyEnum::Name(name) => {
                                 keys.push(PhysicalLayoutKey {
@@ -83,6 +78,16 @@ pub(crate) struct PhysicalLayoutKey {
     pub background_color: Rgb,
 }
 
+impl PhysicalLayoutKey {
+    pub fn logical_name(&self) -> String {
+        let row_char =
+            char::from_digit(self.logical.0 as u32, 36).expect("Failed to convert row to char");
+        let col_char =
+            char::from_digit(self.logical.1 as u32, 36).expect("Failed to convert col to char");
+        format!("K{}{}", row_char, col_char).to_uppercase()
+    }
+}
+
 #[derive(Debug, Deserialize)]
 struct PhysicalLayoutJson(Vec<PhysicalLayoutEntry>);
 
@@ -117,5 +122,5 @@ struct PhysicalKeyMeta {
     y: f64,
     w: Option<f64>,
     h: Option<f64>,
-    c: Option<String>,
+    c: Option<Rgb>,
 }

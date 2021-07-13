@@ -1,5 +1,6 @@
 {
-  "board": "system76/launch_alpha_2",
+  "model": "system76/launch_alpha_2",
+  "version": 1,
   "map": {
     "K00": [
       "ESC",
@@ -337,5 +338,137 @@
       "RIGHT",
       "END"
     ]
-  }
+  },
+  "key_leds": {
+    "K00": null,
+    "K01": null,
+    "K02": null,
+    "K03": null,
+    "K04": null,
+    "K05": null,
+    "K06": null,
+    "K07": null,
+    "K08": null,
+    "K09": null,
+    "K0A": null,
+    "K0B": null,
+    "K0C": null,
+    "K0D": null,
+    "K0E": null,
+    "K10": null,
+    "K11": null,
+    "K12": null,
+    "K13": null,
+    "K14": null,
+    "K15": null,
+    "K16": null,
+    "K17": null,
+    "K18": null,
+    "K19": null,
+    "K1A": null,
+    "K1B": null,
+    "K1C": null,
+    "K1D": null,
+    "K1E": null,
+    "K20": null,
+    "K21": null,
+    "K22": null,
+    "K23": null,
+    "K24": null,
+    "K25": null,
+    "K26": null,
+    "K27": null,
+    "K28": null,
+    "K29": null,
+    "K2A": null,
+    "K2B": null,
+    "K2C": null,
+    "K2D": null,
+    "K2E": null,
+    "K30": null,
+    "K31": null,
+    "K32": null,
+    "K33": null,
+    "K34": null,
+    "K35": null,
+    "K36": null,
+    "K37": null,
+    "K38": null,
+    "K39": null,
+    "K3A": null,
+    "K3B": null,
+    "K3C": null,
+    "K3D": null,
+    "K40": null,
+    "K41": null,
+    "K42": null,
+    "K43": null,
+    "K44": null,
+    "K45": null,
+    "K46": null,
+    "K47": null,
+    "K48": null,
+    "K49": null,
+    "K4A": null,
+    "K4B": null,
+    "K4C": null,
+    "K50": null,
+    "K51": null,
+    "K52": null,
+    "K53": null,
+    "K54": null,
+    "K55": null,
+    "K56": null,
+    "K57": null,
+    "K58": null,
+    "K59": null,
+    "K5A": null,
+    "K5B": null
+  },
+  "layers": [
+    {
+      "mode": [
+        7,
+        127
+      ],
+      "brightness": 176,
+      "color": [
+        142,
+        255
+      ]
+    },
+    {
+      "mode": [
+        13,
+        127
+      ],
+      "brightness": 176,
+      "color": [
+        142,
+        255
+      ]
+    },
+    {
+      "mode": [
+        13,
+        127
+      ],
+      "brightness": 176,
+      "color": [
+        142,
+        255
+      ]
+    },
+    {
+      "mode": [
+        13,
+        127
+      ],
+      "brightness": 176,
+      "color": [
+        142,
+        255
+      ]
+    }
+  ]
 }

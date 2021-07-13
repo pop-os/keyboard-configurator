@@ -1,3 +1,4 @@
+use crate::fl;
 use cascade::cascade;
 use futures::{prelude::*, stream::FuturesUnordered};
 use glib::clone;
@@ -17,6 +18,7 @@ pub struct BacklightInner {
     color_label: DerefCell<gtk::Label>,
     color_row: DerefCell<gtk::ListBoxRow>,
     brightness_scale: DerefCell<gtk::Scale>,
+    brightness_label: DerefCell<gtk::Label>,
     brightness_row: DerefCell<gtk::ListBoxRow>,
     saturation_scale: DerefCell<gtk::Scale>,
     saturation_row: DerefCell<gtk::ListBoxRow>,
@@ -48,7 +50,7 @@ impl ObjectImpl for BacklightInner {
         };
 
         for mode in Mode::all() {
-            mode_combobox.append(Some(mode.id), mode.name);
+            mode_combobox.append(Some(mode.id), &mode.name);
         }
 
         let speed_scale = cascade! {
@@ -118,25 +120,28 @@ impl ObjectImpl for BacklightInner {
         }
 
         let disable_color_button = cascade! {
-            gtk::Button::with_label("Disable");
+            gtk::Button::with_label(&fl!("button-disable"));
             ..set_no_show_all(true);
             ..connect_clicked(clone!(@weak obj => move |_| obj.disable_color_clicked()));
         };
 
-        let color_label = gtk::Label::new(Some("Layer Color:"));
+        let color_label = gtk::Label::new(None);
+        let brightness_label = gtk::Label::new(Some(&fl!("layer-all-brightness")));
 
-        let mode_row = label_row("Layer Color Pattern:", &mode_combobox);
-        let speed_row = label_row("Layer Animation Speed:", &speed_scale);
-        let saturation_row = label_row("Layer Saturation:", &saturation_scale);
+        let mode_row = label_row(&fl!("layer-color-pattern"), &mode_combobox);
+        let speed_row = label_row(&fl!("layer-animation-speed"), &speed_scale);
+        let saturation_row = label_row(&fl!("layer-saturation"), &saturation_scale);
         let color_row = row(&cascade! {
             gtk::Box::new(gtk::Orientation::Horizontal, 8);
             ..add(&color_label);
             ..pack_end(&keyboard_color, false, false, 0);
             ..pack_end(&disable_color_button, false, false, 0);
         });
-        let brightness_row = cascade! {
-            label_row("Brightness (all layers):", &brightness_scale);
-        };
+        let brightness_row = row(&cascade! {
+            gtk::Box::new(gtk::Orientation::Horizontal, 8);
+            ..add(&brightness_label);
+            ..pack_end(&brightness_scale, false, false, 0);
+        });
 
         cascade! {
             obj;
@@ -153,6 +158,7 @@ impl ObjectImpl for BacklightInner {
         self.keyboard_color.set(keyboard_color);
         self.color_label.set(color_label);
         self.color_row.set(color_row);
+        self.brightness_label.set(brightness_label);
         self.brightness_scale.set(brightness_scale);
         self.brightness_row.set(brightness_row);
         self.mode_combobox.set(mode_combobox);
@@ -246,6 +252,12 @@ impl Backlight {
             obj.header_func(row, before)
         ))));
 
+        if !obj.board().layout().meta.has_per_layer {
+            obj.inner()
+                .brightness_label
+                .set_label(&fl!("keyboard-brightness"));
+        }
+
         if has_led_save {
             glib::timeout_add_seconds_local(
                 10,
@@ -267,7 +279,7 @@ impl Backlight {
         &self.inner().board
     }
 
-    fn mode(&self) -> &'static Mode {
+    pub fn mode(&self) -> &'static Mode {
         if let Some(id) = self.inner().mode_combobox.get_active_id() {
             if let Some(mode) = Mode::from_id(id.as_str()) {
                 return mode;
@@ -295,11 +307,11 @@ impl Backlight {
         } else if row == &*inner.speed_row {
             layout.meta.has_mode && self.mode().has_speed
         } else if row == &*inner.color_row {
-            !layout.meta.has_mode || self.mode().has_hue
+            layout.meta.has_color && (!layout.meta.has_mode || self.mode().has_hue)
         } else if row == &*inner.saturation_row {
             !self.mode().has_hue && !self.mode().is_disabled()
         } else if row == &*inner.brightness_row {
-            !layout.meta.has_mode || !self.mode().is_disabled()
+            layout.meta.has_brightness && (!layout.meta.has_mode || !self.mode().is_disabled())
         } else {
             true
         }
@@ -311,13 +323,17 @@ impl Backlight {
 
         if self.mode().is_per_key() {
             self.update_per_key();
-            self.inner().color_label.set_label("Key color:");
+            self.inner().color_label.set_label(&fl!("key-color"));
         } else {
             self.inner().keyboard_color.set_sensitive(true);
             self.inner()
                 .keyboard_color
                 .set_index(KeyboardColorIndex::Layer(self.inner().layer.get()));
-            self.inner().color_label.set_label("Layer color:");
+            if self.board().layout().meta.has_per_layer {
+                self.inner().color_label.set_label(&fl!("layer-color"));
+            } else {
+                self.inner().color_label.set_label(&fl!("keyboard-color"));
+            }
         }
         self.inner()
             .disable_color_button
@@ -335,7 +351,7 @@ impl Backlight {
         glib::MainContext::default().spawn_local(async move {
             let layer = &board.layers()[layer];
             if let Err(err) = layer.set_mode(mode, speed as u8).await {
-                error!("Error setting keyboard mode: {}", err);
+                error!("{}: {}", fl!("error-set-keyboard-mode"), err);
             }
         });
     }
@@ -349,7 +365,7 @@ impl Backlight {
         glib::MainContext::default().spawn_local(async move {
             for layer in board.layers() {
                 if let Err(err) = layer.set_brightness(value).await {
-                    error!("Error setting brightness: {}", err);
+                    error!("{}: {}", fl!("error-set-keyboard-brightness"), err);
                 }
             }
         });
@@ -357,7 +373,7 @@ impl Backlight {
     }
 
     pub fn set_layer(&self, mut layer: usize) {
-        if !self.inner().board.layout().meta.has_per_layer {
+        if !self.board().layout().meta.has_per_layer {
             layer = 0;
         }
 
@@ -403,13 +419,12 @@ impl Backlight {
         let self_ = self.clone();
         let selected = self.inner().selected.borrow().clone();
         glib::MainContext::default().spawn_local(async move {
-            let res = selected
-                .iter()
-                .map(|i| self_.board().keys()[*i].set_color(None))
-                .collect::<FuturesUnordered<_>>()
-                .try_collect::<()>();
-            if let Err(err) = res.await {
-                error!("Failed to disable key: {}", err);
+            let futures = FuturesUnordered::new();
+            for i in selected.iter() {
+                futures.push(self_.board().keys()[*i].set_color(None));
+            }
+            if let Err(err) = futures.try_collect::<()>().await {
+                error!("{}: {}", fl!("error-disable-key"), err);
             }
             self_.update_per_key();
         });
@@ -420,7 +435,7 @@ impl Backlight {
             let board = self.board().clone();
             glib::MainContext::default().spawn_local(async move {
                 if let Err(err) = board.led_save().await {
-                    error!("Failed to save LEDs: {}", err);
+                    error!("{}: {}", fl!("error-save-leds"), err);
                 }
             });
         }

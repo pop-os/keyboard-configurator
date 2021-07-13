@@ -2,22 +2,30 @@
 <component type="desktop-application">
 	<id>com.system76.keyboardconfigurator</id>
 	<metadata_license>CC0-1.0</metadata_license>
-	<project_license>GPL-3.0-only</project_license>
+	<project_license>GPL-3.0-or-later</project_license>
 	<developer_name>System76</developer_name>
-	<update_contact>michael@system76.com</update_contact>
+	<update_contact>idscott@system76.com</update_contact>
 	<url type="homepage">https://github.com/pop-os/keyboard-configurator</url>
 	<url type="bugtracker">https://github.com/pop-os/keyboard-configurator</url>
-	<name>System76 Keyboard Configurator</name>
+	<name>Keyboard Configurator</name>
 	<summary>Configure System76 keyboards</summary>
 	<description>
 		<p>
-		Configures keymap and backlight of System76 keyboards.
+		The System76 Keyboard Configrator app places control back into your hands. Remap keys, swap keycaps, and configure multiple layers to your liking. Compatible with Linux, Windows, and macOS, this application will work with the Launch Configurable Keyboard as well as any System76 laptop with Open Firmware.
 		</p>
 	</description>
 	<categories>
 		<category>Utility</category>
 	</categories>
 	<launchable type="desktop-id">com.system76.keyboardconfigurator.desktop</launchable>
+	<screenshots>
+		<screenshot type="default">
+			<image>https://raw.githubusercontent.com/pop-os/keyboard-configurator/master/screenshots/screenshot-01.png</image>
+		</screenshot>
+	</screenshots>
 	<project_group>Pop!_OS</project_group>
+	<provides>
+		<binary>system76-keyboard-configurator</binary>
+	</provides>
 	<content_rating type="oars-1.0" />
 </component>

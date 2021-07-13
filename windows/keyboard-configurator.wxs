@@ -23,7 +23,7 @@
             InstallScope='perMachine'
             />
 
-        <Media Id='1' Cabinet='KeyboardConfigurator.cab' EmbedCab='yes' />
+        <Media Id='1' Cabinet='KeyboardConfigurator.cab' EmbedCab='yes' CompressionLevel='high' />
 
         <Icon Id="keyboard_configurator.ico" SourceFile="out/keyboard-configurator.ico"/>
         <Property Id="ARPPRODUCTICON" Value="keyboard_configurator.ico" />

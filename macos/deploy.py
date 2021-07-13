@@ -18,11 +18,22 @@ ADWAITA_FILES = [
     'scalable/ui/window-restore-symbolic.svg',
     'scalable/actions/edit-delete-symbolic.svg',
     'scalable/actions/go-previous-symbolic.svg',
-    'scalable/devices/input-keyboard-symbolic.svg',
     'scalable/actions/list-remove-symbolic.svg',
     'scalable/actions/list-add-symbolic.svg',
+    'scalable/actions/edit-find-symbolic.svg',
 ]
 ADWAITA_FILES = [f'share/icons/Adwaita/{i}' for i in ADWAITA_FILES]
+ADDITIONAL_FILES = ['share/glib-2.0/schemas/org.gtk.Settings.FileChooser.gschema.xml'] + ADWAITA_FILES
+
+def copy(srcdir, destdir, path):
+    src = f"{srcdir}/{path}"
+    dest = f"{destdir}/{path}"
+    os.makedirs(os.path.dirname(dest), exist_ok=True)
+    print(f"Copy {src} -> {dest}")
+    if os.path.isdir(src):
+        shutil.copytree(src, dest)
+    else:
+        shutil.copy(src, dest)
 
 def otool_recursive(path, libs=set()):
     output = subprocess.check_output(["otool", "-L", path]).decode()
@@ -84,12 +95,9 @@ def deploy_with_deps(binpath):
 
     shutil.copytree(f'{PREFIX}/share/icons/hicolor', f'{APPDIR}/Contents/Resources/share/icons/hicolor')
 
-    for i in ADWAITA_FILES:
-        src = f'{PREFIX}/{i}'
-        dest = f'{APPDIR}/Contents/Resources/{i}'
-        os.makedirs(os.path.dirname(dest), exist_ok=True)
-        print(f"Copy {src} -> {dest}")
-        shutil.copy(src, dest)
+    for i in ADDITIONAL_FILES:
+        copy(PREFIX, f'{APPDIR}/Contents/Resources', i)
+    subprocess.check_call(["glib-compile-schemas", f"{APPDIR}/Contents/Resources/share/glib-2.0/schemas"])
 
     module_dir = f"{RESOURCEDIR}/lib/gdk-pixbuf-2.0/{pixbuf_ver}"
     with open(f"{module_dir}/loaders.cache", 'w') as cachefile:

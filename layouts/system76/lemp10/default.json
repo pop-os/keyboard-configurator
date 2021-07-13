@@ -1,5 +1,6 @@
 {
-  "board": "system76/lemp10",
+  "model": "system76/lemp10",
+  "version": 1,
   "map": {
     "K00": [
       "ESC",
@@ -333,5 +334,16 @@
       "RIGHT",
       "RIGHT"
     ]
-  }
+  },
+  "key_leds": {},
+  "layers": [
+    {
+      "mode": null,
+      "brightness": 0,
+      "color": [
+        0,
+        0
+      ]
+    }
+  ]
 }

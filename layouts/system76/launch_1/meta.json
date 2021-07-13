@@ -2,5 +2,9 @@
   "display_name": "Launch Keyboard",
   "has_mode": true,
   "has_per_layer": true,
-  "num_layers": 4
+  "num_layers": 4,
+  "has_brightness": true,
+  "has_color": true,
+  "pressed_color": "#202020",
+  "keyboard": "system76/launch_1"
 }

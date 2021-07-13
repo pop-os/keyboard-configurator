@@ -1,3 +1,4 @@
+use crate::fl;
 use backend::{Board, DerefCell, NelsonKind, Rgb};
 use cascade::cascade;
 use gtk::prelude::*;
@@ -222,7 +223,7 @@ impl ObjectImpl for TestingInner {
 
         {
             let num_runs_spin = gtk::SpinButton::with_range(1.0, 1000.0, 1.0);
-            let test_button = gtk::Button::with_label("Test");
+            let test_button = gtk::Button::with_label(&fl!("button-test"));
             let test_label = gtk::Label::new(None);
 
             obj.add(&cascade! {
@@ -232,11 +233,11 @@ impl ObjectImpl for TestingInner {
                     gtk::ListBox::new();
                     ..set_valign(gtk::Align::Start);
                     ..get_style_context().add_class("frame");
-                    ..add(&label_row("Number of runs", &num_runs_spin));
+                    ..add(&label_row(&fl!("test-number-of-runs"), &num_runs_spin));
                     ..add(&row(&test_button));
                     ..add(&row(&test_label));
-                    ..add(&label_row("Check pins (missing)", &color_box(1., 0., 0.)));
-                    ..add(&label_row("Check key (sticking)", &color_box(0., 1., 0.)));
+                    ..add(&label_row(&fl!("test-check-pins"), &color_box(1., 0., 0.)));
+                    ..add(&label_row(&fl!("test-check-key"), &color_box(0., 1., 0.)));
                     ..set_header_func(Some(Box::new(|row, before| {
                         if before.is_none() {
                             row.set_header::<gtk::Widget>(None)

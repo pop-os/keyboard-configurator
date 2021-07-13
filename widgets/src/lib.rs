@@ -5,10 +5,12 @@ mod choose_color;
 mod color_circle;
 mod color_wheel;
 mod keyboard_color;
+mod localize;
 mod selected_keys;
 
 pub use crate::{
-    choose_color::*, color_circle::*, color_wheel::*, keyboard_color::*, selected_keys::*,
+    choose_color::*, color_circle::*, color_wheel::*, keyboard_color::*, localize::*,
+    selected_keys::*,
 };
 pub use backend;
 use backend::DerefCell;

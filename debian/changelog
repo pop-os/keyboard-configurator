@@ -1,3 +1,21 @@
+system76-keyboard-configurator (1.0.0) focal; urgency=medium
+
+  * First stable release.
+
+ -- Ian Douglas Scott <idscott@system76.com>  Thu, 27 May 2021 15:53:28 -0700
+
+system76-keyboard-configurator (0.2.11) focal; urgency=medium
+
+  * 0.2.11 release.
+
+ -- Ian Douglas Scott <idscott@system76.com>  Thu, 27 May 2021 07:21:32 -0700
+
+system76-keyboard-configurator (0.2.10) focal; urgency=medium
+
+  * 0.2.10 beta release.
+
+ -- Ian Douglas Scott <idscott@system76.com>  Mon, 24 May 2021 10:20:43 -0700
+
 system76-keyboard-configurator (0.1.0) focal; urgency=medium
 
   * Initial release.

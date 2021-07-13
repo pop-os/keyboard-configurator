@@ -9,7 +9,7 @@ use std::{
 };
 
 use crate::{Page, TestingColors};
-use backend::{Board, DerefCell, Key, Layer, Rect, Rgb};
+use backend::{Board, DerefCell, Key, Rect, Rgb};
 use widgets::SelectedKeys;
 
 const SCALE: f64 = 64.;
@@ -23,7 +23,6 @@ pub struct KeyboardLayerInner {
     board: DerefCell<Board>,
     selected: RefCell<SelectedKeys>,
     selectable: Cell<bool>,
-    multiple: Cell<bool>,
     wide_width: OnceCell<i32>,
     wide_height: OnceCell<i32>,
     narrow_width: OnceCell<i32>,
@@ -55,13 +54,6 @@ impl ObjectImpl for KeyboardLayerInner {
                     SelectedKeys::get_type(),
                     glib::ParamFlags::READWRITE,
                 ),
-                glib::ParamSpec::boolean(
-                    "multiple",
-                    "multiple",
-                    "multiple",
-                    false,
-                    glib::ParamFlags::READWRITE,
-                ),
                 glib::ParamSpec::boxed(
                     "testing-colors",
                     "testing-colors",
@@ -84,7 +76,6 @@ impl ObjectImpl for KeyboardLayerInner {
     ) {
         match pspec.get_name() {
             "selected" => widget.set_selected(value.get_some::<&SelectedKeys>().unwrap().clone()),
-            "multiple" => widget.set_multiple(value.get_some().unwrap()),
             "testing-colors" => {
                 self.testing_colors
                     .replace(value.get_some::<&TestingColors>().unwrap().clone());
@@ -102,7 +93,6 @@ impl ObjectImpl for KeyboardLayerInner {
     ) -> glib::Value {
         match pspec.get_name() {
             "selected" => self.selected.borrow().to_value(),
-            "multiple" => self.multiple.get().to_value(),
             "testing-colors" => self.testing_colors.borrow().to_value(),
             _ => unimplemented!(),
         }
@@ -113,16 +103,6 @@ impl WidgetImpl for KeyboardLayerInner {
     fn draw(&self, widget: &KeyboardLayer, cr: &cairo::Context) -> Inhibit {
         self.parent_draw(widget, cr);
 
-        let layer = if self.board.layout().meta.has_per_layer {
-            widget.page().layer()
-        } else {
-            widget.page().layer().and(Some(0))
-        }
-        .map(|i| &self.board.layers()[i]);
-        let (is_per_key, has_hue) = layer
-            .and_then(Layer::mode)
-            .map(|x| (x.0.is_per_key(), x.0.has_hue))
-            .unwrap_or_default();
         let selected = Rgb::new(0xfb, 0xb8, 0x6c).to_floats();
 
         let testing_colors = self.testing_colors.borrow();
@@ -140,18 +120,8 @@ impl WidgetImpl for KeyboardLayerInner {
             }
             .to_floats();
 
-            let border_color = layer.and_then(|layer| {
-                if is_per_key {
-                    k.color()
-                } else if has_hue {
-                    Some(layer.color())
-                } else {
-                    None
-                }
-            });
-
             if k.pressed() {
-                bg = (0.1, 0.1, 0.1);
+                bg = self.board.layout().meta.pressed_color.to_floats();
             }
 
             let fg = if (bg.0 + bg.1 + bg.2) / 3. >= 0.5 {
@@ -159,6 +129,16 @@ impl WidgetImpl for KeyboardLayerInner {
             } else {
                 (1., 1., 1.)
             };
+
+            let mut text_alpha = 1.;
+            let mut bg_alpha = 1.;
+            if let Some(layer) = self.page.get().layer() {
+                let scancode_name = k.get_scancode(layer).unwrap().1;
+                if scancode_name == "NONE" || scancode_name == "ROLL_OVER" {
+                    text_alpha = 0.5;
+                    bg_alpha = 0.75;
+                }
+            }
 
             // Rounded rectangle
             cr.new_sub_path();
@@ -168,17 +148,12 @@ impl WidgetImpl for KeyboardLayerInner {
             cr.arc(x + RADIUS, y + RADIUS, RADIUS, PI, 1.5 * PI);
             cr.close_path();
 
-            cr.set_source_rgb(bg.0, bg.1, bg.2);
+            cr.set_source_rgba(bg.0, bg.1, bg.2, bg_alpha);
             cr.fill_preserve();
 
-            if widget.selected().contains(&i) {
+            if self.selectable.get() && widget.selected().contains(&i) {
                 cr.set_source_rgb(selected.0, selected.1, selected.2);
                 cr.set_line_width(4.);
-                cr.stroke();
-            } else if let Some(color) = border_color {
-                let color = color.to_rgb().to_floats();
-                cr.set_source_rgb(color.0, color.1, color.2);
-                cr.set_line_width(1.);
                 cr.stroke();
             }
 
@@ -192,7 +167,7 @@ impl WidgetImpl for KeyboardLayerInner {
             let text_height = layout.get_pixel_size().1 as f64;
             cr.new_path();
             cr.move_to(x, y + (h - text_height) / 2.);
-            cr.set_source_rgb(fg.0, fg.1, fg.2);
+            cr.set_source_rgba(fg.0, fg.1, fg.2, text_alpha);
             pangocairo::show_layout(cr, &layout);
         }
 
@@ -215,7 +190,7 @@ impl WidgetImpl for KeyboardLayerInner {
         if let Some(pressed) = pressed {
             let shift = evt.get_state().contains(gdk::ModifierType::SHIFT_MASK);
             let mut selected = widget.selected();
-            if shift && self.multiple.get() {
+            if shift {
                 if selected.contains(&pressed) {
                     selected.remove(&pressed);
                 } else {
@@ -263,7 +238,6 @@ glib::wrapper! {
 impl KeyboardLayer {
     pub fn new(page: Page, board: Board) -> Self {
         let obj = glib::Object::new::<Self>(&[]).unwrap();
-        board.connect_leds_changed(clone!(@weak obj => move || obj.queue_draw()));
         board.connect_matrix_changed(clone!(@weak obj => move || obj.queue_draw()));
         obj.inner().page.set(page);
         obj.inner().board.set(board);
@@ -276,6 +250,11 @@ impl KeyboardLayer {
 
     pub fn page(&self) -> Page {
         self.inner().page.get()
+    }
+
+    pub fn set_page(&self, page: Page) {
+        self.inner().page.set(page);
+        self.queue_draw();
     }
 
     pub fn keys(&self) -> &[Key] {
@@ -294,14 +273,7 @@ impl KeyboardLayer {
 
     pub fn set_selectable(&self, selectable: bool) {
         self.inner().selectable.set(selectable);
-        if !selectable {
-            self.set_selected(SelectedKeys::new());
-        }
-    }
-
-    pub fn set_multiple(&self, multiple: bool) {
-        self.inner().multiple.set(multiple);
-        self.notify("multiple");
+        self.queue_draw();
     }
 
     fn keys_maximize<F: Fn(&Key) -> i32>(&self, cell: &OnceCell<i32>, cb: F) -> i32 {
@@ -318,7 +290,7 @@ impl KeyboardLayer {
     fn wide_height(&self) -> i32 {
         self.keys_maximize(&self.inner().wide_height, |k| {
             let pos = self.key_position_wide(k);
-            (pos.y + pos.h) as i32
+            (pos.y + pos.h + 4.) as i32
         })
     }
 

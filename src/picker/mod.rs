@@ -1,4 +1,5 @@
 use cascade::cascade;
+use futures::{prelude::*, stream::FuturesUnordered};
 use glib::clone;
 use gtk::prelude::*;
 use gtk::subclass::prelude::*;
@@ -46,7 +47,7 @@ pub struct PickerInner {
     groups: DerefCell<Vec<PickerGroup>>,
     keys: DerefCell<HashMap<String, Rc<PickerKey>>>,
     keyboard: RefCell<Option<Keyboard>>,
-    selected: RefCell<Option<String>>,
+    selected: RefCell<Vec<String>>,
 }
 
 #[glib::object_subclass]
@@ -96,7 +97,6 @@ impl ObjectImpl for PickerInner {
 
         cascade! {
             picker;
-            ..set_has_window(false);
             ..connect_signals();
             ..show_all();
         };
@@ -148,14 +148,22 @@ impl WidgetImpl for PickerInner {
     fn size_allocate(&self, obj: &Self::Type, allocation: &gtk::Allocation) {
         self.parent_size_allocate(obj, allocation);
 
+        let rows = obj.rows_for_width(allocation.width);
+
+        let total_width = rows
+            .iter()
+            .map(|row| {
+                row.iter()
+                    .map(|x| x.vbox.get_preferred_width().1)
+                    .sum::<i32>()
+                    + (row.len() as i32 - 1) * HSPACING
+            })
+            .max()
+            .unwrap();
+
         let mut y = 0;
-        for row in obj.rows_for_width(allocation.width) {
-            let width = row
-                .iter()
-                .map(|x| x.vbox.get_preferred_width().1)
-                .sum::<i32>()
-                + (row.len() as i32 - 1) * HSPACING;
-            let mut x = (allocation.width - width) / 2;
+        for row in rows {
+            let mut x = (allocation.width - total_width) / 2;
             for group in row {
                 let height = group.vbox.get_preferred_height().1;
                 let width = group.vbox.get_preferred_width().1;
@@ -174,6 +182,26 @@ impl WidgetImpl for PickerInner {
                 .unwrap()
                 + VSPACING;
         }
+    }
+
+    fn realize(&self, widget: &Self::Type) {
+        let allocation = widget.get_allocation();
+        widget.set_realized(true);
+
+        let attrs = gdk::WindowAttr {
+            x: Some(allocation.x),
+            y: Some(allocation.y),
+            width: allocation.width,
+            height: allocation.height,
+            window_type: gdk::WindowType::Child,
+            event_mask: widget.get_events(),
+            wclass: gdk::WindowWindowClass::InputOutput,
+            ..Default::default()
+        };
+
+        let window = gdk::Window::new(widget.get_parent_window().as_ref(), &attrs);
+        widget.register_window(&window);
+        widget.set_window(&window);
     }
 }
 
@@ -224,14 +252,15 @@ impl Picker {
                     let layer = kb.layer();
 
                     info!("Clicked {} layer {:?}", name, layer);
-                    let selected = kb.selected();
-                    if selected.len() == 1 {
-                        let i = *selected.iter().next().unwrap();
-                        if let Some(layer) = layer {
-                            glib::MainContext::default().spawn_local(clone!(@strong kb, @strong name => async move {
+                    if let Some(layer) = layer {
+                        let futures = FuturesUnordered::new();
+                        for i in kb.selected().iter() {
+                            let i = *i;
+                            futures.push(clone!(@strong kb, @strong name => async move {
                                 kb.keymap_set(i, layer, &name).await;
                             }));
                         }
+                        glib::MainContext::default().spawn_local(async {futures.collect::<()>().await});
                     }
                 }));
             }
@@ -250,8 +279,8 @@ impl Picker {
             for group in self.inner().groups.iter() {
                 for key in group.iter_keys() {
                     // Check that scancode is available for the keyboard
-                    let sensitive = kb.has_scancode(&key.name);
-                    key.gtk.set_sensitive(sensitive);
+                    let visible = kb.has_scancode(&key.name);
+                    key.gtk.set_visible(visible);
                 }
             }
             kb.set_picker(Some(&self));
@@ -259,19 +288,19 @@ impl Picker {
         *self.inner().keyboard.borrow_mut() = keyboard;
     }
 
-    pub(crate) fn set_selected(&self, scancode_name: Option<String>) {
+    pub(crate) fn set_selected(&self, scancode_names: Vec<String>) {
         let mut selected = self.inner().selected.borrow_mut();
 
-        if let Some(selected) = selected.as_ref() {
-            if let Some(button) = self.get_button(selected) {
+        for i in selected.iter() {
+            if let Some(button) = self.get_button(i) {
                 button.get_style_context().remove_class("selected");
             }
         }
 
-        *selected = scancode_name;
+        *selected = scancode_names;
 
-        if let Some(selected) = selected.as_ref() {
-            if let Some(button) = self.get_button(selected) {
+        for i in selected.iter() {
+            if let Some(button) = self.get_button(i) {
                 button.get_style_context().add_class("selected");
             }
         }
@@ -286,16 +315,14 @@ impl Picker {
         for (i, group) in groups.iter().enumerate() {
             let width = group.vbox.get_preferred_width().1;
 
-            let mut new_row_width = row_width + width;
+            row_width += width;
             if i != 0 {
-                new_row_width += HSPACING;
+                row_width += HSPACING;
             }
-            if i - row_start >= DEFAULT_COLS || new_row_width > container_width {
+            if i - row_start >= DEFAULT_COLS || row_width > container_width {
                 rows.push(&groups[row_start..i]);
                 row_start = i;
                 row_width = width;
-            } else {
-                row_width = new_row_width;
             }
         }
 

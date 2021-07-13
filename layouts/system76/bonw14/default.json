@@ -1,5 +1,6 @@
 {
-  "board": "system76/bonw14",
+  "model": "system76/bonw14",
+  "version": 1,
   "map": {
     "K00": [
       "ESC",
@@ -409,5 +410,16 @@
       "NUM_PERIOD",
       "NUM_PERIOD"
     ]
-  }
+  },
+  "key_leds": {},
+  "layers": [
+    {
+      "mode": null,
+      "brightness": 0,
+      "color": [
+        0,
+        0
+      ]
+    }
+  ]
 }

@@ -25,6 +25,7 @@ mod keymap;
 mod layer;
 mod layout;
 mod matrix;
+mod localize;
 mod mode;
 mod nelson;
 mod rect;
@@ -32,5 +33,5 @@ mod rect;
 use crate::daemon::*;
 pub use crate::{
     backend::*, benchmark::*, board::*, color::*, deref_cell::*, key::*, keymap::*, layer::*,
-    layout::*, matrix::*, mode::*, nelson::*, rect::*,
+    layout::*, localize::*, matrix::*, mode::*, nelson::*, rect::*,
 };

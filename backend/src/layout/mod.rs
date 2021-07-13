@@ -20,23 +20,23 @@ pub struct Layout {
 }
 
 macro_rules! keyboards {
-    ($( $board:expr ),* $(,)?) => {
+    ($( ($board:expr, $keyboard:expr) ),* $(,)?) => {
         fn layout_data(board: &str) -> Option<(&'static str, &'static str, &'static str, &'static str, &'static str, &'static str)> {
             match board {
                 $(
                 $board => {
                     let meta_json =
-                        include_str!(concat!("../../../layouts/", $board, "/meta.json"));
+                        include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/../layouts/", $board, "/meta.json"));
                     let default_json =
-                        include_str!(concat!("../../../layouts/", $board, "/default.json"));
+                        include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/../layouts/", $board, "/default.json"));
                     let keymap_json =
-                        include_str!(concat!("../../../layouts/", $board, "/keymap.json"));
+                        include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/../layouts/keyboards/", $keyboard, "/keymap.json"));
                     let layout_json =
-                        include_str!(concat!("../../../layouts/", $board, "/layout.json"));
+                        include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/../layouts/keyboards/", $keyboard, "/layout.json"));
                     let leds_json =
-                        include_str!(concat!("../../../layouts/", $board, "/leds.json"));
+                        include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/../layouts/keyboards/", $keyboard, "/leds.json"));
                     let physical_json =
-                        include_str!(concat!("../../../layouts/", $board, "/physical.json"));
+                        include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/../layouts/keyboards/", $keyboard, "/physical.json"));
                     Some((meta_json, default_json, keymap_json, layout_json, leds_json, physical_json))
                 }
                 )*
@@ -51,21 +51,8 @@ macro_rules! keyboards {
     };
 }
 
-keyboards![
-    "system76/addw1",
-    "system76/addw2",
-    "system76/bonw14",
-    "system76/darp5",
-    "system76/darp6",
-    "system76/gaze15",
-    "system76/launch_alpha_1",
-    "system76/launch_alpha_2",
-    "system76/launch_1",
-    "system76/lemp9",
-    "system76/oryp5",
-    "system76/oryp6",
-    "system76/oryp7",
-];
+// Calls the `keyboards!` macro
+include!(concat!(env!("OUT_DIR"), "/keyboards.rs"));
 
 impl Layout {
     pub fn from_data(
@@ -147,12 +134,10 @@ impl Layout {
 }
 
 fn parse_keymap_json(keymap_json: &str) -> (HashMap<String, u16>, HashMap<u16, String>) {
-    let mut keymap = HashMap::new();
     let mut scancode_names = HashMap::new();
-    let l: Vec<(String, u16)> = serde_json::from_str(keymap_json).unwrap();
-    for (scancode_name, scancode) in l {
-        keymap.insert(scancode_name.clone(), scancode);
-        scancode_names.insert(scancode, scancode_name);
+    let keymap: HashMap<String, u16> = serde_json::from_str(keymap_json).unwrap();
+    for (scancode_name, scancode) in &keymap {
+        scancode_names.insert(*scancode, scancode_name.clone());
     }
     (keymap, scancode_names)
 }
@@ -160,7 +145,7 @@ fn parse_keymap_json(keymap_json: &str) -> (HashMap<String, u16>, HashMap<u16, S
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::collections::HashSet;
+    use std::{collections::HashSet, fs, io};
 
     #[test]
     fn layout_from_board() {
@@ -171,17 +156,16 @@ mod tests {
 
     #[test]
     fn default_keys_exist() {
-        let mut missing = HashSet::new();
         for i in layouts() {
-            println!("Parsing {} layout", i);
+            let mut missing = HashSet::new();
             let layout = Layout::from_board(i).unwrap();
             for j in layout.default.map.values().flatten() {
                 if layout.keymap.keys().find(|x| x == &j).is_none() {
                     missing.insert(j.to_owned());
                 }
             }
+            assert_eq!(missing, HashSet::new(), "Mssing in keymap for {}", i);
         }
-        assert_eq!(missing, HashSet::new());
     }
 
     #[test]
@@ -201,6 +185,63 @@ mod tests {
                 continue;
             }
             assert_eq!(layout_qmk.keymap.keys().find(|x| x == &k), Some(k));
+        }
+    }
+
+    #[test]
+    fn has_all_layouts_in_dir() -> io::Result<()> {
+        let layouts = layouts();
+        for i in fs::read_dir("../layouts/system76")? {
+            let i = i?;
+            if i.file_type()?.is_dir() {
+                let name = format!("system76/{}", i.file_name().into_string().unwrap());
+                assert!(
+                    layouts.contains(&name.as_str()),
+                    "{} not listed in {}",
+                    name,
+                    file!()
+                );
+            }
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn physical_layout_leds_logical() {
+        for i in layouts() {
+            let layout = Layout::from_board(i).unwrap();
+            let logical_in_physical = layout
+                .physical
+                .keys
+                .iter()
+                .map(|i| i.logical_name())
+                .collect::<HashSet<_>>();
+            let logical_in_layout = layout.layout.keys().cloned().collect::<HashSet<_>>();
+            let logical_in_leds = layout.layout.keys().cloned().collect::<HashSet<_>>();
+            assert_eq!(
+                &logical_in_physical - &logical_in_layout,
+                HashSet::new(),
+                "{}",
+                i
+            );
+            assert_eq!(
+                &logical_in_layout - &logical_in_physical,
+                HashSet::new(),
+                "{}",
+                i
+            );
+            assert_eq!(
+                &logical_in_physical - &logical_in_leds,
+                HashSet::new(),
+                "{}",
+                i
+            );
+            assert_eq!(
+                &logical_in_leds - &logical_in_physical,
+                HashSet::new(),
+                "{}",
+                i
+            );
         }
     }
 }

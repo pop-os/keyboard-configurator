@@ -3,4 +3,5 @@ Name=System76 Keyboard Configurator
 Exec=system76-keyboard-configurator
 Icon=com.system76.keyboardconfigurator
 Type=Application
+StartupNotify=true
 Categories=Utility;

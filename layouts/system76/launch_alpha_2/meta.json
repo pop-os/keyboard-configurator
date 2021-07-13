@@ -1,3 +1,7 @@
 {
-  "display_name": "Launch Alpha Keyboard"
+  "display_name": "Launch Alpha Keyboard",
+  "has_brightness": true,
+  "has_color": true,
+  "pressed_color": "#202020",
+  "keyboard": "system76/launch_alpha_2"
 }

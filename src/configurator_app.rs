@@ -3,7 +3,7 @@ use gtk::prelude::*;
 use gtk::subclass::prelude::*;
 use std::cell::Cell;
 
-use crate::{about_dialog, MainWindow, Page};
+use crate::{about_dialog, fl, MainWindow, Page};
 use backend::DerefCell;
 
 #[derive(Default)]
@@ -82,8 +82,8 @@ impl ApplicationImpl for ConfiguratorAppInner {
         };
 
         app.add_action(&about_action);
-        app.set_accels_for_action("kbd.load", &["<Primary>o"]);
-        app.set_accels_for_action("kbd.save", &["<Primary>s"]);
+        app.set_accels_for_action("kbd.import", &["<Primary>o"]);
+        app.set_accels_for_action("kbd.export", &["<Primary>e"]);
         for (i, _) in Page::iter_all().enumerate() {
             app.set_accels_for_action(&format!("kbd.page{}", i), &[&format!("<Primary>{}", i + 1)]);
         }
@@ -148,8 +148,27 @@ fn macos_init() {
     }
 
     if let Some(settings) = gtk::Settings::get_default() {
+        settings.set_property_gtk_decoration_layout(Some("close,minimize,maximize:menu"));
         settings.set_property_gtk_application_prefer_dark_theme(prefer_dark);
+        settings.set_property_gtk_enable_animations(false);
     }
+
+    let css_provider = cascade! {
+        gtk::CssProvider::new();
+        ..load_from_data(b"
+            button, button:hover {
+                box-shadow: none;
+                -gtk-icon-shadow: none;
+                text-shadow: none;
+            }
+        ").unwrap();
+    };
+
+    gtk::StyleContext::add_provider_for_screen(
+        &gdk::Screen::get_default().unwrap(),
+        &css_provider,
+        gtk::STYLE_PROVIDER_PRIORITY_APPLICATION,
+    );
 }
 
 #[cfg(target_os = "windows")]
@@ -164,7 +183,7 @@ fn windows_init() {
         hkcu.open_subkey("Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize")
     {
         if let Ok(dword) = subkey.get_value::<u32, _>("AppsUseLightTheme") {
-            prefer_dark = (dword == 0);
+            prefer_dark = dword == 0;
         }
     }
 
@@ -175,6 +194,10 @@ fn windows_init() {
 
 pub fn run() -> i32 {
     gtk::init().unwrap();
+
+    glib::set_prgname(Some("com.system76.keyboardconfigurator"));
+    glib::set_application_name(&fl!("app-title"));
+    gdk::set_program_class(&fl!("app-title"));
 
     #[cfg(target_os = "macos")]
     macos_init();

@@ -1,3 +1,4 @@
+use crate::fl;
 use cascade::cascade;
 use futures::{prelude::*, stream::FuturesUnordered};
 use glib::clone;
@@ -6,13 +7,14 @@ use gtk::prelude::*;
 use gtk::subclass::prelude::*;
 use std::{
     cell::{Cell, RefCell},
-    ffi::OsStr,
+    collections::HashMap,
     fs::File,
+    pin::Pin,
     str,
 };
 
 use crate::{show_error_dialog, Backlight, KeyboardLayer, MainWindow, Page, Picker, Testing};
-use backend::{Board, DerefCell, KeyMap, Layout};
+use backend::{Board, DerefCell, KeyMap, Layout, Mode};
 use widgets::SelectedKeys;
 
 #[derive(Default)]
@@ -68,42 +70,38 @@ impl ObjectImpl for KeyboardInner {
 
         let stack = cascade! {
             gtk::Stack::new();
-
+            ..set_homogeneous(false);
+            ..connect_property_visible_child_notify(clone!(@weak keyboard => move |_| keyboard.update_selectable()));
         };
 
         let stack_switcher = cascade! {
             gtk::StackSwitcher::new();
+            ..set_margin_top(12);
             ..set_halign(gtk::Align::Center);
-            ..set_margin_top(18);
             ..set_stack(Some(&stack));
         };
 
         cascade! {
             keyboard;
             ..set_orientation(gtk::Orientation::Vertical);
-            ..set_spacing(18);
+            ..set_spacing(32);
             ..add(&stack_switcher);
             ..add(&layer_stack);
-            ..add(&cascade! {
-                gtk::Label::new(Some("Select a key on the keymap to change its settings. Shift + click to select more than one key."));
-                ..set_halign(gtk::Align::Start);
-                ..set_margin_bottom(18);
-            });
             ..add(&stack);
         };
 
         let action_group = cascade! {
             gio::SimpleActionGroup::new();
             ..add_action(&cascade! {
-                gio::SimpleAction::new("load", None);
+                gio::SimpleAction::new("import", None);
                 ..connect_activate(clone!(@weak keyboard => move |_, _|
-                    keyboard.load();
+                    keyboard.import();
                 ));
             });
             ..add_action(&cascade! {
-                gio::SimpleAction::new("save", None);
+                gio::SimpleAction::new("export", None);
                 ..connect_activate(clone!(@weak keyboard => move |_, _|
-                    keyboard.save();
+                    keyboard.export();
                 ));
             });
             ..add_action(&cascade! {
@@ -181,30 +179,64 @@ impl Keyboard {
                 Testing::new(board.clone());
                 ..set_halign(gtk::Align::Center);
             };
-            stack.add_titled(&testing, "testing", "Testing");
+            stack.add_titled(&testing, "testing", &fl!("stack-testing"));
             keyboard.inner().testing.set(Some(testing));
         } else {
             keyboard.inner().testing.set(None);
         }
 
-        stack.add_titled(&*keyboard.inner().picker_box, "keymap", "Keymap");
+        stack.add_titled(
+            &cascade! {
+                gtk::Box::new(gtk::Orientation::Vertical, 32);
+                ..add(&cascade! {
+                    gtk::Label::new(Some(&fl!("stack-keymap-desc")));
+                    ..set_line_wrap(true);
+                    ..set_max_width_chars(100);
+                    ..set_halign(gtk::Align::Center);
+                });
+                ..add(&*keyboard.inner().picker_box);
+            },
+            "keymap",
+            &fl!("stack-keymap"),
+        );
 
         let backlight = cascade! {
             Backlight::new(board.clone());
             ..set_halign(gtk::Align::Center);
+            ..connect_local("notify::is-per-key", false, clone!(@weak keyboard => @default-panic, move |_| { keyboard.update_selectable(); None })).unwrap();
         };
+
+        let leds_desc = if board.layout().meta.has_per_layer {
+            fl!("stack-leds-desc")
+        } else {
+            fl!("stack-leds-desc-builtin")
+        };
+
         keyboard
             .bind_property("selected", &backlight, "selected")
             .build();
-        keyboard
-            .inner()
-            .stack
-            .add_titled(&backlight, "leds", "LEDs");
+        if board.layout().meta.has_brightness {
+            stack.add_titled(
+                &cascade! {
+                    gtk::Box::new(gtk::Orientation::Vertical, 32);
+                    ..add(&cascade! {
+                        gtk::Label::new(Some(&leds_desc));
+                        ..set_line_wrap(true);
+                        ..set_max_width_chars(100);
+                        ..set_halign(gtk::Align::Center);
+                    });
+                    ..add(&backlight);
+                },
+                "leds",
+                &fl!("stack-leds"),
+            );
+        }
 
         keyboard.inner().board.set(board);
         keyboard.inner().backlight.set(backlight);
 
         keyboard.add_pages(debug_layers);
+        keyboard.update_selectable();
 
         keyboard
     }
@@ -225,7 +257,7 @@ impl Keyboard {
         let name = &self.layout().meta.display_name;
         let model = self.board().model().splitn(2, '/').nth(1).unwrap();
         if self.board().is_fake() {
-            format!("{} ({}, fake)", name, model)
+            format!("{} ({})", name, fl!("board-fake", model = model))
         } else {
             format!("{} ({})", name, model)
         }
@@ -260,7 +292,7 @@ impl Keyboard {
             .set_scancode(layer, scancode_name)
             .await
         {
-            error!("Failed to set keymap: {:?}", err);
+            error!("{}: {:?}", fl!("error-set-keymap"), err);
         }
 
         self.set_selected(self.selected());
@@ -273,11 +305,11 @@ impl Keyboard {
     pub fn import_keymap(&self, keymap: KeyMap) {
         // TODO: Ideally don't want this function to be O(Keys^2)
 
-        if keymap.board != self.board().model() {
+        if keymap.model != self.board().model() {
             show_error_dialog(
                 &self.window().unwrap(),
-                "Failed to import keymap",
-                format!("Keymap is for board '{}'", keymap.board),
+                &fl!("error-import-keymap"),
+                fl!("keymap-for-board", model = keymap.model),
             );
             return;
         }
@@ -287,40 +319,70 @@ impl Keyboard {
             let _loader = self_.get_toplevel().and_then(|x| {
                 Some(
                     x.downcast_ref::<MainWindow>()?
-                        .display_loader(&format!("Loading keymap for {}...", self_.display_name())),
+                        .display_loader(&fl!("loading-keyboard", keyboard = self_.display_name())),
                 )
             });
 
-            keymap
-                .map
+            // TODO: Make sure it doesn't panic with invalid json with invalid indexes?
+
+            let key_indices = self_
+                .board()
+                .keys()
                 .iter()
-                .flat_map(|(k, v)| {
-                    let n = self_
-                        .board()
-                        .keys()
-                        .iter()
-                        .position(|i| &i.logical_name == k)
-                        .unwrap();
-                    let self_ = &self_;
-                    v.iter().enumerate().map(move |(layer, scancode_name)| {
-                        self_.keymap_set(n, layer, scancode_name)
-                    })
-                })
-                .collect::<FuturesUnordered<_>>()
-                .collect::<()>()
-                .await;
+                .enumerate()
+                .map(|(i, k)| (&k.logical_name, i))
+                .collect::<HashMap<_, _>>();
+
+            let futures = FuturesUnordered::<Pin<Box<dyn Future<Output = ()>>>>::new();
+
+            for (k, v) in &keymap.map {
+                for (layer, scancode_name) in v.iter().enumerate() {
+                    let n = key_indices[&k];
+                    futures.push(Box::pin(self_.keymap_set(n, layer, scancode_name)));
+                }
+            }
+
+            for (k, hs) in &keymap.key_leds {
+                let res = self_.board().keys()[key_indices[&k]].set_color(*hs);
+                futures.push(Box::pin(async move {
+                    if let Err(err) = res.await {
+                        error!("{}: {}", fl!("error-key-led"), err);
+                    }
+                }));
+            }
+
+            for (i, keymap_layer) in keymap.layers.iter().enumerate() {
+                let layer = &self_.board().layers()[i];
+                futures.push(Box::pin(async move {
+                    if let Some((mode, speed)) = keymap_layer.mode {
+                        if let Err(err) =
+                            layer.set_mode(Mode::from_index(mode).unwrap(), speed).await
+                        {
+                            error!("{}: {}", fl!("error-set-layer-mode"), err)
+                        }
+                    }
+                    if let Err(err) = layer.set_brightness(keymap_layer.brightness).await {
+                        error!("{}: {}", fl!("error-set-layer-brightness"), err)
+                    }
+                    if let Err(err) = layer.set_color(keymap_layer.color).await {
+                        error!("{}: {}", fl!("error-set-layer-color"), err)
+                    }
+                }));
+            }
+
+            futures.collect::<()>().await;
         });
     }
 
-    fn load(&self) {
+    fn import(&self) {
         let filter = cascade! {
             gtk::FileFilter::new();
-            ..set_name(Some("JSON"));
+            ..set_name(Some("json"));
             ..add_pattern("*.json");
         };
 
         let chooser = cascade! {
-            gtk::FileChooserNative::new::<gtk::Window>(Some("Load Layout"), None, gtk::FileChooserAction::Open, Some("Load"), Some("Cancel"));
+            gtk::FileChooserNative::new::<gtk::Window>(Some(&fl!("layout-import")), None, gtk::FileChooserAction::Open, Some(&fl!("button-import")), Some(&fl!("button-cancel")));
             ..add_filter(&filter);
         };
 
@@ -338,47 +400,61 @@ impl Keyboard {
         }
     }
 
-    fn save(&self) {
+    fn export(&self) {
         let filter = cascade! {
             gtk::FileFilter::new();
-            ..set_name(Some("JSON"));
+            ..set_name(Some("json"));
             ..add_pattern("*.json");
         };
 
         let chooser = cascade! {
-            gtk::FileChooserNative::new::<gtk::Window>(Some("Save Layout"), None, gtk::FileChooserAction::Save, Some("Save"), Some("Cancel"));
+            gtk::FileChooserNative::new::<gtk::Window>(Some(&fl!("layout-export")), None, gtk::FileChooserAction::Save, Some("Export"), Some("Cancel"));
             ..add_filter(&filter);
+            ..set_current_name(&format!("{}.json", fl!("untitled-layout")));
+            ..set_do_overwrite_confirmation(true);
         };
 
         if chooser.run() == gtk::ResponseType::Accept {
-            let mut path = chooser.get_filename().unwrap();
-            match path.extension() {
-                None => {
-                    path.set_extension(OsStr::new("json"));
-                }
-                Some(ext) if ext == OsStr::new("json") => {}
-                Some(ext) => {
-                    let mut ext = ext.to_owned();
-                    ext.push(".json");
-                    path.set_extension(&ext);
-                }
-            }
+            let path = chooser.get_filename().unwrap();
             let keymap = self.export_keymap();
+
+            if keymap.version != 1 {
+                show_error_dialog(
+                    &self.window().unwrap(),
+                    &fl!("error-unsupported-keymap"),
+                    &fl!("error-unsupported-keymap-desc"),
+                )
+            }
 
             match File::create(&path) {
                 Ok(file) => match keymap.to_writer_pretty(file) {
                     Ok(()) => {}
                     Err(err) => {
-                        show_error_dialog(&self.window().unwrap(), "Failed to export keymap", err)
+                        show_error_dialog(&self.window().unwrap(), &fl!("error-export-keymap"), err)
                     }
                 },
-                Err(err) => show_error_dialog(&self.window().unwrap(), "Failed to open file", err),
+                Err(err) => {
+                    show_error_dialog(&self.window().unwrap(), &fl!("error-open-file"), err)
+                }
             }
         }
     }
 
     fn reset(&self) {
         self.import_keymap(self.layout().default.clone());
+    }
+
+    fn update_selectable(&self) {
+        let tab_name = self.inner().stack.get_visible_child_name();
+        let tab_name = tab_name.as_deref();
+        let is_per_key = self.inner().backlight.mode().is_per_key();
+
+        let selectable = tab_name == Some("keymap") || (tab_name == Some("leds") && is_per_key);
+
+        self.inner().layer_stack.foreach(|layer| {
+            let layer = layer.downcast_ref::<KeyboardLayer>().unwrap();
+            layer.set_selectable(selectable);
+        });
     }
 
     fn add_pages(&self, debug_layers: bool) {
@@ -400,18 +476,13 @@ impl Keyboard {
             self.bind_property("selected", &keyboard_layer, "selected")
                 .flags(glib::BindingFlags::BIDIRECTIONAL)
                 .build();
-            self.inner()
-                .backlight
-                .bind_property("is-per-key", &keyboard_layer, "multiple")
-                .flags(glib::BindingFlags::SYNC_CREATE)
-                .build();
             if let Some(testing) = &*self.inner().testing {
                 testing
                     .bind_property("colors", &keyboard_layer, "testing-colors")
                     .flags(glib::BindingFlags::SYNC_CREATE)
                     .build();
             }
-            layer_stack.add_titled(&keyboard_layer, page.name(), page.name());
+            layer_stack.add_titled(&keyboard_layer, &page.name(), &page.name());
 
             self.inner().action_group.add_action(&cascade! {
                 gio::SimpleAction::new(&format!("page{}", i), None);
@@ -437,7 +508,7 @@ impl Keyboard {
         };
     }
 
-    fn set_selected(&self, i: SelectedKeys) {
+    fn set_selected(&self, selected: SelectedKeys) {
         let picker = match self.inner().picker.borrow().upgrade() {
             Some(picker) => picker,
             None => {
@@ -446,21 +517,21 @@ impl Keyboard {
         };
         let keys = self.board().keys();
 
-        picker.set_selected(None);
-
-        if i.len() == 1 {
-            let k = &keys[*i.iter().next().unwrap()];
+        let mut selected_scancodes = Vec::new();
+        for i in selected.iter() {
+            let k = &keys[*i];
             debug!("{:#?}", k);
             if let Some(layer) = self.layer() {
                 if let Some((_scancode, scancode_name)) = k.get_scancode(layer) {
-                    picker.set_selected(Some(scancode_name));
+                    selected_scancodes.push(scancode_name);
                 }
             }
         }
+        picker.set_selected(selected_scancodes);
 
-        picker.set_sensitive(i.len() == 1 && self.layer() != None);
+        picker.set_sensitive(selected.len() > 0 && self.layer() != None);
 
-        self.inner().selected.replace(i);
+        self.inner().selected.replace(selected);
 
         self.queue_draw();
         self.notify("selected");

@@ -1,3 +1,4 @@
+use crate::fl;
 use once_cell::sync::Lazy;
 use std::collections::HashMap;
 
@@ -9,7 +10,7 @@ pub struct Mode {
     /// Textual ID of mode, for `ListBox` or debugging
     pub id: &'static str,
     /// Display name of mode
-    pub name: &'static str,
+    pub name: String,
     /// Hue setting has effect in this mode
     pub has_hue: bool,
     /// Speed setting has effect in this mode
@@ -20,7 +21,7 @@ impl Mode {
     const fn new(
         index: u8,
         id: &'static str,
-        name: &'static str,
+        name: String,
         has_hue: bool,
         has_speed: bool,
     ) -> Self {
@@ -35,7 +36,7 @@ impl Mode {
 
     /// Return slice of all `Mode`s, ordered as they should be displayed
     pub fn all() -> &'static [Mode] {
-        MODES
+        &MODES
     }
 
     /// Get `Mode` corresponding to index (as used in firmware)
@@ -62,20 +63,40 @@ impl Mode {
     }
 }
 
-static MODES: &[Mode] = &[
-    Mode::new(14, "DISABLED", "Disabled", false, false),
-    Mode::new(0, "SOLID_COLOR", "Solid Color", true, false),
-    Mode::new(1, "PER_KEY", "Per Key", true, false),
-    Mode::new(2, "CYCLE_ALL", "Cosmic Background", false, true),
-    Mode::new(3, "CYCLE_LEFT_RIGHT", "Horizonal Scan", false, true),
-    Mode::new(4, "CYCLE_UP_DOWN", "Vertical Scan", false, true),
-    Mode::new(5, "CYCLE_OUT_IN", "Event Horizon", false, true),
-    Mode::new(6, "CYCLE_OUT_IN_DUAL", "Binary Galaxies", false, true),
-    Mode::new(7, "RAINBOW_MOVING_CHEVRON", "Spacetime", false, true),
-    Mode::new(8, "CYCLE_PINWHEEL", "Pinwheel Galaxy", false, true),
-    Mode::new(9, "CYCLE_SPIRAL", "Spiral Galaxy", false, true),
-    Mode::new(10, "RAINDROPS", "Elements", false, false),
-    Mode::new(11, "SPLASH", "Splashdown", false, true),
-    Mode::new(12, "MULTISPLASH", "Meteor Shower", false, true),
-    Mode::new(13, "ACTIVE_KEYS", "Bound Keys", true, false),
-];
+static MODES: Lazy<Vec<Mode>> = Lazy::new(|| {
+    vec![
+        Mode::new(14, "DISABLED", fl!("mode-disabled"), false, false),
+        Mode::new(0, "SOLID_COLOR", fl!("mode-solid-color"), true, false),
+        Mode::new(1, "PER_KEY", fl!("mode-per-key"), true, false),
+        Mode::new(13, "ACTIVE_KEYS", fl!("mode-active-keys"), true, false),
+        Mode::new(2, "CYCLE_ALL", fl!("mode-cycle-all"), false, true),
+        Mode::new(
+            3,
+            "CYCLE_LEFT_RIGHT",
+            fl!("mode-cycle-left-right"),
+            false,
+            true,
+        ),
+        Mode::new(4, "CYCLE_UP_DOWN", fl!("mode-cycle-up-down"), false, true),
+        Mode::new(5, "CYCLE_OUT_IN", fl!("mode-cycle-out-in"), false, true),
+        Mode::new(
+            6,
+            "CYCLE_OUT_IN_DUAL",
+            fl!("mode-cycle-out-in-dual"),
+            false,
+            true,
+        ),
+        Mode::new(
+            7,
+            "RAINBOW_MOVING_CHEVRON",
+            fl!("mode-rainbow-moving-chevron"),
+            false,
+            true,
+        ),
+        Mode::new(8, "CYCLE_PINWHEEL", fl!("mode-cycle-pinwheel"), false, true),
+        Mode::new(9, "CYCLE_SPIRAL", fl!("mode-cycle-spiral"), false, true),
+        Mode::new(10, "RAINDROPS", fl!("mode-raindrops"), false, false),
+        Mode::new(11, "SPLASH", fl!("mode-splash"), false, true),
+        Mode::new(12, "MULTISPLASH", fl!("mode-multisplash"), false, true),
+    ]
+});

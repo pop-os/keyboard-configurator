@@ -5,8 +5,8 @@
 use std::iter::Iterator;
 use zbus::{dbus_proxy, fdo::ObjectManagerProxy, Connection};
 
-use super::{err_str, BoardId, Daemon};
-use crate::{Benchmark, Matrix, Nelson, NelsonKind, Rgb};
+use super::{err_str, BoardId, Daemon, Matrix};
+use crate::{Benchmark, fl, Nelson, NelsonKind, Rgb};
 
 const DBUS_NAME: &str = "com.system76.PowerDaemon";
 
@@ -51,7 +51,7 @@ impl DaemonS76Power {
     fn board(&self, board: BoardId) -> Result<&Keyboard, String> {
         self.boards
             .get(board.0 as usize)
-            .ok_or_else(|| "No board".to_string())
+            .ok_or_else(|| fl!("no-board"))
     }
 }
 
@@ -83,6 +83,10 @@ impl Daemon for DaemonS76Power {
     fn model(&self, _board: BoardId) -> Result<String, String> {
         // XXX
         Ok("system76/darp6".to_string())
+    }
+
+    fn version(&self, _board: BoardId) -> Result<String, String> {
+        Err("Unimplemented".to_string())
     }
 
     fn keymap_get(

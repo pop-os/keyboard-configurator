@@ -1,3 +1,7 @@
 {
-  "display_name": "Adder WS"
+  "display_name": "Adder WS",
+  "has_brightness": true,
+  "has_color": true,
+  "pressed_color": "#dfdfdf",
+  "keyboard": "system76/15in_102"
 }

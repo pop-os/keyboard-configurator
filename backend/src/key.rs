@@ -1,5 +1,5 @@
 use glib::clone::Downgrade;
-use std::{cell::Cell, char};
+use std::cell::Cell;
 
 use crate::{Board, Daemon, Hs, PhysicalLayoutKey, Rect, Rgb};
 
@@ -38,6 +38,7 @@ impl Key {
         physical_key: &PhysicalLayoutKey,
     ) -> Self {
         let logical = physical_key.logical;
+        let logical_name = physical_key.logical_name();
         let physical = physical_key.physical;
         let physical_name = physical_key.physical_name.clone();
         let background_color = physical_key.background_color;
@@ -45,12 +46,6 @@ impl Key {
         debug!("Key {}, {} = {:?}", physical.x, physical.y, physical_name);
 
         debug!("  Logical: {:?}", logical);
-
-        let row_char =
-            char::from_digit(logical.0 as u32, 36).expect("Failed to convert row to char");
-        let col_char =
-            char::from_digit(logical.1 as u32, 36).expect("Failed to convert col to char");
-        let logical_name = format!("K{}{}", row_char, col_char).to_uppercase();
         debug!("  Logical Name: {}", logical_name);
 
         let electrical = *board

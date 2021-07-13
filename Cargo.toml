@@ -1,6 +1,6 @@
 [package]
 name = "system76-keyboard-configurator"
-version = "0.1.0"
+version = "1.0.0"
 authors = ["Ian Douglas Scott <idscott@system76.com>", "Jeremy Soller <jeremy@system76.com>"]
 license = "GPL-3.0-or-later"
 edition = "2018"
@@ -26,6 +26,11 @@ log = "0.4.0"
 env_logger = "0.8.3"
 backend = { package = "system76-keyboard-configurator-backend", path = "backend" }
 widgets = { package = "system76-keyboard-configurator-widgets", path = "widgets" }
+
+# Translation support
+i18n-embed = { version = "0.12.0", features = ["fluent-system", "desktop-requester"] }
+i18n-embed-fl = "0.5.0"
+rust-embed = { version = "5.9.0", features = ["debug-embed"] }
 
 [build-dependencies]
 gio = { git = "https://github.com/pop-os/gtk-rs" }

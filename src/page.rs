@@ -1,3 +1,4 @@
+use crate::fl;
 use crate::picker::SCANCODE_LABELS;
 use backend::Key;
 
@@ -14,16 +15,16 @@ pub enum Page {
 }
 
 impl Page {
-    pub fn name(&self) -> &'static str {
+    pub fn name(&self) -> String {
         match self {
-            Self::Layer1 => "Layer 1",
-            Self::Layer2 => "Layer 2",
-            Self::Layer3 => "Layer 3",
-            Self::Layer4 => "Layer 4",
-            Self::Keycaps => "Keycaps",
-            Self::Logical => "Logical",
-            Self::Electrical => "Electrical",
-            Self::Leds => "LEDs",
+            Self::Layer1 => fl!("page-layer1"),
+            Self::Layer2 => fl!("page-layer2"),
+            Self::Layer3 => fl!("page-layer3"),
+            Self::Layer4 => fl!("page-layer4"),
+            Self::Keycaps => fl!("page-keycaps"),
+            Self::Logical => fl!("page-logical"),
+            Self::Electrical => fl!("page-electrical"),
+            Self::Leds => fl!("page-leds"),
         }
     }
 
