@@ -1,6 +1,7 @@
 use crate::fl;
 use backend::{Board, DerefCell, NelsonKind, Rgb};
 use cascade::cascade;
+use futures::{prelude::*, stream::FuturesUnordered};
 use gtk::prelude::*;
 use gtk::subclass::prelude::*;
 use once_cell::sync::OnceCell;
@@ -298,14 +299,15 @@ glib::wrapper! {
 }
 
 async fn import_keymap_hack(board: &Board, keymap: &backend::KeyMap) -> Result<(), String> {
+    let futures = FuturesUnordered::new();
     for key in board.keys() {
         if let Some(scancodes) = keymap.map.get(&key.logical_name) {
             for layer in 0..scancodes.len() {
-                key.set_scancode(layer, &scancodes[layer]).await?;
+                futures.push(key.set_scancode(layer, &scancodes[layer]));
             }
         }
     }
-    Ok(())
+    futures.try_collect::<()>().await
 }
 
 impl Testing {
