@@ -172,6 +172,10 @@ impl Keyboard {
     pub fn new(board: Board, debug_layers: bool, launch_test: bool) -> Self {
         let keyboard: Self = glib::Object::new(&[]).unwrap();
 
+        board.connect_keymap_changed(clone!(@weak keyboard => move ||
+            keyboard.queue_draw();
+        ));
+
         let stack = &keyboard.inner().stack;
 
         if launch_test {

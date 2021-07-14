@@ -43,6 +43,7 @@ impl ObjectImpl for BoardInner {
     fn signals() -> &'static [Signal] {
         static SIGNALS: Lazy<Vec<Signal>> = Lazy::new(|| {
             vec![
+                Signal::builder("keymap-changed", &[], glib::Type::UNIT.into()).build(),
                 Signal::builder("leds-changed", &[], glib::Type::UNIT.into()).build(),
                 Signal::builder("matrix-changed", &[], glib::Type::UNIT.into()).build(),
                 Signal::builder("removed", &[], glib::Type::UNIT.into()).build(),
@@ -144,6 +145,14 @@ impl Board {
 
     pub fn connect_removed<F: Fn() + 'static>(&self, cb: F) -> SignalHandlerId {
         self.connect_local("removed", false, move |_| {
+            cb();
+            None
+        })
+        .unwrap()
+    }
+
+    pub fn connect_keymap_changed<F: Fn() + 'static>(&self, cb: F) -> SignalHandlerId {
+        self.connect_local("keymap-changed", false, move |_| {
             cb();
             None
         })

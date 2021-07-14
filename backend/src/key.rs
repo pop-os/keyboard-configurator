@@ -1,4 +1,4 @@
-use glib::clone::Downgrade;
+use glib::prelude::*;
 use std::cell::Cell;
 
 use crate::{Board, Daemon, Hs, PhysicalLayoutKey, Rect, Rgb};
@@ -170,6 +170,7 @@ impl Key {
             )
             .await?;
         self.scancodes[layer].set(scancode);
+        board.emit_by_name("keymap-changed", &[]).unwrap();
         Ok(())
     }
 }
