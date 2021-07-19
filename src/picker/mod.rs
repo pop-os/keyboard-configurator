@@ -1,8 +1,10 @@
 use cascade::cascade;
+use futures::{prelude::*, stream::FuturesUnordered};
+use glib::clone;
 use gtk::prelude::*;
 use gtk::subclass::prelude::*;
 use once_cell::sync::Lazy;
-use std::collections::HashMap;
+use std::{cell::RefCell, collections::HashMap};
 
 use crate::Keyboard;
 use backend::DerefCell;
@@ -29,6 +31,7 @@ pub static SCANCODE_LABELS: Lazy<HashMap<String, String>> = Lazy::new(|| {
 #[derive(Default)]
 pub struct PickerInner {
     group_box: DerefCell<PickerGroupBox>,
+    keyboard: RefCell<Option<Keyboard>>,
 }
 
 #[glib::object_subclass]
@@ -42,7 +45,12 @@ impl ObjectImpl for PickerInner {
     fn constructed(&self, picker: &Picker) {
         self.parent_constructed(picker);
 
-        let group_box = PickerGroupBox::new();
+        let group_box = cascade! {
+            PickerGroupBox::new();
+            ..connect_key_pressed(clone!(@weak picker => move |name| {
+                picker.key_pressed(name)
+            }));
+        };
 
         cascade! {
             picker;
@@ -75,15 +83,47 @@ impl Picker {
     }
 
     pub(crate) fn set_keyboard(&self, keyboard: Option<Keyboard>) {
-        self.inner().group_box.set_keyboard(keyboard.clone());
+        if let Some(old_kb) = &*self.inner().keyboard.borrow() {
+            old_kb.set_picker(None);
+        }
 
         if let Some(kb) = &keyboard {
+            // Check that scancode is available for the keyboard
+            self.inner().group_box.set_key_visibility(|name| {
+                let visible = kb.has_scancode(name);
+                let sensitive = true;
+                (visible, sensitive)
+            });
             kb.set_picker(Some(&self));
         }
+
+        *self.inner().keyboard.borrow_mut() = keyboard;
     }
 
     pub(crate) fn set_selected(&self, scancode_names: Vec<String>) {
         self.inner().group_box.set_selected(scancode_names);
+    }
+
+    fn key_pressed(&self, name: String) {
+        let kb = match self.inner().keyboard.borrow().clone() {
+            Some(kb) => kb,
+            None => {
+                return;
+            }
+        };
+        let layer = kb.layer();
+
+        info!("Clicked {} layer {:?}", name, layer);
+        if let Some(layer) = layer {
+            let futures = FuturesUnordered::new();
+            for i in kb.selected().iter() {
+                let i = *i;
+                futures.push(clone!(@strong kb, @strong name => async move {
+                    kb.keymap_set(i, layer, &name).await;
+                }));
+            }
+            glib::MainContext::default().spawn_local(async { futures.collect::<()>().await });
+        }
     }
 }
 

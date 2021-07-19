@@ -1,11 +1,10 @@
 use cascade::cascade;
-use futures::{prelude::*, stream::FuturesUnordered};
-use glib::clone;
+use glib::{clone, subclass::Signal, SignalHandlerId};
 use gtk::prelude::*;
 use gtk::subclass::prelude::*;
+use once_cell::sync::Lazy;
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
-use crate::Keyboard;
 use backend::DerefCell;
 
 use super::{picker_group::PickerGroup, picker_json::picker_json, picker_key::PickerKey};
@@ -29,7 +28,6 @@ button {
 pub struct PickerGroupBoxInner {
     groups: DerefCell<Vec<PickerGroup>>,
     keys: DerefCell<HashMap<String, Rc<PickerKey>>>,
-    keyboard: RefCell<Option<Keyboard>>,
     selected: RefCell<Vec<String>>,
 }
 
@@ -83,6 +81,18 @@ impl ObjectImpl for PickerGroupBoxInner {
             ..connect_signals();
             ..show_all();
         };
+    }
+
+    fn signals() -> &'static [Signal] {
+        static SIGNALS: Lazy<Vec<Signal>> = Lazy::new(|| {
+            vec![Signal::builder(
+                "key-pressed",
+                &[String::static_type().into()],
+                glib::Type::UNIT.into(),
+            )
+            .build()]
+        });
+        SIGNALS.as_ref()
     }
 }
 
@@ -226,50 +236,30 @@ impl PickerGroupBox {
                 let button = &key.gtk;
                 let name = key.name.to_string();
                 button.connect_clicked(clone!(@weak picker => @default-panic, move |_| {
-                    let kb = match picker.inner().keyboard.borrow().clone() {
-                        Some(kb) => kb,
-                        None => {
-                            return;
-                        }
-                    };
-                    let layer = kb.layer();
-
-                    info!("Clicked {} layer {:?}", name, layer);
-                    if let Some(layer) = layer {
-                        let futures = FuturesUnordered::new();
-                        for i in kb.selected().iter() {
-                            let i = *i;
-                            futures.push(clone!(@strong kb, @strong name => async move {
-                                kb.keymap_set(i, layer, &name).await;
-                            }));
-                        }
-                        glib::MainContext::default().spawn_local(async {futures.collect::<()>().await});
-                    }
+                    picker.emit_by_name("key-pressed", &[&name]).unwrap();
                 }));
             }
         }
+    }
+
+    pub fn connect_key_pressed<F: Fn(String) + 'static>(&self, cb: F) -> SignalHandlerId {
+        self.connect_local("key-pressed", false, move |values| {
+            cb(values[1].get::<String>().unwrap().unwrap());
+            None
+        })
+        .unwrap()
     }
 
     fn get_button(&self, scancode_name: &str) -> Option<&gtk::Button> {
         self.inner().keys.get(scancode_name).map(|k| &k.gtk)
     }
 
-    pub(crate) fn set_keyboard(&self, keyboard: Option<Keyboard>) {
-        if let Some(old_kb) = &*self.inner().keyboard.borrow() {
-            old_kb.set_picker(None);
+    pub(crate) fn set_key_visibility<F: Fn(&str) -> (bool, bool)>(&self, f: F) {
+        for key in self.inner().keys.values() {
+            let (visible, sensitive) = f(&key.name);
+            key.gtk.set_visible(visible);
+            key.gtk.set_sensitive(sensitive);
         }
-
-        if let Some(kb) = &keyboard {
-            for group in self.inner().groups.iter() {
-                for key in group.iter_keys() {
-                    // Check that scancode is available for the keyboard
-                    let visible = kb.has_scancode(&key.name);
-                    key.gtk.set_visible(visible);
-                }
-            }
-        }
-
-        *self.inner().keyboard.borrow_mut() = keyboard;
     }
 
     pub(crate) fn set_selected(&self, scancode_names: Vec<String>) {
