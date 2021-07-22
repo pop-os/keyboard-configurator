@@ -6,6 +6,7 @@ license = "GPL-3.0-or-later"
 edition = "2018"
 
 [dependencies]
+cascade = "1"
 futures = "0.3.13"
 futures-timer = "3.0.2"
 glib = { git = "https://github.com/pop-os/gtk-rs" }
@@ -14,6 +15,7 @@ libc = "0.2"
 once_cell = "1.4"
 ordered-float = { version = "2.0", features = ["serde"] }
 palette = "0.5"
+regex = "1"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 log = "0.4.0"

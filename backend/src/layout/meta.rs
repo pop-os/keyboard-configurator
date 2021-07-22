@@ -20,6 +20,9 @@ pub struct Meta {
     pub has_brightness: bool,
     /// Has LED with color (i.e. not monochrome)
     pub has_color: bool,
+    /// Supports mod-tap bindings (assumes QMK mod-tap encoding)
+    #[serde(default)]
+    pub has_mod_tap: bool,
     /// Number or layers; e.g. 2 where layer 2 is used when `Fn` is held
     #[serde(default = "num_layers_default")]
     pub num_layers: u8,

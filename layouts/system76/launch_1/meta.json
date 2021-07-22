@@ -5,6 +5,7 @@
   "num_layers": 4,
   "has_brightness": true,
   "has_color": true,
+  "has_mod_tap": true,
   "pressed_color": "#202020",
   "keyboard": "system76/launch_1"
 }

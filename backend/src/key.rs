@@ -147,7 +147,7 @@ impl Key {
         let board = self.board();
         let scancode = self.scancodes.get(layer)?.get();
         let scancode_name = match board.layout().scancode_to_name(scancode) {
-            Some(some) => some.to_string(),
+            Some(some) => some,
             None => String::new(),
         };
         Some((scancode, scancode_name))

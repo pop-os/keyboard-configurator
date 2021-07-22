@@ -1583,6 +1583,7 @@ dependencies = [
 name = "system76-keyboard-configurator-backend"
 version = "0.1.0"
 dependencies = [
+ "cascade",
  "futures",
  "futures-timer",
  "glib",
@@ -1594,6 +1595,7 @@ dependencies = [
  "once_cell",
  "ordered-float",
  "palette",
+ "regex",
  "rust-embed",
  "serde",
  "serde_json",
