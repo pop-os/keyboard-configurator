@@ -58,7 +58,7 @@ page-leds = LED diode
 page-logical = Logična
 
 no-boards = Tipkovnica ni zaznana
-no-boards-msg = Prepričajte se, da vgrajena tipkovnica ima posodobljeno
+no-boards-msg = Prepričajte se, da ima vgrajena tipkovnica posodobljeno
   System76 Odprto vdelano programsko opremo.
   Če uporabljate zunanjo tipkovnico, se prepričajte, da je
   pravilno priključena
