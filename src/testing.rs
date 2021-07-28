@@ -53,14 +53,10 @@ pub struct TestingInner {
     reset_button: DerefCell<gtk::Button>,
     bench_button: DerefCell<gtk::ToggleButton>,
     bench_labels: DerefCell<HashMap<&'static str, gtk::Label>>,
-    test_button_1: DerefCell<gtk::Button>,
-    test_label_1: DerefCell<gtk::Label>,
     num_runs_spin_2: DerefCell<gtk::SpinButton>,
-    test_button_2: DerefCell<gtk::Button>,
-    test_label_2: DerefCell<gtk::Label>,
     num_runs_spin_3: DerefCell<gtk::SpinButton>,
-    test_button_3: DerefCell<gtk::Button>,
-    test_label_3: DerefCell<gtk::Label>,
+    test_buttons: DerefCell<[gtk::Button; 3]>,
+    test_labels: DerefCell<[gtk::Label; 3]>,
     colors: RefCell<TestingColors>,
 }
 
@@ -106,156 +102,115 @@ impl ObjectImpl for TestingInner {
             }
         }
 
-        {
-            let reset_button = gtk::Button::with_label("Reset testing");
+        fn header_func(row: &gtk::ListBoxRow, before: Option<&gtk::ListBoxRow>) {
+            if before.is_none() {
+                row.set_header::<gtk::Widget>(None)
+            } else if row.get_header().is_none() {
+                row.set_header(Some(&cascade! {
+                    gtk::Separator::new(gtk::Orientation::Horizontal);
+                    ..show();
+                }));
+            }
+        }
 
-            obj.add(&cascade! {
+        let reset_button = gtk::Button::with_label("Reset testing");
+
+        obj.add(&cascade! {
+            gtk::ListBox::new();
+            ..set_valign(gtk::Align::Start);
+            ..get_style_context().add_class("frame");
+            ..add(&row(&reset_button));
+        });
+
+        let bench_list = gtk::ListBox::new();
+
+        let mut bench_labels = HashMap::new();
+        for (port_desc, _port_result) in TestResults::global().bench.read().unwrap().iter() {
+            let bench_label = gtk::Label::new(None);
+            bench_list.add(&label_row(port_desc, &bench_label));
+            bench_labels.insert(*port_desc, bench_label);
+        }
+
+        let bench_button = gtk::ToggleButton::with_label("Run USB test");
+
+        obj.add(&cascade! {
+            gtk::Box::new(gtk::Orientation::Vertical, 12);
+            ..add(&gtk::Label::new(Some("USB Port Test")));
+            ..add(&cascade! {
+                bench_list;
+                ..set_valign(gtk::Align::Start);
+                ..get_style_context().add_class("frame");
+                ..add(&row(&bench_button));
+                ..set_header_func(Some(Box::new(header_func)));
+            });
+        });
+
+        let num_runs_spin_2 = gtk::SpinButton::with_range(1.0, 1000.0, 1.0);
+        let num_runs_spin_3 = gtk::SpinButton::with_range(1.0, 1000.0, 1.0);
+        let test_buttons = [
+            gtk::Button::with_label(&fl!("button-test")),
+            gtk::Button::with_label(&fl!("button-test")),
+            gtk::Button::with_label(&fl!("button-test")),
+        ];
+        let test_labels = [
+            gtk::Label::new(None),
+            gtk::Label::new(None),
+            gtk::Label::new(None),
+        ];
+
+        obj.add(&cascade! {
+            gtk::Box::new(gtk::Orientation::Vertical, 12);
+            ..add(&gtk::Label::new(Some("Nelson Test 1")));
+            ..add(&cascade! {
                 gtk::ListBox::new();
                 ..set_valign(gtk::Align::Start);
                 ..get_style_context().add_class("frame");
-                ..add(&row(&reset_button));
+                ..add(&row(&test_buttons[0]));
+                ..add(&row(&test_labels[0]));
+                ..add(&label_row("Check pins (missing)", &color_box(1., 0., 0.)));
+                ..add(&label_row("Check key (sticking)", &color_box(0., 1., 0.)));
+                ..set_header_func(Some(Box::new(header_func)));
             });
+        });
 
-            self.reset_button.set(reset_button);
-        }
-
-        {
-            let list = gtk::ListBox::new();
-
-            let mut bench_labels = HashMap::new();
-            for (port_desc, _port_result) in TestResults::global().bench.read().unwrap().iter() {
-                let bench_label = gtk::Label::new(None);
-                list.add(&label_row(port_desc, &bench_label));
-                bench_labels.insert(*port_desc, bench_label);
-            }
-
-            let bench_button = gtk::ToggleButton::with_label("Run USB test");
-
-            obj.add(&cascade! {
-                gtk::Box::new(gtk::Orientation::Vertical, 12);
-                ..add(&gtk::Label::new(Some("USB Port Test")));
-                ..add(&cascade! {
-                    list;
-                    ..set_valign(gtk::Align::Start);
-                    ..get_style_context().add_class("frame");
-                    ..add(&row(&bench_button));
-                    ..set_header_func(Some(Box::new(|row, before| {
-                        if before.is_none() {
-                            row.set_header::<gtk::Widget>(None)
-                        } else if row.get_header().is_none() {
-                            row.set_header(Some(&cascade! {
-                                gtk::Separator::new(gtk::Orientation::Horizontal);
-                                ..show();
-                            }));
-                        }
-                    })));
-                });
+        obj.add(&cascade! {
+            gtk::Box::new(gtk::Orientation::Vertical, 12);
+            ..add(&gtk::Label::new(Some("Nelson Test 2")));
+            ..add(&cascade! {
+                gtk::ListBox::new();
+                ..set_valign(gtk::Align::Start);
+                ..get_style_context().add_class("frame");
+                ..add(&label_row("Number of runs", &num_runs_spin_2));
+                ..add(&row(&test_buttons[1]));
+                ..add(&row(&test_labels[1]));
+                ..add(&label_row("Replace switch (bouncing)", &color_box(0., 0., 1.)));
+                ..set_header_func(Some(Box::new(header_func)));
             });
+        });
 
-            self.bench_button.set(bench_button);
-            self.bench_labels.set(bench_labels);
-        }
-
-        {
-            let test_button = gtk::Button::with_label("Test");
-            let test_label = gtk::Label::new(None);
-
-            obj.add(&cascade! {
-                gtk::Box::new(gtk::Orientation::Vertical, 12);
-                ..add(&gtk::Label::new(Some("Nelson Test 1")));
-                ..add(&cascade! {
-                    gtk::ListBox::new();
-                    ..set_valign(gtk::Align::Start);
-                    ..get_style_context().add_class("frame");
-                    ..add(&row(&test_button));
-                    ..add(&row(&test_label));
-                    ..add(&label_row("Check pins (missing)", &color_box(1., 0., 0.)));
-                    ..add(&label_row("Check key (sticking)", &color_box(0., 1., 0.)));
-                    ..set_header_func(Some(Box::new(|row, before| {
-                        if before.is_none() {
-                            row.set_header::<gtk::Widget>(None)
-                        } else if row.get_header().is_none() {
-                            row.set_header(Some(&cascade! {
-                                gtk::Separator::new(gtk::Orientation::Horizontal);
-                                ..show();
-                            }));
-                        }
-                    })));
-                });
+        obj.add(&cascade! {
+            gtk::Box::new(gtk::Orientation::Vertical, 12);
+            ..add(&gtk::Label::new(Some("Nelson Test 3")));
+            ..add(&cascade! {
+                gtk::ListBox::new();
+                ..set_valign(gtk::Align::Start);
+                ..get_style_context().add_class("frame");
+                ..add(&label_row(&fl!("test-number-of-runs"), &num_runs_spin_3));
+                ..add(&row(&test_buttons[2]));
+                ..add(&row(&test_labels[2]));
+                ..add(&label_row(&fl!("test-check-pins"), &color_box(1., 0., 0.)));
+                ..add(&label_row(&fl!("test-check-key"), &color_box(0., 1., 0.)));
+                ..set_header_func(Some(Box::new(header_func)));
             });
+        });
 
-            self.test_button_1.set(test_button);
-            self.test_label_1.set(test_label);
-        }
-
-        {
-            let num_runs_spin = gtk::SpinButton::with_range(1.0, 1000.0, 1.0);
-            let test_button = gtk::Button::with_label("Test");
-            let test_label = gtk::Label::new(None);
-
-            obj.add(&cascade! {
-                gtk::Box::new(gtk::Orientation::Vertical, 12);
-                ..add(&gtk::Label::new(Some("Nelson Test 2")));
-                ..add(&cascade! {
-                    gtk::ListBox::new();
-                    ..set_valign(gtk::Align::Start);
-                    ..get_style_context().add_class("frame");
-                    ..add(&label_row("Number of runs", &num_runs_spin));
-                    ..add(&row(&test_button));
-                    ..add(&row(&test_label));
-                    ..add(&label_row("Replace switch (bouncing)", &color_box(0., 0., 1.)));
-                    ..set_header_func(Some(Box::new(|row, before| {
-                        if before.is_none() {
-                            row.set_header::<gtk::Widget>(None)
-                        } else if row.get_header().is_none() {
-                            row.set_header(Some(&cascade! {
-                                gtk::Separator::new(gtk::Orientation::Horizontal);
-                                ..show();
-                            }));
-                        }
-                    })));
-                });
-            });
-
-            self.num_runs_spin_2.set(num_runs_spin);
-            self.test_button_2.set(test_button);
-            self.test_label_2.set(test_label);
-        }
-
-        {
-            let num_runs_spin = gtk::SpinButton::with_range(1.0, 1000.0, 1.0);
-            let test_button = gtk::Button::with_label(&fl!("button-test"));
-            let test_label = gtk::Label::new(None);
-
-            obj.add(&cascade! {
-                gtk::Box::new(gtk::Orientation::Vertical, 12);
-                ..add(&gtk::Label::new(Some("Nelson Test 3")));
-                ..add(&cascade! {
-                    gtk::ListBox::new();
-                    ..set_valign(gtk::Align::Start);
-                    ..get_style_context().add_class("frame");
-                    ..add(&label_row(&fl!("test-number-of-runs"), &num_runs_spin));
-                    ..add(&row(&test_button));
-                    ..add(&row(&test_label));
-                    ..add(&label_row(&fl!("test-check-pins"), &color_box(1., 0., 0.)));
-                    ..add(&label_row(&fl!("test-check-key"), &color_box(0., 1., 0.)));
-                    ..set_header_func(Some(Box::new(|row, before| {
-                        if before.is_none() {
-                            row.set_header::<gtk::Widget>(None)
-                        } else if row.get_header().is_none() {
-                            row.set_header(Some(&cascade! {
-                                gtk::Separator::new(gtk::Orientation::Horizontal);
-                                ..show();
-                            }));
-                        }
-                    })));
-                });
-            });
-
-            self.num_runs_spin_3.set(num_runs_spin);
-            self.test_button_3.set(test_button);
-            self.test_label_3.set(test_label);
-        }
+        self.reset_button.set(reset_button);
+        self.bench_button.set(bench_button);
+        self.bench_labels.set(bench_labels);
+        self.num_runs_spin_2.set(num_runs_spin_2);
+        self.num_runs_spin_3.set(num_runs_spin_3);
+        self.test_buttons.set(test_buttons);
+        self.test_labels.set(test_labels);
 
         cascade! {
             obj;
@@ -390,12 +345,12 @@ impl Testing {
     }
 
     fn test_buttons_sensitive(&self, sensitive: bool) {
-        self.inner().test_button_1.set_sensitive(sensitive);
-        self.inner().test_button_2.set_sensitive(sensitive);
-        self.inner().test_button_3.set_sensitive(sensitive);
+        for i in 0..3 {
+            self.inner().test_buttons[i].set_sensitive(sensitive);
+        }
     }
 
-    fn nelson(&self, test_runs: i32, test_index: i32, nelson_kind: NelsonKind) {
+    fn nelson(&self, test_runs: i32, test_index: usize, nelson_kind: NelsonKind) {
         info!("Disabling test buttons");
         self.test_buttons_sensitive(false);
 
@@ -403,12 +358,7 @@ impl Testing {
         glib::MainContext::default().spawn_local(async move {
             let testing = obj_nelson.inner();
 
-            let test_label = match test_index {
-                1 => &testing.test_label_1,
-                2 => &testing.test_label_2,
-                3 => &testing.test_label_3,
-                _ => panic!("unknown test index {}", test_index),
-            };
+            let test_label = &testing.test_labels[test_index];
 
             info!("Save and clear keymap");
             let keymap = testing.board.export_keymap();
@@ -495,17 +445,17 @@ impl Testing {
 
     fn connect_test_button_1(&self) {
         let obj_btn = self.clone();
-        self.inner().test_button_1.connect_clicked(move |_| {
-            obj_btn.nelson(1, 1, NelsonKind::Normal);
+        self.inner().test_buttons[0].connect_clicked(move |_| {
+            obj_btn.nelson(1, 0, NelsonKind::Normal);
         });
     }
 
     fn connect_test_button_2(&self) {
         let obj_btn = self.clone();
-        self.inner().test_button_2.connect_clicked(move |_| {
+        self.inner().test_buttons[1].connect_clicked(move |_| {
             obj_btn.nelson(
                 obj_btn.inner().num_runs_spin_2.get_value_as_int(),
-                2,
+                1,
                 NelsonKind::Bouncing,
             );
         });
@@ -513,10 +463,10 @@ impl Testing {
 
     fn connect_test_button_3(&self) {
         let obj_btn = self.clone();
-        self.inner().test_button_3.connect_clicked(move |_| {
+        self.inner().test_buttons[2].connect_clicked(move |_| {
             obj_btn.nelson(
                 obj_btn.inner().num_runs_spin_3.get_value_as_int(),
-                3,
+                2,
                 NelsonKind::Normal,
             );
         });
