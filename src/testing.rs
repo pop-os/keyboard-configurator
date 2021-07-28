@@ -2,6 +2,7 @@ use crate::fl;
 use backend::{Board, DerefCell, NelsonKind, Rgb};
 use cascade::cascade;
 use futures::{prelude::*, stream::FuturesUnordered};
+use glib::clone;
 use gtk::prelude::*;
 use gtk::subclass::prelude::*;
 use once_cell::sync::OnceCell;
@@ -283,65 +284,69 @@ impl Testing {
         }
     }
 
-    fn connect_bench_button(&self) {
-        let obj_btn = self.clone();
-        self.inner().bench_button.connect_clicked(move |button| {
-            button.set_label("Running USB test");
+    async fn bench(&self) {
+        let testing = self.inner();
 
-            let obj_spawn = obj_btn.clone();
-            glib::MainContext::default().spawn_local(async move {
-                let testing = obj_spawn.inner();
+        testing.bench_button.set_label("Running USB test");
 
-                while testing.bench_button.get_active() {
-                    match testing.board.benchmark().await {
-                        Ok(benchmark) => {
-                            for (port_desc, port_result) in benchmark.port_results.iter() {
-                                let text = format!("{:.2?}", port_result);
-                                info!("{}: {}", port_desc, text);
-                                if let Some(bench_result) = TestResults::global()
-                                    .bench
-                                    .write()
-                                    .unwrap()
-                                    .get_mut(port_desc.as_str())
-                                {
-                                    match bench_result {
-                                        Ok(old) => match port_result {
-                                            Ok(new) => {
-                                                // Replace good results with better results
-                                                if new > old {
-                                                    *bench_result = Ok(*new);
-                                                }
-                                            }
-                                            Err(_) => (),
-                                        },
-                                        Err(err) => {
-                                            // Replace errors with newest results
-                                            *bench_result = port_result.clone();
+        while testing.bench_button.get_active() {
+            match testing.board.benchmark().await {
+                Ok(benchmark) => {
+                    for (port_desc, port_result) in benchmark.port_results.iter() {
+                        let text = format!("{:.2?}", port_result);
+                        info!("{}: {}", port_desc, text);
+                        if let Some(bench_result) = TestResults::global()
+                            .bench
+                            .write()
+                            .unwrap()
+                            .get_mut(port_desc.as_str())
+                        {
+                            match bench_result {
+                                Ok(old) => match port_result {
+                                    Ok(new) => {
+                                        // Replace good results with better results
+                                        if new > old {
+                                            *bench_result = Ok(*new);
                                         }
                                     }
-                                } else {
-                                    error!("{} label result not found", port_desc);
+                                    Err(_) => (),
+                                },
+                                Err(err) => {
+                                    // Replace errors with newest results
+                                    *bench_result = port_result.clone();
                                 }
                             }
-                        }
-                        Err(err) => {
-                            let message = format!("Benchmark failed to run: {}", err);
-                            error!("{}", message);
-                            //TODO: have a global label?
-                            for (_, bench_label) in testing.bench_labels.iter() {
-                                bench_label.set_text(&message);
-                            }
+                        } else {
+                            error!("{} label result not found", port_desc);
                         }
                     }
-
-                    obj_spawn.update_benchmarks();
-
-                    glib::timeout_future(std::time::Duration::new(1, 0)).await;
                 }
+                Err(err) => {
+                    let message = format!("Benchmark failed to run: {}", err);
+                    error!("{}", message);
+                    //TODO: have a global label?
+                    for (_, bench_label) in testing.bench_labels.iter() {
+                        bench_label.set_text(&message);
+                    }
+                }
+            }
 
-                testing.bench_button.set_label("Run USB test");
-            });
-        });
+            self.update_benchmarks();
+
+            glib::timeout_future(std::time::Duration::new(1, 0)).await;
+        }
+
+        testing.bench_button.set_label("Run USB test");
+    }
+
+    fn connect_bench_button(&self) {
+        self.inner()
+            .bench_button
+            .connect_clicked(clone!(@strong self as self_ => move |_| {
+                glib::MainContext::default().spawn_local(clone!(@strong self_ => async move {
+                    self_.bench().await;
+                }));
+            }));
     }
 
     fn test_buttons_sensitive(&self, sensitive: bool) {
@@ -350,126 +355,125 @@ impl Testing {
         }
     }
 
-    fn nelson(&self, test_runs: i32, test_index: usize, nelson_kind: NelsonKind) {
+    async fn nelson(&self, test_runs: i32, test_index: usize, nelson_kind: NelsonKind) {
+        let testing = self.inner();
+
         info!("Disabling test buttons");
         self.test_buttons_sensitive(false);
 
-        let obj_nelson = self.clone();
-        glib::MainContext::default().spawn_local(async move {
-            let testing = obj_nelson.inner();
+        let test_label = &testing.test_labels[test_index];
 
-            let test_label = &testing.test_labels[test_index];
-
-            info!("Save and clear keymap");
-            let keymap = testing.board.export_keymap();
-            {
-                let mut empty = keymap.clone();
-                for (_name, codes) in empty.map.iter_mut() {
-                    for code in codes.iter_mut() {
-                        *code = "NONE".to_string();
-                    }
-                }
-                if let Err(err) = import_keymap_hack(&testing.board, &empty).await {
-                    error!("Failed to clear keymap: {}", err);
+        info!("Save and clear keymap");
+        let keymap = testing.board.export_keymap();
+        {
+            let mut empty = keymap.clone();
+            for (_name, codes) in empty.map.iter_mut() {
+                for code in codes.iter_mut() {
+                    *code = "NONE".to_string();
                 }
             }
+            if let Err(err) = import_keymap_hack(&testing.board, &empty).await {
+                error!("Failed to clear keymap: {}", err);
+            }
+        }
 
-            for test_run in 1..=test_runs {
-                let message = format!("Test {}/{} running", test_run, test_runs);
-                info!("{}", message);
-                test_label.set_text(&message);
+        for test_run in 1..=test_runs {
+            let message = format!("Test {}/{} running", test_run, test_runs);
+            info!("{}", message);
+            test_label.set_text(&message);
 
-                let nelson = match testing.board.nelson(nelson_kind).await {
-                    Ok(ok) => ok,
-                    Err(err) => {
-                        let message =
-                            format!("Test {}/{} failed to run: {}", test_run, test_runs, err);
-                        error!("{}", message);
-                        test_label.set_text(&message);
-                        break;
-                    }
-                };
-
-                for row in 0..nelson.max_rows() {
-                    for col in 0..nelson.max_cols() {
-                        let r = if nelson.missing.get(row, col).unwrap_or(false) {
-                            255
-                        } else {
-                            0
-                        };
-                        let g = if nelson.sticking.get(row, col).unwrap_or(false) {
-                            255
-                        } else {
-                            0
-                        };
-                        let b = if nelson.bouncing.get(row, col).unwrap_or(false) {
-                            255
-                        } else {
-                            0
-                        };
-                        if r != 0 || g != 0 || b != 0 {
-                            testing
-                                .colors
-                                .borrow_mut()
-                                .0
-                                .insert((row, col), Rgb::new(r, g, b));
-                        } else {
-                            testing.colors.borrow_mut().0.remove(&(row, col));
-                        }
-                    }
-                }
-
-                obj_nelson.notify("colors");
-
-                if nelson.success() {
-                    let message = format!("Test {}/{} successful", test_run, test_runs);
-                    info!("{}", message);
-                    test_label.set_text(&message);
-                } else {
-                    let message = format!("Test {}/{} failed", test_run, test_runs);
+            let nelson = match testing.board.nelson(nelson_kind).await {
+                Ok(ok) => ok,
+                Err(err) => {
+                    let message = format!("Test {}/{} failed to run: {}", test_run, test_runs, err);
                     error!("{}", message);
                     test_label.set_text(&message);
                     break;
                 }
+            };
+
+            for row in 0..nelson.max_rows() {
+                for col in 0..nelson.max_cols() {
+                    let r = if nelson.missing.get(row, col).unwrap_or(false) {
+                        255
+                    } else {
+                        0
+                    };
+                    let g = if nelson.sticking.get(row, col).unwrap_or(false) {
+                        255
+                    } else {
+                        0
+                    };
+                    let b = if nelson.bouncing.get(row, col).unwrap_or(false) {
+                        255
+                    } else {
+                        0
+                    };
+                    if r != 0 || g != 0 || b != 0 {
+                        testing
+                            .colors
+                            .borrow_mut()
+                            .0
+                            .insert((row, col), Rgb::new(r, g, b));
+                    } else {
+                        testing.colors.borrow_mut().0.remove(&(row, col));
+                    }
+                }
             }
 
-            info!("Restore keymap");
-            if let Err(err) = import_keymap_hack(&testing.board, &keymap).await {
-                error!("Failed to restore keymap: {}", err);
-            }
+            self.notify("colors");
 
-            info!("Enabling test buttons");
-            obj_nelson.test_buttons_sensitive(true);
-        });
+            if nelson.success() {
+                let message = format!("Test {}/{} successful", test_run, test_runs);
+                info!("{}", message);
+                test_label.set_text(&message);
+            } else {
+                let message = format!("Test {}/{} failed", test_run, test_runs);
+                error!("{}", message);
+                test_label.set_text(&message);
+                break;
+            }
+        }
+
+        info!("Restore keymap");
+        if let Err(err) = import_keymap_hack(&testing.board, &keymap).await {
+            error!("Failed to restore keymap: {}", err);
+        }
+
+        info!("Enabling test buttons");
+        self.test_buttons_sensitive(true);
     }
 
     fn connect_test_button_1(&self) {
-        let obj_btn = self.clone();
-        self.inner().test_buttons[0].connect_clicked(move |_| {
-            obj_btn.nelson(1, 0, NelsonKind::Normal);
-        });
+        self.inner().test_buttons[0].connect_clicked(clone!(@strong self as self_ => move |_| {
+            glib::MainContext::default().spawn_local(clone!(@strong self_ => async move {
+                self_.nelson(1, 0, NelsonKind::Normal).await;
+            }));
+        }));
     }
 
     fn connect_test_button_2(&self) {
-        let obj_btn = self.clone();
-        self.inner().test_buttons[1].connect_clicked(move |_| {
-            obj_btn.nelson(
-                obj_btn.inner().num_runs_spin_2.get_value_as_int(),
-                1,
-                NelsonKind::Bouncing,
-            );
-        });
+        self.inner().test_buttons[1].connect_clicked(clone!(@strong self as self_ => move |_| {
+            glib::MainContext::default().spawn_local(clone!(@strong self_ => async move {
+                self_.nelson(
+                    self_.inner().num_runs_spin_2.get_value_as_int(),
+                    1,
+                    NelsonKind::Bouncing,
+                ).await;
+            }));
+        }));
     }
 
     fn connect_test_button_3(&self) {
-        let obj_btn = self.clone();
-        self.inner().test_buttons[2].connect_clicked(move |_| {
-            obj_btn.nelson(
-                obj_btn.inner().num_runs_spin_3.get_value_as_int(),
-                2,
-                NelsonKind::Normal,
-            );
-        });
+        self.inner().test_buttons[2].connect_clicked(clone!(@strong self as self_ => move |_| {
+            glib::MainContext::default().spawn_local(clone!(@strong self_ => async move {
+                self_.nelson(
+                    self_.inner().num_runs_spin_3.get_value_as_int(),
+                    2,
+                    NelsonKind::Normal,
+                ).await;
+            }));
+        }));
     }
 
     fn connect_reset_button(&self) {
