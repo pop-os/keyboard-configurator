@@ -10,6 +10,8 @@ button-configure = Configure Keyboard
 button-disable = Disable
 button-import = Import
 button-test = Test
+button-start = Start
+button-stop = Stop
 
 error-disable-key = Failed to disable key
 error-export-keymap = Failed to export keymap
@@ -79,5 +81,6 @@ test-check-pins = Check pins (missing)
 test-check-key = Check key (sticking)
 test-number-of-runs = Number of runs
 test-replace-switch = Replace switch
+test-spurious-keypress = Spurious keypress
 
 untitled-layout = Untitled Layout

@@ -1,7 +1,7 @@
 use crate::fl;
 use backend::{Board, DerefCell, NelsonKind, Rgb};
 use cascade::cascade;
-use futures::{prelude::*, stream::FuturesUnordered};
+use futures::{channel::oneshot, prelude::*, stream::FuturesUnordered};
 use glib::clone;
 use gtk::prelude::*;
 use gtk::subclass::prelude::*;
@@ -58,6 +58,9 @@ pub struct TestingInner {
     num_runs_spin_3: DerefCell<gtk::SpinButton>,
     test_buttons: DerefCell<[gtk::Button; 3]>,
     test_labels: DerefCell<[gtk::Label; 3]>,
+    selma_start_button: DerefCell<gtk::Button>,
+    selma_stop_button: DerefCell<gtk::Button>,
+    selma_stop_sender: RefCell<Option<oneshot::Sender<()>>>,
     colors: RefCell<TestingColors>,
 }
 
@@ -205,6 +208,30 @@ impl ObjectImpl for TestingInner {
             });
         });
 
+        let selma_start_button = gtk::Button::with_label(&fl!("button-start"));
+        let selma_stop_button = cascade! {
+            gtk::Button::with_label(&fl!("button-stop"));
+            ..set_sensitive(false);
+        };
+
+        obj.add(&cascade! {
+            gtk::Box::new(gtk::Orientation::Vertical, 12);
+            ..add(&gtk::Label::new(Some("Selma Test")));
+            ..add(&cascade! {
+                gtk::ListBox::new();
+                ..set_valign(gtk::Align::Start);
+                ..get_style_context().add_class("frame");
+                ..add(&row(&cascade! {
+                    gtk::Box::new(gtk::Orientation::Horizontal, 8);
+                    ..set_halign(gtk::Align::Center);
+                    ..add(&selma_start_button);
+                    ..add(&selma_stop_button);
+                }));
+                ..add(&label_row(&fl!("test-spurious-keypress"), &color_box(1., 0., 0.)));
+                ..set_header_func(Some(Box::new(header_func)));
+            });
+        });
+
         self.reset_button.set(reset_button);
         self.bench_button.set(bench_button);
         self.bench_labels.set(bench_labels);
@@ -212,6 +239,8 @@ impl ObjectImpl for TestingInner {
         self.num_runs_spin_3.set(num_runs_spin_3);
         self.test_buttons.set(test_buttons);
         self.test_labels.set(test_labels);
+        self.selma_start_button.set(selma_start_button);
+        self.selma_stop_button.set(selma_stop_button);
 
         cascade! {
             obj;
@@ -353,6 +382,7 @@ impl Testing {
         for i in 0..3 {
             self.inner().test_buttons[i].set_sensitive(sensitive);
         }
+        self.inner().selma_start_button.set_sensitive(sensitive);
     }
 
     async fn nelson(&self, test_runs: i32, test_index: usize, nelson_kind: NelsonKind) {
@@ -476,6 +506,87 @@ impl Testing {
         }));
     }
 
+    fn selma_update_colors(&self) {
+        let mut colors = self.inner().colors.borrow_mut();
+        for k in self.inner().board.keys() {
+            let (row, col) = k.electrical;
+            if k.pressed() {
+                colors
+                    .0
+                    .insert((row as usize, col as usize), Rgb::new(255, 0, 0));
+            }
+        }
+        drop(colors);
+        self.notify("colors");
+    }
+
+    async fn selma(&self) {
+        let testing = self.inner();
+
+        info!("Disabling test buttons");
+        self.test_buttons_sensitive(false);
+        testing.selma_stop_button.set_sensitive(true);
+
+        info!("Save and clear keymap");
+        let keymap = testing.board.export_keymap();
+        {
+            let mut empty = keymap.clone();
+            for (_name, codes) in empty.map.iter_mut() {
+                for code in codes.iter_mut() {
+                    *code = "NONE".to_string();
+                }
+            }
+            if let Err(err) = import_keymap_hack(&testing.board, &empty).await {
+                error!("Failed to clear keymap: {}", err);
+            }
+        }
+
+        testing.colors.borrow_mut().0.clear();
+        let matrix_changed_handle =
+            testing
+                .board
+                .connect_matrix_changed(clone!(@strong self as self_ => move || {
+                    self_.selma_update_colors();
+                }));
+        self.selma_update_colors();
+
+        // Wait for stop button to be pressed
+        let (sender, reciever) = oneshot::channel();
+        *testing.selma_stop_sender.borrow_mut() = Some(sender);
+        let _ = reciever.await;
+
+        testing.board.disconnect(matrix_changed_handle);
+
+        info!("Restore keymap");
+        if let Err(err) = import_keymap_hack(&testing.board, &keymap).await {
+            error!("Failed to restore keymap: {}", err);
+        }
+
+        info!("Enabling test buttons");
+        self.test_buttons_sensitive(true);
+        testing.selma_stop_button.set_sensitive(false);
+    }
+
+    fn connect_selma_buttons(&self) {
+        self.inner()
+            .selma_start_button
+            .connect_clicked(clone!(@strong self as self_ => move |_| {
+                glib::MainContext::default().spawn_local(clone!(@strong self_ => async move {
+                    self_.selma().await;
+                }));
+            }));
+
+        self.inner()
+            .selma_stop_button
+            .connect_clicked(clone!(@strong self as self_ => move |_| {
+                glib::MainContext::default().spawn_local(clone!(@strong self_ => async move {
+                    if let Some(sender) = self_.inner().selma_stop_sender.borrow_mut().take() {
+                        let _ = sender.send(());
+                    }
+                }));
+            }));
+    }
+
     fn connect_reset_button(&self) {
         let obj_btn = self.clone();
         self.inner().reset_button.connect_clicked(move |_button| {
@@ -491,6 +602,7 @@ impl Testing {
         obj.connect_test_button_1();
         obj.connect_test_button_2();
         obj.connect_test_button_3();
+        obj.connect_selma_buttons();
         obj.connect_reset_button();
         obj.update_benchmarks();
         obj
