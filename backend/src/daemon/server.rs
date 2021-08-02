@@ -235,44 +235,42 @@ impl<R: Read + Send + 'static, W: Write + Send + 'static> Daemon for DaemonServe
             }
 
             for info in api.device_list() {
-                match (info.vendor_id(), info.product_id(), info.interface_number()) {
-                    // System76 launch_1
-                    //TODO: better way to determine this
-                    (0x3384, 0x0001, 1) => {
-                        // Skip if device already open
-                        if self.have_device(&info) {
-                            continue;
-                        }
 
-                        match info.open_device(&api) {
-                            Ok(device) => match AccessHid::new(device, 10, 1000) {
-                                Ok(access) => match unsafe { Ec::new(access) } {
-                                    Ok(ec) => {
-                                        info!("Adding USB HID EC at {:?}", info.path());
-                                        let id = BoardId(Uuid::new_v4().as_u128());
-                                        self.boards
-                                            .borrow_mut()
-                                            .insert(id, (ec.into_dyn(), Some(info.clone())));
-                                        self.board_ids.borrow_mut().push(id);
-                                    }
-                                    Err(err) => error!(
-                                        "Failed to probe USB HID EC at {:?}: {:?}",
-                                        info.path(),
-                                        err
-                                    ),
-                                },
+                // Skip if device already open
+                if self.have_device(&info) {
+                    continue;
+                }
+                
+                if let (0x3384, 0x0001, 1) =
+                    (info.vendor_id(), info.product_id(), info.interface_number())
+                {
+                    match info.open_device(&api) {
+                        Ok(device) => match AccessHid::new(device, 10, 1000) {
+                            Ok(access) => match unsafe { Ec::new(access) } {
+                                Ok(ec) => {
+                                    info!("Adding USB HID EC at {:?}", info.path());
+                                    let id = BoardId(Uuid::new_v4().as_u128());
+                                    self.boards
+                                        .borrow_mut()
+                                        .insert(id, (ec.into_dyn(), Some(info.clone())));
+                                    self.board_ids.borrow_mut().push(id);
+                                }
                                 Err(err) => error!(
-                                    "Failed to access USB HID EC at {:?}: {:?}",
+                                    "Failed to probe USB HID EC at {:?}: {:?}",
                                     info.path(),
                                     err
                                 ),
                             },
-                            Err(err) => {
-                                error!("Failed to open USB HID EC at {:?}: {:?}", info.path(), err)
-                            }
+                            Err(err) => error!(
+                                "Failed to access USB HID EC at {:?}: {:?}",
+                                info.path(),
+                                err
+                            ),
+                        },
+                        Err(err) => {
+                            error!("Failed to open USB HID EC at {:?}: {:?}", info.path(), err)
                         }
                     }
-                    _ => (),
                 }
             }
         }
