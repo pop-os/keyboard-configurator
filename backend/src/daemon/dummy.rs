@@ -1,7 +1,7 @@
 use std::{cell::RefCell, collections::HashMap};
 
 use super::{BoardId, Daemon};
-use crate::{fl, Layout, Matrix};
+use crate::{fl, Benchmark, Layout, Matrix, Nelson, NelsonKind};
 
 struct BoardDummy {
     name: String,
@@ -95,6 +95,14 @@ impl Daemon for DaemonDummy {
 
     fn matrix_get(&self, _board: BoardId) -> Result<Matrix, String> {
         Ok(Matrix::new(0, 0, Vec::new().into_boxed_slice()))
+    }
+
+    fn benchmark(&self, _board: BoardId) -> Result<Benchmark, String> {
+        Err("Unimplemented".to_string())
+    }
+
+    fn nelson(&self, _board: BoardId, _kind: NelsonKind) -> Result<Nelson, String> {
+        Err("Unimplemented".to_string())
     }
 
     fn color(&self, board: BoardId, index: u8) -> Result<(u8, u8, u8), String> {

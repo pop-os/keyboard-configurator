@@ -7,6 +7,10 @@ use once_cell::unsync::OnceCell;
 pub struct DerefCell<T>(OnceCell<T>);
 
 impl<T> DerefCell<T> {
+    pub fn is_some(&self) -> bool {
+        self.0.get().is_some()
+    }
+
     #[track_caller]
     pub fn set(&self, value: T) {
         if self.0.set(value).is_err() {
