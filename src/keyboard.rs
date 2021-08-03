@@ -107,7 +107,9 @@ impl ObjectImpl for KeyboardInner {
             ..add_action(&cascade! {
                 gio::SimpleAction::new("reset", None);
                 ..connect_activate(clone!(@weak keyboard => move |_, _|
-                    keyboard.reset();
+                    glib::MainContext::default().spawn_local(async move {
+                        keyboard.reset().await;
+                    });
                 ));
             });
         };
@@ -306,8 +308,9 @@ impl Keyboard {
         self.board().export_keymap()
     }
 
-    pub fn import_keymap(&self, keymap: KeyMap) {
+    pub async fn import_keymap(&self, keymap: KeyMap) {
         // TODO: Ideally don't want this function to be O(Keys^2)
+        // TODO: Make sure it doesn't panic with invalid json with invalid indexes?
 
         if keymap.model != self.board().model() {
             show_error_dialog(
@@ -318,64 +321,68 @@ impl Keyboard {
             return;
         }
 
-        let self_ = self.clone();
-        glib::MainContext::default().spawn_local(async move {
-            let _loader = self_.get_toplevel().and_then(|x| {
-                Some(
-                    x.downcast_ref::<MainWindow>()?
-                        .display_loader(&fl!("loading-keyboard", keyboard = self_.display_name())),
-                )
-            });
-
-            // TODO: Make sure it doesn't panic with invalid json with invalid indexes?
-
-            let key_indices = self_
-                .board()
-                .keys()
-                .iter()
-                .enumerate()
-                .map(|(i, k)| (&k.logical_name, i))
-                .collect::<HashMap<_, _>>();
-
-            let futures = FuturesUnordered::<Pin<Box<dyn Future<Output = ()>>>>::new();
-
-            for (k, v) in &keymap.map {
-                for (layer, scancode_name) in v.iter().enumerate() {
-                    let n = key_indices[&k];
-                    futures.push(Box::pin(self_.keymap_set(n, layer, scancode_name)));
-                }
-            }
-
-            for (k, hs) in &keymap.key_leds {
-                let res = self_.board().keys()[key_indices[&k]].set_color(*hs);
-                futures.push(Box::pin(async move {
-                    if let Err(err) = res.await {
-                        error!("{}: {}", fl!("error-key-led"), err);
-                    }
-                }));
-            }
-
-            for (i, keymap_layer) in keymap.layers.iter().enumerate() {
-                let layer = &self_.board().layers()[i];
-                futures.push(Box::pin(async move {
-                    if let Some((mode, speed)) = keymap_layer.mode {
-                        if let Err(err) =
-                            layer.set_mode(Mode::from_index(mode).unwrap(), speed).await
-                        {
-                            error!("{}: {}", fl!("error-set-layer-mode"), err)
-                        }
-                    }
-                    if let Err(err) = layer.set_brightness(keymap_layer.brightness).await {
-                        error!("{}: {}", fl!("error-set-layer-brightness"), err)
-                    }
-                    if let Err(err) = layer.set_color(keymap_layer.color).await {
-                        error!("{}: {}", fl!("error-set-layer-color"), err)
-                    }
-                }));
-            }
-
-            futures.collect::<()>().await;
+        let _loader = self.get_toplevel().and_then(|x| {
+            Some(
+                x.downcast_ref::<MainWindow>()?
+                    .display_loader(&fl!("loading-keyboard", keyboard = self.display_name())),
+            )
         });
+
+        let key_indices = self
+            .board()
+            .keys()
+            .iter()
+            .enumerate()
+            .map(|(i, k)| (&k.logical_name, i))
+            .collect::<HashMap<_, _>>();
+
+        let futures = FuturesUnordered::<Pin<Box<dyn Future<Output = ()>>>>::new();
+
+        for (k, v) in &keymap.map {
+            for (layer, scancode_name) in v.iter().enumerate() {
+                let n = key_indices[&k];
+                futures.push(Box::pin(async move {
+                    if let Err(err) = self.board().keys()[n]
+                        .set_scancode(layer, scancode_name)
+                        .await
+                    {
+                        error!("{}: {:?}", fl!("error-set-keymap"), err);
+                    }
+                }));
+            }
+        }
+
+        for (k, hs) in &keymap.key_leds {
+            let res = self.board().keys()[key_indices[&k]].set_color(*hs);
+            futures.push(Box::pin(async move {
+                if let Err(err) = res.await {
+                    error!("{}: {}", fl!("error-key-led"), err);
+                }
+            }));
+        }
+
+        for (i, keymap_layer) in keymap.layers.iter().enumerate() {
+            let layer = &self.board().layers()[i];
+            if let Some((mode, speed)) = keymap_layer.mode {
+                futures.push(Box::pin(async move {
+                    if let Err(err) = layer.set_mode(Mode::from_index(mode).unwrap(), speed).await {
+                        error!("{}: {}", fl!("error-set-layer-mode"), err)
+                    }
+                }));
+            }
+            futures.push(Box::pin(async move {
+                if let Err(err) = layer.set_brightness(keymap_layer.brightness).await {
+                    error!("{}: {}", fl!("error-set-layer-brightness"), err)
+                }
+            }));
+            futures.push(Box::pin(async move {
+                if let Err(err) = layer.set_color(keymap_layer.color).await {
+                    error!("{}: {}", fl!("error-set-layer-color"), err)
+                }
+            }));
+        }
+
+        futures.collect::<()>().await;
     }
 
     fn import(&self) {
@@ -394,7 +401,12 @@ impl Keyboard {
             let path = chooser.get_filename().unwrap();
             match File::open(&path) {
                 Ok(file) => match KeyMap::from_reader(file) {
-                    Ok(keymap) => self.import_keymap(keymap),
+                    Ok(keymap) => {
+                        let self_ = self.clone();
+                        glib::MainContext::default().spawn_local(async move {
+                            self_.import_keymap(keymap).await;
+                        });
+                    }
                     Err(err) => {
                         show_error_dialog(&self.window().unwrap(), "Failed to import keymap", err)
                     }
@@ -444,8 +456,8 @@ impl Keyboard {
         }
     }
 
-    fn reset(&self) {
-        self.import_keymap(self.layout().default.clone());
+    async fn reset(&self) {
+        self.import_keymap(self.layout().default.clone()).await;
     }
 
     fn update_selectable(&self) {
