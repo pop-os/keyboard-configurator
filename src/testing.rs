@@ -1,7 +1,7 @@
-use crate::fl;
+use crate::{fl, Keyboard};
 use backend::{Board, DerefCell, NelsonKind, Rgb};
 use cascade::cascade;
-use futures::{channel::oneshot, prelude::*, stream::FuturesUnordered};
+use futures::channel::oneshot;
 use glib::clone;
 use gtk::prelude::*;
 use gtk::subclass::prelude::*;
@@ -51,6 +51,7 @@ pub struct TestingColors(pub HashMap<(usize, usize), Rgb>);
 #[derive(Default)]
 pub struct TestingInner {
     board: DerefCell<Board>,
+    keyboard: DerefCell<glib::WeakRef<Keyboard>>,
     reset_button: DerefCell<gtk::Button>,
     bench_button: DerefCell<gtk::ToggleButton>,
     bench_labels: DerefCell<HashMap<&'static str, gtk::Label>>,
@@ -283,18 +284,6 @@ glib::wrapper! {
         @extends gtk::Box, gtk::Container, gtk::Widget, @implements gtk::Orientable;
 }
 
-async fn import_keymap_hack(board: &Board, keymap: &backend::KeyMap) -> Result<(), String> {
-    let futures = FuturesUnordered::new();
-    for key in board.keys() {
-        if let Some(scancodes) = keymap.map.get(&key.logical_name) {
-            for layer in 0..scancodes.len() {
-                futures.push(key.set_scancode(layer, &scancodes[layer]));
-            }
-        }
-    }
-    futures.try_collect::<()>().await
-}
-
 impl Testing {
     fn update_benchmarks(&self) {
         for (port_desc, port_result) in TestResults::global().bench.read().unwrap().iter() {
@@ -393,19 +382,8 @@ impl Testing {
 
         let test_label = &testing.test_labels[test_index];
 
-        info!("Save and clear keymap");
-        let keymap = testing.board.export_keymap();
-        {
-            let mut empty = keymap.clone();
-            for (_name, codes) in empty.map.iter_mut() {
-                for code in codes.iter_mut() {
-                    *code = "NONE".to_string();
-                }
-            }
-            if let Err(err) = import_keymap_hack(&testing.board, &empty).await {
-                error!("Failed to clear keymap: {}", err);
-            }
-        }
+        info!("Clear keymap");
+        self.clear_keymap().await;
 
         for test_run in 1..=test_runs {
             let message = format!("Test {}/{} running", test_run, test_runs);
@@ -466,9 +444,7 @@ impl Testing {
         }
 
         info!("Restore keymap");
-        if let Err(err) = import_keymap_hack(&testing.board, &keymap).await {
-            error!("Failed to restore keymap: {}", err);
-        }
+        self.keyboard().reset().await;
 
         info!("Enabling test buttons");
         self.test_buttons_sensitive(true);
@@ -527,19 +503,8 @@ impl Testing {
         self.test_buttons_sensitive(false);
         testing.selma_stop_button.set_sensitive(true);
 
-        info!("Save and clear keymap");
-        let keymap = testing.board.export_keymap();
-        {
-            let mut empty = keymap.clone();
-            for (_name, codes) in empty.map.iter_mut() {
-                for code in codes.iter_mut() {
-                    *code = "NONE".to_string();
-                }
-            }
-            if let Err(err) = import_keymap_hack(&testing.board, &empty).await {
-                error!("Failed to clear keymap: {}", err);
-            }
-        }
+        info!("Clear keymap");
+        self.clear_keymap().await;
 
         testing.colors.borrow_mut().0.clear();
         let matrix_changed_handle =
@@ -558,9 +523,7 @@ impl Testing {
         testing.board.disconnect(matrix_changed_handle);
 
         info!("Restore keymap");
-        if let Err(err) = import_keymap_hack(&testing.board, &keymap).await {
-            error!("Failed to restore keymap: {}", err);
-        }
+        self.keyboard().reset().await;
 
         info!("Enabling test buttons");
         self.test_buttons_sensitive(true);
@@ -595,9 +558,10 @@ impl Testing {
         });
     }
 
-    pub fn new(board: Board) -> Self {
+    pub fn new(board: &Board, keyboard: &Keyboard) -> Self {
         let obj: Self = glib::Object::new(&[]).unwrap();
-        obj.inner().board.set(board);
+        obj.inner().board.set(board.clone());
+        obj.inner().keyboard.set(keyboard.downgrade());
         obj.connect_bench_button();
         obj.connect_test_button_1();
         obj.connect_test_button_2();
@@ -610,5 +574,19 @@ impl Testing {
 
     fn inner(&self) -> &TestingInner {
         TestingInner::from_instance(self)
+    }
+
+    fn keyboard(&self) -> Keyboard {
+        self.inner().keyboard.upgrade().unwrap()
+    }
+
+    async fn clear_keymap(&self) {
+        let mut empty = self.inner().board.export_keymap();
+        for (_name, codes) in empty.map.iter_mut() {
+            for code in codes.iter_mut() {
+                *code = "NONE".to_string();
+            }
+        }
+        self.keyboard().import_keymap(empty).await;
     }
 }

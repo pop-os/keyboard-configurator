@@ -182,7 +182,7 @@ impl Keyboard {
 
         if launch_test {
             let testing = cascade! {
-                Testing::new(board.clone());
+                Testing::new(&board, &keyboard);
                 ..set_halign(gtk::Align::Center);
             };
             stack.add_titled(&testing, "testing", &fl!("stack-testing"));
@@ -456,7 +456,7 @@ impl Keyboard {
         }
     }
 
-    async fn reset(&self) {
+    pub async fn reset(&self) {
         self.import_keymap(self.layout().default.clone()).await;
     }
 
