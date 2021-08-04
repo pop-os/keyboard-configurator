@@ -10,6 +10,8 @@ button-configure = Configurar Teclado
 button-disable = Desabilitar
 button-import = Importar
 button-test = Testar
+button-start = Iniciar
+button-stop = Parar
 
 error-disable-key = Falha ao desabilitar tecla
 error-export-keymap = Falha ao exportar mapa do teclado
@@ -79,5 +81,6 @@ test-check-pins = Verifique os pinos
 test-number-of-runs = Número de tentativas
 test-replace-switch = Substitua o switch
 test-serial = Serial
+test-spurious-keypress = Teclagens não genuínas
 
 untitled-layout = Layout sem título
