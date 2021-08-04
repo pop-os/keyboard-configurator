@@ -15,6 +15,7 @@
 extern crate log;
 
 mod backend;
+mod benchmark;
 mod board;
 mod color;
 mod daemon;
@@ -24,11 +25,13 @@ mod keymap;
 mod layer;
 mod layout;
 mod localize;
+mod matrix;
 mod mode;
+mod nelson;
 mod rect;
 
 use crate::daemon::*;
 pub use crate::{
-    backend::*, board::*, color::*, deref_cell::*, key::*, keymap::*, layer::*, layout::*,
-    localize::*, mode::*, rect::*,
+    backend::*, benchmark::*, board::*, color::*, deref_cell::*, key::*, keymap::*, layer::*,
+    layout::*, localize::*, matrix::*, mode::*, nelson::*, rect::*,
 };

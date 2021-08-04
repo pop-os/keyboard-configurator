@@ -18,7 +18,7 @@ use std::{
     time::Duration,
 };
 
-use super::{BoardId, Daemon, Matrix};
+use super::{Benchmark, BoardId, Daemon, Matrix, Nelson, NelsonKind};
 use crate::Board;
 
 #[derive(Clone, Debug)]
@@ -53,21 +53,58 @@ enum SetEnum {
     Color(Item<(BoardId, u8), (u8, u8, u8)>),
     Brightness(Item<(BoardId, u8), i32>),
     Mode(Item<(BoardId, u8), (u8, u8)>),
+    Benchmark(BoardId),
+    Nelson(BoardId, NelsonKind),
     LedSave(BoardId),
     MatrixGetRate(Item<(), Option<Duration>>),
     Refresh,
     Exit,
 }
 
+impl SetEnum {
+    fn is_cancelable(&self) -> bool {
+        match self {
+            Self::Nelson(_, _) | Self::Benchmark(_) => false,
+            _ => true,
+        }
+    }
+}
+
 #[derive(Debug)]
 struct Set {
     inner: SetEnum,
-    oneshot: oneshot::Sender<Result<(), String>>,
+    oneshot: oneshot::Sender<Result<Response, String>>,
+}
+
+#[derive(Debug)]
+enum Response {
+    Benchmark(Benchmark),
+    Canceled,
+    Empty,
+    Nelson(Box<Nelson>),
+}
+
+impl Into<Response> for Benchmark {
+    fn into(self) -> Response {
+        Response::Benchmark(self)
+    }
+}
+
+impl Into<Response> for () {
+    fn into(self) -> Response {
+        Response::Empty
+    }
+}
+
+impl Into<Response> for Nelson {
+    fn into(self) -> Response {
+        Response::Nelson(Box::new(self))
+    }
 }
 
 impl Set {
-    fn reply(self, resp: Result<(), String>) {
-        let _ = self.oneshot.send(resp);
+    fn reply<T: Into<Response>>(self, resp: Result<T, String>) {
+        let _ = self.oneshot.send(resp.map(|x| x.into()));
     }
 }
 
@@ -97,11 +134,15 @@ impl ThreadClient {
         client
     }
 
-    async fn send(&self, set_enum: SetEnum) -> Result<(), String> {
+    async fn send(&self, set_enum: SetEnum) -> Result<Response, String> {
         let mut cancels = self.cancels.lock().unwrap();
-        if let Some(cancel) = cancels.remove(&set_enum) {
-            cancel.abort();
+
+        if set_enum.is_cancelable() {
+            if let Some(cancel) = cancels.remove(&set_enum) {
+                cancel.abort();
+            }
         }
+
         let (sender, receiver) = oneshot::channel();
         let (receiver, cancel) = abortable(receiver);
         cancels.insert(set_enum.clone(), cancel);
@@ -111,15 +152,18 @@ impl ThreadClient {
             inner: set_enum,
             oneshot: sender,
         });
-        // XXX let caller know it was canceled?
         match receiver.await {
             Ok(Ok(res)) => res,
-            _ => Ok(()),
+            _ => Ok(Response::Canceled),
         }
     }
 
+    async fn send_noresp(&self, set_enum: SetEnum) -> Result<(), String> {
+        self.send(set_enum).await.and(Ok(()))
+    }
+
     pub async fn refresh(&self) -> Result<(), String> {
-        self.send(SetEnum::Refresh).await
+        self.send_noresp(SetEnum::Refresh).await
     }
 
     pub async fn keymap_set(
@@ -130,7 +174,7 @@ impl ThreadClient {
         input: u8,
         value: u16,
     ) -> Result<(), String> {
-        self.send(SetEnum::KeyMap(Item::new(
+        self.send_noresp(SetEnum::KeyMap(Item::new(
             (board, layer, output, input),
             value,
         )))
@@ -143,7 +187,7 @@ impl ThreadClient {
         index: u8,
         color: (u8, u8, u8),
     ) -> Result<(), String> {
-        self.send(SetEnum::Color(Item::new((board, index), color)))
+        self.send_noresp(SetEnum::Color(Item::new((board, index), color)))
             .await
     }
 
@@ -153,7 +197,7 @@ impl ThreadClient {
         index: u8,
         brightness: i32,
     ) -> Result<(), String> {
-        self.send(SetEnum::Brightness(Item::new((board, index), brightness)))
+        self.send_noresp(SetEnum::Brightness(Item::new((board, index), brightness)))
             .await
     }
 
@@ -164,16 +208,35 @@ impl ThreadClient {
         mode: u8,
         speed: u8,
     ) -> Result<(), String> {
-        self.send(SetEnum::Mode(Item::new((board, layer), (mode, speed))))
+        self.send_noresp(SetEnum::Mode(Item::new((board, layer), (mode, speed))))
             .await
     }
 
     pub async fn set_matrix_get_rate(&self, rate: Option<Duration>) -> Result<(), String> {
-        self.send(SetEnum::MatrixGetRate(Item::new((), rate))).await
+        self.send_noresp(SetEnum::MatrixGetRate(Item::new((), rate)))
+            .await
+    }
+
+    pub async fn benchmark(&self, board: BoardId) -> Result<Benchmark, String> {
+        let resp = self.send(SetEnum::Benchmark(board)).await?;
+        if let Response::Benchmark(benchmark) = resp {
+            Ok(benchmark)
+        } else {
+            panic!(format!("'{:?}' unexpected", resp));
+        }
+    }
+
+    pub async fn nelson(&self, board: BoardId, kind: NelsonKind) -> Result<Nelson, String> {
+        let resp = self.send(SetEnum::Nelson(board, kind)).await?;
+        if let Response::Nelson(nelson) = resp {
+            Ok(*nelson)
+        } else {
+            panic!(format!("'{:?}' unexpected", resp));
+        }
     }
 
     pub async fn led_save(&self, board: BoardId) -> Result<(), String> {
-        self.send(SetEnum::LedSave(board)).await
+        self.send_noresp(SetEnum::LedSave(board)).await
     }
 
     pub fn close(&self) {
@@ -277,27 +340,29 @@ impl Thread {
             return true;
         }
 
-        let resp = match set.inner {
+        match set.inner {
             SetEnum::KeyMap(Item { key, value }) => {
-                self.daemon.keymap_set(key.0, key.1, key.2, key.3, value)
+                set.reply(self.daemon.keymap_set(key.0, key.1, key.2, key.3, value))
             }
-            SetEnum::Color(Item { key, value }) => self.daemon.set_color(key.0, key.1, value),
+            SetEnum::Color(Item { key, value }) => {
+                set.reply(self.daemon.set_color(key.0, key.1, value))
+            }
             SetEnum::Brightness(Item { key, value }) => {
-                self.daemon.set_brightness(key.0, key.1, value)
+                set.reply(self.daemon.set_brightness(key.0, key.1, value))
             }
             SetEnum::Mode(Item { key, value }) => {
-                self.daemon.set_mode(key.0, key.1, value.0, value.1)
+                set.reply(self.daemon.set_mode(key.0, key.1, value.0, value.1))
             }
-            SetEnum::LedSave(board) => self.daemon.led_save(board),
+            SetEnum::Benchmark(board) => set.reply(self.daemon.benchmark(board)),
+            SetEnum::Nelson(board, kind) => set.reply(self.daemon.nelson(board, kind)),
+            SetEnum::LedSave(board) => set.reply(self.daemon.led_save(board)),
             SetEnum::MatrixGetRate(Item { value, .. }) => {
                 self.matrix_get_rate.set(value);
-                Ok(())
+                set.reply(Ok(()))
             }
-            SetEnum::Refresh => self.refresh(),
+            SetEnum::Refresh => set.reply(self.refresh()),
             SetEnum::Exit => return false,
-        };
-
-        set.reply(resp);
+        }
 
         true
     }

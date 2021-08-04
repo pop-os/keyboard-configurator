@@ -172,6 +172,10 @@ impl Keyboard {
     pub fn new(board: Board, debug_layers: bool, launch_test: bool) -> Self {
         let keyboard: Self = glib::Object::new(&[]).unwrap();
 
+        board.connect_keymap_changed(clone!(@weak keyboard => move ||
+            keyboard.queue_draw();
+        ));
+
         let stack = &keyboard.inner().stack;
 
         if launch_test {
@@ -445,6 +449,10 @@ impl Keyboard {
     }
 
     fn update_selectable(&self) {
+        if !self.inner().backlight.is_some() {
+            return;
+        }
+
         let tab_name = self.inner().stack.get_visible_child_name();
         let tab_name = tab_name.as_deref();
         let is_per_key = self.inner().backlight.mode().is_per_key();

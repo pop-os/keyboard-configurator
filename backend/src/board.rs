@@ -8,7 +8,10 @@ use once_cell::sync::Lazy;
 use std::{cell::Cell, collections::HashMap, sync::Arc};
 
 use crate::daemon::ThreadClient;
-use crate::{BoardId, Daemon, DerefCell, Key, KeyMap, KeyMapLayer, Layer, Layout, Matrix};
+use crate::{
+    Benchmark, BoardId, Daemon, DerefCell, Key, KeyMap, KeyMapLayer, Layer, Layout, Matrix, Nelson,
+    NelsonKind,
+};
 
 #[derive(Default)]
 #[doc(hidden)]
@@ -40,6 +43,7 @@ impl ObjectImpl for BoardInner {
     fn signals() -> &'static [Signal] {
         static SIGNALS: Lazy<Vec<Signal>> = Lazy::new(|| {
             vec![
+                Signal::builder("keymap-changed", &[], glib::Type::UNIT.into()).build(),
                 Signal::builder("leds-changed", &[], glib::Type::UNIT.into()).build(),
                 Signal::builder("matrix-changed", &[], glib::Type::UNIT.into()).build(),
                 Signal::builder("removed", &[], glib::Type::UNIT.into()).build(),
@@ -147,6 +151,14 @@ impl Board {
         .unwrap()
     }
 
+    pub fn connect_keymap_changed<F: Fn() + 'static>(&self, cb: F) -> SignalHandlerId {
+        self.connect_local("keymap-changed", false, move |_| {
+            cb();
+            None
+        })
+        .unwrap()
+    }
+
     pub(crate) fn set_leds_changed(&self) {
         self.inner().leds_changed.set(true);
         self.emit_by_name("leds-changed", &[]).unwrap();
@@ -190,6 +202,14 @@ impl Board {
 
     pub fn max_brightness(&self) -> i32 {
         *self.inner().max_brightness
+    }
+
+    pub async fn benchmark(&self) -> Result<Benchmark, String> {
+        self.thread_client().benchmark(self.board()).await
+    }
+
+    pub async fn nelson(&self, kind: NelsonKind) -> Result<Nelson, String> {
+        self.thread_client().nelson(self.board(), kind).await
     }
 
     pub async fn led_save(&self) -> Result<(), String> {
