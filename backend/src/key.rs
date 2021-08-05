@@ -23,8 +23,6 @@ pub struct Key {
     /// LED name
     pub led_name: String,
     led_color: Cell<Option<Hs>>,
-    /// Key is currently pressed
-    pub(crate) pressed: Cell<bool>,
     /// Currently loaded scancodes and their names
     scancodes: Vec<Cell<u16>>,
     /// Background color
@@ -111,7 +109,6 @@ impl Key {
             leds,
             led_name,
             led_color: Cell::new(led_color),
-            pressed: Cell::new(false),
             scancodes,
             background_color,
         }
@@ -122,7 +119,10 @@ impl Key {
     }
 
     pub fn pressed(&self) -> bool {
-        self.pressed.get()
+        self.board()
+            .matrix()
+            .get(self.electrical.0 as usize, self.electrical.1 as usize)
+            .unwrap_or(false)
     }
 
     pub fn color(&self) -> Option<Hs> {

@@ -1,11 +1,16 @@
 use futures::{channel::mpsc as async_mpsc, prelude::*};
 use glib::{
+    clone,
     prelude::*,
     subclass::{prelude::*, Signal},
     SignalHandlerId,
 };
 use once_cell::sync::Lazy;
-use std::{cell::Cell, collections::HashMap, sync::Arc};
+use std::{
+    cell::{Cell, Ref, RefCell},
+    collections::HashMap,
+    sync::Arc,
+};
 
 use crate::daemon::ThreadClient;
 use crate::{
@@ -30,6 +35,7 @@ pub struct BoardInner {
     has_matrix: DerefCell<bool>,
     is_fake: DerefCell<bool>,
     has_keymap: DerefCell<bool>,
+    matrix: RefCell<Matrix>,
 }
 
 #[glib::object_subclass]
@@ -121,20 +127,12 @@ impl Board {
             .collect();
         self_.inner().layers.set(layers);
 
-        {
-            let self_ = self_.clone();
-            glib::MainContext::default().spawn(async move {
-                while let Some(matrix) = matrix_reciever.next().await {
-                    for key in self_.keys() {
-                        let pressed = matrix
-                            .get(key.electrical.0 as usize, key.electrical.1 as usize)
-                            .unwrap_or(false);
-                        key.pressed.set(pressed);
-                    }
-                    self_.emit_by_name("matrix-changed", &[]).unwrap();
-                }
-            });
-        }
+        glib::MainContext::default().spawn(clone!(@strong self_ => async move {
+            while let Some(matrix) = matrix_reciever.next().await {
+                self_.inner().matrix.replace(matrix);
+                self_.emit_by_name("matrix-changed", &[]).unwrap();
+            }
+        }));
 
         Ok(self_)
     }
@@ -254,6 +252,10 @@ impl Board {
 
     pub fn keys(&self) -> &[Key] {
         &*self.inner().keys
+    }
+
+    pub(crate) fn matrix(&self) -> Ref<Matrix> {
+        self.inner().matrix.borrow()
     }
 
     pub fn export_keymap(&self) -> KeyMap {
