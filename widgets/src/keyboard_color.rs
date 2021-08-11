@@ -120,11 +120,11 @@ impl ObjectImpl for KeyboardColorInner {
     fn properties() -> &'static [glib::ParamSpec] {
         use once_cell::sync::Lazy;
         static PROPERTIES: Lazy<Vec<glib::ParamSpec>> = Lazy::new(|| {
-            vec![glib::ParamSpec::boxed(
+            vec![glib::ParamSpec::new_boxed(
                 "hs",
                 "hs",
                 "hs",
-                Hs::get_type(),
+                Hs::static_type(),
                 glib::ParamFlags::READWRITE,
             )]
         });
@@ -139,22 +139,22 @@ impl ObjectImpl for KeyboardColorInner {
         value: &glib::Value,
         pspec: &glib::ParamSpec,
     ) {
-        match pspec.get_name() {
+        match pspec.name() {
             "hs" => {
-                let hs: &Hs = value.get_some().unwrap();
+                let hs: &Hs = value.get().unwrap();
                 widget.set_hs(*hs);
             }
             _ => unimplemented!(),
         }
     }
 
-    fn get_property(
+    fn property(
         &self,
         _widget: &KeyboardColor,
         _id: usize,
         pspec: &glib::ParamSpec,
     ) -> glib::Value {
-        match pspec.get_name() {
+        match pspec.name() {
             "hs" => self.hs.get().to_value(),
             _ => unimplemented!(),
         }

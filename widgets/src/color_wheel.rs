@@ -53,14 +53,14 @@ impl ObjectImpl for ColorWheelInner {
         use once_cell::sync::Lazy;
         static PROPERTIES: Lazy<Vec<glib::ParamSpec>> = Lazy::new(|| {
             vec![
-                glib::ParamSpec::boxed(
+                glib::ParamSpec::new_boxed(
                     "hs",
                     "hs",
                     "hs",
-                    Hs::get_type(),
+                    Hs::static_type(),
                     glib::ParamFlags::READWRITE,
                 ),
-                glib::ParamSpec::double(
+                glib::ParamSpec::new_double(
                     "hue",
                     "hue",
                     "hue",
@@ -69,7 +69,7 @@ impl ObjectImpl for ColorWheelInner {
                     0.,
                     glib::ParamFlags::READWRITE,
                 ),
-                glib::ParamSpec::double(
+                glib::ParamSpec::new_double(
                     "saturation",
                     "saturation",
                     "saturation",
@@ -91,18 +91,18 @@ impl ObjectImpl for ColorWheelInner {
         value: &glib::Value,
         pspec: &glib::ParamSpec,
     ) {
-        match pspec.get_name() {
+        match pspec.name() {
             "hs" => {
-                wheel.set_hs(*value.get_some::<&Hs>().unwrap());
+                wheel.set_hs(*value.get::<&Hs>().unwrap());
             }
             "hue" => {
-                let mut hue: f64 = value.get_some().unwrap();
+                let mut hue: f64 = value.get().unwrap();
                 hue = (hue * PI / 180.).max(0.).min(2. * PI);
                 let hs = wheel.hs();
                 wheel.set_hs(Hs::new(hue, *hs.s));
             }
             "saturation" => {
-                let mut saturation: f64 = value.get_some().unwrap();
+                let mut saturation: f64 = value.get().unwrap();
                 saturation = (saturation / 100.).max(0.).min(1.);
                 let hs = wheel.hs();
                 wheel.set_hs(hs);
@@ -112,8 +112,8 @@ impl ObjectImpl for ColorWheelInner {
         }
     }
 
-    fn get_property(&self, wheel: &ColorWheel, _id: usize, pspec: &glib::ParamSpec) -> glib::Value {
-        match pspec.get_name() {
+    fn property(&self, wheel: &ColorWheel, _id: usize, pspec: &glib::ParamSpec) -> glib::Value {
+        match pspec.name() {
             "hs" => wheel.hs().to_value(),
             "hue" => {
                 let mut hue = *wheel.hs().h * 180. / PI;
@@ -130,8 +130,8 @@ impl WidgetImpl for ColorWheelInner {
     fn draw(&self, wheel: &ColorWheel, cr: &cairo::Context) -> Inhibit {
         self.parent_draw(wheel, cr);
 
-        let width = f64::from(wheel.get_allocated_width());
-        let height = f64::from(wheel.get_allocated_height());
+        let width = f64::from(wheel.allocated_width());
+        let height = f64::from(wheel.allocated_height());
 
         let radius = width.min(height) / 2.;
 
@@ -140,16 +140,16 @@ impl WidgetImpl for ColorWheelInner {
         // Draw color wheel
         if let Some(surface) = self.surface.borrow().as_ref() {
             let pattern = cairo::SurfacePattern::create(surface);
-            let scale = surface.get_width() as f64 / (radius * 2.);
+            let scale = surface.width() as f64 / (radius * 2.);
             let mut matrix = cairo::Matrix::identity();
             matrix.scale(scale, scale);
             pattern.set_matrix(matrix);
-            cr.set_source(&pattern);
+            cr.set_source(&pattern).unwrap();
         } else {
             cr.set_source_rgba(0., 0., 0., 0.);
         }
         cr.arc(radius, radius, radius, 0., 2. * PI);
-        cr.fill();
+        cr.fill().unwrap();
 
         // Draw selector circle
         let hs = wheel.hs();
@@ -157,10 +157,10 @@ impl WidgetImpl for ColorWheelInner {
         let y = radius - hs.h.sin() * (*hs.s) * radius;
         cr.arc(x, y, 7.5, 0., 2. * PI);
         cr.set_source_rgb(1., 1., 1.);
-        cr.fill_preserve();
+        cr.fill_preserve().unwrap();
         cr.set_source_rgb(0., 0., 0.);
         cr.set_line_width(1.);
-        cr.stroke();
+        cr.stroke().unwrap();
 
         Inhibit(false)
     }
@@ -180,23 +180,23 @@ impl WidgetImpl for ColorWheelInner {
         });
     }
 
-    fn get_request_mode(&self, _widget: &Self::Type) -> gtk::SizeRequestMode {
+    fn request_mode(&self, _widget: &Self::Type) -> gtk::SizeRequestMode {
         gtk::SizeRequestMode::HeightForWidth
     }
 
-    fn get_preferred_width(&self, _widget: &Self::Type) -> (i32, i32) {
+    fn preferred_width(&self, _widget: &Self::Type) -> (i32, i32) {
         (0, 300)
     }
 
-    fn get_preferred_height(&self, _widget: &Self::Type) -> (i32, i32) {
+    fn preferred_height(&self, _widget: &Self::Type) -> (i32, i32) {
         (0, 300)
     }
 
-    fn get_preferred_height_for_width(&self, _widget: &Self::Type, width: i32) -> (i32, i32) {
+    fn preferred_height_for_width(&self, _widget: &Self::Type, width: i32) -> (i32, i32) {
         (0, width)
     }
 
-    fn get_preferred_width_for_height(&self, _widget: &Self::Type, height: i32) -> (i32, i32) {
+    fn preferred_width_for_height(&self, _widget: &Self::Type, height: i32) -> (i32, i32) {
         (0, height)
     }
 }
@@ -234,8 +234,8 @@ impl ColorWheel {
     }
 
     fn mouse_select(&self, pos: (f64, f64)) {
-        let width = f64::from(self.get_allocated_width());
-        let height = f64::from(self.get_allocated_height());
+        let width = f64::from(self.allocated_width());
+        let height = f64::from(self.allocated_height());
 
         let radius = width.min(height) / 2.;
         let (x, y) = (pos.0 - width / 2., radius - pos.1);

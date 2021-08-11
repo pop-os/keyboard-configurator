@@ -79,7 +79,7 @@ impl ObjectImpl for TestingInner {
                 gtk::ListBoxRow::new();
                 ..set_selectable(false);
                 ..set_activatable(false);
-                ..set_property_margin(8);
+                ..set_margin(8);
                 ..add(widget);
             }
         }
@@ -101,7 +101,7 @@ impl ObjectImpl for TestingInner {
                 ..set_size_request(18, 18);
                 ..connect_draw(move |_w, cr| {
                     cr.set_source_rgb(r, g, b);
-                    cr.paint();
+                    cr.paint().unwrap();
                     Inhibit(false)
                 });
             }
@@ -110,7 +110,7 @@ impl ObjectImpl for TestingInner {
         fn header_func(row: &gtk::ListBoxRow, before: Option<&gtk::ListBoxRow>) {
             if before.is_none() {
                 row.set_header::<gtk::Widget>(None)
-            } else if row.get_header().is_none() {
+            } else if row.header().is_none() {
                 row.set_header(Some(&cascade! {
                     gtk::Separator::new(gtk::Orientation::Horizontal);
                     ..show();
@@ -123,7 +123,7 @@ impl ObjectImpl for TestingInner {
         obj.add(&cascade! {
             gtk::ListBox::new();
             ..set_valign(gtk::Align::Start);
-            ..get_style_context().add_class("frame");
+            ..style_context().add_class("frame");
             ..add(&row(&reset_button));
         });
 
@@ -144,7 +144,7 @@ impl ObjectImpl for TestingInner {
             ..add(&cascade! {
                 bench_list;
                 ..set_valign(gtk::Align::Start);
-                ..get_style_context().add_class("frame");
+                ..style_context().add_class("frame");
                 ..add(&row(&bench_button));
                 ..set_header_func(Some(Box::new(header_func)));
             });
@@ -169,7 +169,7 @@ impl ObjectImpl for TestingInner {
             ..add(&cascade! {
                 gtk::ListBox::new();
                 ..set_valign(gtk::Align::Start);
-                ..get_style_context().add_class("frame");
+                ..style_context().add_class("frame");
                 ..add(&row(&test_buttons[0]));
                 ..add(&row(&test_labels[0]));
                 ..add(&label_row("Check pins (missing)", &color_box(1., 0., 0.)));
@@ -184,7 +184,7 @@ impl ObjectImpl for TestingInner {
             ..add(&cascade! {
                 gtk::ListBox::new();
                 ..set_valign(gtk::Align::Start);
-                ..get_style_context().add_class("frame");
+                ..style_context().add_class("frame");
                 ..add(&label_row("Number of runs", &num_runs_spin_2));
                 ..add(&row(&test_buttons[1]));
                 ..add(&row(&test_labels[1]));
@@ -199,7 +199,7 @@ impl ObjectImpl for TestingInner {
             ..add(&cascade! {
                 gtk::ListBox::new();
                 ..set_valign(gtk::Align::Start);
-                ..get_style_context().add_class("frame");
+                ..style_context().add_class("frame");
                 ..add(&label_row(&fl!("test-number-of-runs"), &num_runs_spin_3));
                 ..add(&row(&test_buttons[2]));
                 ..add(&row(&test_labels[2]));
@@ -221,7 +221,7 @@ impl ObjectImpl for TestingInner {
             ..add(&cascade! {
                 gtk::ListBox::new();
                 ..set_valign(gtk::Align::Start);
-                ..get_style_context().add_class("frame");
+                ..style_context().add_class("frame");
                 ..add(&row(&cascade! {
                     gtk::Box::new(gtk::Orientation::Horizontal, 8);
                     ..set_halign(gtk::Align::Center);
@@ -255,11 +255,11 @@ impl ObjectImpl for TestingInner {
         use once_cell::sync::Lazy;
 
         static PROPERTIES: Lazy<Vec<glib::ParamSpec>> = Lazy::new(|| {
-            vec![glib::ParamSpec::boxed(
+            vec![glib::ParamSpec::new_boxed(
                 "colors",
                 "colors",
                 "colors",
-                TestingColors::get_type(),
+                TestingColors::static_type(),
                 glib::ParamFlags::READABLE,
             )]
         });
@@ -267,8 +267,8 @@ impl ObjectImpl for TestingInner {
         PROPERTIES.as_ref()
     }
 
-    fn get_property(&self, _obj: &Self::Type, _id: usize, pspec: &glib::ParamSpec) -> glib::Value {
-        match pspec.get_name() {
+    fn property(&self, _obj: &Self::Type, _id: usize, pspec: &glib::ParamSpec) -> glib::Value {
+        match pspec.name() {
             "colors" => self.colors.borrow().to_value(),
             _ => unimplemented!(),
         }
@@ -307,7 +307,7 @@ impl Testing {
 
         testing.bench_button.set_label("Running USB test");
 
-        while testing.bench_button.get_active() {
+        while testing.bench_button.is_active() {
             match testing.board.benchmark().await {
                 Ok(benchmark) => {
                     for (port_desc, port_result) in benchmark.port_results.iter() {
@@ -462,7 +462,7 @@ impl Testing {
         self.inner().test_buttons[1].connect_clicked(clone!(@strong self as self_ => move |_| {
             glib::MainContext::default().spawn_local(clone!(@strong self_ => async move {
                 self_.nelson(
-                    self_.inner().num_runs_spin_2.get_value_as_int(),
+                    self_.inner().num_runs_spin_2.value_as_int(),
                     1,
                     NelsonKind::Bouncing,
                 ).await;
@@ -474,7 +474,7 @@ impl Testing {
         self.inner().test_buttons[2].connect_clicked(clone!(@strong self as self_ => move |_| {
             glib::MainContext::default().spawn_local(clone!(@strong self_ => async move {
                 self_.nelson(
-                    self_.inner().num_runs_spin_3.get_value_as_int(),
+                    self_.inner().num_runs_spin_3.value_as_int(),
                     2,
                     NelsonKind::Normal,
                 ).await;

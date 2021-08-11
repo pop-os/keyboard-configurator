@@ -23,10 +23,10 @@ impl ObjectImpl for ColorCircleInner {}
 
 impl WidgetImpl for ColorCircleInner {
     fn draw(&self, widget: &ColorCircle, cr: &cairo::Context) -> Inhibit {
-        let width = f64::from(widget.get_allocated_width());
-        let height = f64::from(widget.get_allocated_height());
+        let width = f64::from(widget.allocated_width());
+        let height = f64::from(widget.allocated_height());
 
-        let flags = widget.get_state_flags();
+        let flags = widget.state_flags();
 
         let radius = width.min(height) / 2.;
         let alpha = if flags.contains(gtk::StateFlags::INSENSITIVE) {
@@ -46,18 +46,18 @@ impl WidgetImpl for ColorCircleInner {
             cr.close_path();
             let (r, g, b) = hs.to_rgb().to_floats();
             cr.set_source_rgba(r, g, b, alpha);
-            cr.fill();
+            cr.fill().unwrap();
             angle1 = angle2;
         }
 
         cr.arc(radius, radius, radius - 2. * BORDER, 0., 2. * PI);
         if flags.contains(gtk::StateFlags::PRELIGHT) {
             cr.set_source_rgba(0., 0., 0., 0.2);
-            cr.fill_preserve();
+            cr.fill_preserve().unwrap();
         }
         cr.set_line_width(BORDER);
         cr.set_source_rgb(0.5, 0.5, 0.5);
-        cr.stroke();
+        cr.stroke().unwrap();
 
         Inhibit(false)
     }

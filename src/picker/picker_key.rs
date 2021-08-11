@@ -28,7 +28,7 @@ impl PickerKey {
         let button = cascade! {
             gtk::Button::new();
             ..set_size_request(48 * width, 48);
-            ..get_style_context().add_provider(style_provider, gtk::STYLE_PROVIDER_PRIORITY_APPLICATION);
+            ..style_context().add_provider(style_provider, gtk::STYLE_PROVIDER_PRIORITY_APPLICATION);
             ..add(&label);
         };
 

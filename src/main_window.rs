@@ -100,7 +100,7 @@ impl ObjectImpl for MainWindowInner {
             gtk::Box::new(gtk::Orientation::Vertical, 24);
             ..set_vexpand(true);
             ..set_valign(gtk::Align::Center);
-            ..set_property_margin(12);
+            ..set_margin(12);
             ..add(&cascade! {
                 gtk::Image::from_icon_name(Some("launch-keyboard-not-found"), gtk::IconSize::Invalid);
                 ..set_pixel_size(384);
@@ -129,7 +129,7 @@ impl ObjectImpl for MainWindowInner {
 
         let stack = cascade! {
             gtk::Stack::new();
-            ..set_property_margin(6);
+            ..set_margin(6);
             ..set_homogeneous(false);
             ..add(&board_list_stack);
         };
@@ -138,7 +138,7 @@ impl ObjectImpl for MainWindowInner {
 
         let load_box = cascade! {
             gtk::Box::new(gtk::Orientation::Vertical, 6);
-            ..set_property_margin(6);
+            ..set_margin(6);
             ..show();
         };
 
@@ -161,7 +161,7 @@ impl ObjectImpl for MainWindowInner {
                 ..add_overlay(&load_revealer);
                 ..add(&cascade! {
                     gtk::ScrolledWindow::new::<gtk::Adjustment, gtk::Adjustment>(None, None);
-                    ..set_property_hscrollbar_policy(gtk::PolicyType::Never);
+                    ..set_hscrollbar_policy(gtk::PolicyType::Never);
                     ..set_overlay_scrolling(false);
                     ..add(&stack);
                 });
@@ -225,7 +225,7 @@ impl MainWindow {
         } else {
             None
         });
-        window.connect_property_is_active_notify(clone!(@weak backend => move |window| {
+        window.connect_is_active_notify(clone!(@weak backend => move |window| {
             backend.set_matrix_get_rate(if window.is_active() {
                 Some(Duration::from_millis(50))
             } else {
@@ -287,7 +287,7 @@ impl MainWindow {
     }
 
     fn add_keyboard(&self, board: Board) {
-        let app: ConfiguratorApp = self.get_application().unwrap().downcast().unwrap();
+        let app: ConfiguratorApp = self.application().unwrap().downcast().unwrap();
 
         let keyboard = cascade! {
             Keyboard::new(board.clone(), app.debug_layers(), app.launch_test());
@@ -326,7 +326,7 @@ impl MainWindow {
             ..set_activatable(false);
             ..set_selectable(false);
             ..add(&keyboard_box);
-            ..set_property_margin(12);
+            ..set_margin(12);
             ..show_all();
         };
         self.inner().keyboard_box.add(&row);
@@ -356,7 +356,7 @@ impl MainWindow {
         let mut boards = self.inner().keyboards.borrow_mut();
         if let Some(idx) = boards.iter().position(|(kb, _)| kb.board() == &board) {
             let (keyboard, row) = boards.remove(idx);
-            if self.inner().stack.get_visible_child().as_ref() == Some(keyboard.upcast_ref()) {
+            if self.inner().stack.visible_child().as_ref() == Some(keyboard.upcast_ref()) {
                 self.show_keyboard_list();
             }
             self.inner().stack.remove(&keyboard);

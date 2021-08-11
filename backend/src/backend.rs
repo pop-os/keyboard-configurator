@@ -144,7 +144,7 @@ impl Backend {
 
     pub fn connect_board_added<F: Fn(Board) + 'static>(&self, cb: F) -> SignalHandlerId {
         self.connect_local("board-added", false, move |values| {
-            cb(values[1].get::<Board>().unwrap().unwrap());
+            cb(values[1].get::<Board>().unwrap());
             None
         })
         .unwrap()
@@ -152,7 +152,7 @@ impl Backend {
 
     pub fn connect_board_removed<F: Fn(Board) + 'static>(&self, cb: F) -> SignalHandlerId {
         self.connect_local("board-removed", false, move |values| {
-            cb(values[1].get::<Board>().unwrap().unwrap());
+            cb(values[1].get::<Board>().unwrap());
             None
         })
         .unwrap()

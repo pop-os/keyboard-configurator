@@ -28,7 +28,7 @@ impl ObjectImpl for ConfiguratorAppInner {
 
         app.add_main_option(
             "fake-keyboard",
-            glib::Char::new('k').unwrap(),
+            glib::Char::from(b'k'),
             glib::OptionFlags::NONE,
             glib::OptionArg::String,
             "",
@@ -36,7 +36,7 @@ impl ObjectImpl for ConfiguratorAppInner {
         );
         app.add_main_option(
             "debug-layers",
-            glib::Char::new('\0').unwrap(),
+            glib::Char::from(b'\0'),
             glib::OptionFlags::NONE,
             glib::OptionArg::None,
             "",
@@ -44,7 +44,7 @@ impl ObjectImpl for ConfiguratorAppInner {
         );
         app.add_main_option(
             "launch-test",
-            glib::Char::new('\0').unwrap(),
+            glib::Char::from(b'\0'),
             glib::OptionFlags::NONE,
             glib::OptionArg::None,
             "",
@@ -92,7 +92,7 @@ impl ApplicationImpl for ConfiguratorAppInner {
     fn activate(&self, app: &ConfiguratorApp) {
         self.parent_activate(app);
 
-        if let Some(window) = app.get_active_window() {
+        if let Some(window) = app.active_window() {
             info!("Focusing current window");
             window.present();
         } else {
@@ -133,7 +133,7 @@ impl ConfiguratorApp {
 
 #[cfg(target_os = "macos")]
 fn macos_init() {
-    use gtk::SettingsExt;
+    use gtk::traits::SettingsExt;
     use std::{env, process};
     let mut prefer_dark = false;
     // This command returns Dark if we should use the dark theme
@@ -147,10 +147,10 @@ fn macos_init() {
         prefer_dark = output.stdout.starts_with(b"Dark");
     }
 
-    if let Some(settings) = gtk::Settings::get_default() {
-        settings.set_property_gtk_decoration_layout(Some("close,minimize,maximize:menu"));
-        settings.set_property_gtk_application_prefer_dark_theme(prefer_dark);
-        settings.set_property_gtk_enable_animations(false);
+    if let Some(settings) = gtk::Settings::default() {
+        settings.set_gtk_decoration_layout(Some("close,minimize,maximize:menu"));
+        settings.set_gtk_application_prefer_dark_theme(prefer_dark);
+        settings.set_gtk_enable_animations(false);
     }
 
     let css_provider = cascade! {
@@ -165,7 +165,7 @@ fn macos_init() {
     };
 
     gtk::StyleContext::add_provider_for_screen(
-        &gdk::Screen::get_default().unwrap(),
+        &gdk::Screen::default().unwrap(),
         &css_provider,
         gtk::STYLE_PROVIDER_PRIORITY_APPLICATION,
     );
@@ -175,7 +175,7 @@ fn macos_init() {
 fn windows_init() {
     // This is a dword with a value of 0 if we should use the dark theme:
     // HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize\AppsUseLightTheme
-    use gtk::SettingsExt;
+    use gtk::traits::SettingsExt;
     use winreg::RegKey;
     let mut prefer_dark = false;
     let hkcu = RegKey::predef(winreg::enums::HKEY_CURRENT_USER);
@@ -187,8 +187,8 @@ fn windows_init() {
         }
     }
 
-    if let Some(settings) = gtk::Settings::get_default() {
-        settings.set_property_gtk_application_prefer_dark_theme(prefer_dark);
+    if let Some(settings) = gtk::Settings::default() {
+        settings.set_gtk_application_prefer_dark_theme(prefer_dark);
     }
 }
 

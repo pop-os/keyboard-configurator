@@ -11,7 +11,7 @@ fn main() {
     gtk::init().unwrap();
 
     let application = cascade! {
-        gtk::Application::new(None, gio::ApplicationFlags::FLAGS_NONE).unwrap();
+        gtk::Application::new(None, gio::ApplicationFlags::FLAGS_NONE);
         ..connect_activate(move |app| {
             let backlight_widget = cascade! {
                 keyboard_backlight_widget();

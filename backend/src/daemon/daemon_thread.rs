@@ -222,7 +222,7 @@ impl ThreadClient {
         if let Response::Benchmark(benchmark) = resp {
             Ok(benchmark)
         } else {
-            panic!(format!("'{:?}' unexpected", resp));
+            panic!("{}", format!("'{:?}' unexpected", resp));
         }
     }
 
@@ -231,7 +231,7 @@ impl ThreadClient {
         if let Response::Nelson(nelson) = resp {
             Ok(*nelson)
         } else {
-            panic!(format!("'{:?}' unexpected", resp));
+            panic!("{}", format!("'{:?}' unexpected", resp));
         }
     }
 

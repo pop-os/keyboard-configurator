@@ -11,7 +11,7 @@ use backend::{Backend, Board};
 pub fn keyboard_backlight_widget() -> gtk::Widget {
     let stack = cascade! {
         gtk::Stack::new();
-        ..get_style_context().add_class("frame");
+        ..style_context().add_class("frame");
         ..set_transition_type(gtk::StackTransitionType::SlideLeftRight);
     };
 
@@ -97,7 +97,7 @@ fn row<W: IsA<gtk::Widget>>(text: &str, widget: &W, expand: bool) -> gtk::ListBo
         gtk::ListBoxRow::new();
         ..set_selectable(false);
         ..set_activatable(false);
-        ..set_property_margin(12);
+        ..set_margin(12);
         ..add(&hbox);
     };
 

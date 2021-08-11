@@ -79,11 +79,11 @@ impl ObjectImpl for BacklightInner {
             gtk::Adjustment::new(0., 0., 100., 1., 1., 0.);
             ..bind_property("value", &keyboard_color, "hs")
                 .transform_from(|_, value| {
-                    let hs: &Hs = value.get_some().unwrap();
+                    let hs: &Hs = value.get().unwrap();
                     Some((hs.s * 100.).to_value())
                 })
                 .transform_to(|_, value| {
-                    let s: f64 = value.get_some().unwrap();
+                    let s: f64 = value.get().unwrap();
                     Some(Hs::new(0., s / 100.).to_value())
                 })
                 .flags(glib::BindingFlags::BIDIRECTIONAL)
@@ -103,7 +103,7 @@ impl ObjectImpl for BacklightInner {
                 gtk::ListBoxRow::new();
                 ..set_selectable(false);
                 ..set_activatable(false);
-                ..set_property_margin(8);
+                ..set_margin(8);
                 ..add(widget);
             }
         }
@@ -146,7 +146,7 @@ impl ObjectImpl for BacklightInner {
         cascade! {
             obj;
             ..set_valign(gtk::Align::Start);
-            ..get_style_context().add_class("frame");
+            ..style_context().add_class("frame");
             ..add(&mode_row);
             ..add(&speed_row);
             ..add(&saturation_row);
@@ -176,15 +176,21 @@ impl ObjectImpl for BacklightInner {
     fn properties() -> &'static [glib::ParamSpec] {
         static PROPERTIES: Lazy<Vec<glib::ParamSpec>> = Lazy::new(|| {
             vec![
-                glib::ParamSpec::string("mode", "mode", "mode", None, glib::ParamFlags::READABLE),
-                glib::ParamSpec::boxed(
+                glib::ParamSpec::new_string(
+                    "mode",
+                    "mode",
+                    "mode",
+                    None,
+                    glib::ParamFlags::READABLE,
+                ),
+                glib::ParamSpec::new_boxed(
                     "selected",
                     "selected",
                     "selected",
-                    SelectedKeys::get_type(),
+                    SelectedKeys::static_type(),
                     glib::ParamFlags::WRITABLE,
                 ),
-                glib::ParamSpec::boolean(
+                glib::ParamSpec::new_boolean(
                     "is-per-key",
                     "is-per-key",
                     "is-per-key",
@@ -204,9 +210,9 @@ impl ObjectImpl for BacklightInner {
         value: &glib::Value,
         pspec: &glib::ParamSpec,
     ) {
-        match pspec.get_name() {
+        match pspec.name() {
             "selected" => {
-                let selected: &SelectedKeys = value.get_some().unwrap();
+                let selected: &SelectedKeys = value.get().unwrap();
                 obj.inner().selected.replace(selected.clone());
                 obj.update_per_key();
             }
@@ -214,8 +220,8 @@ impl ObjectImpl for BacklightInner {
         }
     }
 
-    fn get_property(&self, obj: &Self::Type, _id: usize, pspec: &glib::ParamSpec) -> glib::Value {
-        match pspec.get_name() {
+    fn property(&self, obj: &Self::Type, _id: usize, pspec: &glib::ParamSpec) -> glib::Value {
+        match pspec.name() {
             "mode" => obj.mode().id.to_value(),
             "is-per-key" => obj.mode().is_per_key().to_value(),
             _ => unimplemented!(),
@@ -280,7 +286,7 @@ impl Backlight {
     }
 
     pub fn mode(&self) -> &'static Mode {
-        if let Some(id) = self.inner().mode_combobox.get_active_id() {
+        if let Some(id) = self.inner().mode_combobox.active_id() {
             if let Some(mode) = Mode::from_id(id.as_str()) {
                 return mode;
             }
@@ -291,7 +297,7 @@ impl Backlight {
     fn header_func(&self, row: &gtk::ListBoxRow, before: Option<&gtk::ListBoxRow>) {
         if before.is_none() {
             row.set_header::<gtk::Widget>(None)
-        } else if row.get_header().is_none() {
+        } else if row.header().is_none() {
             row.set_header(Some(&cascade! {
                 gtk::Separator::new(gtk::Orientation::Horizontal);
                 ..show();
@@ -345,7 +351,7 @@ impl Backlight {
         }
 
         let board = self.board().clone();
-        let speed = self.inner().speed_scale.get_value();
+        let speed = self.inner().speed_scale.value();
         let mode = self.mode();
         let layer = self.inner().layer.get() as usize;
         glib::MainContext::default().spawn_local(async move {
@@ -360,7 +366,7 @@ impl Backlight {
         if self.inner().do_not_set.get() {
             return;
         }
-        let value = self.inner().brightness_scale.get_value() as i32;
+        let value = self.inner().brightness_scale.value() as i32;
         let board = self.board().clone();
         glib::MainContext::default().spawn_local(async move {
             for layer in board.layers() {

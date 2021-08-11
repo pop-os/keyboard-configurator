@@ -33,7 +33,7 @@ pub async fn choose_color<W: IsA<gtk::Widget>>(
         ..connect_draw(clone!(@weak color_wheel => @default-panic, move |_w, cr| {
             let (r, g, b) = color_wheel.hs().to_rgb().to_floats();
             cr.set_source_rgb(r, g, b);
-            cr.paint();
+            cr.paint().unwrap();
             Inhibit(false)
         }));
     };
@@ -89,16 +89,14 @@ pub async fn choose_color<W: IsA<gtk::Widget>>(
 
     let vbox = cascade! {
         gtk::Box::new(gtk::Orientation::Vertical, 12);
-        ..set_property_margin(24);
+        ..set_margin(24);
         ..add(&color_wheel);
         ..add(&preview);
         ..add(&hue_box);
         ..add(&saturation_box);
     };
 
-    let window = w
-        .get_toplevel()
-        .and_then(|x| x.downcast::<gtk::Window>().ok());
+    let window = w.toplevel().and_then(|x| x.downcast::<gtk::Window>().ok());
 
     let dialog = cascade! {
         gtk::DialogBuilder::new()
@@ -108,7 +106,7 @@ pub async fn choose_color<W: IsA<gtk::Widget>>(
             .build();
         ..add_button(&fl!("button-cancel"), gtk::ResponseType::Cancel);
         ..add_button(&fl!("button-save"), gtk::ResponseType::Ok);
-        ..get_content_area().add(&vbox);
+        ..content_area().add(&vbox);
         ..set_transient_for(window.as_ref());
         ..show_all();
     };

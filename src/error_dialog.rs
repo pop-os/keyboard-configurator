@@ -14,12 +14,12 @@ pub fn show_error_dialog<W: IsA<gtk::Window>, E: Display>(parent: &W, title: &st
         ..connect_response(|dialog, _| dialog.close());
     };
 
-    let header = dialog.get_header_bar().unwrap();
+    let header = dialog.header_bar().unwrap();
     header.set_show_close_button(false);
 
-    let content = dialog.get_content_area();
+    let content = dialog.content_area();
     content.add(&label);
-    content.set_property_margin(24);
+    content.set_margin(24);
 
     dialog.show();
 }

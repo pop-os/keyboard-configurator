@@ -45,10 +45,10 @@ impl ObjectImpl for KeyboardInner {
         let layer_stack = cascade! {
             gtk::Stack::new();
             ..set_transition_duration(0);
-            ..connect_property_visible_child_notify(
+            ..connect_visible_child_notify(
                 clone!(@weak keyboard => move |stack| {
                     let page = stack
-                        .get_visible_child()
+                        .visible_child()
                         .map(|c| c.downcast_ref::<KeyboardLayer>().unwrap().page());
 
                     debug!("{:?}", page);
@@ -71,7 +71,7 @@ impl ObjectImpl for KeyboardInner {
         let stack = cascade! {
             gtk::Stack::new();
             ..set_homogeneous(false);
-            ..connect_property_visible_child_notify(clone!(@weak keyboard => move |_| keyboard.update_selectable()));
+            ..connect_visible_child_notify(clone!(@weak keyboard => move |_| keyboard.update_selectable()));
         };
 
         let stack_switcher = cascade! {
@@ -123,11 +123,11 @@ impl ObjectImpl for KeyboardInner {
     fn properties() -> &'static [glib::ParamSpec] {
         use once_cell::sync::Lazy;
         static PROPERTIES: Lazy<Vec<glib::ParamSpec>> = Lazy::new(|| {
-            vec![glib::ParamSpec::boxed(
+            vec![glib::ParamSpec::new_boxed(
                 "selected",
                 "selected",
                 "selected",
-                SelectedKeys::get_type(),
+                SelectedKeys::static_type(),
                 glib::ParamFlags::READWRITE,
             )]
         });
@@ -142,19 +142,14 @@ impl ObjectImpl for KeyboardInner {
         value: &glib::Value,
         pspec: &glib::ParamSpec,
     ) {
-        match pspec.get_name() {
-            "selected" => keyboard.set_selected(value.get_some::<&SelectedKeys>().unwrap().clone()),
+        match pspec.name() {
+            "selected" => keyboard.set_selected(value.get::<&SelectedKeys>().unwrap().clone()),
             _ => unimplemented!(),
         }
     }
 
-    fn get_property(
-        &self,
-        keyboard: &Keyboard,
-        _id: usize,
-        pspec: &glib::ParamSpec,
-    ) -> glib::Value {
-        match pspec.get_name() {
+    fn property(&self, keyboard: &Keyboard, _id: usize, pspec: &glib::ParamSpec) -> glib::Value {
+        match pspec.name() {
             "selected" => keyboard.selected().to_value(),
             _ => unimplemented!(),
         }
@@ -274,7 +269,7 @@ impl Keyboard {
     }
 
     fn window(&self) -> Option<gtk::Window> {
-        self.get_toplevel()?.downcast().ok()
+        self.toplevel()?.downcast().ok()
     }
 
     pub fn layer(&self) -> Option<usize> {
@@ -321,7 +316,7 @@ impl Keyboard {
             return;
         }
 
-        let _loader = self.get_toplevel().and_then(|x| {
+        let _loader = self.toplevel().and_then(|x| {
             Some(
                 x.downcast_ref::<MainWindow>()?
                     .display_loader(&fl!("loading-keyboard", keyboard = self.display_name())),
@@ -398,7 +393,7 @@ impl Keyboard {
         };
 
         if chooser.run() == gtk::ResponseType::Accept {
-            let path = chooser.get_filename().unwrap();
+            let path = chooser.filename().unwrap();
             match File::open(&path) {
                 Ok(file) => match KeyMap::from_reader(file) {
                     Ok(keymap) => {
@@ -431,7 +426,7 @@ impl Keyboard {
         };
 
         if chooser.run() == gtk::ResponseType::Accept {
-            let path = chooser.get_filename().unwrap();
+            let path = chooser.filename().unwrap();
             let keymap = self.export_keymap();
 
             if keymap.version != 1 {
@@ -465,7 +460,7 @@ impl Keyboard {
             return;
         }
 
-        let tab_name = self.inner().stack.get_visible_child_name();
+        let tab_name = self.inner().stack.visible_child_name();
         let tab_name = tab_name.as_deref();
         let is_per_key = self.inner().backlight.mode().is_per_key();
 
@@ -517,7 +512,7 @@ impl Keyboard {
         // This function is called by Picker::set_keyboard()
         *self.inner().picker.borrow_mut() = match picker {
             Some(picker) => {
-                if let Some(widget) = picker.get_parent() {
+                if let Some(widget) = picker.parent() {
                     widget.downcast::<gtk::Container>().unwrap().remove(picker);
                 }
                 self.inner().picker_box.add(picker);

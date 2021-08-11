@@ -8,11 +8,11 @@ pub fn shortcuts_window() -> gtk::ShortcutsWindow {
     let xml = include_str!("shortcuts_window.ui");
     let builder = gtk::Builder::from_string(xml);
 
-    let import: gtk::ShortcutsShortcut = builder.get_object("import-layout").unwrap();
-    import.set_property_title(Some(&fl!("layout-import")));
+    let import: gtk::ShortcutsShortcut = builder.object("import-layout").unwrap();
+    import.set_title(Some(&fl!("layout-import")));
 
-    let export: gtk::ShortcutsShortcut = builder.get_object("export-layout").unwrap();
-    export.set_property_title(Some(&fl!("layout-export")));
+    let export: gtk::ShortcutsShortcut = builder.object("export-layout").unwrap();
+    export.set_title(Some(&fl!("layout-export")));
 
-    builder.get_object("shortcuts-window").unwrap()
+    builder.object("shortcuts-window").unwrap()
 }

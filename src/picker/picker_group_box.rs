@@ -97,38 +97,34 @@ impl ObjectImpl for PickerGroupBoxInner {
 }
 
 impl WidgetImpl for PickerGroupBoxInner {
-    fn get_request_mode(&self, _widget: &Self::Type) -> gtk::SizeRequestMode {
+    fn request_mode(&self, _widget: &Self::Type) -> gtk::SizeRequestMode {
         gtk::SizeRequestMode::HeightForWidth
     }
 
-    fn get_preferred_width(&self, _widget: &Self::Type) -> (i32, i32) {
+    fn preferred_width(&self, _widget: &Self::Type) -> (i32, i32) {
         let minimum_width = self
             .groups
             .iter()
-            .map(|x| x.vbox.get_preferred_width().1)
+            .map(|x| x.vbox.preferred_width().1)
             .max()
             .unwrap();
         let natural_width = self
             .groups
             .chunks(3)
-            .map(|row| {
-                row.iter()
-                    .map(|x| x.vbox.get_preferred_width().1)
-                    .sum::<i32>()
-            })
+            .map(|row| row.iter().map(|x| x.vbox.preferred_width().1).sum::<i32>())
             .max()
             .unwrap()
             + 2 * HSPACING;
         (minimum_width, natural_width)
     }
 
-    fn get_preferred_height_for_width(&self, widget: &Self::Type, width: i32) -> (i32, i32) {
+    fn preferred_height_for_width(&self, widget: &Self::Type, width: i32) -> (i32, i32) {
         let rows = widget.rows_for_width(width);
         let height = rows
             .iter()
             .map(|row| {
                 row.iter()
-                    .map(|x| x.vbox.get_preferred_height().1)
+                    .map(|x| x.vbox.preferred_height().1)
                     .max()
                     .unwrap()
             })
@@ -146,9 +142,7 @@ impl WidgetImpl for PickerGroupBoxInner {
         let total_width = rows
             .iter()
             .map(|row| {
-                row.iter()
-                    .map(|x| x.vbox.get_preferred_width().1)
-                    .sum::<i32>()
+                row.iter().map(|x| x.vbox.preferred_width().1).sum::<i32>()
                     + (row.len() as i32 - 1) * HSPACING
             })
             .max()
@@ -158,8 +152,8 @@ impl WidgetImpl for PickerGroupBoxInner {
         for row in rows {
             let mut x = (allocation.width - total_width) / 2;
             for group in row {
-                let height = group.vbox.get_preferred_height().1;
-                let width = group.vbox.get_preferred_width().1;
+                let height = group.vbox.preferred_height().1;
+                let width = group.vbox.preferred_width().1;
                 group.vbox.size_allocate(&gtk::Allocation {
                     x,
                     y,
@@ -170,7 +164,7 @@ impl WidgetImpl for PickerGroupBoxInner {
             }
             y += row
                 .iter()
-                .map(|x| x.vbox.get_preferred_height().1)
+                .map(|x| x.vbox.preferred_height().1)
                 .max()
                 .unwrap()
                 + VSPACING;
@@ -178,7 +172,7 @@ impl WidgetImpl for PickerGroupBoxInner {
     }
 
     fn realize(&self, widget: &Self::Type) {
-        let allocation = widget.get_allocation();
+        let allocation = widget.allocation();
         widget.set_realized(true);
 
         let attrs = gdk::WindowAttr {
@@ -187,12 +181,12 @@ impl WidgetImpl for PickerGroupBoxInner {
             width: allocation.width,
             height: allocation.height,
             window_type: gdk::WindowType::Child,
-            event_mask: widget.get_events(),
+            event_mask: widget.events(),
             wclass: gdk::WindowWindowClass::InputOutput,
             ..Default::default()
         };
 
-        let window = gdk::Window::new(widget.get_parent_window().as_ref(), &attrs);
+        let window = gdk::Window::new(widget.parent_window().as_ref(), &attrs);
         widget.register_window(&window);
         widget.set_window(&window);
     }
@@ -244,7 +238,7 @@ impl PickerGroupBox {
 
     pub fn connect_key_pressed<F: Fn(String) + 'static>(&self, cb: F) -> SignalHandlerId {
         self.connect_local("key-pressed", false, move |values| {
-            cb(values[1].get::<String>().unwrap().unwrap());
+            cb(values[1].get::<String>().unwrap());
             None
         })
         .unwrap()
@@ -267,7 +261,7 @@ impl PickerGroupBox {
 
         for i in selected.iter() {
             if let Some(button) = self.get_button(i) {
-                button.get_style_context().remove_class("selected");
+                button.style_context().remove_class("selected");
             }
         }
 
@@ -275,7 +269,7 @@ impl PickerGroupBox {
 
         for i in selected.iter() {
             if let Some(button) = self.get_button(i) {
-                button.get_style_context().add_class("selected");
+                button.style_context().add_class("selected");
             }
         }
     }
@@ -287,7 +281,7 @@ impl PickerGroupBox {
         let mut row_start = 0;
         let mut row_width = 0;
         for (i, group) in groups.iter().enumerate() {
-            let width = group.vbox.get_preferred_width().1;
+            let width = group.vbox.preferred_width().1;
 
             row_width += width;
             if i != 0 {

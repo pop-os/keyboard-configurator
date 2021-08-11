@@ -9,7 +9,7 @@ name = "system76_keyboard_configurator"
 crate-type = [ "cdylib" ]
 
 [dependencies]
-glib = { git = "https://github.com/pop-os/gtk-rs" }
-gtk-sys = { git = "https://github.com/pop-os/gtk-rs" }
-gtk = { git = "https://github.com/pop-os/gtk-rs" }
+glib = "0.14.0"
+gtk-sys = "0.14.0"
+gtk = "0.14.0"
 system76-keyboard-configurator-widgets = { path = "../widgets" }
