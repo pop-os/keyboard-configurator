@@ -55,21 +55,20 @@ impl ObjectImpl for ConfiguratorAppInner {
 
 impl ApplicationImpl for ConfiguratorAppInner {
     fn handle_local_options(&self, _app: &ConfiguratorApp, opts: &glib::VariantDict) -> i32 {
-        let board_names = if let Some(opt) = opts.lookup_value("fake-keyboard", None) {
-            let value: String = opt.get().unwrap();
+        fn lookup<T: glib::FromVariant>(opts: &glib::VariantDict, key: &str) -> Option<T> {
+            opts.lookup_value(key, None)?.get()
+        }
 
-            if &value == "all" {
-                backend::layouts().iter().map(|s| s.to_string()).collect()
-            } else {
-                value.split(',').map(str::to_string).collect()
-            }
-        } else {
-            vec![]
+        let board_names = match lookup::<String>(opts, "fake-keyboard").as_deref() {
+            Some("all") => backend::layouts().iter().map(|s| s.to_string()).collect(),
+            Some(value) => value.split(',').map(str::to_string).collect(),
+            None => vec![],
         };
 
         self.phony_board_names.set(board_names);
         self.debug_layers.set(opts.contains("debug-layers"));
         self.launch_test.set(opts.contains("launch-test"));
+
         -1
     }
 
