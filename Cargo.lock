@@ -1608,6 +1608,7 @@ dependencies = [
  "once_cell",
  "pango",
  "pangocairo",
+ "regex",
  "rust-embed",
  "serde",
  "serde_json",
