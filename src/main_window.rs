@@ -305,7 +305,7 @@ impl MainWindow {
             ..insert(pango::AttrInt::new_weight(pango::Weight::Bold));
         };
         let label = cascade! {
-            gtk::Label::new(Some(&keyboard.display_name()));
+            gtk::Label::new(Some(&keyboard.board().display_name()));
             ..set_attributes(Some(&attr_list));
         };
         let window = self;

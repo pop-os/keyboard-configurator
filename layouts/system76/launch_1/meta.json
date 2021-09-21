@@ -1,5 +1,6 @@
 {
   "display_name": "Launch Keyboard",
+  "is_usb": true,
   "has_mode": true,
   "has_per_layer": true,
   "num_layers": 4,

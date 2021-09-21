@@ -16,7 +16,7 @@ use std::{
 };
 
 use crate::{show_error_dialog, Backlight, KeyboardLayer, MainWindow, Page, Picker, Testing};
-use backend::{Board, DerefCell, KeyMap, Layout, Mode};
+use backend::{Board, DerefCell, KeyMap, Layout};
 use widgets::SelectedKeys;
 
 #[derive(Default)]
@@ -273,16 +273,6 @@ impl Keyboard {
         &self.inner().board
     }
 
-    pub fn display_name(&self) -> String {
-        let name = &self.layout().meta.display_name;
-        let model = self.board().model().splitn(2, '/').nth(1).unwrap();
-        if self.board().is_fake() {
-            format!("{} ({})", name, fl!("board-fake", model = model))
-        } else {
-            format!("{} ({})", name, model)
-        }
-    }
-
     fn layout(&self) -> &Layout {
         &self.inner().board.layout()
     }
@@ -336,67 +326,13 @@ impl Keyboard {
         }
 
         let _loader = self.toplevel().and_then(|x| {
-            Some(
-                x.downcast_ref::<MainWindow>()?
-                    .display_loader(&fl!("loading-keyboard", keyboard = self.display_name())),
-            )
+            Some(x.downcast_ref::<MainWindow>()?.display_loader(&fl!(
+                "loading-keyboard",
+                keyboard = self.board().display_name()
+            )))
         });
 
-        let key_indices = self
-            .board()
-            .keys()
-            .iter()
-            .enumerate()
-            .map(|(i, k)| (&k.logical_name, i))
-            .collect::<HashMap<_, _>>();
-
-        let futures = FuturesUnordered::<Pin<Box<dyn Future<Output = ()>>>>::new();
-
-        for (k, v) in &keymap.map {
-            for (layer, scancode_name) in v.iter().enumerate() {
-                let n = key_indices[&k];
-                futures.push(Box::pin(async move {
-                    if let Err(err) = self.board().keys()[n]
-                        .set_scancode(layer, scancode_name)
-                        .await
-                    {
-                        error!("{}: {:?}", fl!("error-set-keymap"), err);
-                    }
-                }));
-            }
-        }
-
-        for (k, hs) in &keymap.key_leds {
-            let res = self.board().keys()[key_indices[&k]].set_color(*hs);
-            futures.push(Box::pin(async move {
-                if let Err(err) = res.await {
-                    error!("{}: {}", fl!("error-key-led"), err);
-                }
-            }));
-        }
-
-        for (i, keymap_layer) in keymap.layers.iter().enumerate() {
-            let layer = &self.board().layers()[i];
-            if let Some((mode, speed)) = keymap_layer.mode {
-                futures.push(Box::pin(async move {
-                    if let Err(err) = layer.set_mode(Mode::from_index(mode).unwrap(), speed).await {
-                        error!("{}: {}", fl!("error-set-layer-mode"), err)
-                    }
-                }));
-            }
-            futures.push(Box::pin(async move {
-                if let Err(err) = layer.set_brightness(keymap_layer.brightness).await {
-                    error!("{}: {}", fl!("error-set-layer-brightness"), err)
-                }
-            }));
-            futures.push(Box::pin(async move {
-                if let Err(err) = layer.set_color(keymap_layer.color).await {
-                    error!("{}: {}", fl!("error-set-layer-color"), err)
-                }
-            }));
-        }
-
-        futures.collect::<()>().await;
+        self.board().import_keymap(keymap).await;
     }
 
     fn import(&self) {

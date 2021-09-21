@@ -1,5 +1,6 @@
 {
   "display_name": "Launch Alpha Keyboard",
+  "is_usb": true,
   "has_brightness": true,
   "has_color": true,
   "pressed_color": "#202020",
