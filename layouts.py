@@ -43,6 +43,7 @@ QMK_MAPPING = {
     'KP_MINUS': 'NUM_MINUS',
     'KP_PLUS': 'NUM_PLUS',
     'KP_SLASH': 'NUM_SLASH',
+    'KP_POWER': 'POWER',
     'LALT': 'LEFT_ALT',
     'LBRACKET': 'BRACE_OPEN',
     'LCTRL': 'LEFT_CTRL',
