@@ -564,7 +564,7 @@
         "label": "Touchpad Toggle"
       },
       {
-        "keysym": "POWER",
+        "keysym": "SYSTEM_POWER",
         "label": "Power"
       }
     ]
