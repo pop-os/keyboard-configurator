@@ -248,11 +248,13 @@ impl PickerGroupBox {
         self.inner().keys.get(scancode_name).map(|k| &k.gtk)
     }
 
-    pub(crate) fn set_key_visibility<F: Fn(&str) -> (bool, bool)>(&self, f: F) {
+    pub(crate) fn set_key_visibility<F: Fn(&str) -> bool>(&self, f: F) {
         for key in self.inner().keys.values() {
-            let (visible, sensitive) = f(&key.name);
-            key.gtk.set_visible(visible);
-            key.gtk.set_sensitive(sensitive);
+            key.gtk.set_visible(f(&key.name));
+        }
+
+        for group in self.inner().groups.iter() {
+            group.invalidate_filter();
         }
     }
 

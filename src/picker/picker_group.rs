@@ -5,17 +5,14 @@ use std::rc::Rc;
 use super::PickerKey;
 
 pub(super) struct PickerGroup {
-    /// Number of keys to show in each row
-    pub(super) cols: i32,
     /// Name of keys in this group
     keys: Vec<Rc<PickerKey>>,
-    pub(super) vbox: gtk::Box,
-    hbox_opt: Option<gtk::Box>,
-    col: i32,
+    pub vbox: gtk::Box,
+    flow_box: gtk::FlowBox,
 }
 
 impl PickerGroup {
-    pub(super) fn new(name: String, cols: i32) -> Self {
+    pub fn new(name: String, cols: u32) -> Self {
         let label = cascade! {
             gtk::Label::new(Some(&name));
             ..set_attributes(Some(&cascade! {
@@ -26,43 +23,38 @@ impl PickerGroup {
             ..set_margin_bottom(8);
         };
 
+        let flow_box = cascade! {
+            gtk::FlowBox::new();
+            ..set_column_spacing(4);
+            ..set_row_spacing(4);
+            ..set_max_children_per_line(cols);
+            ..set_min_children_per_line(cols);
+            ..set_filter_func(Some(Box::new(|child: &gtk::FlowBoxChild| child.child().unwrap().is_visible())));
+        };
+
         let vbox = cascade! {
             gtk::Box::new(gtk::Orientation::Vertical, 4);
             ..add(&label);
+            ..add(&flow_box);
         };
 
         Self {
-            cols,
             keys: Vec::new(),
             vbox,
-            hbox_opt: None,
-            col: 0,
+            flow_box,
         }
     }
 
-    pub(super) fn add_key(&mut self, key: Rc<PickerKey>) {
-        let hbox = match self.hbox_opt.take() {
-            Some(some) => some,
-            None => {
-                let hbox = gtk::Box::new(gtk::Orientation::Horizontal, 4);
-                self.vbox.add(&hbox);
-                hbox
-            }
-        };
-
-        hbox.add(&key.gtk);
-
-        self.col += 1;
-        if self.col >= self.cols {
-            self.col = 0;
-        } else {
-            self.hbox_opt = Some(hbox);
-        }
-
+    pub fn add_key(&mut self, key: Rc<PickerKey>) {
+        self.flow_box.add(&key.gtk);
         self.keys.push(key);
     }
 
-    pub(super) fn iter_keys(&self) -> impl Iterator<Item = &PickerKey> {
+    pub fn iter_keys(&self) -> impl Iterator<Item = &PickerKey> {
         self.keys.iter().map(|k| k.as_ref())
+    }
+
+    pub fn invalidate_filter(&self) {
+        self.flow_box.invalidate_filter();
     }
 }
