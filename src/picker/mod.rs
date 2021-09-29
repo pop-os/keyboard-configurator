@@ -89,11 +89,9 @@ impl Picker {
 
         if let Some(kb) = &keyboard {
             // Check that scancode is available for the keyboard
-            self.inner().group_box.set_key_visibility(|name| {
-                let visible = kb.has_scancode(name);
-                let sensitive = true;
-                (visible, sensitive)
-            });
+            self.inner()
+                .group_box
+                .set_key_visibility(|name| kb.has_scancode(name));
             kb.set_picker(Some(&self));
         }
 
