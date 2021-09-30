@@ -562,6 +562,10 @@
       {
         "keysym": "TOUCHPAD",
         "label": "Touchpad Toggle"
+      },
+      {
+        "keysym": "SYSTEM_POWER",
+        "label": "Power"
       }
     ]
   },
