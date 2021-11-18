@@ -374,6 +374,11 @@ impl<R: Read + Send + 'static, W: Write + Send + 'static> Daemon for DaemonServe
         Ok(())
     }
 
+    fn set_no_input(&self, board: BoardId, no_input: bool) -> Result<(), String> {
+        let mut ec = self.board(board)?;
+        unsafe { ec.set_no_input(no_input) }.map_err(err_str)
+    }
+
     fn exit(&self) -> Result<(), String> {
         self.running.set(false);
         Ok(())

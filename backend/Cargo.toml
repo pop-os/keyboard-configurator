@@ -25,7 +25,7 @@ i18n-embed-fl = "0.5.0"
 rust-embed = { version = "5.9.0", features = ["debug-embed"] }
 
 [dependencies.system76_ectool]
-version = "0.3.6"
+version = "0.3.8"
 features = ["hidapi", "std"]
 
 [target.'cfg(target_os = "linux")'.dependencies]

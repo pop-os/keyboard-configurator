@@ -382,8 +382,8 @@ impl Testing {
 
         let test_label = &testing.test_labels[test_index];
 
-        info!("Clear keymap");
-        self.clear_keymap().await;
+        info!("Disable keyboard input events");
+        self.set_no_input(true).await;
 
         for test_run in 1..=test_runs {
             let message = format!("Test {}/{} running", test_run, test_runs);
@@ -443,8 +443,8 @@ impl Testing {
             }
         }
 
-        info!("Restore keymap");
-        self.keyboard().reset().await;
+        info!("Re-enable keyboard input events");
+        self.set_no_input(false).await;
 
         info!("Enabling test buttons");
         self.test_buttons_sensitive(true);
@@ -503,8 +503,8 @@ impl Testing {
         self.test_buttons_sensitive(false);
         testing.selma_stop_button.set_sensitive(true);
 
-        info!("Clear keymap");
-        self.clear_keymap().await;
+        info!("Disable keyboard input events");
+        self.set_no_input(true).await;
 
         testing.colors.borrow_mut().0.clear();
         let matrix_changed_handle =
@@ -522,8 +522,8 @@ impl Testing {
 
         testing.board.disconnect(matrix_changed_handle);
 
-        info!("Restore keymap");
-        self.keyboard().reset().await;
+        info!("Re-enable keyboard input events");
+        self.set_no_input(false).await;
 
         info!("Enabling test buttons");
         self.test_buttons_sensitive(true);
@@ -580,13 +580,9 @@ impl Testing {
         self.inner().keyboard.upgrade().unwrap()
     }
 
-    async fn clear_keymap(&self) {
-        let mut empty = self.inner().board.export_keymap();
-        for (_name, codes) in empty.map.iter_mut() {
-            for code in codes.iter_mut() {
-                *code = "NONE".to_string();
-            }
+    async fn set_no_input(&self, no_input: bool) {
+        if let Err(err) = self.inner().board.set_no_input(no_input).await {
+            error!("Error setting no input mode: {}", err);
         }
-        self.keyboard().import_keymap(empty).await;
     }
 }
