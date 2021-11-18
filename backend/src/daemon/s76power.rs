@@ -177,6 +177,10 @@ impl Daemon for DaemonS76Power {
         Ok(())
     }
 
+    fn set_no_input(&self, _board: BoardId, _no_input: bool) -> Result<(), String> {
+        Err("Unimplemented".to_string())
+    }
+
     fn exit(&self) -> Result<(), String> {
         Ok(())
     }

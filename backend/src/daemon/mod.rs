@@ -95,6 +95,7 @@ commands! {
     fn mode(&self, board: BoardId, layer: u8) -> Result<(u8, u8), String>;
     fn set_mode(&self, board: BoardId, layer: u8, mode: u8, speed: u8) -> Result<(), String>;
     fn led_save(&self, board: BoardId) -> Result<(), String>;
+    fn set_no_input(&self, board: BoardId, no_input: bool) -> Result<(), String>;
     fn exit(&self) -> Result<(), String>;
 }
 

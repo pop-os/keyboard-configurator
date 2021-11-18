@@ -287,4 +287,10 @@ impl Board {
             layers,
         }
     }
+
+    pub async fn set_no_input(&self, no_input: bool) -> Result<(), String> {
+        self.thread_client()
+            .set_no_input(self.board(), no_input)
+            .await
+    }
 }

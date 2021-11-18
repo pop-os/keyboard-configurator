@@ -58,6 +58,7 @@ enum SetEnum {
     LedSave(BoardId),
     MatrixGetRate(Item<(), Option<Duration>>),
     Refresh,
+    NoInput(BoardId, bool),
     Exit,
 }
 
@@ -239,6 +240,10 @@ impl ThreadClient {
         self.send_noresp(SetEnum::LedSave(board)).await
     }
 
+    pub async fn set_no_input(&self, board: BoardId, no_input: bool) -> Result<(), String> {
+        self.send_noresp(SetEnum::NoInput(board, no_input)).await
+    }
+
     pub fn close(&self) {
         let join_handle = match self.join_handle.lock().unwrap().take() {
             Some(join_handle) => join_handle,
@@ -361,6 +366,9 @@ impl Thread {
                 set.reply(Ok(()))
             }
             SetEnum::Refresh => set.reply(self.refresh()),
+            SetEnum::NoInput(board, no_input) => {
+                set.reply(self.daemon.set_no_input(board, no_input))
+            }
             SetEnum::Exit => return false,
         }
 
