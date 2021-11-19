@@ -4,4 +4,4 @@
 - `appdmg.json` - Configuration file for [node-appdmg](https://github.com/LinusU/node-appdmg)
 
 ### Building
-`./build.py --relase` should generate a `.dmg`
+`./build.py --release` should generate a `.dmg`
