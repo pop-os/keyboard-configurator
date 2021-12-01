@@ -18,6 +18,8 @@ Architecture: amd64
 Depends:
   ${misc:Depends},
   ${shlibs:Depends}
+Conflicts:
+  pop-desktop
 Description: System76 Keyboard Configurator
   Application for configuration of System76 keyboard firmware.
 
