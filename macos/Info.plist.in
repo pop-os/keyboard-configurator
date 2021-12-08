@@ -18,6 +18,8 @@
   <string>System76 Keyboard Configurator</string>
   <key>CFBundleName</key>
   <string>System76 Keyboard Configurator</string>
+  <key>NSHighResolutionCapable</key>
+  <true/>
 </dict>
 </plist>
 
