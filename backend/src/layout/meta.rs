@@ -23,6 +23,9 @@ pub struct Meta {
     /// Supports mod-tap bindings (assumes QMK mod-tap encoding)
     #[serde(default)]
     pub has_mod_tap: bool,
+    #[serde(default)]
+    /// Disable "Invert F Keys" option
+    pub no_fn_f: bool,
     /// Number or layers; e.g. 2 where layer 2 is used when `Fn` is held
     #[serde(default = "num_layers_default")]
     pub num_layers: u8,

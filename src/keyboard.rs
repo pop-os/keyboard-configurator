@@ -20,6 +20,7 @@ use widgets::SelectedKeys;
 #[derive(Default)]
 pub struct KeyboardInner {
     action_group: DerefCell<gio::SimpleActionGroup>,
+    invert_f_action: DerefCell<gio::SimpleAction>,
     board: DerefCell<Board>,
     page: Cell<Page>,
     picker: RefCell<WeakRef<Picker>>,
@@ -90,6 +91,15 @@ impl ObjectImpl for KeyboardInner {
             ..add(&stack);
         };
 
+        let invert_f_action = cascade! {
+            gio::SimpleAction::new("invert-f-keys", None);
+            ..connect_activate(clone!(@weak keyboard => move |_, _|
+                glib::MainContext::default().spawn_local(async move {
+                    keyboard.invert_f_keys().await;
+                });
+            ));
+        };
+
         let action_group = cascade! {
             gio::SimpleActionGroup::new();
             ..add_action(&cascade! {
@@ -112,9 +122,11 @@ impl ObjectImpl for KeyboardInner {
                     });
                 ));
             });
+            ..add_action(&invert_f_action);
         };
 
         self.action_group.set(action_group);
+        self.invert_f_action.set(invert_f_action);
         self.layer_stack.set(layer_stack);
         self.stack.set(stack);
         self.picker_box.set(picker_box);
@@ -168,6 +180,11 @@ glib::wrapper! {
 impl Keyboard {
     pub fn new(board: Board, debug_layers: bool, launch_test: bool) -> Self {
         let keyboard: Self = glib::Object::new(&[]).unwrap();
+
+        keyboard
+            .inner()
+            .invert_f_action
+            .set_enabled(!board.layout().meta.no_fn_f);
 
         board.connect_keymap_changed(clone!(@weak keyboard => move ||
             keyboard.queue_draw();
@@ -453,6 +470,41 @@ impl Keyboard {
 
     pub async fn reset(&self) {
         self.import_keymap(self.layout().default.clone()).await;
+    }
+
+    async fn invert_f_keys(&self) {
+        let key_indices = self
+            .board()
+            .keys()
+            .iter()
+            .enumerate()
+            .map(|(i, k)| (k.logical_name.as_str(), i))
+            .collect::<HashMap<_, _>>();
+
+        let futures = FuturesUnordered::<Pin<Box<dyn Future<Output = ()>>>>::new();
+
+        for i in self.layout().f_keys() {
+            let k = &self.board().keys()[key_indices[i]];
+            let layer0_keycode = k.get_scancode(0).unwrap().1;
+            let layer1_keycode = k.get_scancode(1).unwrap().1;
+
+            if layer1_keycode == "ROLL_OVER" {
+                continue;
+            }
+
+            futures.push(Box::pin(async move {
+                if let Err(err) = k.set_scancode(0, &layer1_keycode).await {
+                    error!("{}: {:?}", fl!("error-set-keymap"), err);
+                }
+            }));
+            futures.push(Box::pin(async move {
+                if let Err(err) = k.set_scancode(1, &layer0_keycode).await {
+                    error!("{}: {:?}", fl!("error-set-keymap"), err);
+                }
+            }));
+        }
+
+        futures.collect::<()>().await;
     }
 
     fn update_selectable(&self) {

@@ -167,6 +167,17 @@ impl Layout {
             self.keymap.get(name).copied()
         }
     }
+
+    pub fn f_keys(&self) -> impl Iterator<Item = &str> {
+        self.default.map.iter().filter_map(|(k, v)| {
+            if let Some(num) = v[0].strip_prefix('F') {
+                if num.parse::<u8>().is_ok() {
+                    return Some(k.as_str());
+                }
+            }
+            None
+        })
+    }
 }
 
 fn parse_keymap_json(keymap_json: &str) -> (HashMap<String, u16>, HashMap<u16, String>) {
@@ -278,6 +289,14 @@ mod tests {
                 "{}",
                 i
             );
+        }
+    }
+
+    #[test]
+    fn layout_has_f_keys() {
+        for i in layouts() {
+            let layout = Layout::from_board(i).unwrap();
+            assert_eq!(layout.f_keys().count(), 12);
         }
     }
 }
