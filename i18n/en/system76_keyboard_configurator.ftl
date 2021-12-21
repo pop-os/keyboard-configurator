@@ -46,6 +46,7 @@ layer-saturation = Layer Saturation:
 layout-export = Export Layout
 layout-import = Import Layout
 layout-reset = Reset Layout
+layout-invert-f-keys = Invert F Keys
 
 loading = Keyboard(s) detected. Loading...
 loading-keyboard = Loading keymap and LEDs for {$keyboard}

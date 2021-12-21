@@ -68,6 +68,7 @@ impl ObjectImpl for MainWindowInner {
                 ..append(Some(&fl!("layout-import")), Some("kbd.import"));
                 ..append(Some(&fl!("layout-export")), Some("kbd.export"));
                 ..append(Some(&fl!("layout-reset")), Some("kbd.reset"));
+                ..append(Some(&fl!("layout-invert-f-keys")), Some("kbd.invert-f-keys"));
             });
             ..append_section(None, &cascade! {
                 gio::Menu::new();
