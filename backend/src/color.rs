@@ -1,5 +1,5 @@
 use ordered_float::NotNan;
-use palette::{Component, IntoColor, RgbHue};
+use palette::{FromColor, FromComponent, IntoColor, IntoComponent, RgbHue};
 use serde::{de, Deserialize, Serialize};
 use std::{f64::consts::PI, fmt};
 
@@ -38,18 +38,18 @@ impl Hs {
     }
 
     pub fn from_ints(h: u8, s: u8) -> Self {
-        Self::new(h.convert::<f64>() * (2. * PI), s.convert())
+        Self::new(f64::from_component(h) * (2. * PI), f64::from_component(s))
     }
 
     pub fn to_ints(self) -> (u8, u8) {
         let h = (self.h / (2. * PI)).rem_euclid(1.);
-        (h.convert(), self.s.convert())
+        (h.into_component(), self.s.into_component())
     }
 
     pub fn to_rgb(self) -> Rgb {
         let hue = RgbHue::from_radians(*self.h);
         let hsv = PaletteHsv::new(hue, *self.s, 1.);
-        let rgb: PaletteLinSrgb = hsv.into_rgb();
+        let rgb: PaletteLinSrgb = palette::Srgb::<f64>::from_color(hsv).into_linear();
         let (r, g, b) = rgb.into_components();
         Rgb::from_floats(r, g, b)
     }
@@ -74,14 +74,18 @@ impl Rgb {
 
     pub fn from_floats(r: f64, g: f64, b: f64) -> Self {
         Self {
-            r: r.convert(),
-            g: g.convert(),
-            b: b.convert(),
+            r: r.into_component(),
+            g: g.into_component(),
+            b: b.into_component(),
         }
     }
 
     pub fn to_floats(self) -> (f64, f64, f64) {
-        (self.r.convert(), self.g.convert(), self.b.convert())
+        (
+            self.r.into_component(),
+            self.g.into_component(),
+            self.b.into_component(),
+        )
     }
 
     /// Parse from hexadecimal string
@@ -100,7 +104,7 @@ impl Rgb {
     pub fn to_hs_lossy(self) -> Hs {
         let (r, g, b) = self.to_floats();
         let rgb = PaletteLinSrgb::new(r, g, b);
-        let hsv: PaletteHsv = rgb.into_hsv();
+        let hsv: PaletteHsv = palette::Srgb::<f64>::from_linear(rgb).into_color();
         let (h, s, _) = hsv.into_components();
         Hs::new(h.to_radians(), s)
     }
