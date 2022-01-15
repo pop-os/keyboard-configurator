@@ -113,7 +113,6 @@ impl Picker {
         };
         let layer = kb.layer();
 
-        info!("Clicked {} layer {:?}", name, layer);
         if let Some(layer) = layer {
             let futures = FuturesUnordered::new();
             for i in kb.selected().iter() {
