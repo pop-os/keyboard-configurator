@@ -1,7 +1,10 @@
 use cascade::cascade;
-use glib::{clone, subclass::Signal, SignalHandlerId};
-use gtk::prelude::*;
-use gtk::subclass::prelude::*;
+use gtk::{
+    gdk,
+    glib::{self, clone, subclass::Signal, SignalHandlerId},
+    prelude::*,
+    subclass::prelude::*,
+};
 use once_cell::sync::Lazy;
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
@@ -137,7 +140,7 @@ impl WidgetImpl for PickerGroupBoxInner {
     fn size_allocate(&self, obj: &Self::Type, allocation: &gtk::Allocation) {
         self.parent_size_allocate(obj, allocation);
 
-        let rows = obj.rows_for_width(allocation.width);
+        let rows = obj.rows_for_width(allocation.width());
 
         let total_width = rows
             .iter()
@@ -150,16 +153,13 @@ impl WidgetImpl for PickerGroupBoxInner {
 
         let mut y = 0;
         for row in rows {
-            let mut x = (allocation.width - total_width) / 2;
+            let mut x = (allocation.width() - total_width) / 2;
             for group in row {
                 let height = group.vbox.preferred_height().1;
                 let width = group.vbox.preferred_width().1;
-                group.vbox.size_allocate(&gtk::Allocation {
-                    x,
-                    y,
-                    width,
-                    height,
-                });
+                group
+                    .vbox
+                    .size_allocate(&gtk::Allocation::new(x, y, width, height));
                 x += width + HSPACING;
             }
             y += row
@@ -176,10 +176,10 @@ impl WidgetImpl for PickerGroupBoxInner {
         widget.set_realized(true);
 
         let attrs = gdk::WindowAttr {
-            x: Some(allocation.x),
-            y: Some(allocation.y),
-            width: allocation.width,
-            height: allocation.height,
+            x: Some(allocation.x()),
+            y: Some(allocation.y()),
+            width: allocation.width(),
+            height: allocation.height(),
             window_type: gdk::WindowType::Child,
             event_mask: widget.events(),
             wclass: gdk::WindowWindowClass::InputOutput,
@@ -230,7 +230,7 @@ impl PickerGroupBox {
                 let button = &key.gtk;
                 let name = key.name.to_string();
                 button.connect_clicked(clone!(@weak picker => @default-panic, move |_| {
-                    picker.emit_by_name("key-pressed", &[&name]).unwrap();
+                    picker.emit_by_name::<()>("key-pressed", &[&name]);
                 }));
             }
         }
@@ -241,7 +241,6 @@ impl PickerGroupBox {
             cb(values[1].get::<String>().unwrap());
             None
         })
-        .unwrap()
     }
 
     fn get_button(&self, scancode_name: &str) -> Option<&gtk::Button> {

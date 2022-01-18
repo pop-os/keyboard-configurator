@@ -9,7 +9,7 @@ edition = "2018"
 cascade = "1"
 futures = "0.3.13"
 futures-timer = "3.0.2"
-glib = "0.14.0"
+glib = "0.15.0"
 hidapi = { version = "1.2", default-features = false, features = ["linux-shared-hidraw"] }
 libc = "0.2"
 once_cell = "1.4"

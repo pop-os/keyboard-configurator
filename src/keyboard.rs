@@ -1,10 +1,12 @@
 use crate::fl;
 use cascade::cascade;
 use futures::{prelude::*, stream::FuturesUnordered};
-use glib::clone;
-use glib::object::WeakRef;
-use gtk::prelude::*;
-use gtk::subclass::prelude::*;
+use gtk::{
+    gio,
+    glib::{self, clone, object::WeakRef},
+    prelude::*,
+    subclass::prelude::*,
+};
 use std::{
     cell::{Cell, RefCell},
     collections::HashMap,
@@ -135,7 +137,7 @@ impl ObjectImpl for KeyboardInner {
     fn properties() -> &'static [glib::ParamSpec] {
         use once_cell::sync::Lazy;
         static PROPERTIES: Lazy<Vec<glib::ParamSpec>> = Lazy::new(|| {
-            vec![glib::ParamSpec::new_boxed(
+            vec![glib::ParamSpecBoxed::new(
                 "selected",
                 "selected",
                 "selected",
@@ -221,7 +223,7 @@ impl Keyboard {
         let backlight = cascade! {
             Backlight::new(board.clone());
             ..set_halign(gtk::Align::Center);
-            ..connect_local("notify::is-per-key", false, clone!(@weak keyboard => @default-panic, move |_| { keyboard.update_selectable(); None })).unwrap();
+            ..connect_local("notify::is-per-key", false, clone!(@weak keyboard => @default-panic, move |_| { keyboard.update_selectable(); None }));
         };
 
         let leds_desc = if board.layout().meta.has_per_layer {
@@ -405,7 +407,7 @@ impl Keyboard {
         };
 
         let chooser = cascade! {
-            gtk::FileChooserNative::new::<gtk::Window>(Some(&fl!("layout-import")), None, gtk::FileChooserAction::Open, Some(&fl!("button-import")), Some(&fl!("button-cancel")));
+            gtk::FileChooserNative::new(Some(&fl!("layout-import")), None::<&gtk::Window>, gtk::FileChooserAction::Open, Some(&fl!("button-import")), Some(&fl!("button-cancel")));
             ..add_filter(&filter);
         };
 
@@ -436,7 +438,7 @@ impl Keyboard {
         };
 
         let chooser = cascade! {
-            gtk::FileChooserNative::new::<gtk::Window>(Some(&fl!("layout-export")), None, gtk::FileChooserAction::Save, Some("Export"), Some("Cancel"));
+            gtk::FileChooserNative::new(Some(&fl!("layout-export")), None::<&gtk::Window>, gtk::FileChooserAction::Save, Some("Export"), Some("Cancel"));
             ..add_filter(&filter);
             ..set_current_name(&format!("{}.json", fl!("untitled-layout")));
             ..set_do_overwrite_confirmation(true);

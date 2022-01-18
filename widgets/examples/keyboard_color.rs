@@ -1,8 +1,7 @@
 #![windows_subsystem = "windows"]
 
 use cascade::cascade;
-use gio::prelude::*;
-use gtk::prelude::*;
+use gtk::{gio, prelude::*};
 use std::process;
 
 use system76_keyboard_configurator_widgets::keyboard_backlight_widget;

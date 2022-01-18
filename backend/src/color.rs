@@ -15,13 +15,13 @@ type PaletteLinSrgb = palette::LinSrgb<f64>;
     Deserialize,
     Default,
     PartialEq,
-    glib::GBoxed,
+    glib::Boxed,
     Hash,
     Eq,
     Ord,
     PartialOrd,
 )]
-#[gboxed(type_name = "S76Hs")]
+#[boxed_type(name = "S76Hs")]
 pub struct Hs {
     /// Hue, in radians
     pub h: NotNan<f64>,
@@ -56,8 +56,8 @@ impl Hs {
 }
 
 /// Integer RGB color
-#[derive(Clone, Copy, Debug, Default, glib::GBoxed)]
-#[gboxed(type_name = "S76Rgb")]
+#[derive(Clone, Copy, Debug, Default, glib::Boxed)]
+#[boxed_type(name = "S76Rgb")]
 pub struct Rgb {
     /// Red
     pub r: u8,

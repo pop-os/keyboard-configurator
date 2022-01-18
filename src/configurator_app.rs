@@ -1,6 +1,5 @@
 use cascade::cascade;
-use gtk::prelude::*;
-use gtk::subclass::prelude::*;
+use gtk::{gdk, gio, glib, prelude::*, subclass::prelude::*};
 use std::cell::Cell;
 
 use crate::{about_dialog, fl, MainWindow, Page};

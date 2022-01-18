@@ -2,8 +2,10 @@
 
 use crate::fl;
 use cascade::cascade;
-use glib::clone;
-use gtk::prelude::*;
+use gtk::{
+    glib::{self, clone},
+    prelude::*,
+};
 
 use crate::{KeyboardColor, KeyboardColorIndex};
 use backend::{Backend, Board};

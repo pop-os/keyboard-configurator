@@ -1,8 +1,10 @@
 use cascade::cascade;
 use futures::{prelude::*, stream::FuturesUnordered};
-use glib::clone;
-use gtk::prelude::*;
-use gtk::subclass::prelude::*;
+use gtk::{
+    glib::{self, clone},
+    prelude::*,
+    subclass::prelude::*,
+};
 use once_cell::sync::Lazy;
 use std::{cell::RefCell, collections::HashMap};
 

@@ -1,5 +1,5 @@
 use cascade::cascade;
-use gtk::prelude::*;
+use gtk::{pango, prelude::*};
 use std::rc::Rc;
 
 use super::PickerKey;
@@ -17,7 +17,7 @@ impl PickerGroup {
             gtk::Label::new(Some(&name));
             ..set_attributes(Some(&cascade! {
                 pango::AttrList::new();
-                ..insert(pango::Attribute::new_weight(pango::Weight::Bold));
+                ..insert(pango::AttrInt::new_weight(pango::Weight::Bold));
             } ));
             ..set_halign(gtk::Align::Start);
             ..set_margin_bottom(8);

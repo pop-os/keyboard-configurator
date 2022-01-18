@@ -1,7 +1,11 @@
 use cascade::cascade;
-use glib::clone;
-use gtk::prelude::*;
-use gtk::subclass::prelude::*;
+use gtk::{
+    cairo, gdk,
+    glib::{self, clone},
+    pango,
+    prelude::*,
+    subclass::prelude::*,
+};
 use once_cell::unsync::OnceCell;
 use std::{
     cell::{Cell, RefCell},
@@ -47,14 +51,14 @@ impl ObjectImpl for KeyboardLayerInner {
         use once_cell::sync::Lazy;
         static PROPERTIES: Lazy<Vec<glib::ParamSpec>> = Lazy::new(|| {
             vec![
-                glib::ParamSpec::new_boxed(
+                glib::ParamSpecBoxed::new(
                     "selected",
                     "selected",
                     "selected",
                     SelectedKeys::static_type(),
                     glib::ParamFlags::READWRITE,
                 ),
-                glib::ParamSpec::new_boxed(
+                glib::ParamSpecBoxed::new(
                     "testing-colors",
                     "testing-colors",
                     "testing-colors",
