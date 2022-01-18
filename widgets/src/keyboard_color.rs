@@ -1,9 +1,11 @@
 use crate::fl;
 use cascade::cascade;
 use futures::{prelude::*, stream::FuturesUnordered};
-use glib::clone;
-use gtk::prelude::*;
-use gtk::subclass::prelude::*;
+use gtk::{
+    glib::{self, clone},
+    prelude::*,
+    subclass::prelude::*,
+};
 use std::{
     cell::{Cell, Ref, RefCell},
     collections::{BTreeSet, HashMap},
@@ -120,7 +122,7 @@ impl ObjectImpl for KeyboardColorInner {
     fn properties() -> &'static [glib::ParamSpec] {
         use once_cell::sync::Lazy;
         static PROPERTIES: Lazy<Vec<glib::ParamSpec>> = Lazy::new(|| {
-            vec![glib::ParamSpec::new_boxed(
+            vec![glib::ParamSpecBoxed::new(
                 "hs",
                 "hs",
                 "hs",

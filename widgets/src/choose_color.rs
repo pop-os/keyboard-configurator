@@ -1,8 +1,10 @@
 use crate::fl;
 use cascade::cascade;
 use futures::future::abortable;
-use glib::clone;
-use gtk::prelude::*;
+use gtk::{
+    glib::{self, clone},
+    prelude::*,
+};
 use std::{cell::RefCell, rc::Rc};
 
 use crate::{ColorWheel, KeyboardColorIndex};
@@ -99,7 +101,7 @@ pub async fn choose_color<W: IsA<gtk::Widget>>(
     let window = w.toplevel().and_then(|x| x.downcast::<gtk::Window>().ok());
 
     let dialog = cascade! {
-        gtk::DialogBuilder::new()
+        gtk::builders::DialogBuilder::new()
             .title(title)
             .use_header_bar(1)
             .modal(true)

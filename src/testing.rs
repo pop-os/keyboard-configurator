@@ -2,9 +2,11 @@ use crate::{fl, Keyboard};
 use backend::{Board, DerefCell, NelsonKind, Rgb};
 use cascade::cascade;
 use futures::channel::oneshot;
-use glib::clone;
-use gtk::prelude::*;
-use gtk::subclass::prelude::*;
+use gtk::{
+    glib::{self, clone},
+    prelude::*,
+    subclass::prelude::*,
+};
 use once_cell::sync::OnceCell;
 use std::{cell::RefCell, collections::HashMap, sync::RwLock};
 
@@ -44,8 +46,8 @@ impl TestResults {
     }
 }
 
-#[derive(Clone, Default, glib::GBoxed)]
-#[gboxed(type_name = "S76TestingColor")]
+#[derive(Clone, Default, glib::Boxed)]
+#[boxed_type(name = "S76TestingColor")]
 pub struct TestingColors(pub HashMap<(usize, usize), Rgb>);
 
 #[derive(Default)]
@@ -109,7 +111,7 @@ impl ObjectImpl for TestingInner {
 
         fn header_func(row: &gtk::ListBoxRow, before: Option<&gtk::ListBoxRow>) {
             if before.is_none() {
-                row.set_header::<gtk::Widget>(None)
+                row.set_header(None::<&gtk::Widget>)
             } else if row.header().is_none() {
                 row.set_header(Some(&cascade! {
                     gtk::Separator::new(gtk::Orientation::Horizontal);
@@ -255,7 +257,7 @@ impl ObjectImpl for TestingInner {
         use once_cell::sync::Lazy;
 
         static PROPERTIES: Lazy<Vec<glib::ParamSpec>> = Lazy::new(|| {
-            vec![glib::ParamSpec::new_boxed(
+            vec![glib::ParamSpecBoxed::new(
                 "colors",
                 "colors",
                 "colors",

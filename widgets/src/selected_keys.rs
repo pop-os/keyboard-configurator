@@ -1,7 +1,8 @@
+use gtk::glib;
 use std::collections::BTreeSet;
 
-#[derive(Clone, Default, glib::GBoxed)]
-#[gboxed(type_name = "S76SelectedKeys")]
+#[derive(Clone, Default, glib::Boxed)]
+#[boxed_type(name = "S76SelectedKeys")]
 pub struct SelectedKeys(BTreeSet<usize>);
 
 impl SelectedKeys {

@@ -1,9 +1,11 @@
 use crate::fl;
 use cascade::cascade;
 use futures::{prelude::*, stream::FuturesUnordered};
-use glib::clone;
-use gtk::prelude::*;
-use gtk::subclass::prelude::*;
+use gtk::{
+    glib::{self, clone},
+    prelude::*,
+    subclass::prelude::*,
+};
 use once_cell::sync::Lazy;
 use std::cell::{Cell, RefCell};
 
@@ -176,21 +178,21 @@ impl ObjectImpl for BacklightInner {
     fn properties() -> &'static [glib::ParamSpec] {
         static PROPERTIES: Lazy<Vec<glib::ParamSpec>> = Lazy::new(|| {
             vec![
-                glib::ParamSpec::new_string(
+                glib::ParamSpecString::new(
                     "mode",
                     "mode",
                     "mode",
                     None,
                     glib::ParamFlags::READABLE,
                 ),
-                glib::ParamSpec::new_boxed(
+                glib::ParamSpecBoxed::new(
                     "selected",
                     "selected",
                     "selected",
                     SelectedKeys::static_type(),
                     glib::ParamFlags::WRITABLE,
                 ),
-                glib::ParamSpec::new_boolean(
+                glib::ParamSpecBoolean::new(
                     "is-per-key",
                     "is-per-key",
                     "is-per-key",
@@ -296,7 +298,7 @@ impl Backlight {
 
     fn header_func(&self, row: &gtk::ListBoxRow, before: Option<&gtk::ListBoxRow>) {
         if before.is_none() {
-            row.set_header::<gtk::Widget>(None)
+            row.set_header(None::<&gtk::Widget>)
         } else if row.header().is_none() {
             row.set_header(Some(&cascade! {
                 gtk::Separator::new(gtk::Orientation::Horizontal);

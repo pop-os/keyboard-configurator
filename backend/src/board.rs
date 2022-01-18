@@ -130,7 +130,7 @@ impl Board {
         glib::MainContext::default().spawn(clone!(@strong self_ => async move {
             while let Some(matrix) = matrix_reciever.next().await {
                 self_.inner().matrix.replace(matrix);
-                self_.emit_by_name("matrix-changed", &[]).unwrap();
+                self_.emit_by_name::<()>("matrix-changed", &[]);
             }
         }));
 
@@ -146,7 +146,6 @@ impl Board {
             cb();
             None
         })
-        .unwrap()
     }
 
     pub fn connect_keymap_changed<F: Fn() + 'static>(&self, cb: F) -> SignalHandlerId {
@@ -154,12 +153,11 @@ impl Board {
             cb();
             None
         })
-        .unwrap()
     }
 
     pub(crate) fn set_leds_changed(&self) {
         self.inner().leds_changed.set(true);
-        self.emit_by_name("leds-changed", &[]).unwrap();
+        self.emit_by_name::<()>("leds-changed", &[]);
     }
 
     pub fn connect_leds_changed<F: Fn() + 'static>(&self, cb: F) -> SignalHandlerId {
@@ -167,7 +165,6 @@ impl Board {
             cb();
             None
         })
-        .unwrap()
     }
 
     pub fn board(&self) -> BoardId {
@@ -195,7 +192,6 @@ impl Board {
             cb();
             None
         })
-        .unwrap()
     }
 
     pub fn max_brightness(&self) -> i32 {

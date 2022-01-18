@@ -2,9 +2,12 @@
 
 use cascade::cascade;
 use futures::future::{abortable, AbortHandle};
-use glib::clone;
-use gtk::prelude::*;
-use gtk::subclass::prelude::*;
+use gtk::{
+    cairo, gdk,
+    glib::{self, clone},
+    prelude::*,
+    subclass::prelude::*,
+};
 use std::cell::{Cell, RefCell};
 use std::f64::consts::PI;
 
@@ -33,7 +36,7 @@ impl ObjectImpl for ColorWheelInner {
         self.parent_constructed(wheel);
 
         self.thread_pool
-            .set(glib::ThreadPool::new_shared(None).unwrap());
+            .set(glib::ThreadPool::shared(None).unwrap());
 
         self.gesture_drag.set(cascade! {
             gtk::GestureDrag::new(wheel);
@@ -53,14 +56,14 @@ impl ObjectImpl for ColorWheelInner {
         use once_cell::sync::Lazy;
         static PROPERTIES: Lazy<Vec<glib::ParamSpec>> = Lazy::new(|| {
             vec![
-                glib::ParamSpec::new_boxed(
+                glib::ParamSpecBoxed::new(
                     "hs",
                     "hs",
                     "hs",
                     Hs::static_type(),
                     glib::ParamFlags::READWRITE,
                 ),
-                glib::ParamSpec::new_double(
+                glib::ParamSpecDouble::new(
                     "hue",
                     "hue",
                     "hue",
@@ -69,7 +72,7 @@ impl ObjectImpl for ColorWheelInner {
                     0.,
                     glib::ParamFlags::READWRITE,
                 ),
-                glib::ParamSpec::new_double(
+                glib::ParamSpecDouble::new(
                     "saturation",
                     "saturation",
                     "saturation",
@@ -247,7 +250,7 @@ impl ColorWheel {
     }
 
     async fn generate_surface(&self, rect: &gtk::Rectangle) -> cairo::ImageSurface {
-        let size = rect.width.min(rect.height);
+        let size = rect.width().min(rect.height());
         let stride = cairo::Format::Rgb24.stride_for_width(size as u32).unwrap();
 
         let data = self

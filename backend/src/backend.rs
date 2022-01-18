@@ -64,20 +64,20 @@ impl Backend {
             clone!(@weak self_ => move |response| {
                 match response {
                     ThreadResponse::BoardLoading => {
-                        self_.emit_by_name("board-loading", &[]).unwrap();
+                        self_.emit_by_name::<()>("board-loading", &[]);
                     },
                     ThreadResponse::BoardLoadingDone => {
-                        self_.emit_by_name("board-loading-done", &[]).unwrap();
+                        self_.emit_by_name::<()>("board-loading-done", &[]);
                     },
                     ThreadResponse::BoardAdded(board) => {
-                        self_.emit_by_name("board-added", &[&board]).unwrap();
+                        self_.emit_by_name::<()>("board-added", &[&board]);
                         self_.inner().boards.borrow_mut().insert(board.board(), board);
                     },
                     ThreadResponse::BoardRemoved(id) => {
                         let boards = self_.inner().boards.borrow();
                         let board = &boards[&id];
-                        self_.emit_by_name("board-removed", &[board]).unwrap();
-                        board.emit_by_name("removed", &[]).unwrap();
+                        self_.emit_by_name::<()>("board-removed", &[board]);
+                        board.emit_by_name::<()>("removed", &[]);
                     },
                 }
             }),
@@ -131,7 +131,6 @@ impl Backend {
             cb();
             None
         })
-        .unwrap()
     }
 
     pub fn connect_board_loading_done<F: Fn() + 'static>(&self, cb: F) -> SignalHandlerId {
@@ -139,7 +138,6 @@ impl Backend {
             cb();
             None
         })
-        .unwrap()
     }
 
     pub fn connect_board_added<F: Fn(Board) + 'static>(&self, cb: F) -> SignalHandlerId {
@@ -147,7 +145,6 @@ impl Backend {
             cb(values[1].get::<Board>().unwrap());
             None
         })
-        .unwrap()
     }
 
     pub fn connect_board_removed<F: Fn(Board) + 'static>(&self, cb: F) -> SignalHandlerId {
@@ -155,7 +152,6 @@ impl Backend {
             cb(values[1].get::<Board>().unwrap());
             None
         })
-        .unwrap()
     }
 }
 

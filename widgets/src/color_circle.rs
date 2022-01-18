@@ -1,6 +1,5 @@
 use cascade::cascade;
-use gtk::prelude::*;
-use gtk::subclass::prelude::*;
+use gtk::{cairo, glib, prelude::*, subclass::prelude::*};
 use std::{cell::RefCell, collections::BTreeSet, f64::consts::PI};
 
 use backend::Hs;

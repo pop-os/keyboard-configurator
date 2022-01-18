@@ -170,7 +170,7 @@ impl Key {
             )
             .await?;
         self.scancodes[layer].set(scancode);
-        board.emit_by_name("keymap-changed", &[]).unwrap();
+        board.emit_by_name::<()>("keymap-changed", &[]);
         Ok(())
     }
 }

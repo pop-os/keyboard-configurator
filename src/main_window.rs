@@ -1,8 +1,12 @@
 use crate::fl;
 use cascade::cascade;
-use glib::clone;
-use gtk::prelude::*;
-use gtk::subclass::prelude::*;
+use gtk::{
+    gio,
+    glib::{self, clone},
+    pango,
+    prelude::*,
+    subclass::prelude::*,
+};
 use std::{cell::RefCell, time::Duration};
 
 use crate::{shortcuts_window, ConfiguratorApp, Keyboard, KeyboardLayer, Page, Picker};
@@ -161,7 +165,7 @@ impl ObjectImpl for MainWindowInner {
                 gtk::Overlay::new();
                 ..add_overlay(&load_revealer);
                 ..add(&cascade! {
-                    gtk::ScrolledWindow::new::<gtk::Adjustment, gtk::Adjustment>(None, None);
+                    gtk::ScrolledWindow::new(None::<&gtk::Adjustment>, None::<&gtk::Adjustment>);
                     ..set_hscrollbar_policy(gtk::PolicyType::Never);
                     ..set_overlay_scrolling(false);
                     ..add(&stack);
@@ -265,8 +269,8 @@ impl MainWindow {
             .stack
             .set_transition_type(gtk::StackTransitionType::SlideRight);
         inner.stack.set_visible_child(&*inner.board_list_stack);
-        inner.header_bar.set_custom_title::<gtk::Widget>(None);
-        self.insert_action_group::<gio::ActionGroup>("kbd", None);
+        inner.header_bar.set_custom_title(None::<&gtk::Widget>);
+        self.insert_action_group("kbd", None::<&gio::ActionGroup>);
         inner.back_button.set_visible(false);
     }
 
@@ -298,7 +302,7 @@ impl MainWindow {
 
         let attr_list = cascade! {
             pango::AttrList::new();
-            ..insert(pango::Attribute::new_weight(pango::Weight::Bold));
+            ..insert(pango::AttrInt::new_weight(pango::Weight::Bold));
         };
         let label = cascade! {
             gtk::Label::new(Some(&keyboard.display_name()));
@@ -338,7 +342,7 @@ impl MainWindow {
                 gtk::Label::new(Some(&fl!("firmware-version", version = board.version())));
                 ..set_attributes(Some(&cascade! {
                     pango::AttrList::new();
-                    ..insert(pango::Attribute::new_foreground(65535, 0, 0));
+                    ..insert(pango::AttrColor::new_foreground(65535, 0, 0));
                 }));
                 ..show();
             };
