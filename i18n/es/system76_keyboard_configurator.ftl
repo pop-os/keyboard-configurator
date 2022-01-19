@@ -1,7 +1,7 @@
 -name = Configurador del Teclado
 
 app-about = Sobre {-name}
-app-title = {-name} de System76
+app-title = {-name} System76
 
 board-fake = {$model}, falso
 
@@ -62,15 +62,15 @@ page-logical = Lógica
 
 no-boards = No hay ningún teclado detectado
 no-boards-msg = Asegurate que tu teclado integrado tiene un Firmware
-System76 actualizado.
-Si estás usando un teclado externo, asegúrate que
-esté conectado correctamente.
+ System76 actualizado.
+ Si estás usando un teclado externo, asegúrate que
+ esté conectado correctamente.
 
 show-help-overlay = Atajos de teclado
 
 stack-keymap = Mapeo
 stack-keymap-desc =
-Selecciona una tecla en el mapeo para cambiar su configuración. Haz Shift + Click para seleccionar más de una tecla. Tus cambios se guardan automáticamente al Firmware.
+ Selecciona una tecla en el mapeo para cambiar su configuración. Haz Shift + Click para seleccionar más de una tecla. Tus cambios se guardan automáticamente al Firmware.
 
 stack-leds = LEDs
 stack-leds-desc = Selecciona una tecla en el mapeo para cambiar su configuración. Elige "Patrón Sólido" en una tecla para cambiar su color de el LED. Haz Shift + Click para seleccionar más de una tecla. Tus cambios se guardan automáticamente al Firmware.
