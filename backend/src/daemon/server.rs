@@ -301,8 +301,9 @@ impl<R: Read + Send + 'static, W: Write + Send + 'static> Daemon for DaemonServe
             for info in api.device_list() {
                 match (info.vendor_id(), info.product_id(), info.interface_number()) {
                     // System76 launch_1
-                    //TODO: better way to determine this
-                    (0x3384, 0x0001, 1) => {
+                    (0x3384, 0x0001, 1) |
+                    // System76 launch_lite_1
+                    (0x3384, 0x0005, 1) => {
                         // Skip if device already open
                         if self.have_device(&info) {
                             continue;
