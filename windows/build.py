@@ -46,6 +46,11 @@ ADWAITA_FILES = [
 ADWAITA_FILES = [f'share/icons/Adwaita/{i}' for i in ADWAITA_FILES]
 ADDITIONAL_FILES = ['share/glib-2.0/schemas/org.gtk.Settings.FileChooser.gschema.xml', 'share/icons/hicolor/index.theme', 'lib/p11-kit', 'lib/gdk-pixbuf-2.0'] + ADWAITA_FILES
 
+print("FOO", os.environ['HOMEPATH'])
+print("FOO2", os.listdir(os.environ['HOMEPATH']))
+print("FOO3", os.listdir(os.environ['HOMEPATH']) + '\\.cargo')
+print("BAR", os.listdir(os.environ['HOMEPATH'] + "/.cargo/bin"))
+
 # Use ntldd to find the mingw dlls required by a .exe
 def find_depends(exe):
     if not os.path.exists(exe):
