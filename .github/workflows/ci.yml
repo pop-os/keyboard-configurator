@@ -44,7 +44,7 @@ jobs:
     - run: xvfb-run ./keyboard-configurator-x86_64.AppImage --help-gtk
 
   windows-mingw32:
-    runs-on: windows-latest
+    runs-on: windows-2019
     steps:
     - uses: msys2/setup-msys2@v2
       with:
