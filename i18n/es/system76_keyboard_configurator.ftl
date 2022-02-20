@@ -1,6 +1,6 @@
--name = Configurador del Teclado
+-name = Configurador del teclado
 
-app-about = Sobre {-name}
+app-about = Acerca de {-name}
 app-title = {-name} System76
 
 board-fake = {$model}, falso
@@ -20,15 +20,15 @@ error-key-led = Fallo a cambiar el LED de la tecla
 error-open-file = Fallo al abrir el archivo
 error-save-leds = Fallo al guardar LEDs
 error-set-keyboard-brightness = Fallo al cambiar el brillo
-error-set-keyboard-mode = Error al cambiar modo del teclado
+error-set-keyboard-mode = Fallo al cambiar modo del teclado
 error-set-keymap = Fallo al cambiar mapeo
 error-set-layer-brightness = Fallo al cambiar el brillo de la capa
-error-set-layer-color = Fallo al cambiar color de la capa
-error-set-layer-mode = Fallo al cambiar modo de capa
-error-unsupported-keymap = Archivo de mapeo insoportado
-error-unsupported-keymap-desc = Archivo de mapeo parece ser de una versión más reciente del Configurador.
+error-set-layer-color = Fallo al cambiar el color de la capa
+error-set-layer-mode = Fallo al cambiar el modo de capa
+error-unsupported-keymap = Archivo de mapeo no respaldado
+error-unsupported-keymap-desc = El archivo de mapeo parece ser de una versión más reciente del configurador.
 
-firmware-version = La versión de firmware {$version} no soporta configuración del mapeo de teclas.
+firmware-version = La versión de firmware {$version} no respalda la configuración del mapeo de teclas.
 
 keyboard-brightness = Brillo:
 keyboard-color = Color:
@@ -60,7 +60,7 @@ page-layer4 = Capa 4
 page-leds = LEDs
 page-logical = Lógica
 
-no-boards = No hay ningún teclado detectado
+no-boards = No se detecta ningún teclado
 no-boards-msg = Asegurate que tu teclado integrado tiene un Firmware
  System76 actualizado.
  Si estás usando un teclado externo, asegúrate que
