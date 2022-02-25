@@ -154,6 +154,8 @@ impl ObjectImpl for TestingInner {
 
         let num_runs_spin_2 = gtk::SpinButton::with_range(1.0, 1000.0, 1.0);
         let num_runs_spin_3 = gtk::SpinButton::with_range(1.0, 1000.0, 1.0);
+        num_runs_spin_3.set_value(100.0);
+
         let test_buttons = [
             gtk::Button::with_label(&fl!("button-test")),
             gtk::Button::with_label(&fl!("button-test")),
