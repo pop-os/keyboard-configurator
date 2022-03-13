@@ -30,4 +30,6 @@ pub struct Meta {
     #[serde(default = "num_layers_default")]
     pub num_layers: u8,
     pub pressed_color: Rgb,
+    #[serde(default)]
+    pub is_usb: bool,
 }

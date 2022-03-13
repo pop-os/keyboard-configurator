@@ -50,7 +50,7 @@ impl<R: Read + Send + 'static, W: Write + Send + 'static> DaemonServer<R, W> {
                 }
             },
             Err(err) => {
-                error!("Failed to access LPC EC: {:?}", err);
+                info!("No LPC EC found: {:?}", err);
             }
         }
 

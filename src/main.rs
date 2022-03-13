@@ -9,6 +9,7 @@ use std::process;
 
 mod about_dialog;
 mod backlight;
+mod cli;
 mod configurator_app;
 mod error_dialog;
 mod keyboard;

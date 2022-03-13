@@ -99,8 +99,24 @@ impl Backend {
         Self::new_internal(DaemonClient::new_pkexec())
     }
 
-    pub fn new() -> Result<Self, String> {
+    pub fn new_stdio() -> Result<Self, String> {
         Self::new_internal(DaemonServer::new_stdio()?)
+    }
+
+    #[cfg(target_os = "linux")]
+    pub fn new() -> Result<Self, String> {
+        if unsafe { libc::geteuid() == 0 } {
+            info!("Already running as root");
+            Self::new_stdio()
+        } else {
+            info!("Not running as root, spawning daemon with pkexec");
+            Self::new_pkexec()
+        }
+    }
+
+    #[cfg(not(target_os = "linux"))]
+    pub fn new() -> Result<Self, String> {
+        Self::new_stdio().expect("Failed to create server")
     }
 
     fn inner(&self) -> &BackendInner {

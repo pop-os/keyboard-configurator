@@ -1,3 +1,9 @@
+error-key-led = Failed to key LED
+error-set-keymap = Failed to set keymap
+error-set-layer-brightness = Failed to set layer brightness
+error-set-layer-color = Failed to set layer color
+error-set-layer-mode = Failed to set layer mode
+
 mode-disabled = Disabled
 mode-solid-color = Per Layer Solid Color
 mode-per-key = Per Key Solid
@@ -15,3 +21,5 @@ mode-splash = Splashdown
 mode-multisplash = Meteor Shower
 
 no-board = No board
+
+board-fake = {$model}, fake

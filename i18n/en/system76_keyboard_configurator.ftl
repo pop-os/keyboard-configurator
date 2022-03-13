@@ -3,8 +3,6 @@
 app-about = About {-name}
 app-title = System76 {-name}
 
-board-fake = {$model}, fake
-
 button-cancel = Cancel
 button-configure = Configure Keyboard
 button-disable = Disable
@@ -16,15 +14,11 @@ button-stop = Stop
 error-disable-key = Failed to disable key
 error-export-keymap = Failed to export keymap
 error-import-keymap = Failed to import keymap
-error-key-led = Failed to key LED
 error-open-file = Failed to open file
 error-save-leds = Failed to save LEDs
 error-set-keyboard-brightness = Error setting brightness
 error-set-keyboard-mode = Error setting keyboard mode
 error-set-keymap = Failed to set keymap
-error-set-layer-brightness = Failed to set layer brightness
-error-set-layer-color = Failed to set layer color
-error-set-layer-mode = Failed to set layer mode
 error-unsupported-keymap = Unsupported keymap file
 error-unsupported-keymap-desc = Keymap file appears to be from newer Configurator version.
 

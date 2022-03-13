@@ -1,4 +1,4 @@
-use futures::{channel::mpsc as async_mpsc, prelude::*};
+use futures::{channel::mpsc as async_mpsc, prelude::*, stream::FuturesUnordered};
 use glib::{
     clone,
     prelude::*,
@@ -9,13 +9,14 @@ use once_cell::sync::Lazy;
 use std::{
     cell::{Cell, Ref, RefCell},
     collections::HashMap,
+    pin::Pin,
     sync::Arc,
 };
 
 use crate::daemon::ThreadClient;
 use crate::{
-    Benchmark, BoardId, Daemon, DerefCell, Key, KeyMap, KeyMapLayer, Layer, Layout, Matrix, Nelson,
-    NelsonKind,
+    fl, Benchmark, BoardId, Daemon, DerefCell, Key, KeyMap, KeyMapLayer, Layer, Layout, Matrix,
+    Mode, Nelson, NelsonKind,
 };
 
 #[derive(Default)]
@@ -179,6 +180,16 @@ impl Board {
         &self.inner().model
     }
 
+    pub fn display_name(&self) -> String {
+        let name = &self.layout().meta.display_name;
+        let model = self.model().splitn(2, '/').nth(1).unwrap();
+        if self.is_fake() {
+            format!("{} ({})", name, fl!("board-fake", model = model))
+        } else {
+            format!("{} ({})", name, model)
+        }
+    }
+
     pub fn version(&self) -> &str {
         &self.inner().version
     }
@@ -252,6 +263,63 @@ impl Board {
 
     pub(crate) fn matrix(&self) -> Ref<Matrix> {
         self.inner().matrix.borrow()
+    }
+
+    pub async fn import_keymap(&self, keymap: KeyMap) {
+        // TODO: Ideally don't want this function to be O(Keys^2)
+        // TODO: Make sure it doesn't panic with invalid json with invalid indexes?
+
+        let key_indices = self
+            .keys()
+            .iter()
+            .enumerate()
+            .map(|(i, k)| (&k.logical_name, i))
+            .collect::<HashMap<_, _>>();
+
+        let futures = FuturesUnordered::<Pin<Box<dyn Future<Output = ()>>>>::new();
+
+        for (k, v) in &keymap.map {
+            for (layer, scancode_name) in v.iter().enumerate() {
+                let n = key_indices[&k];
+                futures.push(Box::pin(async move {
+                    if let Err(err) = self.keys()[n].set_scancode(layer, scancode_name).await {
+                        error!("{}: {:?}", fl!("error-set-keymap"), err);
+                    }
+                }));
+            }
+        }
+
+        for (k, hs) in &keymap.key_leds {
+            let res = self.keys()[key_indices[&k]].set_color(*hs);
+            futures.push(Box::pin(async move {
+                if let Err(err) = res.await {
+                    error!("{}: {}", fl!("error-key-led"), err);
+                }
+            }));
+        }
+
+        for (i, keymap_layer) in keymap.layers.iter().enumerate() {
+            let layer = &self.layers()[i];
+            if let Some((mode, speed)) = keymap_layer.mode {
+                futures.push(Box::pin(async move {
+                    if let Err(err) = layer.set_mode(Mode::from_index(mode).unwrap(), speed).await {
+                        error!("{}: {}", fl!("error-set-layer-mode"), err)
+                    }
+                }));
+            }
+            futures.push(Box::pin(async move {
+                if let Err(err) = layer.set_brightness(keymap_layer.brightness).await {
+                    error!("{}: {}", fl!("error-set-layer-brightness"), err)
+                }
+            }));
+            futures.push(Box::pin(async move {
+                if let Err(err) = layer.set_color(keymap_layer.color).await {
+                    error!("{}: {}", fl!("error-set-layer-color"), err)
+                }
+            }));
+        }
+
+        futures.collect::<()>().await;
     }
 
     pub fn export_keymap(&self) -> KeyMap {
