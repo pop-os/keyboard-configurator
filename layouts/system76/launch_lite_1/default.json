@@ -160,19 +160,19 @@
     ],
     "K1B": [
       "BRACE_OPEN",
-      "ROLL_OVER",
+      "KBD_DOWN",
       "ROLL_OVER",
       "ROLL_OVER"
     ],
     "K1C": [
       "BRACE_CLOSE",
-      "ROLL_OVER",
+      "KBD_UP",
       "ROLL_OVER",
       "ROLL_OVER"
     ],
     "K1D": [
       "BACKSLASH",
-      "ROLL_OVER",
+      "KBD_TOGGLE",
       "ROLL_OVER",
       "ROLL_OVER"
     ],
