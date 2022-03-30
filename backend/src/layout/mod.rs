@@ -295,7 +295,9 @@ mod tests {
     #[test]
     fn layout_has_f_keys() {
         for i in layouts() {
-            if *i == "system76/launch_lite_1" { continue; }
+            if *i == "system76/launch_lite_1" {
+                continue;
+            }
 
             let layout = Layout::from_board(i).unwrap();
             assert_eq!(layout.f_keys().count(), 12);
