@@ -14,7 +14,7 @@ Standards-Version: 4.3.0
 Homepage: https://github.com/pop-os/keyboard-configurator
 
 Package: system76-keyboard-configurator
-Architecture: amd64
+Architecture: amd64 arm64
 Depends:
   ${misc:Depends},
   ${shlibs:Depends}
@@ -22,7 +22,7 @@ Description: System76 Keyboard Configurator
   Application for configuration of System76 keyboard firmware.
 
 Package: libsystem76-keyboard-configurator
-Architecture: amd64
+Architecture: amd64 arm64
 Depends:
   ${misc:Depends},
   ${shlibs:Depends}
