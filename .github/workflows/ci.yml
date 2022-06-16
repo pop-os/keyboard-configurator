@@ -49,10 +49,7 @@ jobs:
     - uses: msys2/setup-msys2@v2
       with:
         msystem: MINGW32
-        install: mingw-w64-i686-gtk3 mingw-w64-i686-toolchain mingw-w64-i686-ntldd mingw-w64-i686-imagemagick
-    - uses: actions-rs/toolchain@v1
-      with:
-        toolchain: stable-i686-pc-windows-gnu
+        install: mingw-w64-i686-gtk3 mingw-w64-i686-rust mingw-w64-i686-toolchain mingw-w64-i686-ntldd mingw-w64-i686-imagemagick
     - uses: actions/checkout@v2
     - name: Build and package
       shell: msys2 {0}
@@ -62,7 +59,7 @@ jobs:
         SSL_COM_CREDENTIAL_ID: ${{ github.event_name == 'release' && secrets.SSL_COM_CREDENTIAL_ID || '' }}
         SSL_COM_TOTP_SECRET: ${{ github.event_name == 'release' && secrets.SSL_COM_TOTP_SECRET || '' }}
         SIGN: ${{ github.event_name == 'release' && '--sign' || '' }}
-      run: cd windows && python build.py --rustup="C:/Rust/.cargo/bin/rustup.exe" $RELEASE $SIGN
+      run: cd windows && python build.py $RELEASE $SIGN
     - uses: actions/upload-artifact@v2
       with:
         if-no-files-found: error
