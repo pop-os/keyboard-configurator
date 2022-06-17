@@ -162,7 +162,7 @@ if args.sign:
         os.mkdir("sign")
 
     # Download signing tool
-    tool_url = "https://www.ssl.com/download/29773/"
+    tool_url = "https://www.ssl.com/download/codesigntool-for-windows"
     tool_zip = "sign/CodeSignTool.zip"
     if not os.path.isfile(tool_zip):
         if os.path.isfile(tool_zip + ".partial"):
@@ -189,9 +189,9 @@ if args.sign:
         "-password=" + os.environ["SSL_COM_PASSWORD"],
         "-totp_secret=" + os.environ["SSL_COM_TOTP_SECRET"],
         "-program_name=System76 Keyboard Configurator",
-        "-input_file_path=../../../keyboard-configurator.msi",
-        "-output_dir_path=../../",
-    ], cwd="sign/CodeSignTool/CodeSignTool-v1.1.0-windows")
+        "-input_file_path=../../keyboard-configurator.msi",
+        "-output_dir_path=../",
+    ], cwd="sign/CodeSignTool")
 
     # Update MSI
     os.remove("keyboard-configurator.msi")
