@@ -303,7 +303,9 @@ impl<R: Read + Send + 'static, W: Write + Send + 'static> Daemon for DaemonServe
                     // System76 launch_1
                     (0x3384, 0x0001, 1) |
                     // System76 launch_lite_1
-                    (0x3384, 0x0005, 1) => {
+                    (0x3384, 0x0005, 1) |
+                    // System76 launch_2
+                    (0x3384, 0x0006, 1) => {
                         // Skip if device already open
                         if self.have_device(&info) {
                             continue;
