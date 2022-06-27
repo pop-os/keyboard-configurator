@@ -80,6 +80,9 @@ QMK_MAPPING = {
     'MO(2)': 'LAYER_ACCESS_3',
     'MO(3)': 'LAYER_ACCESS_4',
 }
+EC_MAPPING = {
+    'INT_1': 'NONUS_BSLASH',
+}
 QMK_EXTRA_SCANCODES = [
     "TG(0)",
     "TG(1)",
@@ -130,7 +133,7 @@ def extract_scancodes(ecdir: str, board: str, is_qmk: bool, has_brightness: bool
         common_keymap_h = open(includes[0]).read()
         scancode_defines = re.findall(
             '#define.*((?:K_\S+)|(?:KT_FN))', common_keymap_h)
-        mapping = {}
+        mapping = EC_MAPPING
 
     tmpdir = tempfile.mkdtemp()
     with open(f'{tmpdir}/keysym-extract.c', 'w') as f:
@@ -157,8 +160,7 @@ def extract_scancodes(ecdir: str, board: str, is_qmk: bool, has_brightness: bool
     for name in scancode_defines:
         if '_' in name and name.split('_')[0] != 'RGB':
             name = name.split('_', 1)[1]
-        if is_qmk:
-            name = mapping.get(name, name)
+        name = mapping.get(name, name)
         scancode_names.append(name)
     scancode_list = OrderedDict(zip(scancode_names, scancodes))
 
@@ -167,7 +169,11 @@ def extract_scancodes(ecdir: str, board: str, is_qmk: bool, has_brightness: bool
     else:
         scancode_list['NONE'] = 0x0000
 
-    excluded_scancodes = ['INT_1', 'INT_2']
+    # INT_2 has same PS/2 scancode as BACKSLASH
+    excluded_scancodes = ['INT_2']
+    # Need new firmware to support; omit for now
+    if not is_qmk:
+        excluded_scancodes += ['SCROLL_LOCK', 'PAUSE']
     if has_color or board == 'system76/bonw14':
         excluded_scancodes += ['KBD_BKL']
     elif has_brightness:
@@ -223,9 +229,7 @@ def parse_keymap(keymap_c: str, mapping: Dict[str, str], physical: List[str], is
                 return 'NONE'
 
             code = code.replace('K_', '').replace('KC_', '').replace('KT_', '')
-
-            if is_qmk:
-                code = mapping.get(code, code)
+            code = mapping.get(code, code)
 
             return code
 
