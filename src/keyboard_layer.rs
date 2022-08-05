@@ -157,7 +157,7 @@ impl WidgetImpl for KeyboardLayerInner {
                 use glib::translate::from_glib_none;
                 if let Some(keycode) = self.linux_keymap.get(&scancode_name) {
                     let mut level_texts = Vec::new();
-                    for level in 0..3 {
+                    for level in 0..4 {
                         let keymap_key = unsafe {
                             from_glib_none(&gdk::ffi::GdkKeymapKey {
                                 keycode: *keycode + 8,
@@ -187,11 +187,24 @@ impl WidgetImpl for KeyboardLayerInner {
                         }
                     }
 
-                    if level_texts.len() >= 2 {
-                        text = format!("{}\n{}", &level_texts[1], &level_texts[0]);
-                    } else if level_texts.len() >= 1 {
-                        text = level_texts[0].clone();
-                    }
+                    text = match level_texts.len() {
+                        0 => text,
+                        1 => level_texts[0].clone(),
+                        2 => format!("{}\n{}", &level_texts[1], &level_texts[0]),
+                        3 => {
+                            format!(
+                                "{}\n{}   {}",
+                                &level_texts[1], &level_texts[0], &level_texts[2]
+                            )
+                        }
+                        4 => {
+                            format!(
+                                "{}   {}\n{}   {}",
+                                &level_texts[1], &level_texts[3], &level_texts[0], &level_texts[2]
+                            )
+                        }
+                        _ => unreachable!(),
+                    };
                 }
 
                 if scancode_name == "NONE" || scancode_name == "ROLL_OVER" {
