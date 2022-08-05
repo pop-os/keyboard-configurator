@@ -157,6 +157,7 @@ impl WidgetImpl for KeyboardLayerInner {
                 use glib::translate::from_glib_none;
                 if let Some(keycode) = self.linux_keymap.get(&scancode_name) {
                     let mut level_texts = Vec::new();
+                    let mut prev_key = None;
                     for level in 0..4 {
                         let keymap_key = unsafe {
                             from_glib_none(&gdk::ffi::GdkKeymapKey {
@@ -167,6 +168,11 @@ impl WidgetImpl for KeyboardLayerInner {
                         };
 
                         if let Some(key) = self.gdk_keymap.lookup_key(&keymap_key) {
+                            if prev_key == Some(key.clone()) {
+                                break;
+                            }
+                            prev_key = Some(key.clone());
+
                             use gdk::keys::constants;
                             let level_text = match key {
                                 // TODO
