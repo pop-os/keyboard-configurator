@@ -2,6 +2,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::{Benchmark, Matrix, Nelson, NelsonKind};
 
+#[cfg(target_os = "linux")]
+mod access_hidraw;
 mod client;
 mod daemon_thread;
 mod device_enumerator;

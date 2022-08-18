@@ -1,11 +1,8 @@
+use ectool::{Access, Ec};
+use std::{fmt, ops, time::Duration};
+
 #[cfg(target_os = "linux")]
-use ectool::AccessLpcLinux;
-use ectool::{Access, AccessHid, Ec};
-use std::{
-    ffi::{CStr, CString},
-    ops,
-    time::Duration,
-};
+use super::access_hidraw::AccessHidRaw;
 
 /// Wraps a generic `Ec`, with any helper methods
 pub struct EcDevice(Ec<Box<dyn Access>>);
@@ -15,8 +12,14 @@ impl EcDevice {
         Ok(Self(Ec::new(access)?.into_dyn()))
     }
 
+    #[cfg(target_os = "linux")]
     pub fn is_hid(&mut self) -> bool {
-        unsafe { self.0.access().is::<AccessHid>() }
+        unsafe { self.0.access().is::<AccessHidRaw>() }
+    }
+
+    #[cfg(not(target_os = "linux"))]
+    pub fn is_hid(&mut self) -> bool {
+        unsafe { self.0.access().is::<ectool::AccessHid>() }
     }
 }
 
@@ -36,22 +39,33 @@ impl ops::DerefMut for EcDevice {
 
 #[derive(PartialEq, Eq)]
 pub struct HidInfo {
-    path: CString,
+    #[cfg(not(target_os = "linux"))]
+    path: std::ffi::CString,
+    #[cfg(target_os = "linux")]
+    path: std::path::PathBuf,
     vendor_id: u16,
     product_id: u16,
+    #[cfg(not(target_os = "linux"))]
     serial_number: Option<String>,
-    interface_number: Option<i32>,
+    #[cfg(not(target_os = "linux"))]
+    interface_number: i32,
 }
 
 impl HidInfo {
+    #[cfg(not(target_os = "linux"))]
     pub fn matches_ids(&self, (vendor_id, product_id, interface_number): (u16, u16, i32)) -> bool {
-        // `hidraw` does not have seperate dev node per interface, but this may be different with
-        // `hidapi`.
         self.vendor_id == vendor_id
             && self.product_id == product_id
-            && (self.interface_number.is_none() || self.interface_number == Some(interface_number))
+            && self.interface_number == interface_number
     }
 
+    #[cfg(target_os = "linux")]
+    pub fn matches_ids(&self, (vendor_id, product_id, _interface_number): (u16, u16, i32)) -> bool {
+        // `hidraw` does not have seperate dev node per interface.
+        self.vendor_id == vendor_id && self.product_id == product_id
+    }
+
+    #[cfg(not(target_os = "linux"))]
     pub fn open_device(&self, enumerator: &DeviceEnumerator) -> Option<EcDevice> {
         // XXX error
         let hidapi = enumerator.hidapi.as_ref()?;
@@ -64,14 +78,21 @@ impl HidInfo {
         } else {
             return None;
         };
-        unsafe { EcDevice::new(AccessHid::new(device, 10, 1000).ok()?).ok() }
+        unsafe { EcDevice::new(ectool::AccessHid::new(device, 10, 1000).ok()?).ok() }
     }
 
-    pub fn path(&self) -> &CStr {
+    #[cfg(target_os = "linux")]
+    pub fn open_device(&self, enumerator: &DeviceEnumerator) -> Option<EcDevice> {
+        // XXX error
+        unsafe { EcDevice::new(AccessHidRaw::open(&self.path, 10, 1000).ok()?).ok() }
+    }
+
+    pub fn path(&self) -> &impl fmt::Debug {
         &self.path
     }
 }
 
+#[cfg(not(target_os = "linux"))]
 impl From<&hidapi::DeviceInfo> for HidInfo {
     fn from(device_info: &hidapi::DeviceInfo) -> Self {
         Self {
@@ -79,26 +100,29 @@ impl From<&hidapi::DeviceInfo> for HidInfo {
             vendor_id: device_info.vendor_id(),
             product_id: device_info.product_id(),
             serial_number: device_info.serial_number().map(|x| x.to_owned()),
-            interface_number: Some(device_info.interface_number()),
+            interface_number: device_info.interface_number(),
         }
     }
 }
 
 pub struct DeviceEnumerator {
+    #[cfg(not(target_os = "linux"))]
     hidapi: Option<hidapi::HidApi>,
 }
 
 impl DeviceEnumerator {
     pub fn new() -> Self {
-        //TODO: should we continue through HID errors?
-        let hidapi = match hidapi::HidApi::new() {
-            Ok(api) => Some(api),
-            Err(err) => {
-                error!("Failed to list USB HID ECs: {:?}", err);
-                None
-            }
-        };
-        Self { hidapi }
+        Self {
+            //TODO: should we continue through HID errors?
+            #[cfg(not(target_os = "linux"))]
+            hidapi: match hidapi::HidApi::new() {
+                Ok(api) => Some(api),
+                Err(err) => {
+                    error!("Failed to list USB HID ECs: {:?}", err);
+                    None
+                }
+            },
+        }
     }
 
     #[cfg(not(target_os = "linux"))]
@@ -108,7 +132,7 @@ impl DeviceEnumerator {
 
     #[cfg(target_os = "linux")]
     pub fn open_lpc(&mut self) -> Option<EcDevice> {
-        match unsafe { AccessLpcLinux::new(Duration::new(1, 0)) } {
+        match unsafe { ectool::AccessLpcLinux::new(Duration::new(1, 0)) } {
             Ok(access) => match unsafe { EcDevice::new(access) } {
                 Ok(device) => {
                     return Some(device);
@@ -124,6 +148,7 @@ impl DeviceEnumerator {
         None
     }
 
+    #[cfg(not(target_os = "linux"))]
     pub fn enumerate_hid(&mut self) -> Vec<HidInfo> {
         let hidapi = match self.hidapi.as_mut() {
             Some(hidapi) => hidapi,
@@ -137,5 +162,37 @@ impl DeviceEnumerator {
         }
 
         hidapi.device_list().map(HidInfo::from).collect()
+    }
+
+    #[cfg(target_os = "linux")]
+    pub fn enumerate_hid(&mut self) -> Vec<HidInfo> {
+        // XXX unwrap
+        let mut enumerator = udev::Enumerator::new().unwrap();
+        enumerator.match_subsystem("hidraw").unwrap();
+        enumerator
+            .scan_devices()
+            .unwrap()
+            .filter_map(|device| {
+                let usb_device = device
+                    .parent_with_subsystem_devtype("usb", "usb_device")
+                    .ok()??;
+                let path = device.devnode()?.to_owned();
+                let vendor_id = u16::from_str_radix(
+                    usb_device.attribute_value("idVendor")?.to_str()?.trim(),
+                    16,
+                )
+                .ok()?;
+                let product_id = u16::from_str_radix(
+                    usb_device.attribute_value("idProduct")?.to_str()?.trim(),
+                    16,
+                )
+                .ok()?;
+                Some(HidInfo {
+                    path,
+                    vendor_id,
+                    product_id,
+                })
+            })
+            .collect()
     }
 }
