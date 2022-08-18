@@ -1,7 +1,3 @@
-#[cfg(target_os = "linux")]
-use ectool::AccessLpcLinux;
-use ectool::{Access, AccessHid, Ec};
-use hidapi::{DeviceInfo, HidApi};
 use std::{
     cell::{Cell, RefCell, RefMut},
     collections::HashMap,
@@ -12,17 +8,29 @@ use std::{
 };
 use uuid::Uuid;
 
+use super::device_enumerator::{DeviceEnumerator, EcDevice, HidInfo};
 use super::{err_str, BoardId, Daemon, DaemonCommand};
 use crate::{Benchmark, Matrix, Nelson, NelsonKind};
 
+static LAUNCH_IDS: &[(u16, u16, i32)] = &[
+    // System76 launch_1
+    (0x3384, 0x0001, 1),
+    // System76 launch_lite_1
+    (0x3384, 0x0005, 1),
+    // System76 launch_2
+    (0x3384, 0x0006, 1),
+];
+// System76 launch-nelson
+static NELSON_ID: (u16, u16, i32) = (0x3384, 0x0002, 0);
+
 pub struct DaemonServer<R: Read + Send + 'static, W: Write + Send + 'static> {
-    hidapi: RefCell<Option<HidApi>>,
+    enumerator: RefCell<DeviceEnumerator>,
     running: Cell<bool>,
     read: BufReader<R>,
     write: W,
-    boards: RefCell<HashMap<BoardId, (Ec<Box<dyn Access>>, Option<DeviceInfo>)>>,
+    boards: RefCell<HashMap<BoardId, (EcDevice, Option<HidInfo>)>>,
     board_ids: RefCell<Vec<BoardId>>,
-    nelson: RefCell<Option<Ec<AccessHid>>>,
+    nelson: RefCell<Option<EcDevice>>,
 }
 
 impl DaemonServer<io::Stdin, io::Stdout> {
@@ -36,35 +44,17 @@ impl<R: Read + Send + 'static, W: Write + Send + 'static> DaemonServer<R, W> {
         let mut boards = HashMap::new();
         let mut board_ids = Vec::new();
 
-        #[cfg(target_os = "linux")]
-        match unsafe { AccessLpcLinux::new(Duration::new(1, 0)) } {
-            Ok(access) => match unsafe { Ec::new(access) } {
-                Ok(ec) => {
-                    info!("Adding LPC EC");
-                    let id = BoardId(Uuid::new_v4().as_u128());
-                    boards.insert(id, (ec.into_dyn(), None));
-                    board_ids.push(id);
-                }
-                Err(err) => {
-                    error!("Failed to probe LPC EC: {:?}", err);
-                }
-            },
-            Err(err) => {
-                error!("Failed to access LPC EC: {:?}", err);
-            }
+        let mut enumerator = DeviceEnumerator::new();
+
+        if let Some(ec_device) = enumerator.open_lpc() {
+            info!("Adding LPC EC");
+            let id = BoardId(Uuid::new_v4().as_u128());
+            boards.insert(id, (ec_device, None));
+            board_ids.push(id);
         }
 
-        //TODO: should we continue through HID errors?
-        let hidapi = match HidApi::new() {
-            Ok(api) => Some(api),
-            Err(err) => {
-                error!("Failed to list USB HID ECs: {:?}", err);
-                None
-            }
-        };
-
         Ok(Self {
-            hidapi: RefCell::new(hidapi),
+            enumerator: RefCell::new(enumerator),
             running: Cell::new(true),
             read: BufReader::new(read),
             write,
@@ -74,17 +64,11 @@ impl<R: Read + Send + 'static, W: Write + Send + 'static> DaemonServer<R, W> {
         })
     }
 
-    fn have_device(&self, info: &DeviceInfo) -> bool {
-        for (_, i) in self.boards.borrow().values() {
-            if let Some(i) = i {
-                if (i.vendor_id(), i.product_id(), i.path())
-                    == (info.vendor_id(), info.product_id(), info.path())
-                {
-                    return true;
-                }
-            }
-        }
-        false
+    fn have_device(&self, hid_info: &HidInfo) -> bool {
+        self.boards
+            .borrow()
+            .values()
+            .any(|(_, i)| i.as_ref() == Some(hid_info))
     }
 
     pub fn run(mut self) -> io::Result<()> {
@@ -108,7 +92,7 @@ impl<R: Read + Send + 'static, W: Write + Send + 'static> DaemonServer<R, W> {
         Ok(())
     }
 
-    fn board(&self, board: BoardId) -> Result<RefMut<Ec<Box<dyn Access>>>, String> {
+    fn board(&self, board: BoardId) -> Result<RefMut<EcDevice>, String> {
         let mut boards = self.boards.borrow_mut();
         if boards.get_mut(&board).is_some() {
             Ok(RefMut::map(boards, |x| &mut x.get_mut(&board).unwrap().0))
@@ -246,11 +230,7 @@ impl<R: Read + Send + 'static, W: Write + Send + 'static> Daemon for DaemonServe
 
     fn max_brightness(&self, board: BoardId) -> Result<i32, String> {
         let mut ec = self.board(board)?;
-        let index = if unsafe { ec.access().is::<AccessHid>() } {
-            0xf0
-        } else {
-            0xff
-        };
+        let index = if ec.is_hid() { 0xf0 } else { 0xff };
         unsafe { ec.led_get_value(index) }
             .map(|x| x.1 as i32)
             .map_err(err_str)
@@ -282,94 +262,58 @@ impl<R: Read + Send + 'static, W: Write + Send + 'static> Daemon for DaemonServe
     }
 
     fn refresh(&self) -> Result<(), String> {
-        if let Some(api) = &mut *self.hidapi.borrow_mut() {
-            // Remove USB boards that are no longer attached
-            {
-                let mut boards = self.boards.borrow_mut();
-                let mut board_ids = self.board_ids.borrow_mut();
+        let mut enumerator = &mut *self.enumerator.borrow_mut();
 
-                boards.retain(|_, (ec, _)| unsafe {
-                    !(ec.access().is::<AccessHid>() && ec.probe().is_err())
-                });
-                board_ids.retain(|i| boards.contains_key(i));
-            }
+        // Remove USB boards that are no longer attached
+        {
+            let mut boards = self.boards.borrow_mut();
+            let mut board_ids = self.board_ids.borrow_mut();
 
-            if let Err(err) = api.refresh_devices() {
-                error!("Failed to refresh hidapi devices: {}", err);
-            }
+            boards.retain(|_, (ec, _)| !(ec.is_hid() && unsafe { ec.probe().is_err() }));
+            board_ids.retain(|i| boards.contains_key(i));
+        }
 
-            for info in api.device_list() {
-                match (info.vendor_id(), info.product_id(), info.interface_number()) {
-                    // System76 launch_1
-                    (0x3384, 0x0001, 1) |
-                    // System76 launch_lite_1
-                    (0x3384, 0x0005, 1) |
-                    // System76 launch_2
-                    (0x3384, 0x0006, 1) => {
-                        // Skip if device already open
-                        if self.have_device(&info) {
-                            continue;
-                        }
+        for hid_info in enumerator.enumerate_hid().into_iter() {
+            if LAUNCH_IDS.iter().any(|ids| hid_info.matches_ids(*ids)) {
+                // Skip if device already open
+                if self.have_device(&hid_info) {
+                    continue;
+                }
 
-                        match info.open_device(&api) {
-                            Ok(device) => match AccessHid::new(device, 10, 1000) {
-                                Ok(access) => match unsafe { Ec::new(access) } {
-                                    Ok(ec) => {
-                                        info!("Adding USB HID EC at {:?}", info.path());
-                                        let id = BoardId(Uuid::new_v4().as_u128());
-                                        self.boards
-                                            .borrow_mut()
-                                            .insert(id, (ec.into_dyn(), Some(info.clone())));
-                                        self.board_ids.borrow_mut().push(id);
-                                    }
-                                    Err(err) => error!(
-                                        "Failed to probe USB HID EC at {:?}: {:?}",
-                                        info.path(),
-                                        err
-                                    ),
-                                },
-                                Err(err) => error!(
-                                    "Failed to access USB HID EC at {:?}: {:?}",
-                                    info.path(),
-                                    err
-                                ),
-                            },
-                            Err(err) => {
-                                error!("Failed to open USB HID EC at {:?}: {:?}", info.path(), err)
-                            }
-                        }
+                match hid_info.open_device(&mut enumerator) {
+                    Some(device) => {
+                        info!("Adding USB HID EC at {:?}", hid_info.path());
+                        let id = BoardId(Uuid::new_v4().as_u128());
+                        self.boards
+                            .borrow_mut()
+                            .insert(id, (device, Some(hid_info)));
+                        self.board_ids.borrow_mut().push(id);
                     }
-                    // System76 launch-nelson
-                    (0x3384, 0x0002, 0) => {
-                        if self.nelson.borrow().is_some() {
-                            continue;
-                        }
-
-                        match info.open_device(&api) {
-                            Ok(device) => match AccessHid::new(device, 10, 1000) {
-                                Ok(access) => match unsafe { Ec::new(access) } {
-                                    Ok(ec) => {
-                                        info!("Adding Nelson at {:?}", info.path());
-                                        *self.nelson.borrow_mut() = Some(ec);
-                                    }
-                                    Err(err) => error!(
-                                        "Failed to probe Nelson at {:?}: {:?}",
-                                        info.path(),
-                                        err
-                                    ),
-                                },
-                                Err(err) => error!(
-                                    "Failed to access Nelson at {:?}: {:?}",
-                                    info.path(),
-                                    err
-                                ),
-                            },
-                            Err(err) => {
-                                error!("Failed to open Nelson at {:?}: {:?}", info.path(), err)
-                            }
-                        }
+                    None => {
+                        // TODO errors
+                        // "Failed to probe USB HID EC at {:?}: {:?}",
+                        // "Failed to access USB HID EC at {:?}: {:?}",
+                        // "Failed to open USB HID EC at {:?}: {:?}"
+                        // error!("Failed to open USB HID EC at {:?}", info.path())
                     }
-                    _ => (),
+                }
+            } else if hid_info.matches_ids(NELSON_ID) {
+                if self.nelson.borrow().is_some() {
+                    continue;
+                }
+
+                match hid_info.open_device(&mut enumerator) {
+                    Some(device) => {
+                        info!("Adding Nelson at {:?}", hid_info.path());
+                        *self.nelson.borrow_mut() = Some(device);
+                    }
+                    None => {
+                        // TODO errors
+                        // "Failed to probe Nelson at {:?}: {:?}",
+                        // "Failed to access Nelson at {:?}: {:?}",
+                        // "Failed to open Nelson at {:?}: {:?}"
+                        // error!("Failed to open Nelson at {:?}", info.path())
+                    }
                 }
             }
         }

@@ -4,6 +4,7 @@ use crate::{Benchmark, Matrix, Nelson, NelsonKind};
 
 mod client;
 mod daemon_thread;
+mod device_enumerator;
 mod dummy;
 mod server;
 
