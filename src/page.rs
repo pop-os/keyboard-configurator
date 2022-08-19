@@ -1,6 +1,6 @@
 use crate::fl;
-use crate::picker::SCANCODE_LABELS;
-use backend::Key;
+use crate::picker::{LAYERS, SCANCODE_LABELS};
+use backend::{Key, Keycode};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum Page {
@@ -62,11 +62,13 @@ impl Page {
     pub fn get_label(&self, key: &Key) -> String {
         match self {
             Page::Layer1 | Page::Layer2 | Page::Layer3 | Page::Layer4 => {
-                let scancode_name = key.get_scancode(self.layer().unwrap()).unwrap().1;
-                SCANCODE_LABELS
-                    .get(&scancode_name)
-                    .unwrap_or(&scancode_name)
-                    .into()
+                let (scancode, scancode_name) = key.get_scancode(self.layer().unwrap()).unwrap();
+                match scancode_name {
+                    Some(keycode) => {
+                        keycode_label(&keycode).unwrap_or_else(|| format!("{:?}", keycode))
+                    }
+                    None => format!("{}", scancode),
+                }
             }
             Page::Keycaps => key.physical_name.clone(),
             Page::Logical => key.logical_name.clone(),
@@ -79,5 +81,51 @@ impl Page {
 impl Default for Page {
     fn default() -> Self {
         Self::Layer1
+    }
+}
+
+// TODO: represent mod-tap/layer-tap by rendering button with a seperator?
+fn keycode_label(keycode: &Keycode) -> Option<String> {
+    match keycode {
+        Keycode::Basic(mods, keycode) => {
+            if mods.is_empty() {
+                SCANCODE_LABELS.get(keycode).cloned()
+            } else {
+                let mut label = String::new();
+                for name in mods.mod_names() {
+                    let mod_label = SCANCODE_LABELS.get(name)?;
+                    if !label.is_empty() {
+                        label.push_str(" + ");
+                    }
+                    label.push_str(mod_label);
+                }
+                if keycode != "NONE" {
+                    let keycode_label = SCANCODE_LABELS.get(keycode)?;
+                    label.push_str(" + ");
+                    label.push_str(keycode_label);
+                }
+                Some(label)
+            }
+        }
+        Keycode::MT(mods, keycode) => {
+            let mut label = String::new();
+            for name in mods.mod_names() {
+                let mod_label = SCANCODE_LABELS.get(name)?;
+                if !label.is_empty() {
+                    label.push_str(" + ");
+                }
+                label.push_str(mod_label);
+            }
+            let keycode_label = SCANCODE_LABELS.get(keycode)?;
+            label.push('\n');
+            label.push_str(keycode_label);
+            Some(label)
+        }
+        Keycode::LT(layer, keycode) => {
+            let layer_id = *LAYERS.get(usize::from(*layer))?;
+            let layer_label = SCANCODE_LABELS.get(layer_id)?;
+            let keycode_label = SCANCODE_LABELS.get(keycode)?;
+            Some(format!("{}\n{}", layer_label, keycode_label))
+        }
     }
 }

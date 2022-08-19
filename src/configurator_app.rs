@@ -203,6 +203,16 @@ pub fn run() -> i32 {
     #[cfg(target_os = "windows")]
     windows_init();
 
+    let css_provider = cascade! {
+        gtk::CssProvider::new();
+        ..load_from_data(include_bytes!("style.css")).unwrap();
+    };
+    gtk::StyleContext::add_provider_for_screen(
+        &gdk::Screen::default().unwrap(),
+        &css_provider,
+        gtk::STYLE_PROVIDER_PRIORITY_APPLICATION,
+    );
+
     gio::resources_register_include!("compiled.gresource").unwrap();
     gtk::Window::set_default_icon_name("com.system76.keyboardconfigurator");
 

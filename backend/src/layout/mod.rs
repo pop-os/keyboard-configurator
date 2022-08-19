@@ -1,31 +1,18 @@
-use cascade::cascade;
-use regex::Regex;
 use std::{collections::HashMap, fs, path::Path};
 
 mod meta;
-use once_cell::sync::Lazy;
 mod physical_layout;
 pub use self::meta::Meta;
 pub(crate) use physical_layout::{PhysicalLayout, PhysicalLayoutKey};
 
-use crate::KeyMap;
+use crate::{KeyMap, Keycode, Mods};
 
 const QK_MOD_TAP: u16 = 0x6000;
 const QK_MOD_TAP_MAX: u16 = 0x7FFF;
-
-pub static MOD_TAP_MODS: Lazy<HashMap<&str, u16>> = Lazy::new(|| {
-    cascade! {
-        HashMap::new();
-        ..insert("LEFT_CTRL", 0x01);
-        ..insert("LEFT_SHIFT", 0x02);
-        ..insert("LEFT_ALT", 0x04);
-        ..insert("LEFT_SUPER", 0x08);
-        ..insert("RIGHT_CTRL", 0x11);
-        ..insert("RIGHT_SHIFT", 0x12);
-        ..insert("RIGHT_ALT", 0x14);
-        ..insert("RIGHT_SUPER", 0x18);
-    }
-});
+const QK_LAYER_TAP: u16 = 0x4000;
+const QK_LAYER_TAP_MAX: u16 = 0x4FFF;
+const QK_MODS: u16 = 0x0100;
+const QK_MODS_MAX: u16 = 0x1FFF;
 
 pub struct Layout {
     /// Metadata for keyboard
@@ -143,28 +130,58 @@ impl Layout {
     }
 
     /// Get the scancode number corresponding to a name
-    pub fn scancode_to_name(&self, scancode: u16) -> Option<String> {
+    pub fn scancode_to_name(&self, scancode: u16) -> Option<Keycode> {
+        // XXX only on QMK?
         if scancode >= QK_MOD_TAP && scancode <= QK_MOD_TAP_MAX {
-            let mod_ = (scancode >> 8) & 0x1f;
+            let mods = Mods::from_bits((scancode >> 8) & 0x1f)?;
             let kc = scancode & 0xff;
-            let mod_name = MOD_TAP_MODS.iter().find(|(_, v)| **v == mod_)?.0;
             let kc_name = self.scancode_names.get(&kc)?;
-            Some(format!("MT({}, {})", mod_name, kc_name))
+            Some(Keycode::MT(mods, kc_name.clone()))
+        } else if scancode >= QK_LAYER_TAP && scancode <= QK_LAYER_TAP_MAX {
+            let layer = ((scancode >> 8) & 0xf) as u8;
+            let kc = scancode & 0xff;
+            let kc_name = self.scancode_names.get(&kc)?;
+            Some(Keycode::LT(layer, kc_name.clone()))
+        } else if scancode >= QK_MODS && scancode <= QK_MODS_MAX {
+            let mods = Mods::from_bits((scancode >> 8) & 0x1f)?;
+            let kc = scancode & 0xff;
+            let kc_name = self.scancode_names.get(&kc)?;
+            Some(Keycode::Basic(mods, kc_name.clone()))
         } else {
-            self.scancode_names.get(&scancode).cloned()
+            let kc_name = self.scancode_names.get(&scancode)?;
+            if let Some(mods) = Mods::from_mod_str(kc_name) {
+                Some(Keycode::Basic(mods, "NONE".to_string()))
+            } else {
+                Some(Keycode::Basic(Mods::empty(), kc_name.clone()))
+            }
         }
     }
 
     /// Get the name corresponding to a scancode number
-    pub fn scancode_from_name(&self, name: &str) -> Option<u16> {
-        // Check if mod-tap
-        let mt_re = Regex::new("MT\\(([^()]+), ([^()]+)\\)").unwrap();
-        if let Some(captures) = mt_re.captures(name) {
-            let mod_ = *MOD_TAP_MODS.get(&captures.get(1).unwrap().as_str())?;
-            let kc = *self.keymap.get(captures.get(2).unwrap().as_str())?;
-            Some(QK_MOD_TAP | ((mod_ & 0x1f) << 8) | (kc & 0xff))
-        } else {
-            self.keymap.get(name).copied()
+    pub fn scancode_from_name(&self, name: &Keycode) -> Option<u16> {
+        match name {
+            Keycode::MT(mods, keycode_name) => {
+                let kc = *self.keymap.get(keycode_name)?;
+                Some(QK_MOD_TAP | (mods.bits() << 8) | (kc & 0xff))
+            }
+            Keycode::LT(layer, keycode_name) => {
+                let kc = *self.keymap.get(keycode_name)?;
+                if *layer < 8 {
+                    Some(QK_LAYER_TAP | (u16::from(*layer) << 8) | (kc & 0xFF))
+                } else {
+                    None
+                }
+            }
+            Keycode::Basic(mods, keycode_name) => {
+                if mods.is_empty() {
+                    self.keymap.get(keycode_name).copied()
+                } else if let Some(mod_name) = mods.as_mod_str() {
+                    self.keymap.get(mod_name).copied()
+                } else {
+                    let kc = *self.keymap.get(keycode_name)?;
+                    Some((mods.bits() << 8) | (kc & 0xff))
+                }
+            }
         }
     }
 

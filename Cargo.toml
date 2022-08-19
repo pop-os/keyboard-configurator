@@ -11,7 +11,8 @@ members = [ "tools", "ffi", "backend", "widgets" ]
 [dependencies]
 cascade = "1"
 futures = "0.3.13"
-gtk = { version = "0.15.0", features = ["v3_22"] }
+# 3.24 is packaged by focal
+gtk = { version = "0.15.0", features = ["v3_24"] }
 libc = "0.2"
 once_cell = "1.4"
 pangocairo = "0.15.0"

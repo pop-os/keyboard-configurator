@@ -9,6 +9,7 @@ pub struct PickerJsonKey {
 #[derive(Deserialize)]
 pub struct PickerJsonGroup {
     pub label: String,
+    pub section: String,
     pub cols: u32,
     pub width: i32,
     pub keys: Vec<PickerJsonKey>,

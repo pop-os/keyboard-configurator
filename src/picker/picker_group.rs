@@ -1,12 +1,11 @@
 use cascade::cascade;
 use gtk::{pango, prelude::*};
-use std::rc::Rc;
 
 use super::PickerKey;
 
 pub(super) struct PickerGroup {
     /// Name of keys in this group
-    keys: Vec<Rc<PickerKey>>,
+    keys: Vec<PickerKey>,
     pub vbox: gtk::Box,
     flow_box: gtk::FlowBox,
 }
@@ -21,6 +20,7 @@ impl PickerGroup {
             } ));
             ..set_halign(gtk::Align::Start);
             ..set_margin_bottom(8);
+            ..show();
         };
 
         let flow_box = cascade! {
@@ -29,11 +29,13 @@ impl PickerGroup {
             ..set_row_spacing(4);
             ..set_max_children_per_line(cols);
             ..set_min_children_per_line(cols);
-            ..set_filter_func(Some(Box::new(|child: &gtk::FlowBoxChild| child.child().unwrap().is_visible())));
+            ..set_filter_func(Some(Box::new(|child: &gtk::FlowBoxChild| child.child().unwrap().get_visible())));
+            ..show();
         };
 
         let vbox = cascade! {
             gtk::Box::new(gtk::Orientation::Vertical, 4);
+            ..set_no_show_all(true);
             ..add(&label);
             ..add(&flow_box);
         };
@@ -45,12 +47,12 @@ impl PickerGroup {
         }
     }
 
-    pub fn add_key(&mut self, key: Rc<PickerKey>) {
-        self.flow_box.add(&key.gtk);
+    pub fn add_key(&mut self, key: PickerKey) {
+        self.flow_box.add(&key);
         self.keys.push(key);
     }
 
-    pub fn iter_keys(&self) -> impl Iterator<Item = &PickerKey> {
+    pub fn keys(&self) -> impl Iterator<Item = &PickerKey> {
         self.keys.iter().map(|k| k.as_ref())
     }
 

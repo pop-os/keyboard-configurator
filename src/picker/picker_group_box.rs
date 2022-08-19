@@ -6,32 +6,21 @@ use gtk::{
     subclass::prelude::*,
 };
 use once_cell::sync::Lazy;
-use std::{cell::RefCell, collections::HashMap, rc::Rc};
+use std::{cell::RefCell, collections::HashMap};
 
-use backend::DerefCell;
+use backend::{DerefCell, Keycode};
 
 use super::{picker_group::PickerGroup, picker_json::picker_json, picker_key::PickerKey};
 
 const DEFAULT_COLS: usize = 3;
 const HSPACING: i32 = 64;
 const VSPACING: i32 = 32;
-const PICKER_CSS: &str = r#"
-button {
-    margin: 0;
-    padding: 0;
-}
-
-.selected {
-    border-color: #fbb86c;
-    border-width: 4px;
-}
-"#;
 
 #[derive(Default)]
 pub struct PickerGroupBoxInner {
     groups: DerefCell<Vec<PickerGroup>>,
-    keys: DerefCell<HashMap<String, Rc<PickerKey>>>,
-    selected: RefCell<Vec<String>>,
+    keys: DerefCell<HashMap<String, PickerKey>>,
+    selected: RefCell<Vec<Keycode>>,
 }
 
 #[glib::object_subclass]
@@ -42,55 +31,11 @@ impl ObjectSubclass for PickerGroupBoxInner {
 }
 
 impl ObjectImpl for PickerGroupBoxInner {
-    fn constructed(&self, widget: &PickerGroupBox) {
-        self.parent_constructed(widget);
-
-        let style_provider = cascade! {
-            gtk::CssProvider::new();
-            ..load_from_data(&PICKER_CSS.as_bytes()).expect("Failed to parse css");
-        };
-
-        let mut groups = Vec::new();
-        let mut keys = HashMap::new();
-
-        for json_group in picker_json() {
-            let mut group = PickerGroup::new(json_group.label, json_group.cols);
-
-            for json_key in json_group.keys {
-                let key = PickerKey::new(
-                    json_key.keysym.clone(),
-                    json_key.label,
-                    json_group.width,
-                    &style_provider,
-                );
-
-                group.add_key(key.clone());
-                keys.insert(json_key.keysym, key);
-            }
-
-            groups.push(group);
-        }
-
-        for group in &groups {
-            group.vbox.show();
-            group.vbox.set_parent(widget);
-        }
-
-        self.keys.set(keys);
-        self.groups.set(groups);
-
-        cascade! {
-            widget;
-            ..connect_signals();
-            ..show_all();
-        };
-    }
-
     fn signals() -> &'static [Signal] {
         static SIGNALS: Lazy<Vec<Signal>> = Lazy::new(|| {
             vec![Signal::builder(
                 "key-pressed",
-                &[String::static_type().into()],
+                &[String::static_type().into(), bool::static_type().into()],
                 glib::Type::UNIT.into(),
             )
             .build()]
@@ -110,13 +55,13 @@ impl WidgetImpl for PickerGroupBoxInner {
             .iter()
             .map(|x| x.vbox.preferred_width().1)
             .max()
-            .unwrap();
+            .unwrap_or(0);
         let natural_width = self
             .groups
             .chunks(3)
             .map(|row| row.iter().map(|x| x.vbox.preferred_width().1).sum::<i32>())
             .max()
-            .unwrap()
+            .unwrap_or(0)
             + 2 * HSPACING;
         (minimum_width, natural_width)
     }
@@ -129,7 +74,7 @@ impl WidgetImpl for PickerGroupBoxInner {
                 row.iter()
                     .map(|x| x.vbox.preferred_height().1)
                     .max()
-                    .unwrap()
+                    .unwrap_or(0)
             })
             .sum::<i32>()
             + (rows.len() as i32 - 1) * VSPACING;
@@ -149,7 +94,7 @@ impl WidgetImpl for PickerGroupBoxInner {
                     + (row.len() as i32 - 1) * HSPACING
             })
             .max()
-            .unwrap();
+            .unwrap_or(0);
 
         let mut y = 0;
         for row in rows {
@@ -215,8 +160,39 @@ glib::wrapper! {
 }
 
 impl PickerGroupBox {
-    pub fn new() -> Self {
-        glib::Object::new(&[]).unwrap()
+    pub fn new(section: &str) -> Self {
+        let widget: Self = glib::Object::new(&[]).unwrap();
+
+        let mut groups = Vec::new();
+        let mut keys = HashMap::new();
+
+        for json_group in picker_json() {
+            if json_group.section != section {
+                continue;
+            }
+
+            let mut group = PickerGroup::new(json_group.label, json_group.cols);
+
+            for json_key in json_group.keys {
+                let key = PickerKey::new(&json_key.keysym, &json_key.label, json_group.width);
+
+                group.add_key(key.clone());
+                keys.insert(json_key.keysym, key);
+            }
+
+            groups.push(group);
+        }
+
+        for group in &groups {
+            group.vbox.show();
+            group.vbox.set_parent(&widget);
+        }
+
+        widget.inner().keys.set(keys);
+        widget.inner().groups.set(groups);
+        widget.connect_signals();
+
+        widget
     }
 
     fn inner(&self) -> &PickerGroupBoxInner {
@@ -226,53 +202,71 @@ impl PickerGroupBox {
     fn connect_signals(&self) {
         let picker = self;
         for group in self.inner().groups.iter() {
-            for key in group.iter_keys() {
-                let button = &key.gtk;
-                let name = key.name.to_string();
-                button.connect_clicked(clone!(@weak picker => @default-panic, move |_| {
-                    picker.emit_by_name::<()>("key-pressed", &[&name]);
-                }));
+            for key in group.keys() {
+                let button = &key;
+                let name = key.name().to_string();
+                button.connect_clicked_with_shift(
+                    clone!(@weak picker => @default-panic, move |_, shift| {
+                        picker.emit_by_name::<()>("key-pressed", &[&name, &shift]);
+                    }),
+                );
             }
         }
     }
 
-    pub fn connect_key_pressed<F: Fn(String) + 'static>(&self, cb: F) -> SignalHandlerId {
+    pub fn connect_key_pressed<F: Fn(String, bool) + 'static>(&self, cb: F) -> SignalHandlerId {
         self.connect_local("key-pressed", false, move |values| {
-            cb(values[1].get::<String>().unwrap());
+            cb(
+                values[1].get::<String>().unwrap(),
+                values[2].get::<bool>().unwrap(),
+            );
             None
         })
     }
 
-    fn get_button(&self, scancode_name: &str) -> Option<&gtk::Button> {
-        self.inner().keys.get(scancode_name).map(|k| &k.gtk)
-    }
-
+    // XXX need to enable/disable features; show/hide just plain keycodes
     pub(crate) fn set_key_visibility<F: Fn(&str) -> bool>(&self, f: F) {
-        for key in self.inner().keys.values() {
-            key.gtk.set_visible(f(&key.name));
-        }
-
         for group in self.inner().groups.iter() {
+            let group_visible = group.keys().fold(false, |group_visible, key| {
+                key.set_visible(f(&key.name()));
+                group_visible || key.get_visible()
+            });
+
+            group.vbox.set_visible(group_visible);
             group.invalidate_filter();
         }
     }
 
-    pub(crate) fn set_selected(&self, scancode_names: Vec<String>) {
-        let mut selected = self.inner().selected.borrow_mut();
+    pub(crate) fn set_key_sensitivity<F: Fn(&str) -> bool>(&self, f: F) {
+        for key in self.inner().keys.values() {
+            key.set_sensitive(f(&key.name()));
+        }
+    }
 
-        for i in selected.iter() {
-            if let Some(button) = self.get_button(i) {
-                button.style_context().remove_class("selected");
+    pub(crate) fn set_selected(&self, scancode_names: Vec<Keycode>) {
+        for button in self.inner().keys.values() {
+            button.set_selected(false);
+        }
+
+        for i in scancode_names.iter() {
+            match i {
+                Keycode::Basic(mods, scancode_name) => {
+                    if let Some(button) = self.inner().keys.get(scancode_name) {
+                        if !(scancode_name == "NONE" && !mods.is_empty()) {
+                            button.set_selected(true);
+                        }
+                    }
+                    for scancode_name in mods.mod_names() {
+                        if let Some(button) = self.inner().keys.get(scancode_name) {
+                            button.set_selected(true);
+                        }
+                    }
+                }
+                Keycode::MT(..) | Keycode::LT(..) => {}
             }
         }
 
-        *selected = scancode_names;
-
-        for i in selected.iter() {
-            if let Some(button) = self.get_button(i) {
-                button.style_context().add_class("selected");
-            }
-        }
+        *self.inner().selected.borrow_mut() = scancode_names;
     }
 
     fn rows_for_width(&self, container_width: i32) -> Vec<&[PickerGroup]> {

@@ -1,0 +1,9 @@
+.picker-key {
+    margin: 0;
+    padding: 0;
+}
+
+.picker-key.selected {
+    border-color: #fbb86c;
+    border-width: 4px;
+}

@@ -21,6 +21,7 @@ mod color;
 mod daemon;
 mod deref_cell;
 mod key;
+mod keycode;
 mod keymap;
 mod layer;
 mod layout;
@@ -32,6 +33,6 @@ mod rect;
 
 use crate::daemon::*;
 pub use crate::{
-    backend::*, benchmark::*, board::*, color::*, deref_cell::*, key::*, keymap::*, layer::*,
-    layout::*, localize::*, matrix::*, mode::*, nelson::*, rect::*,
+    backend::*, benchmark::*, board::*, color::*, deref_cell::*, key::*, keycode::*, keymap::*,
+    layer::*, layout::*, localize::*, matrix::*, mode::*, nelson::*, rect::*,
 };

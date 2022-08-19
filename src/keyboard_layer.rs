@@ -138,7 +138,7 @@ impl WidgetImpl for KeyboardLayerInner {
             let mut bg_alpha = 1.;
             if let Some(layer) = self.page.get().layer() {
                 let scancode_name = k.get_scancode(layer).unwrap().1;
-                if scancode_name == "NONE" || scancode_name == "ROLL_OVER" {
+                if scancode_name.map_or(false, |x| x.is_none() || x.is_roll_over()) {
                     text_alpha = 0.5;
                     bg_alpha = 0.75;
                 }

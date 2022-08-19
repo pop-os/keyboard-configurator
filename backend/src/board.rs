@@ -259,7 +259,12 @@ impl Board {
         let mut key_leds = HashMap::new();
         for key in self.keys().iter() {
             let scancodes = (0..self.layout().meta.num_layers as usize)
-                .map(|layer| key.get_scancode(layer).unwrap().1)
+                .map(|layer| {
+                    key.get_scancode(layer)
+                        .unwrap()
+                        .1
+                        .map_or_else(String::new, |x| x.to_string())
+                })
                 .collect();
             map.insert(key.logical_name.clone(), scancodes);
             if !key.leds.is_empty() {

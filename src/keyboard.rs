@@ -16,7 +16,7 @@ use std::{
 };
 
 use crate::{show_error_dialog, Backlight, KeyboardLayer, MainWindow, Page, Picker, Testing};
-use backend::{Board, DerefCell, KeyMap, Layout, Mode};
+use backend::{Board, DerefCell, KeyMap, Keycode, Layout, Mode};
 use widgets::SelectedKeys;
 
 #[derive(Default)]
@@ -303,11 +303,12 @@ impl Keyboard {
         &self.inner().layer_stack
     }
 
-    pub fn has_scancode(&self, scancode_name: &str) -> bool {
+    // XXX
+    pub fn has_scancode(&self, scancode_name: &Keycode) -> bool {
         self.layout().scancode_from_name(scancode_name).is_some()
     }
 
-    pub async fn keymap_set(&self, key_index: usize, layer: usize, scancode_name: &str) {
+    pub async fn keymap_set(&self, key_index: usize, layer: usize, scancode_name: &Keycode) {
         if let Err(err) = self.board().keys()[key_index]
             .set_scancode(layer, scancode_name)
             .await
@@ -354,12 +355,17 @@ impl Keyboard {
 
         for (k, v) in &keymap.map {
             for (layer, scancode_name) in v.iter().enumerate() {
+                let keycode = match Keycode::parse(scancode_name) {
+                    Some(keycode) => keycode,
+                    None => {
+                        error!("Unrecognized keycode: '{}'", scancode_name);
+                        continue;
+                    } // XXX
+                };
+
                 let n = key_indices[&k];
                 futures.push(Box::pin(async move {
-                    if let Err(err) = self.board().keys()[n]
-                        .set_scancode(layer, scancode_name)
-                        .await
-                    {
+                    if let Err(err) = self.board().keys()[n].set_scancode(layer, &keycode).await {
                         error!("{}: {:?}", fl!("error-set-keymap"), err);
                     }
                 }));
@@ -487,10 +493,10 @@ impl Keyboard {
 
         for i in self.layout().f_keys() {
             let k = &self.board().keys()[key_indices[i]];
-            let layer0_keycode = k.get_scancode(0).unwrap().1;
-            let layer1_keycode = k.get_scancode(1).unwrap().1;
+            let layer0_keycode = k.get_scancode(0).unwrap().1.unwrap_or_else(Keycode::none);
+            let layer1_keycode = k.get_scancode(1).unwrap().1.unwrap_or_else(Keycode::none);
 
-            if layer1_keycode == "ROLL_OVER" {
+            if layer1_keycode.is_roll_over() {
                 continue;
             }
 
@@ -591,7 +597,7 @@ impl Keyboard {
             let k = &keys[*i];
             debug!("{:#?}", k);
             if let Some(layer) = self.layer() {
-                if let Some((_scancode, scancode_name)) = k.get_scancode(layer) {
+                if let Some((_scancode, Some(scancode_name))) = k.get_scancode(layer) {
                     selected_scancodes.push(scancode_name);
                 }
             }
