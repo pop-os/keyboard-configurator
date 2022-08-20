@@ -24,7 +24,6 @@ static NELSON_ID: (u16, u16, i32) = (0x3384, 0x0002, 0);
 
 pub struct DaemonServer {
     enumerator: RefCell<DeviceEnumerator>,
-    running: Cell<bool>,
     boards: RefCell<HashMap<BoardId, (EcDevice, Option<HidInfo>)>>,
     board_ids: RefCell<Vec<BoardId>>,
     nelson: RefCell<Option<EcDevice>>,
@@ -46,7 +45,6 @@ impl DaemonServer {
 
         Self {
             enumerator: RefCell::new(enumerator),
-            running: Cell::new(true),
             boards: RefCell::new(boards),
             board_ids: RefCell::new(board_ids),
             nelson: RefCell::new(None),
@@ -292,10 +290,5 @@ impl Daemon for DaemonServer {
     fn set_no_input(&self, board: BoardId, no_input: bool) -> Result<(), String> {
         let mut ec = self.board(board)?;
         unsafe { ec.set_no_input(no_input) }.map_err(err_str)
-    }
-
-    fn exit(&self) -> Result<(), String> {
-        self.running.set(false);
-        Ok(())
     }
 }

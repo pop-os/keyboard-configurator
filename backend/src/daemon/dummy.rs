@@ -174,8 +174,4 @@ impl Daemon for DaemonDummy {
     fn set_no_input(&self, _board: BoardId, _no_input: bool) -> Result<(), String> {
         Ok(())
     }
-
-    fn exit(&self) -> Result<(), String> {
-        Ok(())
-    }
 }

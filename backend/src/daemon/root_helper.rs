@@ -155,10 +155,10 @@ pub fn root_helper_main() {
     send(&stdin, b"Started\n").unwrap();
     loop {
         let count = match recv(&stdin, &mut buf) {
-            Ok(count) => count,
-            Err(Errno::EPIPE) => {
+            Ok(0) | Err(Errno::EPIPE) => {
                 break;
             }
+            Ok(count) => count,
             Err(err) => {
                 eprintln!("Error in root helper reading from socket: {}", err);
                 std::process::exit(1)
