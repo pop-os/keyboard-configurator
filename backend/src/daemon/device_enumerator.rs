@@ -3,6 +3,8 @@ use std::{fmt, ops, time::Duration};
 
 #[cfg(target_os = "linux")]
 use super::access_hidraw::AccessHidRaw;
+#[cfg(target_os = "linux")]
+use super::RootHelper;
 
 /// Wraps a generic `Ec`, with any helper methods
 pub struct EcDevice(Ec<Box<dyn Access>>);
@@ -84,7 +86,13 @@ impl HidInfo {
     #[cfg(target_os = "linux")]
     pub fn open_device(&self, enumerator: &DeviceEnumerator) -> Option<EcDevice> {
         // XXX error
-        unsafe { EcDevice::new(AccessHidRaw::open(&self.path, 10, 1000).ok()?).ok() }
+        let access = if let Some(root_helper) = enumerator.root_helper.as_ref() {
+            let fd = root_helper.open_dev(&self.path).ok()?;
+            AccessHidRaw::new(fd, 10, 1000)
+        } else {
+            AccessHidRaw::open(&self.path, 10, 1000).ok()?
+        };
+        unsafe { EcDevice::new(access).ok() }
     }
 
     pub fn path(&self) -> &impl fmt::Debug {
@@ -108,9 +116,12 @@ impl From<&hidapi::DeviceInfo> for HidInfo {
 pub struct DeviceEnumerator {
     #[cfg(not(target_os = "linux"))]
     hidapi: Option<hidapi::HidApi>,
+    #[cfg(target_os = "linux")]
+    root_helper: Option<RootHelper>,
 }
 
 impl DeviceEnumerator {
+    #[cfg(not(target_os = "linux"))]
     pub fn new() -> Self {
         Self {
             //TODO: should we continue through HID errors?
@@ -122,7 +133,22 @@ impl DeviceEnumerator {
                     None
                 }
             },
+            #[cfg(target_os = "linux")]
+            root_helper,
         }
+    }
+
+    #[cfg(target_os = "linux")]
+    pub fn new() -> Self {
+        let root_helper = if unsafe { libc::geteuid() == 0 } {
+            info!("Already running as root");
+            None
+        } else {
+            info!("Not running as root, spawning daemon with pkexec");
+            Some(RootHelper::new())
+        };
+
+        Self { root_helper }
     }
 
     #[cfg(not(target_os = "linux"))]
@@ -132,6 +158,7 @@ impl DeviceEnumerator {
 
     #[cfg(target_os = "linux")]
     pub fn open_lpc(&mut self) -> Option<EcDevice> {
+        // XXX use root helper
         match unsafe { ectool::AccessLpcLinux::new(Duration::new(1, 0)) } {
             Ok(access) => match unsafe { EcDevice::new(access) } {
                 Ok(device) => {

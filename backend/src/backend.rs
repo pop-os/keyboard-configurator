@@ -95,12 +95,8 @@ impl Backend {
         Self::new_internal(DaemonS76Power::new()?)
     }
 
-    pub fn new_pkexec() -> Result<Self, String> {
-        Self::new_internal(DaemonClient::new_pkexec())
-    }
-
     pub fn new() -> Result<Self, String> {
-        Self::new_internal(DaemonServer::new_stdio()?)
+        Self::new_internal(DaemonServer::new())
     }
 
     fn inner(&self) -> &BackendInner {
@@ -156,7 +152,7 @@ impl Backend {
 }
 
 pub fn run_daemon() -> ! {
-    let server = DaemonServer::new_stdio().expect("Failed to create server");
-    server.run().expect("Failed to run server");
+    #[cfg(target_os = "linux")]
+    crate::daemon::root_helper_main();
     process::exit(0)
 }

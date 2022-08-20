@@ -1,7 +1,6 @@
 use std::{
     cell::{Cell, RefCell, RefMut},
     collections::HashMap,
-    io::{self, BufRead, BufReader, Read, Write},
     str,
     thread::sleep,
     time::Duration,
@@ -9,7 +8,7 @@ use std::{
 use uuid::Uuid;
 
 use super::device_enumerator::{DeviceEnumerator, EcDevice, HidInfo};
-use super::{err_str, BoardId, Daemon, DaemonCommand};
+use super::{err_str, BoardId, Daemon};
 use crate::{Benchmark, Matrix, Nelson, NelsonKind};
 
 static LAUNCH_IDS: &[(u16, u16, i32)] = &[
@@ -23,24 +22,16 @@ static LAUNCH_IDS: &[(u16, u16, i32)] = &[
 // System76 launch-nelson
 static NELSON_ID: (u16, u16, i32) = (0x3384, 0x0002, 0);
 
-pub struct DaemonServer<R: Read + Send + 'static, W: Write + Send + 'static> {
+pub struct DaemonServer {
     enumerator: RefCell<DeviceEnumerator>,
     running: Cell<bool>,
-    read: BufReader<R>,
-    write: W,
     boards: RefCell<HashMap<BoardId, (EcDevice, Option<HidInfo>)>>,
     board_ids: RefCell<Vec<BoardId>>,
     nelson: RefCell<Option<EcDevice>>,
 }
 
-impl DaemonServer<io::Stdin, io::Stdout> {
-    pub fn new_stdio() -> Result<Self, String> {
-        Self::new(io::stdin(), io::stdout())
-    }
-}
-
-impl<R: Read + Send + 'static, W: Write + Send + 'static> DaemonServer<R, W> {
-    pub fn new(read: R, write: W) -> Result<Self, String> {
+impl DaemonServer {
+    pub fn new() -> Self {
         let mut boards = HashMap::new();
         let mut board_ids = Vec::new();
 
@@ -53,15 +44,13 @@ impl<R: Read + Send + 'static, W: Write + Send + 'static> DaemonServer<R, W> {
             board_ids.push(id);
         }
 
-        Ok(Self {
+        Self {
             enumerator: RefCell::new(enumerator),
             running: Cell::new(true),
-            read: BufReader::new(read),
-            write,
             boards: RefCell::new(boards),
             board_ids: RefCell::new(board_ids),
             nelson: RefCell::new(None),
-        })
+        }
     }
 
     fn have_device(&self, hid_info: &HidInfo) -> bool {
@@ -69,27 +58,6 @@ impl<R: Read + Send + 'static, W: Write + Send + 'static> DaemonServer<R, W> {
             .borrow()
             .values()
             .any(|(_, i)| i.as_ref() == Some(hid_info))
-    }
-
-    pub fn run(mut self) -> io::Result<()> {
-        println!("Daemon started");
-
-        while self.running.get() {
-            let mut command_json = String::new();
-            self.read.read_line(&mut command_json)?;
-
-            let command = serde_json::from_str::<DaemonCommand>(&command_json)
-                .expect("failed to deserialize command");
-            let response = self.dispatch_command_to_method(command);
-
-            //TODO: what to do if we fail to serialize result?
-            let mut result_json =
-                serde_json::to_string(&response).expect("failed to serialize result");
-            result_json.push('\n');
-            self.write.write_all(result_json.as_bytes())?;
-        }
-
-        Ok(())
     }
 
     fn board(&self, board: BoardId) -> Result<RefMut<EcDevice>, String> {
@@ -102,7 +70,7 @@ impl<R: Read + Send + 'static, W: Write + Send + 'static> DaemonServer<R, W> {
     }
 }
 
-impl<R: Read + Send + 'static, W: Write + Send + 'static> Daemon for DaemonServer<R, W> {
+impl Daemon for DaemonServer {
     fn boards(&self) -> Result<Vec<BoardId>, String> {
         Ok(self.board_ids.borrow().clone())
     }

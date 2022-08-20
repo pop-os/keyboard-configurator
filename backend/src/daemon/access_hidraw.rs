@@ -1,5 +1,10 @@
 use ectool::{Access, Error};
-use std::{convert::AsRef, fs, io, os::unix::io::AsRawFd, path::Path};
+use std::{
+    convert::AsRef,
+    fs, io,
+    os::unix::io::{AsRawFd, OwnedFd},
+    path::Path,
+};
 
 // Implement ec `Access` for `/dev/hidraw*`
 // hidapi doesn't provide a way to open from fd.
@@ -10,20 +15,24 @@ pub struct AccessHidRaw {
 }
 
 impl AccessHidRaw {
+    pub fn new(device: OwnedFd, retries: u32, timeout: i32) -> Self {
+        Self::new_inner(fs::File::from(device), retries, timeout)
+    }
+
     pub fn open<P: AsRef<Path>>(path: P, retries: u32, timeout: i32) -> Result<Self, Error> {
-        Self::new(
+        Ok(Self::new_inner(
             fs::File::options().read(true).write(true).open(path)?,
             retries,
             timeout,
-        )
+        ))
     }
 
-    pub fn new(device: fs::File, retries: u32, timeout: i32) -> Result<Self, Error> {
-        Ok(Self {
+    fn new_inner(device: fs::File, retries: u32, timeout: i32) -> Self {
+        Self {
             device,
             retries,
             timeout,
-        })
+        }
     }
 
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {

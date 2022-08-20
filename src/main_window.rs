@@ -399,19 +399,6 @@ impl MainWindow {
     }
 }
 
-#[cfg(target_os = "linux")]
-fn daemon() -> Backend {
-    if unsafe { libc::geteuid() == 0 } {
-        info!("Already running as root");
-        Backend::new()
-    } else {
-        info!("Not running as root, spawning daemon with pkexec");
-        Backend::new_pkexec()
-    }
-    .expect("Failed to create server")
-}
-
-#[cfg(not(target_os = "linux"))]
 fn daemon() -> Backend {
     Backend::new().expect("Failed to create server")
 }
