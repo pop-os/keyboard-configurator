@@ -238,7 +238,6 @@ impl Daemon for DaemonServer {
             boards.retain(|_, (ec, _)| !(ec.is_hid() && unsafe { ec.probe().is_err() }));
             board_ids.retain(|i| boards.contains_key(i));
         }
-
         for hid_info in enumerator.enumerate_hid().into_iter() {
             if LAUNCH_IDS.iter().any(|ids| hid_info.matches_ids(*ids)) {
                 // Skip if device already open
@@ -260,7 +259,7 @@ impl Daemon for DaemonServer {
                         // "Failed to probe USB HID EC at {:?}: {:?}",
                         // "Failed to access USB HID EC at {:?}: {:?}",
                         // "Failed to open USB HID EC at {:?}: {:?}"
-                        // error!("Failed to open USB HID EC at {:?}", info.path())
+                        error!("Failed to open USB HID EC at {:?}", hid_info.path());
                     }
                 }
             } else if hid_info.matches_ids(NELSON_ID) {
@@ -278,7 +277,7 @@ impl Daemon for DaemonServer {
                         // "Failed to probe Nelson at {:?}: {:?}",
                         // "Failed to access Nelson at {:?}: {:?}",
                         // "Failed to open Nelson at {:?}: {:?}"
-                        // error!("Failed to open Nelson at {:?}", info.path())
+                        error!("Failed to open Nelson at {:?}", hid_info.path())
                     }
                 }
             }

@@ -49,22 +49,14 @@ pub struct HidInfo {
     product_id: u16,
     #[cfg(not(target_os = "linux"))]
     serial_number: Option<String>,
-    #[cfg(not(target_os = "linux"))]
     interface_number: i32,
 }
 
 impl HidInfo {
-    #[cfg(not(target_os = "linux"))]
     pub fn matches_ids(&self, (vendor_id, product_id, interface_number): (u16, u16, i32)) -> bool {
         self.vendor_id == vendor_id
             && self.product_id == product_id
             && self.interface_number == interface_number
-    }
-
-    #[cfg(target_os = "linux")]
-    pub fn matches_ids(&self, (vendor_id, product_id, _interface_number): (u16, u16, i32)) -> bool {
-        // `hidraw` does not have seperate dev node per interface.
-        self.vendor_id == vendor_id && self.product_id == product_id
     }
 
     #[cfg(not(target_os = "linux"))]
@@ -203,6 +195,9 @@ impl DeviceEnumerator {
                 let usb_device = device
                     .parent_with_subsystem_devtype("usb", "usb_device")
                     .ok()??;
+                let usb_interface = device
+                    .parent_with_subsystem_devtype("usb", "usb_interface")
+                    .ok()??;
                 let path = device.devnode()?.to_owned();
                 let vendor_id = u16::from_str_radix(
                     usb_device.attribute_value("idVendor")?.to_str()?.trim(),
@@ -214,10 +209,19 @@ impl DeviceEnumerator {
                     16,
                 )
                 .ok()?;
+                let interface_number = i32::from_str_radix(
+                    usb_interface
+                        .attribute_value("bInterfaceNumber")?
+                        .to_str()?
+                        .trim(),
+                    16,
+                )
+                .ok()?;
                 Some(HidInfo {
                     path,
                     vendor_id,
                     product_id,
+                    interface_number,
                 })
             })
             .collect()
