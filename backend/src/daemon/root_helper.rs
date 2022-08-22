@@ -48,7 +48,7 @@ impl RootHelper {
             env::current_exe().expect("Failed to get executable path")
         };
 
-        let mut child = Command::new("pkexec")
+        let _child = Command::new("pkexec")
             .arg(command_path)
             .arg("--daemon")
             .stdin(stdin)
@@ -106,7 +106,7 @@ fn send_with_fd<T: AsFd>(stream: &T, buf: &[u8], fd: OwnedFd) -> nix::Result<usi
     let iov = &[IoSlice::new(buf)];
     let cmsgs = &[ControlMessage::ScmRights(fds)];
     repeat_intr!(sendmsg(
-        libc::STDIN_FILENO,
+        stream.as_fd().as_raw_fd(),
         iov,
         cmsgs,
         MsgFlags::empty(),
