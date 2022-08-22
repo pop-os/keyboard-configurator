@@ -11,6 +11,7 @@ mod server;
 
 #[cfg(target_os = "linux")]
 mod root_helper;
+#[cfg(target_os = "linux")]
 pub use self::root_helper::*;
 #[cfg(target_os = "linux")]
 mod s76power;

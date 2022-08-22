@@ -13,7 +13,7 @@ See [releases](https://github.com/pop-os/keyboard-configurator/releases) page fo
 
 ```
 # Install dependencies if necessary
-sudo apt-get install cargo libgtk-3-dev libhidapi-dev libudev-dev
+sudo apt-get install cargo libgtk-3-dev libudev-dev
 
 # Clone keyboard-configurator if necessary
 git clone https://github.com/pop-os/keyboard-configurator

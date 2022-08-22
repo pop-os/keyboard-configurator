@@ -10,7 +10,7 @@ fn with_daemon<F: Fn(Backend)>(f: F) {
         return;
     }
 
-    f(Backend::new_pkexec().unwrap());
+    f(Backend::new().unwrap());
 }
 
 #[cfg(not(target_os = "linux"))]
