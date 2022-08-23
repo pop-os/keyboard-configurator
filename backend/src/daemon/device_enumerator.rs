@@ -2,8 +2,6 @@ use ectool::{Access, Ec};
 use std::{fmt, ops, time::Duration};
 
 #[cfg(target_os = "linux")]
-use super::access_hidraw::AccessHidRaw;
-#[cfg(target_os = "linux")]
 use super::RootHelper;
 
 /// Wraps a generic `Ec`, with any helper methods
@@ -16,12 +14,12 @@ impl EcDevice {
 
     #[cfg(target_os = "linux")]
     pub fn is_hid(&mut self) -> bool {
-        unsafe { self.0.access().is::<AccessHidRaw>() }
+        unsafe { self.0.access().is::<ectool::AccessHid<ectool::HidRaw>>() }
     }
 
     #[cfg(not(target_os = "linux"))]
     pub fn is_hid(&mut self) -> bool {
-        unsafe { self.0.access().is::<ectool::AccessHid>() }
+        unsafe { self.0.access().is::<ectool::AccessHid<hidapi::HidDevice>>() }
     }
 }
 
@@ -78,12 +76,13 @@ impl HidInfo {
     #[cfg(target_os = "linux")]
     pub fn open_device(&self, enumerator: &DeviceEnumerator) -> Option<EcDevice> {
         // XXX error
-        let access = if let Some(root_helper) = enumerator.root_helper.as_ref() {
+        let hidraw = if let Some(root_helper) = enumerator.root_helper.as_ref() {
             let fd = root_helper.open_dev(&self.path).ok()?;
-            AccessHidRaw::new(fd, 10, 1000)
+            ectool::HidRaw(fd.into())
         } else {
-            AccessHidRaw::open(&self.path, 10, 1000).ok()?
+            ectool::HidRaw::open(&self.path).ok()?
         };
+        let access = ectool::AccessHid::new(hidraw, 10, 1000).ok()?;
         unsafe { EcDevice::new(access).ok() }
     }
 
@@ -150,8 +149,15 @@ impl DeviceEnumerator {
 
     #[cfg(target_os = "linux")]
     pub fn open_lpc(&mut self) -> Option<EcDevice> {
+        let res = if let Some(root_helper) = self.root_helper.as_ref() {
+            let fd = root_helper.open_dev("/dev/port".as_ref()).ok()?;
+            unsafe { ectool::AccessLpcLinux::from_file(fd.into(), Duration::new(1, 0)) }
+        } else {
+            unsafe { ectool::AccessLpcLinux::new(Duration::new(1, 0)) }
+        };
+
         // XXX use root helper
-        match unsafe { ectool::AccessLpcLinux::new(Duration::new(1, 0)) } {
+        match res {
             Ok(access) => match unsafe { EcDevice::new(access) } {
                 Ok(device) => {
                     return Some(device);

@@ -1569,13 +1569,13 @@ dependencies = [
 
 [[package]]
 name = "system76_ectool"
-version = "0.3.8"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5fa1f8f8e61d62f04c704268e040df5f37bd454af161c147bb2b491f68661ebe"
+version = "0.4.0"
+source = "git+https://github.com/ids1024/ec?branch=from-file#c50b5c380c89945139278fba94b4af047822764d"
 dependencies = [
  "downcast-rs",
  "hidapi",
  "libc",
+ "nix 0.25.0",
 ]
 
 [[package]]
