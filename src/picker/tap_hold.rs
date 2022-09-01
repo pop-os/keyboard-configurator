@@ -9,9 +9,9 @@ use once_cell::sync::Lazy;
 use std::cell::{Cell, RefCell};
 
 use super::{picker_group_box::PickerGroupBox, PickerKey, SCANCODE_LABELS};
-use backend::{DerefCell, Keycode, Mods};
+use backend::{is_qmk_basic, DerefCell, Keycode, Mods};
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq)]
 enum Hold {
     Mods(Mods),
     Layer(u8),
@@ -37,6 +37,7 @@ pub static LAYERS: &[&str] = &["LAYER_ACCESS_1", "FN", "LAYER_ACCESS_3", "LAYER_
 
 #[derive(Default)]
 pub struct TapHoldInner {
+    shift: Cell<bool>,
     hold: Cell<Hold>,
     keycode: RefCell<Option<String>>,
     mod_buttons: DerefCell<Vec<PickerKey>>,
@@ -55,7 +56,7 @@ impl ObjectImpl for TapHoldInner {
     fn signals() -> &'static [Signal] {
         static SIGNALS: Lazy<Vec<Signal>> = Lazy::new(|| {
             vec![Signal::builder(
-                "selected",
+                "select",
                 &[Keycode::static_type().into()],
                 glib::Type::UNIT.into(),
             )
@@ -67,16 +68,15 @@ impl ObjectImpl for TapHoldInner {
     fn constructed(&self, widget: &Self::Type) {
         self.parent_constructed(widget);
 
-        let layout = backend::Layout::from_board("system76/launch_1").unwrap();
-
         let picker_group_box = cascade! {
             PickerGroupBox::new("basics");
+            ..set_sensitive(false);
             ..connect_key_pressed(clone!(@weak widget => move |name, _shift| {
                 *widget.inner().keycode.borrow_mut() = Some(name);
                 widget.update();
             }));
             // Correct?
-            ..set_key_visibility(|name| layout.scancode_from_name(&Keycode::Basic(Mods::empty(), name.to_string())).map_or(false, |code| code <= 0xff));
+            ..set_key_visibility(|name| is_qmk_basic(name));
         };
 
         let modifier_button_box = cascade! {
@@ -177,18 +177,17 @@ impl TapHold {
         match self.inner().hold.get() {
             Hold::Mods(mods) => {
                 if !mods.is_empty() {
-                    self.emit_by_name::<()>("selected", &[&Keycode::MT(mods, keycode.to_string())]);
+                    self.emit_by_name::<()>("select", &[&Keycode::MT(mods, keycode.to_string())]);
                 }
             }
             Hold::Layer(layer) => {
-                self.emit_by_name::<()>("selected", &[&Keycode::LT(layer, keycode.to_string())]);
+                self.emit_by_name::<()>("select", &[&Keycode::LT(layer, keycode.to_string())]);
             }
         }
     }
 
-    // XXX naming vs set_selected
-    pub fn connect_selected<F: Fn(Keycode) + 'static>(&self, cb: F) -> glib::SignalHandlerId {
-        self.connect_local("selected", false, move |values| {
+    pub fn connect_select<F: Fn(Keycode) + 'static>(&self, cb: F) -> glib::SignalHandlerId {
+        self.connect_local("select", false, move |values| {
             cb(values[1].get::<Keycode>().unwrap());
             None
         })
@@ -206,10 +205,7 @@ impl TapHold {
             Default::default()
         };
 
-        // TODO how to deal with internal state?
-
         for i in self.inner().mod_buttons.iter() {
-            // XXX left vs right
             let mod_ = Mods::from_mod_str(i.name()).unwrap();
             i.set_selected(
                 mods.contains(mod_) && (mods.contains(Mods::RIGHT) == mod_.contains(Mods::RIGHT)),
@@ -220,12 +216,61 @@ impl TapHold {
             i.set_selected(Some(n as u8) == layer);
         }
 
-        if let Some(keycode) = keycode {
+        if let Some(keycode) = keycode.clone() {
             self.inner()
                 .picker_group_box
                 .set_selected(vec![Keycode::Basic(Mods::empty(), keycode)]);
         } else {
             self.inner().picker_group_box.set_selected(Vec::new());
         }
+
+        self.inner().hold.set(if let Some(layer) = layer {
+            Hold::Layer(layer)
+        } else {
+            Hold::Mods(mods)
+        });
+        *self.inner().keycode.borrow_mut() = keycode;
+
+        self.invalidate_sensitivity();
+    }
+
+    pub fn set_shift(&self, shift: bool) {
+        self.inner().shift.set(shift);
+        self.invalidate_sensitivity();
+    }
+
+    fn invalidate_sensitivity(&self) {
+        let shift = self.inner().shift.get();
+        let hold = self.inner().hold.get();
+        let hold_empty = hold == Hold::Mods(Mods::empty());
+        let keycode = self.inner().keycode.borrow();
+
+        for button in self.inner().layer_buttons.iter() {
+            button.set_sensitive(if shift {
+                hold == Hold::Mods(Mods::empty())
+            } else {
+                true
+            });
+        }
+
+        for button in self.inner().mod_buttons.iter() {
+            button.set_sensitive(if shift {
+                match hold {
+                    Hold::Mods(mods) => {
+                        let right = button.name().starts_with("RIGHT");
+                        mods.is_empty() || (right == mods.contains(Mods::RIGHT))
+                    }
+                    Hold::Layer(_) => false,
+                }
+            } else {
+                true
+            });
+        }
+
+        self.inner().picker_group_box.set_sensitive(if shift {
+            !hold_empty && keycode.is_none()
+        } else {
+            !hold_empty
+        });
     }
 }

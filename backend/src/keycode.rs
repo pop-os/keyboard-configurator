@@ -127,6 +127,7 @@ impl std::fmt::Display for Keycode {
                         write!(f, " | ")?;
                     }
                     write!(f, "{}", mod_name)?;
+                    has_mod = true;
                 }
                 if !(scancode_name == "NONE" && has_mod) {
                     write!(f, "{}", scancode_name)?;
@@ -140,6 +141,7 @@ impl std::fmt::Display for Keycode {
                         write!(f, " | ")?;
                     }
                     write!(f, "{}", mod_name)?;
+                    has_mod = true;
                 }
                 write!(f, ", {})", scancode_name)?;
             }

@@ -20,9 +20,9 @@ pub struct Meta {
     pub has_brightness: bool,
     /// Has LED with color (i.e. not monochrome)
     pub has_color: bool,
-    /// Supports mod-tap bindings (assumes QMK mod-tap encoding)
+    /// Supports mod-tap and other QMK features
     #[serde(default)]
-    pub has_mod_tap: bool,
+    pub is_qmk: bool,
     #[serde(default)]
     /// Disable "Invert F Keys" option
     pub no_fn_f: bool,

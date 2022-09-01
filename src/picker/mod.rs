@@ -13,7 +13,7 @@ use std::{
 };
 
 use crate::Keyboard;
-use backend::{DerefCell, Keycode, Mods};
+use backend::{is_qmk_basic, DerefCell, Keycode, Mods};
 
 mod picker_group;
 mod picker_group_box;
@@ -40,12 +40,14 @@ pub static SCANCODE_LABELS: Lazy<HashMap<String, String>> = Lazy::new(|| {
 
 #[derive(Default)]
 pub struct PickerInner {
-    group_boxes: DerefCell<Vec<PickerGroupBox>>,
+    stack_switcher: DerefCell<gtk::StackSwitcher>,
+    basics_group_box: DerefCell<PickerGroupBox>,
+    extras_group_box: DerefCell<PickerGroupBox>,
     keyboard: RefCell<Option<Keyboard>>,
-    event_controller_key: RefCell<Option<gtk::EventControllerKey>>,
     selected: RefCell<Vec<Keycode>>,
     shift: Cell<bool>,
     tap_hold: DerefCell<TapHold>,
+    is_qmk: Cell<bool>,
 }
 
 #[glib::object_subclass]
@@ -75,7 +77,7 @@ impl ObjectImpl for PickerInner {
 
         let tap_hold = cascade! {
             tap_hold::TapHold::new();
-            ..connect_selected(clone!(@weak picker => move |keycode| {
+            ..connect_select(clone!(@weak picker => move |keycode| {
                 picker.set_keycode(keycode);
             }));
         };
@@ -101,8 +103,9 @@ impl ObjectImpl for PickerInner {
             ..show_all();
         };
 
-        self.group_boxes
-            .set(vec![basics_group_box, extras_group_box]);
+        self.stack_switcher.set(stack_switcher);
+        self.basics_group_box.set(basics_group_box);
+        self.extras_group_box.set(extras_group_box);
         self.tap_hold.set(tap_hold);
     }
 }
@@ -116,42 +119,28 @@ impl WidgetImpl for PickerInner {
         let window = widget
             .toplevel()
             .and_then(|x| x.downcast::<gtk::Window>().ok());
-        *self.event_controller_key.borrow_mut() = window.map(|window| {
-            cascade! {
-                 gtk::EventControllerKey::new(&window);
-                 ..connect_key_pressed(clone!(@weak widget => @default-return true, move |_, keyval, _, mods| {
-                     let key = gdk::keys::Key::from(keyval);
-                     if key == gdk::keys::constants::Shift_L || key == gdk::keys::constants::Shift_R {
-                         println!("Shift"); // XXX what if only one is held?
-                     }
-                     true
-                 }));
-                 ..connect_key_released(clone!(@weak widget => move |_, keyval, _, mods| {
-                     let key = gdk::keys::Key::from(keyval);
-                     if key == gdk::keys::constants::Shift_L || key == gdk::keys::constants::Shift_R {
-                         println!("Unshift"); // XXX what if only one is held?
-                     }
-                 }));
-                 ..connect_focus_out(clone!(@weak widget => move |_| {
-                     println!("Unfocus");
-                 }));
-                 ..connect_modifiers(clone!(@weak widget => @default-return true, move |_, mods| {
-                     println!("Mods: {:?}", mods);
-                     let shift = mods.contains(gdk::ModifierType::SHIFT_MASK);
-                     //println!("Shift: {}", shift);
-                     if shift != widget.inner().shift.get() {
-                        widget.inner().shift.set(shift);
-                        widget.invalidate_sensitivity();
-                     }
-                     true
-                 }));
-            }
-        });
+        if let Some(window) = &window {
+            window.add_events(gdk::EventMask::FOCUS_CHANGE_MASK);
+            window.connect_event(clone!(@weak widget => @default-return Inhibit(false), move |_, evt| {
+                use gdk::keys::{Key, constants};
+                let is_shift_key = matches!(evt.keyval().map(Key::from), Some(constants::Shift_L | constants::Shift_R));
+                // XXX Distinguish lshift, rshift if both are held?
+                let shift = match evt.event_type() {
+                    gdk::EventType::KeyPress if is_shift_key => true,
+                    gdk::EventType::KeyRelease if is_shift_key => false,
+                    gdk::EventType::FocusChange => false,
+                    _ => { return Inhibit(false); }
+                };
+                widget.inner().shift.set(shift);
+                widget.invalidate_sensitivity();
+                widget.inner().tap_hold.set_shift(shift);
+                Inhibit(false)
+            }));
+        }
     }
 
     fn unrealize(&self, widget: &Self::Type) {
         self.parent_unrealize(widget);
-        *self.event_controller_key.borrow_mut() = None;
     }
 }
 
@@ -171,6 +160,13 @@ impl Picker {
         PickerInner::from_instance(self)
     }
 
+    fn group_boxes(&self) -> [&PickerGroupBox; 2] {
+        [
+            &*self.inner().basics_group_box,
+            &*self.inner().extras_group_box,
+        ]
+    }
+
     pub(crate) fn set_keyboard(&self, keyboard: Option<Keyboard>) {
         if let Some(old_kb) = &*self.inner().keyboard.borrow() {
             old_kb.set_picker(None);
@@ -178,11 +174,14 @@ impl Picker {
 
         if let Some(kb) = &keyboard {
             // Check that scancode is available for the keyboard
-            for group_box in self.inner().group_boxes.iter() {
-                group_box.set_key_visibility(|name| {
-                    kb.has_scancode(&Keycode::Basic(Mods::empty(), name.to_string()))
-                });
+            for group_box in self.group_boxes() {
+                group_box.set_key_visibility(|name| kb.layout().has_scancode(name));
             }
+            let is_qmk = kb.layout().meta.is_qmk;
+            self.inner().extras_group_box.set_visible(is_qmk);
+            self.inner().tap_hold.set_visible(is_qmk);
+            self.inner().stack_switcher.set_visible(is_qmk);
+            self.inner().is_qmk.set(is_qmk);
             kb.set_picker(Some(&self));
         }
 
@@ -190,16 +189,18 @@ impl Picker {
     }
 
     pub(crate) fn set_selected(&self, scancode_names: Vec<Keycode>) {
-        for group_box in self.inner().group_boxes.iter() {
+        for group_box in self.group_boxes() {
             group_box.set_selected(scancode_names.clone());
         }
         self.inner().tap_hold.set_selected(scancode_names.clone());
         *self.inner().selected.borrow_mut() = scancode_names;
+
+        self.invalidate_sensitivity();
     }
 
     fn key_pressed(&self, name: String, shift: bool) {
         let mod_ = Mods::from_mod_str(&name);
-        if shift {
+        if shift && self.inner().is_qmk.get() {
             let selected = self.inner().selected.borrow();
             if selected.len() == 1 {
                 if let Keycode::Basic(mods, scancode_name) = &selected[0] {
@@ -208,6 +209,9 @@ impl Picker {
                             mods.toggle_mod(mod_),
                             scancode_name.to_string(),
                         ));
+                        return;
+                    } else if scancode_name == &name && !mods.is_empty() {
+                        self.set_keycode(Keycode::Basic(*mods, "NONE".to_string()));
                         return;
                     } else if scancode_name == "NONE" {
                         self.set_keycode(Keycode::Basic(*mods, name));
@@ -246,52 +250,55 @@ impl Picker {
     }
 
     fn invalidate_sensitivity(&self) {
-        return;
-
         let shift = self.inner().shift.get();
 
-        let mut allow_mods = true;
-        let mut allow_basic = true;
-        let mut allow_non_basic = true;
+        let mut allow_left_mods = false;
+        let mut allow_right_mods = false;
+        let mut allow_basic = false;
+        let mut allow_non_basic = false;
 
-        if shift {
+        let mut keycode_mods = Mods::empty();
+        let mut basic_keycode = None;
+
+        if shift && self.inner().is_qmk.get() {
             let selected = self.inner().selected.borrow();
             if selected.len() == 1 {
                 match &selected[0] {
                     Keycode::Basic(mods, keycode) => {
                         // Allow mods only if `keycode` is really basic?
-                        allow_basic = keycode == "NONE";
-                        allow_non_basic = false;
+                        // Allow deselecting current key
+                        let no_mod = mods.is_empty();
+                        let right = mods.contains(Mods::RIGHT);
+                        allow_left_mods = no_mod || !right;
+                        allow_right_mods = no_mod || right;
+                        allow_basic = keycode == "NONE" && !mods.is_empty();
+                        keycode_mods = *mods;
+                        basic_keycode = Some(keycode.clone());
                     }
-                    Keycode::MT(..) | Keycode::LT(..) => {
-                        allow_mods = false;
-                        allow_basic = false;
-                        allow_non_basic = false;
-                    }
+                    Keycode::MT(..) | Keycode::LT(..) => {}
                 }
             }
+        } else {
+            allow_left_mods = true;
+            allow_right_mods = true;
+            allow_basic = true;
+            allow_non_basic = true;
         }
 
-        for group_box in self.inner().group_boxes.iter() {
-            // TODO: What to allow?
+        for group_box in self.group_boxes() {
             group_box.set_key_sensitivity(|name| {
-                if [
-                    "LEFT_SHIFT",
-                    "RIGHT_SHIFT",
-                    "LEFT_ALT",
-                    "RIGHT_ALT",
-                    "LEFT_CTRL",
-                    "RIGHT_CTRL",
-                    "LEFT_SUPER",
-                    "RIGHT_SUPER",
-                ]
-                .contains(&name)
+                if ["LEFT_SHIFT", "LEFT_ALT", "LEFT_CTRL", "LEFT_SUPER"].contains(&name) {
+                    allow_left_mods
+                } else if ["RIGHT_SHIFT", "RIGHT_ALT", "RIGHT_CTRL", "RIGHT_SUPER"].contains(&name)
                 {
-                    allow_mods
-                } else {
+                    allow_right_mods
+                } else if basic_keycode.as_deref() == Some(name) && !keycode_mods.is_empty() {
+                    true
+                } else if is_qmk_basic(name) {
                     allow_basic
+                } else {
+                    allow_non_basic
                 }
-                // XXX non-basic?
             });
         }
     }

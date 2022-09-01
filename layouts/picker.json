@@ -170,28 +170,28 @@
         "label": "Left Alt"
       },
       {
-        "keysym": "RIGHT_ALT",
-        "label": "Right Alt"
-      },
-      {
         "keysym": "LEFT_CTRL",
         "label": "Left Ctrl"
-      },
-      {
-        "keysym": "RIGHT_CTRL",
-        "label": "Right Ctrl"
       },
       {
         "keysym": "LEFT_SHIFT",
         "label": "Left Shift"
       },
       {
-        "keysym": "RIGHT_SHIFT",
-        "label": "Right Shift"
-      },
-      {
         "keysym": "LEFT_SUPER",
         "label": "Left Super"
+      },
+      {
+        "keysym": "RIGHT_ALT",
+        "label": "Right Alt"
+      },
+      {
+        "keysym": "RIGHT_CTRL",
+        "label": "Right Ctrl"
+      },
+      {
+        "keysym": "RIGHT_SHIFT",
+        "label": "Right Shift"
       },
       {
         "keysym": "RIGHT_SUPER",

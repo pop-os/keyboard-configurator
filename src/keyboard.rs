@@ -283,7 +283,7 @@ impl Keyboard {
         }
     }
 
-    fn layout(&self) -> &Layout {
+    pub fn layout(&self) -> &Layout {
         &self.inner().board.layout()
     }
 
@@ -301,11 +301,6 @@ impl Keyboard {
 
     pub fn layer_stack(&self) -> &gtk::Stack {
         &self.inner().layer_stack
-    }
-
-    // XXX
-    pub fn has_scancode(&self, scancode_name: &Keycode) -> bool {
-        self.layout().scancode_from_name(scancode_name).is_some()
     }
 
     pub async fn keymap_set(&self, key_index: usize, layer: usize, scancode_name: &Keycode) {

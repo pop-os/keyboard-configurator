@@ -1,6 +1,13 @@
 use crate::fl;
 use crate::picker::{LAYERS, SCANCODE_LABELS};
-use backend::{Key, Keycode};
+use backend::{Key, Keycode, Mods};
+
+static MOD_LABELS: &[(Mods, &str)] = &[
+    (Mods::CTRL, "Ctrl"),
+    (Mods::SHIFT, "Shift"),
+    (Mods::ALT, "Alt"),
+    (Mods::SUPER, "Super"),
+];
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum Page {
@@ -59,21 +66,21 @@ impl Page {
         .into_iter()
     }
 
-    pub fn get_label(&self, key: &Key) -> String {
+    pub fn get_label(&self, key: &Key) -> Vec<String> {
         match self {
             Page::Layer1 | Page::Layer2 | Page::Layer3 | Page::Layer4 => {
                 let (scancode, scancode_name) = key.get_scancode(self.layer().unwrap()).unwrap();
                 match scancode_name {
                     Some(keycode) => {
-                        keycode_label(&keycode).unwrap_or_else(|| format!("{:?}", keycode))
+                        keycode_label(&keycode).unwrap_or_else(|| vec![format!("{:?}", keycode)])
                     }
-                    None => format!("{}", scancode),
+                    None => vec![format!("{}", scancode)],
                 }
             }
-            Page::Keycaps => key.physical_name.clone(),
-            Page::Logical => key.logical_name.clone(),
-            Page::Electrical => key.electrical_name.clone(),
-            Page::Leds => key.led_name.clone(),
+            Page::Keycaps => vec![key.physical_name.clone()],
+            Page::Logical => vec![key.logical_name.clone()],
+            Page::Electrical => vec![key.electrical_name.clone()],
+            Page::Leds => vec![key.led_name.clone()],
         }
     }
 }
@@ -85,47 +92,55 @@ impl Default for Page {
 }
 
 // TODO: represent mod-tap/layer-tap by rendering button with a seperator?
-fn keycode_label(keycode: &Keycode) -> Option<String> {
+fn keycode_label(keycode: &Keycode) -> Option<Vec<String>> {
     match keycode {
         Keycode::Basic(mods, keycode) => {
             if mods.is_empty() {
-                SCANCODE_LABELS.get(keycode).cloned()
+                Some(vec![SCANCODE_LABELS.get(keycode)?.clone()])
             } else {
-                let mut label = String::new();
-                for name in mods.mod_names() {
-                    let mod_label = SCANCODE_LABELS.get(name)?;
-                    if !label.is_empty() {
-                        label.push_str(" + ");
-                    }
-                    label.push_str(mod_label);
-                }
+                let mut label = mods_label(*mods);
                 if keycode != "NONE" {
                     let keycode_label = SCANCODE_LABELS.get(keycode)?;
                     label.push_str(" + ");
                     label.push_str(keycode_label);
                 }
-                Some(label)
+                Some(vec![label])
             }
         }
         Keycode::MT(mods, keycode) => {
-            let mut label = String::new();
-            for name in mods.mod_names() {
-                let mod_label = SCANCODE_LABELS.get(name)?;
-                if !label.is_empty() {
-                    label.push_str(" + ");
-                }
-                label.push_str(mod_label);
-            }
-            let keycode_label = SCANCODE_LABELS.get(keycode)?;
-            label.push('\n');
-            label.push_str(keycode_label);
-            Some(label)
+            let mods_label = mods_label(*mods);
+            let keycode_label = SCANCODE_LABELS.get(keycode)?.clone();
+            Some(vec![mods_label, keycode_label])
         }
         Keycode::LT(layer, keycode) => {
             let layer_id = *LAYERS.get(usize::from(*layer))?;
-            let layer_label = SCANCODE_LABELS.get(layer_id)?;
-            let keycode_label = SCANCODE_LABELS.get(keycode)?;
-            Some(format!("{}\n{}", layer_label, keycode_label))
+            let layer_label = SCANCODE_LABELS.get(layer_id)?.clone();
+            let keycode_label = SCANCODE_LABELS.get(keycode)?.clone();
+            Some(vec![layer_label, keycode_label])
         }
     }
+}
+
+fn mods_label(mods: Mods) -> String {
+    if mods.is_empty() {
+        return String::new();
+    }
+
+    let mut label = if mods.contains(Mods::RIGHT) {
+        "Right "
+    } else {
+        "Left "
+    }
+    .to_string();
+    let mut first = true;
+    for (mod_, mod_label) in MOD_LABELS {
+        if mods.contains(*mod_) {
+            if !first {
+                label.push_str(" + ");
+            }
+            label.push_str(mod_label);
+            first = false;
+        }
+    }
+    label
 }
