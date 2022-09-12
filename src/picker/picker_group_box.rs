@@ -174,10 +174,11 @@ impl PickerGroupBox {
             let mut group = PickerGroup::new(json_group.label, json_group.cols);
 
             for json_key in json_group.keys {
-                let key = PickerKey::new(&json_key.keysym, &json_key.label, json_group.width);
+                let keysym_label = super::SCANCODE_LABELS.get(&json_key).unwrap();
+                let key = PickerKey::new(&json_key, keysym_label, json_group.width);
 
                 group.add_key(key.clone());
-                keys.insert(json_key.keysym, key);
+                keys.insert(json_key, key);
             }
 
             groups.push(group);

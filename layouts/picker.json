@@ -5,110 +5,32 @@
     "cols": 9,
     "width": 1,
     "keys": [
-      {
-        "keysym": "A",
-        "label": "A"
-      },
-      {
-        "keysym": "B",
-        "label": "B"
-      },
-      {
-        "keysym": "C",
-        "label": "C"
-      },
-      {
-        "keysym": "D",
-        "label": "D"
-      },
-      {
-        "keysym": "E",
-        "label": "E"
-      },
-      {
-        "keysym": "F",
-        "label": "F"
-      },
-      {
-        "keysym": "G",
-        "label": "G"
-      },
-      {
-        "keysym": "H",
-        "label": "H"
-      },
-      {
-        "keysym": "I",
-        "label": "I"
-      },
-      {
-        "keysym": "J",
-        "label": "J"
-      },
-      {
-        "keysym": "K",
-        "label": "K"
-      },
-      {
-        "keysym": "L",
-        "label": "L"
-      },
-      {
-        "keysym": "M",
-        "label": "M"
-      },
-      {
-        "keysym": "N",
-        "label": "N"
-      },
-      {
-        "keysym": "O",
-        "label": "O"
-      },
-      {
-        "keysym": "P",
-        "label": "P"
-      },
-      {
-        "keysym": "Q",
-        "label": "Q"
-      },
-      {
-        "keysym": "R",
-        "label": "R"
-      },
-      {
-        "keysym": "S",
-        "label": "S"
-      },
-      {
-        "keysym": "T",
-        "label": "T"
-      },
-      {
-        "keysym": "U",
-        "label": "U"
-      },
-      {
-        "keysym": "V",
-        "label": "V"
-      },
-      {
-        "keysym": "W",
-        "label": "W"
-      },
-      {
-        "keysym": "X",
-        "label": "X"
-      },
-      {
-        "keysym": "Y",
-        "label": "Y"
-      },
-      {
-        "keysym": "Z",
-        "label": "Z"
-      }
+      "A",
+      "B",
+      "C",
+      "D",
+      "E",
+      "F",
+      "G",
+      "H",
+      "I",
+      "J",
+      "K",
+      "L",
+      "M",
+      "N",
+      "O",
+      "P",
+      "Q",
+      "R",
+      "S",
+      "T",
+      "U",
+      "V",
+      "W",
+      "X",
+      "Y",
+      "Z"
     ]
   },
   {
@@ -117,46 +39,16 @@
     "cols": 4,
     "width": 1,
     "keys": [
-      {
-        "keysym": "1",
-        "label": "!\n1"
-      },
-      {
-        "keysym": "2",
-        "label": "@\n2"
-      },
-      {
-        "keysym": "3",
-        "label": "#\n3"
-      },
-      {
-        "keysym": "4",
-        "label": "$\n4"
-      },
-      {
-        "keysym": "5",
-        "label": "%\n5"
-      },
-      {
-        "keysym": "6",
-        "label": "^\n6"
-      },
-      {
-        "keysym": "7",
-        "label": "&\n7"
-      },
-      {
-        "keysym": "8",
-        "label": "*\n8"
-      },
-      {
-        "keysym": "9",
-        "label": "(\n9"
-      },
-      {
-        "keysym": "0",
-        "label": ")\n0"
-      }
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "7",
+      "8",
+      "9",
+      "0"
     ]
   },
   {
@@ -165,38 +57,14 @@
     "cols": 4,
     "width": 1,
     "keys": [
-      {
-        "keysym": "LEFT_ALT",
-        "label": "Left Alt"
-      },
-      {
-        "keysym": "LEFT_CTRL",
-        "label": "Left Ctrl"
-      },
-      {
-        "keysym": "LEFT_SHIFT",
-        "label": "Left Shift"
-      },
-      {
-        "keysym": "LEFT_SUPER",
-        "label": "Left Super"
-      },
-      {
-        "keysym": "RIGHT_ALT",
-        "label": "Right Alt"
-      },
-      {
-        "keysym": "RIGHT_CTRL",
-        "label": "Right Ctrl"
-      },
-      {
-        "keysym": "RIGHT_SHIFT",
-        "label": "Right Shift"
-      },
-      {
-        "keysym": "RIGHT_SUPER",
-        "label": "Right Super"
-      }
+      "LEFT_ALT",
+      "LEFT_CTRL",
+      "LEFT_SHIFT",
+      "LEFT_SUPER",
+      "RIGHT_ALT",
+      "RIGHT_CTRL",
+      "RIGHT_SHIFT",
+      "RIGHT_SUPER"
     ]
   },
   {
@@ -205,66 +73,21 @@
     "cols": 4,
     "width": 1,
     "keys": [
-      {
-        "keysym": "ENTER",
-        "label": "Enter"
-      },
-      {
-        "keysym": "BKSP",
-        "label": "Bksp"
-      },
-      {
-        "keysym": "DEL",
-        "label": "Del"
-      },
-      {
-        "keysym": "TAB",
-        "label": "Tab"
-      },
-      {
-        "keysym": "SPACE",
-        "label": "Space"
-      },
-      {
-        "keysym": "CAPS",
-        "label": "Caps"
-      },
-      {
-        "keysym": "APP",
-        "label": "Menu"
-      },
-      {
-        "keysym": "ESC",
-        "label": "Esc"
-      },
-      {
-        "keysym": "PRINT_SCREEN",
-        "label": "PrtSc\nSysrq"
-      },
-      {
-        "keysym": "INSERT",
-        "label": "Ins"
-      },
-      {
-        "keysym": "SCROLL_LOCK",
-        "label": "Scroll Lock"
-      },
-      {
-        "keysym": "PAUSE",
-        "label": "Pause\nBreak"
-      },
-      {
-        "keysym": "RESET",
-        "label": "Reset"
-      },
-      {
-        "keysym": "ROLL_OVER",
-        "label": "Reuse"
-      },
-      {
-        "keysym": "NONE",
-        "label": "None"
-      }
+      "ENTER",
+      "BKSP",
+      "DEL",
+      "TAB",
+      "SPACE",
+      "CAPS",
+      "APP",
+      "ESC",
+      "PRINT_SCREEN",
+      "INSERT",
+      "SCROLL_LOCK",
+      "PAUSE",
+      "RESET",
+      "ROLL_OVER",
+      "NONE"
     ]
   },
   {
@@ -273,54 +96,18 @@
     "cols": 4,
     "width": 1,
     "keys": [
-      {
-        "keysym": "F1",
-        "label": "F1"
-      },
-      {
-        "keysym": "F2",
-        "label": "F2"
-      },
-      {
-        "keysym": "F3",
-        "label": "F3"
-      },
-      {
-        "keysym": "F4",
-        "label": "F4"
-      },
-      {
-        "keysym": "F5",
-        "label": "F5"
-      },
-      {
-        "keysym": "F6",
-        "label": "F6"
-      },
-      {
-        "keysym": "F7",
-        "label": "F7"
-      },
-      {
-        "keysym": "F8",
-        "label": "F8"
-      },
-      {
-        "keysym": "F9",
-        "label": "F9"
-      },
-      {
-        "keysym": "F10",
-        "label": "F10"
-      },
-      {
-        "keysym": "F11",
-        "label": "F11"
-      },
-      {
-        "keysym": "F12",
-        "label": "F12"
-      }
+      "F1",
+      "F2",
+      "F3",
+      "F4",
+      "F5",
+      "F6",
+      "F7",
+      "F8",
+      "F9",
+      "F10",
+      "F11",
+      "F12"
     ]
   },
   {
@@ -329,74 +116,23 @@
     "cols": 6,
     "width": 1,
     "keys": [
-      {
-        "keysym": "NUM_LOCK",
-        "label": "Num Lock"
-      },
-      {
-        "keysym": "NUM_7",
-        "label": "7"
-      },
-      {
-        "keysym": "NUM_8",
-        "label": "8"
-      },
-      {
-        "keysym": "NUM_9",
-        "label": "9"
-      },
-      {
-        "keysym": "NUM_MINUS",
-        "label": "-"
-      },
-      {
-        "keysym": "NUM_PLUS",
-        "label": "+"
-      },
-      {
-        "keysym": "NUM_SLASH",
-        "label": "/"
-      },
-      {
-        "keysym": "NUM_4",
-        "label": "4"
-      },
-      {
-        "keysym": "NUM_5",
-        "label": "5"
-      },
-      {
-        "keysym": "NUM_6",
-        "label": "6"
-      },
-      {
-        "keysym": "NUM_ASTERISK",
-        "label": "*"
-      },
-      {
-        "keysym": "NUM_ENTER",
-        "label": "Enter"
-      },
-      {
-        "keysym": "NUM_0",
-        "label": "0"
-      },
-      {
-        "keysym": "NUM_1",
-        "label": "1"
-      },
-      {
-        "keysym": "NUM_2",
-        "label": "2"
-      },
-      {
-        "keysym": "NUM_3",
-        "label": "3"
-      },
-      {
-        "keysym": "NUM_PERIOD",
-        "label": "."
-      }
+      "NUM_LOCK",
+      "NUM_7",
+      "NUM_8",
+      "NUM_9",
+      "NUM_MINUS",
+      "NUM_PLUS",
+      "NUM_SLASH",
+      "NUM_4",
+      "NUM_5",
+      "NUM_6",
+      "NUM_ASTERISK",
+      "NUM_ENTER",
+      "NUM_0",
+      "NUM_1",
+      "NUM_2",
+      "NUM_3",
+      "NUM_PERIOD"
     ]
   },
   {
@@ -405,58 +141,19 @@
     "cols": 6,
     "width": 1,
     "keys": [
-      {
-        "keysym": "TICK",
-        "label": "~\n`"
-      },
-      {
-        "keysym": "QUOTE",
-        "label": "\"\n'"
-      },
-      {
-        "keysym": "SEMICOLON",
-        "label": ":\n;"
-      },
-      {
-        "keysym": "MINUS",
-        "label": "_\n-"
-      },
-      {
-        "keysym": "EQUALS",
-        "label": "+\n="
-      },
-      {
-        "keysym": "SLASH",
-        "label": "?\n/"
-      },
-      {
-        "keysym": "COMMA",
-        "label": "<\n,"
-      },
-      {
-        "keysym": "PERIOD",
-        "label": ">\n."
-      },
-      {
-        "keysym": "BACKSLASH",
-        "label": "|\n\\"
-      },
-      {
-        "keysym": "BRACE_OPEN",
-        "label": "{\n["
-      },
-      {
-        "keysym": "BRACE_CLOSE",
-        "label": "}\n]"
-      },
-      {
-        "keysym": "NONUS_HASH",
-	"label": "Non-US #"
-      },
-      {
-        "keysym": "NONUS_BSLASH",
-	"label": "Non-US \\"
-      }
+      "TICK",
+      "QUOTE",
+      "SEMICOLON",
+      "MINUS",
+      "EQUALS",
+      "SLASH",
+      "COMMA",
+      "PERIOD",
+      "BACKSLASH",
+      "BRACE_OPEN",
+      "BRACE_CLOSE",
+      "NONUS_HASH",
+      "NONUS_BSLASH"
     ]
   },
   {
@@ -465,38 +162,14 @@
     "cols": 4,
     "width": 1,
     "keys": [
-      {
-        "keysym": "LEFT",
-        "label": "Left"
-      },
-      {
-        "keysym": "UP",
-        "label": "Up"
-      },
-      {
-        "keysym": "DOWN",
-        "label": "Down"
-      },
-      {
-        "keysym": "RIGHT",
-        "label": "Right"
-      },
-      {
-        "keysym": "HOME",
-        "label": "Home"
-      },
-      {
-        "keysym": "PGUP",
-        "label": "PgUp"
-      },
-      {
-        "keysym": "PGDN",
-        "label": "PgDn"
-      },
-      {
-        "keysym": "END",
-        "label": "End"
-      }
+      "LEFT",
+      "UP",
+      "DOWN",
+      "RIGHT",
+      "HOME",
+      "PGUP",
+      "PGDN",
+      "END"
     ]
   },
   {
@@ -505,30 +178,12 @@
     "cols": 3,
     "width": 1,
     "keys": [
-      {
-        "keysym": "MUTE",
-        "label": "Mute"
-      },
-      {
-        "keysym": "VOLUME_UP",
-        "label": "Vol Up"
-      },
-      {
-        "keysym": "VOLUME_DOWN",
-        "label": "Vol Down"
-      },
-      {
-        "keysym": "PLAY_PAUSE",
-        "label": "Play Pause"
-      },
-      {
-        "keysym": "MEDIA_NEXT",
-        "label": "Next Track"
-      },
-      {
-        "keysym": "MEDIA_PREV",
-        "label": "Prev Track"
-      }
+      "MUTE",
+      "VOLUME_UP",
+      "VOLUME_DOWN",
+      "PLAY_PAUSE",
+      "MEDIA_NEXT",
+      "MEDIA_PREV"
     ]
   },
   {
@@ -537,46 +192,16 @@
     "cols": 4,
     "width": 2,
     "keys": [
-      {
-        "keysym": "FAN_TOGGLE",
-        "label": "Fan Toggle"
-      },
-      {
-        "keysym": "DISPLAY_TOGGLE",
-        "label": "Screen Toggle"
-      },
-      {
-        "keysym": "BRIGHTNESS_UP",
-        "label": "Screen Up"
-      },
-      {
-        "keysym": "BRIGHTNESS_DOWN",
-        "label": "Screen Down"
-      },
-      {
-        "keysym": "DISPLAY_MODE",
-        "label": "Screen Mode"
-      },
-      {
-        "keysym": "SUSPEND",
-        "label": "Suspend"
-      },
-      {
-        "keysym": "CAMERA_TOGGLE",
-        "label": "Camera Toggle"
-      },
-      {
-        "keysym": "AIRPLANE_MODE",
-        "label": "Airplane Mode"
-      },
-      {
-        "keysym": "TOUCHPAD",
-        "label": "Touchpad Toggle"
-      },
-      {
-        "keysym": "SYSTEM_POWER",
-        "label": "Power"
-      }
+      "FAN_TOGGLE",
+      "DISPLAY_TOGGLE",
+      "BRIGHTNESS_UP",
+      "BRIGHTNESS_DOWN",
+      "DISPLAY_MODE",
+      "SUSPEND",
+      "CAMERA_TOGGLE",
+      "AIRPLANE_MODE",
+      "TOUCHPAD",
+      "SYSTEM_POWER"
     ]
   },
   {
@@ -585,26 +210,11 @@
     "cols": 4,
     "width": 1,
     "keys": [
-      {
-        "keysym": "KBD_TOGGLE",
-        "label": "LED On Off"
-      },
-      {
-        "keysym": "KBD_UP",
-        "label": "LED Brighten"
-      },
-      {
-        "keysym": "KBD_DOWN",
-        "label": "LED Darken"
-      },
-      {
-        "keysym": "KBD_BKL",
-        "label": "LED Cycle"
-      },
-      {
-        "keysym": "KBD_COLOR",
-        "label": "LED Color"
-      }
+      "KBD_TOGGLE",
+      "KBD_UP",
+      "KBD_DOWN",
+      "KBD_BKL",
+      "KBD_COLOR"
     ]
   },
   {
@@ -613,38 +223,14 @@
     "cols": 4,
     "width": 2,
     "keys": [
-      {
-        "keysym": "LAYER_ACCESS_1",
-        "label": "Access Layer\u00a01"
-      },
-      {
-        "keysym": "FN",
-        "label": "Access Layer\u00a02"
-      },
-      {
-        "keysym": "LAYER_ACCESS_3",
-        "label": "Access Layer\u00a03"
-      },
-      {
-        "keysym": "LAYER_ACCESS_4",
-        "label": "Access Layer\u00a04"
-      },
-      {
-        "keysym": "LAYER_SWITCH_1",
-        "label": "Switch to\nLayer\u00a01"
-      },
-      {
-        "keysym": "LAYER_SWITCH_2",
-        "label": "Switch to\nLayer\u00a02"
-      },
-      {
-        "keysym": "LAYER_SWITCH_3",
-        "label": "Switch to\nLayer\u00a03"
-      },
-      {
-        "keysym": "LAYER_SWITCH_4",
-        "label": "Switch to\nLayer\u00a04"
-      }
+      "LAYER_ACCESS_1",
+      "FN",
+      "LAYER_ACCESS_3",
+      "LAYER_ACCESS_4",
+      "LAYER_SWITCH_1",
+      "LAYER_SWITCH_2",
+      "LAYER_SWITCH_3",
+      "LAYER_SWITCH_4"
     ]
   },
   {
@@ -653,54 +239,18 @@
     "cols": 6,
     "width": 1,
     "keys": [
-      {
-        "keysym": "F13",
-        "label": "F13"
-      },
-      {
-        "keysym": "F14",
-        "label": "F14"
-      },
-      {
-        "keysym": "F15",
-        "label": "F15"
-      },
-      {
-        "keysym": "F16",
-        "label": "F16"
-      },
-      {
-        "keysym": "F17",
-        "label": "F17"
-      },
-      {
-        "keysym": "F18",
-        "label": "F18"
-      },
-      {
-        "keysym": "F19",
-        "label": "F19"
-      },
-      {
-        "keysym": "F20",
-        "label": "F20"
-      },
-      {
-        "keysym": "F21",
-        "label": "F21"
-      },
-      {
-        "keysym": "F22",
-        "label": "F22"
-      },
-      {
-        "keysym": "F23",
-        "label": "F23"
-      },
-      {
-        "keysym": "F24",
-        "label": "F24"
-      }
+      "F13",
+      "F14",
+      "F15",
+      "F16",
+      "F17",
+      "F18",
+      "F19",
+      "F20",
+      "F21",
+      "F22",
+      "F23",
+      "F24"
     ]
   },
   {
@@ -709,82 +259,25 @@
     "cols": 5,
     "width": 2,
     "keys": [
-      {
-        "keysym": "MS_UP",
-        "label": "Mouse cursor up"
-      },
-      {
-        "keysym": "MS_DOWN",
-        "label": "Mouse cursor down"
-      },
-      {
-        "keysym": "MS_LEFT",
-        "label": "Mouse cursor left"
-      },
-      {
-        "keysym": "MS_RIGHT",
-        "label": "Mouse cursor right"
-      },
-      {
-        "keysym": "MS_BTN1",
-        "label": "Press button 1"
-      },
-      {
-        "keysym": "MS_BTN2",
-        "label": "Press button 2"
-      },
-      {
-        "keysym": "MS_BTN3",
-        "label": "Press button 3"
-      },
-      {
-        "keysym": "MS_BTN4",
-        "label": "Press button 4"
-      },
-      {
-        "keysym": "MS_BTN5",
-        "label": "Press button 5"
-      },
-      {
-        "keysym": "MS_BTN6",
-        "label": "Press button 6"
-      },
-      {
-        "keysym": "MS_BTN7",
-        "label": "Press button 7"
-      },
-      {
-        "keysym": "MS_BTN8",
-        "label": "Press button 8"
-      },
-      {
-        "keysym": "MS_WH_UP",
-        "label": "Move wheel up"
-      },
-      {
-        "keysym": "MS_WH_DOWN",
-        "label": "Move wheel down"
-      },
-      {
-        "keysym": "MS_WH_LEFT",
-        "label": "Move wheel left"
-      },
-      {
-        "keysym": "MS_WH_RIGHT",
-        "label": "Move wheel right"
-      },
-      {
-        "keysym": "MS_ACCEL0",
-        "label": "Set speed to 0"
-      },
-      {
-        "keysym": "MS_ACCEL1",
-        "label": "Set speed to 1"
-      },
-      {
-        "keysym": "MS_ACCEL2",
-        "label": "Set speed to 2"
-      }
+      "MS_UP",
+      "MS_DOWN",
+      "MS_LEFT",
+      "MS_RIGHT",
+      "MS_BTN1",
+      "MS_BTN2",
+      "MS_BTN3",
+      "MS_BTN4",
+      "MS_BTN5",
+      "MS_BTN6",
+      "MS_BTN7",
+      "MS_BTN8",
+      "MS_WH_UP",
+      "MS_WH_DOWN",
+      "MS_WH_LEFT",
+      "MS_WH_RIGHT",
+      "MS_ACCEL0",
+      "MS_ACCEL1",
+      "MS_ACCEL2"
     ]
   }
 ]

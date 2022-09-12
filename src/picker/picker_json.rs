@@ -1,18 +1,12 @@
 use serde::Deserialize;
 
 #[derive(Deserialize)]
-pub struct PickerJsonKey {
-    pub keysym: String,
-    pub label: String,
-}
-
-#[derive(Deserialize)]
 pub struct PickerJsonGroup {
     pub label: String,
     pub section: String,
     pub cols: u32,
     pub width: i32,
-    pub keys: Vec<PickerJsonKey>,
+    pub keys: Vec<String>,
 }
 
 pub fn picker_json() -> Vec<PickerJsonGroup> {

@@ -29,12 +29,13 @@ use tap_hold::TapHold;
 pub use tap_hold::LAYERS;
 
 pub static SCANCODE_LABELS: Lazy<HashMap<String, String>> = Lazy::new(|| {
-    let mut labels = HashMap::new();
-    for group in picker_json() {
-        for key in group.keys {
-            labels.insert(key.keysym, key.label);
-        }
-    }
+    let base_json = include_str!("../../layouts/keysym/base.json");
+    let en_us_json = include_str!("../../layouts/keysym/en_us.json");
+    let base: HashMap<String, String> = serde_json::from_str(base_json).unwrap();
+    let en_us: HashMap<String, String> = serde_json::from_str(en_us_json).unwrap();
+
+    let mut labels = base;
+    labels.extend(en_us.into_iter());
     labels
 });
 
@@ -308,7 +309,7 @@ impl Picker {
 mod tests {
     use crate::*;
     use backend::{layouts, Layout};
-    use std::collections::HashSet;
+    use std::collections::{HashMap, HashSet};
 
     #[test]
     fn picker_has_keys() {
@@ -322,5 +323,16 @@ mod tests {
             }
         }
         assert_eq!(missing, HashSet::new());
+    }
+
+    #[test]
+    fn no_duplicating_base_json() {
+        let base_json = include_str!("../../layouts/keysym/base.json");
+        let en_us_json = include_str!("../../layouts/keysym/en_us.json");
+        let base: HashMap<String, String> = serde_json::from_str(base_json).unwrap();
+        let en_us: HashMap<String, String> = serde_json::from_str(en_us_json).unwrap();
+        for k in base.keys() {
+            assert!(!en_us.contains_key(k), "{} in both base and en_us", k);
+        }
     }
 }
