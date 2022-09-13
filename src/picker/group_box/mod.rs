@@ -10,7 +10,12 @@ use std::{cell::RefCell, collections::HashMap};
 
 use backend::{DerefCell, Keycode};
 
-use super::{picker_group::PickerGroup, picker_json::picker_json, picker_key::PickerKey};
+use super::picker_key::PickerKey;
+
+mod basics;
+mod extras;
+mod group;
+use group::{PickerBasicGroup, PickerGroup, PickerInternationalGroup};
 
 const DEFAULT_COLS: usize = 3;
 const HSPACING: i32 = 64;
@@ -18,7 +23,7 @@ const VSPACING: i32 = 32;
 
 #[derive(Default)]
 pub struct PickerGroupBoxInner {
-    groups: DerefCell<Vec<PickerGroup>>,
+    groups: DerefCell<Vec<Box<dyn PickerGroup>>>,
     keys: DerefCell<HashMap<String, PickerKey>>,
     selected: RefCell<Vec<Keycode>>,
 }
@@ -53,13 +58,17 @@ impl WidgetImpl for PickerGroupBoxInner {
         let minimum_width = self
             .groups
             .iter()
-            .map(|x| x.vbox.preferred_width().1)
+            .map(|x| x.widget().preferred_width().1)
             .max()
             .unwrap_or(0);
         let natural_width = self
             .groups
             .chunks(3)
-            .map(|row| row.iter().map(|x| x.vbox.preferred_width().1).sum::<i32>())
+            .map(|row| {
+                row.iter()
+                    .map(|x| x.widget().preferred_width().1)
+                    .sum::<i32>()
+            })
             .max()
             .unwrap_or(0)
             + 2 * HSPACING;
@@ -72,7 +81,7 @@ impl WidgetImpl for PickerGroupBoxInner {
             .iter()
             .map(|row| {
                 row.iter()
-                    .map(|x| x.vbox.preferred_height().1)
+                    .map(|x| x.widget().preferred_height().1)
                     .max()
                     .unwrap_or(0)
             })
@@ -90,7 +99,9 @@ impl WidgetImpl for PickerGroupBoxInner {
         let total_width = rows
             .iter()
             .map(|row| {
-                row.iter().map(|x| x.vbox.preferred_width().1).sum::<i32>()
+                row.iter()
+                    .map(|x| x.widget().preferred_width().1)
+                    .sum::<i32>()
                     + (row.len() as i32 - 1) * HSPACING
             })
             .max()
@@ -100,16 +111,16 @@ impl WidgetImpl for PickerGroupBoxInner {
         for row in rows {
             let mut x = (allocation.width() - total_width) / 2;
             for group in row {
-                let height = group.vbox.preferred_height().1;
-                let width = group.vbox.preferred_width().1;
+                let height = group.widget().preferred_height().1;
+                let width = group.widget().preferred_width().1;
                 group
-                    .vbox
+                    .widget()
                     .size_allocate(&gtk::Allocation::new(x, y, width, height));
                 x += width + HSPACING;
             }
             y += row
                 .iter()
-                .map(|x| x.vbox.preferred_height().1)
+                .map(|x| x.widget().preferred_height().1)
                 .max()
                 .unwrap()
                 + VSPACING;
@@ -145,7 +156,7 @@ impl ContainerImpl for PickerGroupBoxInner {
         cb: &gtk::subclass::container::Callback,
     ) {
         for group in self.groups.iter() {
-            cb.call(group.vbox.upcast_ref());
+            cb.call(group.widget().upcast_ref());
         }
     }
 
@@ -160,33 +171,17 @@ glib::wrapper! {
 }
 
 impl PickerGroupBox {
-    pub fn new(section: &str) -> Self {
+    fn new(groups: Vec<Box<dyn PickerGroup>>) -> Self {
         let widget: Self = glib::Object::new(&[]).unwrap();
 
-        let mut groups = Vec::new();
         let mut keys = HashMap::new();
 
-        for json_group in picker_json() {
-            if json_group.section != section {
-                continue;
-            }
-
-            let mut group = PickerGroup::new(json_group.label, json_group.cols);
-
-            for json_key in json_group.keys {
-                let keysym_label = super::SCANCODE_LABELS.get(&json_key).unwrap();
-                let key = PickerKey::new(&json_key, keysym_label, json_group.width);
-
-                group.add_key(key.clone());
-                keys.insert(json_key, key);
-            }
-
-            groups.push(group);
-        }
-
         for group in &groups {
-            group.vbox.show();
-            group.vbox.set_parent(&widget);
+            group.widget().show();
+            group.widget().set_parent(&widget);
+            for key in group.keys() {
+                keys.insert(key.name().to_string(), key.clone());
+            }
         }
 
         widget.inner().keys.set(keys);
@@ -226,25 +221,25 @@ impl PickerGroupBox {
     }
 
     // XXX need to enable/disable features; show/hide just plain keycodes
-    pub(crate) fn set_key_visibility<F: Fn(&str) -> bool>(&self, f: F) {
+    pub fn set_key_visibility<F: Fn(&str) -> bool>(&self, f: F) {
         for group in self.inner().groups.iter() {
-            let group_visible = group.keys().fold(false, |group_visible, key| {
+            let group_visible = group.keys().iter().fold(false, |group_visible, key| {
                 key.set_visible(f(&key.name()));
                 group_visible || key.get_visible()
             });
 
-            group.vbox.set_visible(group_visible);
+            group.widget().set_visible(group_visible);
             group.invalidate_filter();
         }
     }
 
-    pub(crate) fn set_key_sensitivity<F: Fn(&str) -> bool>(&self, f: F) {
+    pub fn set_key_sensitivity<F: Fn(&str) -> bool>(&self, f: F) {
         for key in self.inner().keys.values() {
             key.set_sensitive(f(&key.name()));
         }
     }
 
-    pub(crate) fn set_selected(&self, scancode_names: Vec<Keycode>) {
+    pub fn set_selected(&self, scancode_names: Vec<Keycode>) {
         for button in self.inner().keys.values() {
             button.set_selected(false);
         }
@@ -270,14 +265,14 @@ impl PickerGroupBox {
         *self.inner().selected.borrow_mut() = scancode_names;
     }
 
-    fn rows_for_width(&self, container_width: i32) -> Vec<&[PickerGroup]> {
+    fn rows_for_width(&self, container_width: i32) -> Vec<&[Box<dyn PickerGroup>]> {
         let mut rows = Vec::new();
         let groups = &*self.inner().groups;
 
         let mut row_start = 0;
         let mut row_width = 0;
         for (i, group) in groups.iter().enumerate() {
-            let width = group.vbox.preferred_width().1;
+            let width = group.widget().preferred_width().1;
 
             row_width += width;
             if i != 0 {

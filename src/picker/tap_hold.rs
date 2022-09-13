@@ -8,7 +8,7 @@ use gtk::{
 use once_cell::sync::Lazy;
 use std::cell::{Cell, RefCell};
 
-use super::{picker_group_box::PickerGroupBox, PickerKey, SCANCODE_LABELS};
+use super::{PickerGroupBox, PickerKey, SCANCODE_LABELS};
 use backend::{is_qmk_basic, DerefCell, Keycode, Mods};
 
 #[derive(Clone, Copy, PartialEq)]
@@ -69,13 +69,12 @@ impl ObjectImpl for TapHoldInner {
         self.parent_constructed(widget);
 
         let picker_group_box = cascade! {
-            PickerGroupBox::new("basics");
+            PickerGroupBox::basics();
             ..set_sensitive(false);
             ..connect_key_pressed(clone!(@weak widget => move |name, _shift| {
                 *widget.inner().keycode.borrow_mut() = Some(name);
                 widget.update();
             }));
-            // Correct?
             ..set_key_visibility(|name| is_qmk_basic(name));
         };
 
@@ -87,7 +86,7 @@ impl ObjectImpl for TapHoldInner {
             let label = SCANCODE_LABELS.get(*i).unwrap();
             let mod_ = Mods::from_mod_str(*i).unwrap();
             let button = cascade! {
-                PickerKey::new(i, label, 2);
+                PickerKey::new(i, 2);
                 ..connect_clicked_with_shift(clone!(@weak widget => move |_, shift| {
                     let mut new_mods = mod_;
                     if shift {
@@ -111,7 +110,7 @@ impl ObjectImpl for TapHoldInner {
         for (n, i) in LAYERS.iter().enumerate() {
             let label = SCANCODE_LABELS.get(*i).unwrap();
             let button = cascade! {
-                PickerKey::new(i, label, 2);
+                PickerKey::new(i, 2);
                 ..connect_clicked(clone!(@weak widget => move |_| {
                     widget.inner().hold.set(Hold::Layer(n as u8));
                     widget.update();
@@ -193,7 +192,7 @@ impl TapHold {
         })
     }
 
-    pub(crate) fn set_selected(&self, scancode_names: Vec<Keycode>) {
+    pub fn set_selected(&self, scancode_names: Vec<Keycode>) {
         // XXX how to handle > 1?
         let (mods, layer, keycode) = if scancode_names.len() == 1 {
             match scancode_names.into_iter().next().unwrap() {

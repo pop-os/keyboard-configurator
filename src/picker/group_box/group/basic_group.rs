@@ -1,17 +1,21 @@
 use cascade::cascade;
 use gtk::{pango, prelude::*};
 
-use super::PickerKey;
+use super::{PickerGroup, PickerKey};
 
-pub(super) struct PickerGroup {
-    /// Name of keys in this group
+trait Group {
+    fn keys(&self) -> &[PickerKey];
+    fn widget(&self) -> &gtk::Widget;
+}
+
+pub struct PickerBasicGroup {
     keys: Vec<PickerKey>,
-    pub vbox: gtk::Box,
+    vbox: gtk::Box,
     flow_box: gtk::FlowBox,
 }
 
-impl PickerGroup {
-    pub fn new(name: String, cols: u32) -> Self {
+impl PickerBasicGroup {
+    pub fn new(name: String, cols: u32, width: i32, key_names: &[&str]) -> Self {
         let label = cascade! {
             gtk::Label::new(Some(&name));
             ..set_attributes(Some(&cascade! {
@@ -40,23 +44,32 @@ impl PickerGroup {
             ..add(&flow_box);
         };
 
+        let keys: Vec<_> = key_names
+            .iter()
+            .map(|name| PickerKey::new(name, width))
+            .collect();
+        for key in &keys {
+            flow_box.add(key);
+        }
+
         Self {
-            keys: Vec::new(),
+            keys,
             vbox,
             flow_box,
         }
     }
+}
 
-    pub fn add_key(&mut self, key: PickerKey) {
-        self.flow_box.add(&key);
-        self.keys.push(key);
+impl PickerGroup for PickerBasicGroup {
+    fn keys(&self) -> &[PickerKey] {
+        &self.keys
     }
 
-    pub fn keys(&self) -> impl Iterator<Item = &PickerKey> {
-        self.keys.iter().map(|k| k.as_ref())
+    fn widget(&self) -> &gtk::Widget {
+        self.vbox.upcast_ref()
     }
 
-    pub fn invalidate_filter(&self) {
+    fn invalidate_filter(&self) {
         self.flow_box.invalidate_filter();
     }
 }

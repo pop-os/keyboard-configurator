@@ -15,14 +15,11 @@ use std::{
 use crate::Keyboard;
 use backend::{is_qmk_basic, DerefCell, Keycode, Mods};
 
-mod picker_group;
-mod picker_group_box;
-mod picker_json;
+mod group_box;
 mod picker_key;
 mod tap_hold;
 
-use picker_group_box::PickerGroupBox;
-use picker_json::picker_json;
+use group_box::PickerGroupBox;
 use picker_key::PickerKey;
 use tap_hold::TapHold;
 
@@ -63,14 +60,14 @@ impl ObjectImpl for PickerInner {
         self.parent_constructed(picker);
 
         let basics_group_box = cascade! {
-            PickerGroupBox::new("basics");
+            PickerGroupBox::basics();
             ..connect_key_pressed(clone!(@weak picker => move |name, shift| {
                 picker.key_pressed(name, shift)
             }));
         };
 
         let extras_group_box = cascade! {
-            PickerGroupBox::new("extras");
+            PickerGroupBox::extras();
             ..connect_key_pressed(clone!(@weak picker => move |name, shift| {
                 picker.key_pressed(name, shift)
             }));
