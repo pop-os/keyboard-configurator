@@ -1,53 +1,16 @@
-use super::{PickerBasicGroup, PickerGroup, PickerGroupBox, PickerKey};
+use super::{PickerAnsiGroup, PickerBasicGroup, PickerGroupBox};
 
 impl PickerGroupBox {
     pub fn basics() -> Self {
         Self::new(vec![
+            Box::new(PickerAnsiGroup::new()),
             Box::new(PickerBasicGroup::new(
-                "Alphabet keys".to_string(),
-                9,
-                1,
-                &[
-                    "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P",
-                    "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z",
-                ],
-            )),
-            Box::new(PickerBasicGroup::new(
-                "Number keys".to_string(),
+                "Other Actions".to_string(),
                 4,
-                1,
-                &["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"],
-            )),
-            Box::new(PickerBasicGroup::new(
-                "Modifier keys".to_string(),
-                4,
-                1,
+                1.5,
                 &[
-                    "LEFT_ALT",
-                    "LEFT_CTRL",
-                    "LEFT_SHIFT",
-                    "LEFT_SUPER",
-                    "RIGHT_ALT",
-                    "RIGHT_CTRL",
-                    "RIGHT_SHIFT",
-                    "RIGHT_SUPER",
-                ],
-            )),
-            Box::new(PickerBasicGroup::new(
-                "Actions".to_string(),
-                4,
-                1,
-                &[
-                    "ENTER",
-                    "BKSP",
-                    "DEL",
-                    "TAB",
-                    "SPACE",
-                    "CAPS",
-                    "APP",
-                    "ESC",
-                    "PRINT_SCREEN",
                     "INSERT",
+                    "PRINT_SCREEN",
                     "SCROLL_LOCK",
                     "PAUSE",
                     "RESET",
@@ -55,18 +18,11 @@ impl PickerGroupBox {
                     "NONE",
                 ],
             )),
-            Box::new(PickerBasicGroup::new(
-                "Function keys".to_string(),
-                4,
-                1,
-                &[
-                    "F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9", "F10", "F11", "F12",
-                ],
-            )),
+            // TODO numpad
             Box::new(PickerBasicGroup::new(
                 "Numpad".to_string(),
                 6,
-                1,
+                1.0,
                 &[
                     "NUM_LOCK",
                     "NUM_7",
@@ -90,33 +46,19 @@ impl PickerGroupBox {
             Box::new(PickerBasicGroup::new(
                 "Symbols".to_string(),
                 6,
-                1,
-                &[
-                    "TICK",
-                    "QUOTE",
-                    "SEMICOLON",
-                    "MINUS",
-                    "EQUALS",
-                    "SLASH",
-                    "COMMA",
-                    "PERIOD",
-                    "BACKSLASH",
-                    "BRACE_OPEN",
-                    "BRACE_CLOSE",
-                    "NONUS_HASH",
-                    "NONUS_BSLASH",
-                ],
+                1.0,
+                &["NONUS_HASH", "NONUS_BSLASH"],
             )),
             Box::new(PickerBasicGroup::new(
                 "Navigation".to_string(),
                 4,
-                1,
+                1.0,
                 &["LEFT", "UP", "DOWN", "RIGHT", "HOME", "PGUP", "PGDN", "END"],
             )),
             Box::new(PickerBasicGroup::new(
                 "Media".to_string(),
                 3,
-                1,
+                1.0,
                 &[
                     "MUTE",
                     "VOLUME_UP",
@@ -129,7 +71,7 @@ impl PickerGroupBox {
             Box::new(PickerBasicGroup::new(
                 "Controls".to_string(),
                 4,
-                2,
+                2.0,
                 &[
                     "FAN_TOGGLE",
                     "DISPLAY_TOGGLE",
@@ -146,13 +88,13 @@ impl PickerGroupBox {
             Box::new(PickerBasicGroup::new(
                 "LED controls".to_string(),
                 4,
-                1,
+                1.0,
                 &["KBD_TOGGLE", "KBD_UP", "KBD_DOWN", "KBD_BKL", "KBD_COLOR"],
             )),
             Box::new(PickerBasicGroup::new(
                 "Layer keys".to_string(),
                 4,
-                2,
+                2.0,
                 &[
                     "LAYER_ACCESS_1",
                     "FN",

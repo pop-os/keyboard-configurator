@@ -1,4 +1,4 @@
-use super::{PickerBasicGroup, PickerGroup, PickerGroupBox, PickerInternationalGroup, PickerKey};
+use super::{PickerBasicGroup, PickerGroupBox, PickerInternationalGroup};
 
 impl PickerGroupBox {
     pub fn extras() -> Self {
@@ -6,7 +6,7 @@ impl PickerGroupBox {
             Box::new(PickerBasicGroup::new(
                 "Additional Function Keys".to_string(),
                 6,
-                1,
+                1.0,
                 &[
                     "F13", "F14", "F15", "F16", "F17", "F18", "F19", "F20", "F21", "F22", "F23",
                     "F24",
@@ -15,7 +15,7 @@ impl PickerGroupBox {
             Box::new(PickerBasicGroup::new(
                 "Mouse Actions".to_string(),
                 5,
-                2,
+                2.0,
                 &[
                     "MS_UP",
                     "MS_DOWN",

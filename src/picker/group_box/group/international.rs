@@ -35,7 +35,7 @@ pub struct PickerInternationalGroup {
 }
 
 fn row(keys: &mut Vec<PickerKey>, keycode: &str, description: &str) -> gtk::Box {
-    let key = PickerKey::new(keycode, 1);
+    let key = PickerKey::new(keycode, 1.0);
     keys.push(key.clone());
     cascade! {
         gtk::Box::new(gtk::Orientation::Horizontal, 0);

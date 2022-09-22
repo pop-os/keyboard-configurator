@@ -1,4 +1,3 @@
-use cascade::cascade;
 use gtk::{
     gdk,
     glib::{self, clone, subclass::Signal, SignalHandlerId},
@@ -15,7 +14,7 @@ use super::picker_key::PickerKey;
 mod basics;
 mod extras;
 mod group;
-use group::{PickerBasicGroup, PickerGroup, PickerInternationalGroup};
+use group::*;
 
 const DEFAULT_COLS: usize = 3;
 const HSPACING: i32 = 64;

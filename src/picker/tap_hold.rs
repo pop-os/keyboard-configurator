@@ -8,7 +8,7 @@ use gtk::{
 use once_cell::sync::Lazy;
 use std::cell::{Cell, RefCell};
 
-use super::{PickerGroupBox, PickerKey, SCANCODE_LABELS};
+use super::{PickerGroupBox, PickerKey};
 use backend::{is_qmk_basic, DerefCell, Keycode, Mods};
 
 #[derive(Clone, Copy, PartialEq)]
@@ -83,10 +83,9 @@ impl ObjectImpl for TapHoldInner {
         };
         let mut mod_buttons = Vec::new();
         for i in MODIFIERS {
-            let label = SCANCODE_LABELS.get(*i).unwrap();
             let mod_ = Mods::from_mod_str(*i).unwrap();
             let button = cascade! {
-                PickerKey::new(i, 2);
+                PickerKey::new(i, 2.0);
                 ..connect_clicked_with_shift(clone!(@weak widget => move |_, shift| {
                     let mut new_mods = mod_;
                     if shift {
@@ -108,9 +107,8 @@ impl ObjectImpl for TapHoldInner {
         };
         let mut layer_buttons = Vec::new();
         for (n, i) in LAYERS.iter().enumerate() {
-            let label = SCANCODE_LABELS.get(*i).unwrap();
             let button = cascade! {
-                PickerKey::new(i, 2);
+                PickerKey::new(i, 2.0);
                 ..connect_clicked(clone!(@weak widget => move |_| {
                     widget.inner().hold.set(Hold::Layer(n as u8));
                     widget.update();

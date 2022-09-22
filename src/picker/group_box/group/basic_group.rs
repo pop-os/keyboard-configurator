@@ -15,7 +15,7 @@ pub struct PickerBasicGroup {
 }
 
 impl PickerBasicGroup {
-    pub fn new(name: String, cols: u32, width: i32, key_names: &[&str]) -> Self {
+    pub fn new(name: String, cols: u32, width: f64, key_names: &[&str]) -> Self {
         let label = cascade! {
             gtk::Label::new(Some(&name));
             ..set_attributes(Some(&cascade! {
