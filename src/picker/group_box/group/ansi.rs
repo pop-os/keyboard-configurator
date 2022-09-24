@@ -115,9 +115,9 @@ impl PickerAnsiGroup {
                 let key = PickerKey::new(name, width);
                 fixed.put(&key, x, y);
                 keys.push(key);
-                x += (48.0 * width) as i32
+                x += (48.0 * width) as i32 + 4
             }
-            y += 48;
+            y += 48 + 4;
         }
 
         PickerAnsiGroup {
