@@ -46,6 +46,11 @@ impl ObjectImpl for PickerGroupBoxInner {
         });
         SIGNALS.as_ref()
     }
+
+    fn constructed(&self, widget: &Self::Type) {
+        self.parent_constructed(widget);
+        widget.set_halign(gtk::Align::Center);
+    }
 }
 
 impl WidgetImpl for PickerGroupBoxInner {
@@ -76,18 +81,36 @@ impl WidgetImpl for PickerGroupBoxInner {
 
     fn preferred_height_for_width(&self, widget: &Self::Type, width: i32) -> (i32, i32) {
         let rows = widget.rows_for_width(width);
-        let height = rows
-            .iter()
-            .map(|row| {
-                row.iter()
-                    .map(|x| x.widget().preferred_height().1)
-                    .max()
-                    .unwrap_or(0)
-            })
-            .sum::<i32>()
-            + (rows.len() as i32 - 1) * VSPACING;
-
+        let height = total_height_for_rows(&rows);
         (height, height)
+    }
+
+    fn adjust_size_allocation(
+        &self,
+        obj: &Self::Type,
+        orientation: gtk::Orientation,
+        minimum_size: &mut i32,
+        natural_size: &mut i32,
+        allocated_pos: &mut i32,
+        allocated_size: &mut i32,
+    ) {
+        // For centering to work, adjust natural width to be the portion of
+        // allocated width that will actually be used after reflowing
+        // children.
+        if orientation == gtk::Orientation::Horizontal {
+            let rows = obj.rows_for_width(*allocated_size);
+            let total_width = max_width_for_rows(&rows);
+            *natural_size = (*natural_size).min(total_width);
+        }
+
+        self.parent_adjust_size_allocation(
+            obj,
+            orientation,
+            minimum_size,
+            natural_size,
+            allocated_pos,
+            allocated_size,
+        );
     }
 
     fn size_allocate(&self, obj: &Self::Type, allocation: &gtk::Allocation) {
@@ -95,20 +118,9 @@ impl WidgetImpl for PickerGroupBoxInner {
 
         let rows = obj.rows_for_width(allocation.width());
 
-        let total_width = rows
-            .iter()
-            .map(|row| {
-                row.iter()
-                    .map(|x| x.widget().preferred_width().1)
-                    .sum::<i32>()
-                    + (row.len() as i32 - 1) * HSPACING
-            })
-            .max()
-            .unwrap_or(0);
-
         let mut y = 0;
         for row in rows {
-            let mut x = (allocation.width() - total_width) / 2;
+            let mut x = 0;
             for group in row {
                 let height = group.widget().preferred_height().1;
                 let width = group.widget().preferred_width().1;
@@ -290,4 +302,28 @@ impl PickerGroupBox {
 
         rows
     }
+}
+
+fn max_width_for_rows(rows: &[&[Box<dyn PickerGroup>]]) -> i32 {
+    rows.iter()
+        .map(|row| {
+            row.iter()
+                .map(|x| x.widget().preferred_width().1)
+                .sum::<i32>()
+                + (row.len() as i32 - 1) * HSPACING
+        })
+        .max()
+        .unwrap_or(0)
+}
+
+fn total_height_for_rows(rows: &[&[Box<dyn PickerGroup>]]) -> i32 {
+    rows.iter()
+        .map(|row| {
+            row.iter()
+                .map(|x| x.widget().preferred_height().1)
+                .max()
+                .unwrap_or(0)
+        })
+        .sum::<i32>()
+        + (rows.len() as i32 - 1) * VSPACING
 }
