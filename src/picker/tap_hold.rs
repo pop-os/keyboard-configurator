@@ -8,7 +8,7 @@ use gtk::{
 use once_cell::sync::Lazy;
 use std::cell::{Cell, RefCell};
 
-use super::{PickerGroupBox, PickerKey};
+use super::{group_box::PickerBasicGroup, PickerGroupBox, PickerKey};
 use backend::{is_qmk_basic, DerefCell, Keycode, Mods};
 
 #[derive(Clone, Copy, PartialEq)]
@@ -40,8 +40,7 @@ pub struct TapHoldInner {
     shift: Cell<bool>,
     hold: Cell<Hold>,
     keycode: RefCell<Option<String>>,
-    mod_buttons: DerefCell<Vec<PickerKey>>,
-    layer_buttons: DerefCell<Vec<PickerKey>>,
+    hold_group_box: DerefCell<PickerGroupBox>,
     picker_group_box: DerefCell<PickerGroupBox>,
 }
 
@@ -78,52 +77,42 @@ impl ObjectImpl for TapHoldInner {
             ..set_key_visibility(|name| is_qmk_basic(name));
         };
 
-        let modifier_button_box = cascade! {
-            gtk::Box::new(gtk::Orientation::Horizontal, 0);
-        };
-        let mut mod_buttons = Vec::new();
-        for i in MODIFIERS {
-            let mod_ = Mods::from_mod_str(*i).unwrap();
-            let button = cascade! {
-                PickerKey::new(i, 2.0);
-                ..connect_clicked_with_shift(clone!(@weak widget => move |_, shift| {
+        let hold_group_box = cascade! {
+            PickerGroupBox::new(vec![
+                Box::new(PickerBasicGroup::new(
+                    "Standard Modifiers".to_string(),
+                    4,
+                    1.5,
+                    MODIFIERS,
+                )),
+                Box::new(PickerBasicGroup::new(
+                    "Access Layer Modifiers".to_string(),
+                    4,
+                    1.5,
+                    LAYERS,
+                )),
+            ]);
+            ..connect_key_pressed(clone!(@weak widget => move |name, shift| {
+                let new_hold = if let Some(mod_) = Mods::from_mod_str(&name) {
                     let mut new_mods = mod_;
                     if shift {
                         if let Hold::Mods(mods) = widget.inner().hold.get() {
                             new_mods = mods.toggle_mod(mod_);
                         }
                     }
-                    widget.inner().hold.set(Hold::Mods(new_mods));
-                    widget.update();
-                }));
-            };
-            modifier_button_box.add(&button);
-            mod_buttons.push(button);
-        }
-        self.mod_buttons.set(mod_buttons);
-
-        let layer_button_box = cascade! {
-            gtk::Box::new(gtk::Orientation::Horizontal, 0);
+                    Hold::Mods(new_mods)
+                } else {
+                    let n = LAYERS.iter().position(|x| *x == &name).unwrap() as u8;
+                    Hold::Layer(n)
+                };
+                widget.inner().hold.set(new_hold);
+                widget.update();
+            }));
         };
-        let mut layer_buttons = Vec::new();
-        for (n, i) in LAYERS.iter().enumerate() {
-            let button = cascade! {
-                PickerKey::new(i, 2.0);
-                ..connect_clicked(clone!(@weak widget => move |_| {
-                    widget.inner().hold.set(Hold::Layer(n as u8));
-                    widget.update();
-
-                }));
-            };
-            layer_button_box.add(&button);
-            layer_buttons.push(button);
-        }
-        self.layer_buttons.set(layer_buttons);
-
-        // TODO: select monifier/layer; multiple select; when both are selected, set keycode
 
         cascade! {
             widget;
+            ..set_spacing(8);
             ..set_orientation(gtk::Orientation::Vertical);
             ..add(&cascade! {
                 gtk::Label::new(Some("1. Select action(s) to use when the key is held."));
@@ -133,8 +122,9 @@ impl ObjectImpl for TapHoldInner {
                 }));
                 ..set_halign(gtk::Align::Start);
             });
-            ..add(&modifier_button_box);
-            ..add(&layer_button_box);
+            // TODO label groups? Use group box?
+            ..add(&hold_group_box);
+            // TODO shift click label
             ..add(&cascade! {
                 gtk::Label::new(Some("2. Select an action to use when the key is tapped."));
                 ..set_attributes(Some(&cascade! {
@@ -146,6 +136,7 @@ impl ObjectImpl for TapHoldInner {
             ..add(&picker_group_box);
         };
 
+        self.hold_group_box.set(hold_group_box);
         self.picker_group_box.set(picker_group_box);
     }
 }
@@ -202,16 +193,20 @@ impl TapHold {
             Default::default()
         };
 
-        for i in self.inner().mod_buttons.iter() {
-            let mod_ = Mods::from_mod_str(i.name()).unwrap();
-            i.set_selected(
-                mods.contains(mod_) && (mods.contains(Mods::RIGHT) == mod_.contains(Mods::RIGHT)),
-            );
+        let mut selected_hold = Vec::new();
+        for i in MODIFIERS {
+            let mod_ = Mods::from_mod_str(i).unwrap();
+            if mods.contains(mod_) && (mods.contains(Mods::RIGHT) == mod_.contains(Mods::RIGHT)) {
+                selected_hold.push(Keycode::Basic(mod_, "NONE".to_string()));
+            }
         }
-
-        for (n, i) in self.inner().layer_buttons.iter().enumerate() {
-            i.set_selected(Some(n as u8) == layer);
+        if let Some(layer) = layer {
+            selected_hold.push(Keycode::Basic(
+                Mods::empty(),
+                LAYERS[layer as usize].to_string(),
+            ));
         }
+        self.inner().hold_group_box.set_selected(selected_hold);
 
         if let Some(keycode) = keycode.clone() {
             self.inner()
@@ -242,27 +237,26 @@ impl TapHold {
         let hold_empty = hold == Hold::Mods(Mods::empty());
         let keycode = self.inner().keycode.borrow();
 
-        for button in self.inner().layer_buttons.iter() {
-            button.set_sensitive(if shift {
-                hold == Hold::Mods(Mods::empty())
-            } else {
-                true
-            });
-        }
-
-        for button in self.inner().mod_buttons.iter() {
-            button.set_sensitive(if shift {
-                match hold {
-                    Hold::Mods(mods) => {
-                        let right = button.name().starts_with("RIGHT");
-                        mods.is_empty() || (right == mods.contains(Mods::RIGHT))
+        self.inner().hold_group_box.set_key_sensitivity(|name| {
+            let left_mod = name.starts_with("LEFT_");
+            let right_mod = name.starts_with("RIGHT_");
+            // Modifer
+            if left_mod || right_mod {
+                if shift {
+                    match hold {
+                        Hold::Mods(mods) => {
+                            mods.is_empty() || (right_mod == mods.contains(Mods::RIGHT))
+                        }
+                        Hold::Layer(_) => false,
                     }
-                    Hold::Layer(_) => false,
+                } else {
+                    true
                 }
+            // Layer
             } else {
-                true
-            });
-        }
+                !shift || (hold == Hold::Mods(Mods::empty()))
+            }
+        });
 
         self.inner().picker_group_box.set_sensitive(if shift {
             !hold_empty && keycode.is_none()

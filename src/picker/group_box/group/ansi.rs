@@ -2,6 +2,7 @@ use gtk::prelude::*;
 
 use super::{PickerGroup, PickerKey};
 
+// TODO: somehow acount for spacing in widths?
 static KEY_WIDTHS: &[(f64, &[&str])] = &[
     (
         1.5,
@@ -21,7 +22,6 @@ static KEY_WIDTHS: &[(f64, &[&str])] = &[
     (4.5, &["SPACE"]),
 ];
 
-// TODO complete; widths?
 static ROWS: &[&[&str]] = &[
     &[
         "ESC", "F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9", "F10", "F11", "F12", "DEL",

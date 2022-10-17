@@ -38,7 +38,7 @@ fn row(keys: &mut Vec<PickerKey>, keycode: &str, description: &str) -> gtk::Box 
     let key = PickerKey::new(keycode, 1.0);
     keys.push(key.clone());
     cascade! {
-        gtk::Box::new(gtk::Orientation::Horizontal, 0);
+        gtk::Box::new(gtk::Orientation::Horizontal, 8);
         ..add(&key);
         ..add(&gtk::Label::new(Some(description)));
     }

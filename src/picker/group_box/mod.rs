@@ -14,7 +14,7 @@ use super::picker_key::PickerKey;
 mod basics;
 mod extras;
 mod group;
-use group::*;
+pub use group::*;
 
 const DEFAULT_COLS: usize = 3;
 const HSPACING: i32 = 64;
@@ -138,7 +138,7 @@ glib::wrapper! {
 }
 
 impl PickerGroupBox {
-    fn new(groups: Vec<Box<dyn PickerGroup>>) -> Self {
+    pub fn new(groups: Vec<Box<dyn PickerGroup>>) -> Self {
         let widget: Self = glib::Object::new(&[]).unwrap();
 
         let mut keys = HashMap::new();
