@@ -96,6 +96,7 @@ impl ObjectImpl for PickerInner {
         cascade! {
             picker;
             ..set_orientation(gtk::Orientation::Vertical);
+            ..set_halign(gtk::Align::Center);
             ..add(&stack_switcher);
             ..add(&stack);
             ..show_all();
