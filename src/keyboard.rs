@@ -211,6 +211,7 @@ impl Keyboard {
                 ..add(&cascade! {
                     gtk::Label::new(Some(&fl!("stack-keymap-desc")));
                     ..set_line_wrap(true);
+                    ..set_justify(gtk::Justification::Center);
                     ..set_max_width_chars(100);
                     ..set_halign(gtk::Align::Center);
                 });

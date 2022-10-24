@@ -2,10 +2,15 @@ use gtk::prelude::*;
 
 use super::{PickerGroup, PickerKey};
 
-// TODO: somehow acount for spacing in widths?
+const KEY_WIDTH: f64 = 48.0;
+const KEY_SPACE: f64 = 4.0;
+
+// A 2U key takes same space as 2 1U including spacing
+// 2 1.5U keys take same space as 3 1U
+// Space bar is the same as 3 1U + 1 1.5U to line up with previous row
 static KEY_WIDTHS: &[(f64, &[&str])] = &[
     (
-        1.5,
+        1.5 * KEY_WIDTH + 0.5 * KEY_SPACE,
         &[
             "DEL",
             "BKSP",
@@ -18,8 +23,11 @@ static KEY_WIDTHS: &[(f64, &[&str])] = &[
             "RIGHT_CTRL",
         ],
     ),
-    (2.0, &["LEFT_SHIFT", "RIGHT_SHIFT", "ENTER"]),
-    (4.5, &["SPACE"]),
+    (
+        2.0 * KEY_WIDTH + KEY_SPACE,
+        &["LEFT_SHIFT", "RIGHT_SHIFT", "ENTER"],
+    ),
+    (4.5 * KEY_WIDTH + 3.5 * KEY_SPACE, &["SPACE"]),
 ];
 
 static ROWS: &[&[&str]] = &[
@@ -111,13 +119,13 @@ impl PickerAnsiGroup {
                             None
                         }
                     })
-                    .unwrap_or(1.0);
-                let key = PickerKey::new(name, width);
+                    .unwrap_or(KEY_WIDTH);
+                let key = PickerKey::new(name, width / KEY_WIDTH);
                 fixed.put(&key, x, y);
                 keys.push(key);
-                x += (48.0 * width) as i32 + 4
+                x += width as i32 + 4
             }
-            y += 48 + 4;
+            y += KEY_WIDTH as i32 + 4;
         }
 
         PickerAnsiGroup {

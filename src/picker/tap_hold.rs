@@ -8,7 +8,7 @@ use gtk::{
 use once_cell::sync::Lazy;
 use std::cell::{Cell, RefCell};
 
-use super::{group_box::PickerBasicGroup, PickerGroupBox, PickerKey};
+use super::{group_box::PickerBasicGroup, PickerGroupBox};
 use backend::{is_qmk_basic, DerefCell, Keycode, Mods};
 
 #[derive(Clone, Copy, PartialEq)]
@@ -80,13 +80,13 @@ impl ObjectImpl for TapHoldInner {
         let hold_group_box = cascade! {
             PickerGroupBox::new(vec![
                 Box::new(PickerBasicGroup::new(
-                    "Standard Modifiers".to_string(),
+                    "Modifiers".to_string(),
                     4,
                     1.5,
                     MODIFIERS,
                 )),
                 Box::new(PickerBasicGroup::new(
-                    "Access Layer Modifiers".to_string(),
+                    "Layer Keys".to_string(),
                     4,
                     1.5,
                     LAYERS,
@@ -122,9 +122,12 @@ impl ObjectImpl for TapHoldInner {
                 }));
                 ..set_halign(gtk::Align::Start);
             });
-            // TODO label groups? Use group box?
             ..add(&hold_group_box);
-            // TODO shift click label
+            ..add(&cascade! {
+                gtk::Label::new(Some("Shift + click to select multiple modifiers."));
+                ..set_halign(gtk::Align::Start);
+            });
+            // XXX grey?
             ..add(&cascade! {
                 gtk::Label::new(Some("2. Select an action to use when the key is tapped."));
                 ..set_attributes(Some(&cascade! {

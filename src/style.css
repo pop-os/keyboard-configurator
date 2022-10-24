@@ -7,3 +7,17 @@
     border-color: #fbb86c;
     border-width: 4px;
 }
+
+.picker-stack-switcher button {
+    border: none;
+    box-shadow: none;
+    background: none;
+}
+
+.picker-stack-switcher button:checked {
+    border-bottom: 2px solid #fbb86c;
+}
+
+.picker-stack-switcher button:selected {
+    background: black;
+}

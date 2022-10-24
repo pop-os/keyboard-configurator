@@ -90,6 +90,7 @@ impl ObjectImpl for PickerInner {
 
         let stack_switcher = cascade! {
             gtk::StackSwitcher::new();
+            ..style_context().add_class("picker-stack-switcher");
             ..set_stack(Some(&stack));
         };
 
@@ -98,7 +99,12 @@ impl ObjectImpl for PickerInner {
             ..set_spacing(8);
             ..set_orientation(gtk::Orientation::Vertical);
             ..set_halign(gtk::Align::Center);
-            ..add(&stack_switcher);
+            ..add(&cascade! {
+                gtk::Box::new(gtk::Orientation::Vertical, 0);
+                ..add(&gtk::Separator::new(gtk::Orientation::Horizontal));
+                ..add(&stack_switcher);
+                ..add(&gtk::Separator::new(gtk::Orientation::Horizontal));
+            });
             ..add(&stack);
             ..show_all();
         };
