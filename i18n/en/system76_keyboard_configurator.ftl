@@ -85,3 +85,10 @@ test-replace-switch = Replace switch
 test-spurious-keypress = Spurious keypress
 
 untitled-layout = Untitled Layout
+
+picker-basics = Basics
+picker-extras = Extras
+picker-tap-hold = Tap-Hold
+tap-hold-step1 = 1. Select action(s) to use when the key is held.
+tap-hold-multiple-mod = Shift + click to select multiple modifiers.
+tap-hold-step2 = 2. Select an action to use when the key is tapped.

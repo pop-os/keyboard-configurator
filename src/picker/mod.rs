@@ -12,7 +12,7 @@ use std::{
     collections::HashMap,
 };
 
-use crate::Keyboard;
+use crate::{fl, Keyboard};
 use backend::{is_qmk_basic, DerefCell, Keycode, Mods};
 
 mod group_box;
@@ -83,9 +83,9 @@ impl ObjectImpl for PickerInner {
         // XXX translate
         let stack = cascade! {
             gtk::Stack::new();
-            ..add_titled(&basics_group_box, "basics", "Basics");
-            ..add_titled(&extras_group_box, "extras", "Extras");
-            ..add_titled(&tap_hold, "tap-hold", "Tap-Hold");
+            ..add_titled(&basics_group_box, "basics", &fl!("picker-basics"));
+            ..add_titled(&extras_group_box, "extras", &fl!("picker-extras"));
+            ..add_titled(&tap_hold, "tap-hold", &fl!("picker-tap-hold"));
         };
 
         let stack_switcher = cascade! {

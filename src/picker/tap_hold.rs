@@ -9,6 +9,7 @@ use once_cell::sync::Lazy;
 use std::cell::{Cell, RefCell};
 
 use super::{group_box::PickerBasicGroup, PickerGroupBox};
+use crate::fl;
 use backend::{is_qmk_basic, DerefCell, Keycode, Mods};
 
 #[derive(Clone, Copy, PartialEq)]
@@ -115,7 +116,7 @@ impl ObjectImpl for TapHoldInner {
             ..set_spacing(8);
             ..set_orientation(gtk::Orientation::Vertical);
             ..add(&cascade! {
-                gtk::Label::new(Some("1. Select action(s) to use when the key is held."));
+                gtk::Label::new(Some(&fl!("tap-hold-step1")));
                 ..set_attributes(Some(&cascade! {
                     pango::AttrList::new();
                     ..insert(pango::AttrInt::new_weight(pango::Weight::Bold));
@@ -124,12 +125,12 @@ impl ObjectImpl for TapHoldInner {
             });
             ..add(&hold_group_box);
             ..add(&cascade! {
-                gtk::Label::new(Some("Shift + click to select multiple modifiers."));
+                gtk::Label::new(Some(&fl!("tap-hold-multiple-mod")));
                 ..set_halign(gtk::Align::Start);
             });
             // XXX grey?
             ..add(&cascade! {
-                gtk::Label::new(Some("2. Select an action to use when the key is tapped."));
+                gtk::Label::new(Some(&fl!("tap-hold-step2")));
                 ..set_attributes(Some(&cascade! {
                     pango::AttrList::new();
                     ..insert(pango::AttrInt::new_weight(pango::Weight::Bold));
