@@ -357,10 +357,10 @@ def generate_layout_dir(ecdir: str, board: str, is_qmk: bool) -> None:
     gen_default_json(f'layouts/{board}/default.json', board, default_keymap, is_qmk)
     update_meta_json(f'layouts/{board}/meta.json', has_brightness, has_color, keyboard)
 
-parser = argparse.ArgumentParser()
-parser.add_argument("ecdir")
-parser.add_argument("board")
-parser.add_argument("--qmk", action="store_true")
+parser = argparse.ArgumentParser(usage="./layouts.py --qmk ../qmk_firmware system76/launch_heavy_1")
+parser.add_argument("ecdir", help='For QMK boards that is the qmk_firmware (github.com/system76/qmk_firmware) directory itself, otherwise use the ec directory (github.com/system76/ec)')
+parser.add_argument("board", help='The name of the manufacturer and board name. Example: "system76/launch_2"')
+parser.add_argument("--qmk", action="store_true", help="Required if you plan on using a keyboard with QMK firmware.")
 args = parser.parse_args()
 
 if args.board == 'all':
