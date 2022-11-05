@@ -36,7 +36,7 @@ pub struct MainWindowInner {
     load_revealer: DerefCell<gtk::Revealer>,
     picker: DerefCell<Picker>,
     stack: DerefCell<gtk::Stack>,
-    keyboards: RefCell<Vec<(Keyboard, gtk::ListBoxRow)>>,
+    keyboards: RefCell<Vec<(Keyboard, gtk::Box)>>,
     board_loading: RefCell<Option<Loader>>,
     board_list_stack: DerefCell<gtk::Stack>,
 }
@@ -127,8 +127,6 @@ impl ObjectImpl for MainWindowInner {
         let keyboard_box = cascade! {
             gtk::Box::new(gtk::Orientation::Vertical, 0);
             ..set_halign(gtk::Align::Center);
-            ..connect_add(clone!(@weak board_list_stack => move |_, _| {
-            }));
         };
         board_list_stack.add_named(&keyboard_box, "keyboards");
 
@@ -320,18 +318,12 @@ impl MainWindow {
             KeyboardLayer::new(Page::Layer1, keyboard.board().clone());
             ..set_halign(gtk::Align::Center);
         };
-        let keyboard_box = cascade! {
+        let row = cascade! {
             gtk::Box::new(gtk::Orientation::Vertical, 12);
+            ..set_margin(12);
             ..add(&label);
             ..add(&keyboard_layer);
             ..add(&button);
-        };
-        let row = cascade! {
-            gtk::ListBoxRow::new();
-            ..set_activatable(false);
-            ..set_selectable(false);
-            ..add(&keyboard_box);
-            ..set_margin(12);
             ..show_all();
         };
         self.inner().keyboard_box.add(&row);
@@ -346,7 +338,7 @@ impl MainWindow {
                 }));
                 ..show();
             };
-            keyboard_box.add(&label);
+            row.add(&label);
         }
 
         self.inner().stack.add(&keyboard);
