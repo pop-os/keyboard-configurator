@@ -222,6 +222,11 @@ impl WidgetImpl for KeyboardLayerInner {
         (widget.narrow_width(), widget.wide_width())
     }
 
+    fn preferred_height(&self, widget: &Self::Type) -> (i32, i32) {
+        let height = widget.narrow_height();
+        (height, height)
+    }
+
     fn preferred_height_for_width(&self, widget: &Self::Type, width: i32) -> (i32, i32) {
         let height = if width < widget.wide_width() {
             widget.narrow_height()
@@ -229,6 +234,10 @@ impl WidgetImpl for KeyboardLayerInner {
             widget.wide_height()
         };
         (height, height)
+    }
+
+    fn preferred_width_for_height(&self, widget: &Self::Type, _width: i32) -> (i32, i32) {
+        self.preferred_width(widget)
     }
 }
 
