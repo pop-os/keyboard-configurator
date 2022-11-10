@@ -140,7 +140,7 @@ impl ObjectImpl for TestingInner {
 
         let bench_button = gtk::ToggleButton::with_label("Run USB test");
 
-        obj.add(&cascade! {
+        let usb_test = &cascade! {
             gtk::Box::new(gtk::Orientation::Vertical, 12);
             ..add(&gtk::Label::new(Some("USB Port Test")));
             ..add(&cascade! {
@@ -150,7 +150,7 @@ impl ObjectImpl for TestingInner {
                 ..add(&row(&bench_button));
                 ..set_header_func(Some(Box::new(header_func)));
             });
-        });
+        };
 
         let num_runs_spin_2 = gtk::SpinButton::with_range(1.0, 1000.0, 1.0);
         let num_runs_spin_3 = gtk::SpinButton::with_range(1.0, 1000.0, 1.0);
@@ -166,7 +166,7 @@ impl ObjectImpl for TestingInner {
             gtk::Label::new(None),
         ];
 
-        obj.add(&cascade! {
+        let nelson_test_1 = &cascade! {
             gtk::Box::new(gtk::Orientation::Vertical, 12);
             ..add(&gtk::Label::new(Some("Nelson Test 1")));
             ..add(&cascade! {
@@ -179,9 +179,9 @@ impl ObjectImpl for TestingInner {
                 ..add(&label_row("Check key (sticking)", &color_box(0., 1., 0.)));
                 ..set_header_func(Some(Box::new(header_func)));
             });
-        });
+        };
 
-        obj.add(&cascade! {
+        let nelson_test_2 = &cascade! {
             gtk::Box::new(gtk::Orientation::Vertical, 12);
             ..add(&gtk::Label::new(Some("Nelson Test 2")));
             ..add(&cascade! {
@@ -195,7 +195,7 @@ impl ObjectImpl for TestingInner {
                 ..add(&label_row(&fl!("test-check-key"), &color_box(0., 1., 0.)));
                 ..set_header_func(Some(Box::new(header_func)));
             });
-        });
+        };
 
         let selma_start_button = gtk::Button::with_label(&fl!("button-start"));
         let selma_stop_button = cascade! {
@@ -203,7 +203,7 @@ impl ObjectImpl for TestingInner {
             ..set_sensitive(false);
         };
 
-        obj.add(&cascade! {
+        let selma_test = &cascade! {
             gtk::Box::new(gtk::Orientation::Vertical, 12);
             ..add(&gtk::Label::new(Some("Selma Test")));
             ..add(&cascade! {
@@ -218,6 +218,23 @@ impl ObjectImpl for TestingInner {
                 }));
                 ..add(&label_row(&fl!("test-spurious-keypress"), &color_box(1., 0., 0.)));
                 ..set_header_func(Some(Box::new(header_func)));
+            });
+        };
+
+        obj.add(&cascade! {
+            gtk::Box::new(gtk::Orientation::Horizontal, 18);
+            ..set_valign(gtk::Align::Start);
+            ..add(&cascade! {
+                gtk::Box::new(gtk::Orientation::Vertical, 18);
+                ..set_valign(gtk::Align::Start);
+                ..add(&row(usb_test));
+                ..add(&row(selma_test));
+            });
+            ..add(&cascade! {
+                gtk::Box::new(gtk::Orientation::Vertical, 18);
+                ..set_valign(gtk::Align::Start);
+                ..add(&row(nelson_test_1));
+                ..add(&row(nelson_test_2));
             });
         });
 
