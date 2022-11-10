@@ -58,7 +58,6 @@ pub struct TestingInner {
     bench_button: DerefCell<gtk::ToggleButton>,
     bench_labels: DerefCell<HashMap<&'static str, gtk::Label>>,
     num_runs_spin_2: DerefCell<gtk::SpinButton>,
-    num_runs_spin_3: DerefCell<gtk::SpinButton>,
     test_buttons: DerefCell<[gtk::Button; 2]>,
     test_labels: DerefCell<[gtk::Label; 3]>,
     selma_start_button: DerefCell<gtk::Button>,
@@ -153,8 +152,7 @@ impl ObjectImpl for TestingInner {
         };
 
         let num_runs_spin_2 = gtk::SpinButton::with_range(1.0, 1000.0, 1.0);
-        let num_runs_spin_3 = gtk::SpinButton::with_range(1.0, 1000.0, 1.0);
-        num_runs_spin_3.set_value(100.0);
+        num_runs_spin_2.set_value(100.0);
 
         let test_buttons = [
             gtk::Button::with_label(&fl!("button-test")),
@@ -188,7 +186,7 @@ impl ObjectImpl for TestingInner {
                 gtk::ListBox::new();
                 ..set_valign(gtk::Align::Start);
                 ..style_context().add_class("frame");
-                ..add(&label_row(&fl!("test-number-of-runs"), &num_runs_spin_3));
+                ..add(&label_row(&fl!("test-number-of-runs"), &num_runs_spin_2));
                 ..add(&row(&test_buttons[1]));
                 ..add(&row(&test_labels[2]));
                 ..add(&label_row(&fl!("test-check-pins"), &color_box(1., 0., 0.)));
@@ -242,7 +240,6 @@ impl ObjectImpl for TestingInner {
         self.bench_button.set(bench_button);
         self.bench_labels.set(bench_labels);
         self.num_runs_spin_2.set(num_runs_spin_2);
-        self.num_runs_spin_3.set(num_runs_spin_3);
         self.test_buttons.set(test_buttons);
         self.test_labels.set(test_labels);
         self.selma_start_button.set(selma_start_button);
@@ -467,7 +464,7 @@ impl Testing {
         self.inner().test_buttons[1].connect_clicked(clone!(@strong self as self_ => move |_| {
             glib::MainContext::default().spawn_local(clone!(@strong self_ => async move {
                 self_.nelson(
-                    self_.inner().num_runs_spin_3.value_as_int(),
+                    self_.inner().num_runs_spin_2.value_as_int(),
                     2,
                     NelsonKind::Normal,
                 ).await;
