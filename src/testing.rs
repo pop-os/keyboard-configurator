@@ -433,7 +433,7 @@ impl Testing {
 
             self.notify("colors");
 
-            if nelson.success() {
+            if nelson.success(testing.board.layout().layout()) {
                 let message = format!("Test {}/{} successful", test_run, test_runs);
                 info!("{}", message);
                 test_label.set_text(&message);
