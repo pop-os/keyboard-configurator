@@ -58,8 +58,7 @@ pub struct TestingInner {
     bench_button: DerefCell<gtk::ToggleButton>,
     bench_labels: DerefCell<HashMap<&'static str, gtk::Label>>,
     num_runs_spin_2: DerefCell<gtk::SpinButton>,
-    num_runs_spin_3: DerefCell<gtk::SpinButton>,
-    test_buttons: DerefCell<[gtk::Button; 3]>,
+    test_buttons: DerefCell<[gtk::Button; 2]>,
     test_labels: DerefCell<[gtk::Label; 3]>,
     selma_start_button: DerefCell<gtk::Button>,
     selma_stop_button: DerefCell<gtk::Button>,
@@ -140,7 +139,7 @@ impl ObjectImpl for TestingInner {
 
         let bench_button = gtk::ToggleButton::with_label("Run USB test");
 
-        obj.add(&cascade! {
+        let usb_test = &cascade! {
             gtk::Box::new(gtk::Orientation::Vertical, 12);
             ..add(&gtk::Label::new(Some("USB Port Test")));
             ..add(&cascade! {
@@ -150,14 +149,12 @@ impl ObjectImpl for TestingInner {
                 ..add(&row(&bench_button));
                 ..set_header_func(Some(Box::new(header_func)));
             });
-        });
+        };
 
         let num_runs_spin_2 = gtk::SpinButton::with_range(1.0, 1000.0, 1.0);
-        let num_runs_spin_3 = gtk::SpinButton::with_range(1.0, 1000.0, 1.0);
-        num_runs_spin_3.set_value(100.0);
+        num_runs_spin_2.set_value(100.0);
 
         let test_buttons = [
-            gtk::Button::with_label(&fl!("button-test")),
             gtk::Button::with_label(&fl!("button-test")),
             gtk::Button::with_label(&fl!("button-test")),
         ];
@@ -167,7 +164,7 @@ impl ObjectImpl for TestingInner {
             gtk::Label::new(None),
         ];
 
-        obj.add(&cascade! {
+        let nelson_test_1 = &cascade! {
             gtk::Box::new(gtk::Orientation::Vertical, 12);
             ..add(&gtk::Label::new(Some("Nelson Test 1")));
             ..add(&cascade! {
@@ -180,38 +177,23 @@ impl ObjectImpl for TestingInner {
                 ..add(&label_row("Check key (sticking)", &color_box(0., 1., 0.)));
                 ..set_header_func(Some(Box::new(header_func)));
             });
-        });
+        };
 
-        obj.add(&cascade! {
+        let nelson_test_2 = &cascade! {
             gtk::Box::new(gtk::Orientation::Vertical, 12);
             ..add(&gtk::Label::new(Some("Nelson Test 2")));
             ..add(&cascade! {
                 gtk::ListBox::new();
                 ..set_valign(gtk::Align::Start);
                 ..style_context().add_class("frame");
-                ..add(&label_row("Number of runs", &num_runs_spin_2));
+                ..add(&label_row(&fl!("test-number-of-runs"), &num_runs_spin_2));
                 ..add(&row(&test_buttons[1]));
-                ..add(&row(&test_labels[1]));
-                ..add(&label_row("Replace switch (bouncing)", &color_box(0., 0., 1.)));
-                ..set_header_func(Some(Box::new(header_func)));
-            });
-        });
-
-        obj.add(&cascade! {
-            gtk::Box::new(gtk::Orientation::Vertical, 12);
-            ..add(&gtk::Label::new(Some("Nelson Test 3")));
-            ..add(&cascade! {
-                gtk::ListBox::new();
-                ..set_valign(gtk::Align::Start);
-                ..style_context().add_class("frame");
-                ..add(&label_row(&fl!("test-number-of-runs"), &num_runs_spin_3));
-                ..add(&row(&test_buttons[2]));
                 ..add(&row(&test_labels[2]));
                 ..add(&label_row(&fl!("test-check-pins"), &color_box(1., 0., 0.)));
                 ..add(&label_row(&fl!("test-check-key"), &color_box(0., 1., 0.)));
                 ..set_header_func(Some(Box::new(header_func)));
             });
-        });
+        };
 
         let selma_start_button = gtk::Button::with_label(&fl!("button-start"));
         let selma_stop_button = cascade! {
@@ -219,7 +201,7 @@ impl ObjectImpl for TestingInner {
             ..set_sensitive(false);
         };
 
-        obj.add(&cascade! {
+        let selma_test = &cascade! {
             gtk::Box::new(gtk::Orientation::Vertical, 12);
             ..add(&gtk::Label::new(Some("Selma Test")));
             ..add(&cascade! {
@@ -235,13 +217,29 @@ impl ObjectImpl for TestingInner {
                 ..add(&label_row(&fl!("test-spurious-keypress"), &color_box(1., 0., 0.)));
                 ..set_header_func(Some(Box::new(header_func)));
             });
+        };
+
+        obj.add(&cascade! {
+            gtk::Box::new(gtk::Orientation::Horizontal, 18);
+            ..set_valign(gtk::Align::Start);
+            ..add(&cascade! {
+                gtk::Box::new(gtk::Orientation::Vertical, 18);
+                ..set_valign(gtk::Align::Start);
+                ..add(&row(usb_test));
+                ..add(&row(selma_test));
+            });
+            ..add(&cascade! {
+                gtk::Box::new(gtk::Orientation::Vertical, 18);
+                ..set_valign(gtk::Align::Start);
+                ..add(&row(nelson_test_1));
+                ..add(&row(nelson_test_2));
+            });
         });
 
         self.reset_button.set(reset_button);
         self.bench_button.set(bench_button);
         self.bench_labels.set(bench_labels);
         self.num_runs_spin_2.set(num_runs_spin_2);
-        self.num_runs_spin_3.set(num_runs_spin_3);
         self.test_buttons.set(test_buttons);
         self.test_labels.set(test_labels);
         self.selma_start_button.set(selma_start_button);
@@ -372,7 +370,7 @@ impl Testing {
     }
 
     fn test_buttons_sensitive(&self, sensitive: bool) {
-        for i in 0..3 {
+        for i in 0..2 {
             self.inner().test_buttons[i].set_sensitive(sensitive);
         }
         self.inner().selma_start_button.set_sensitive(sensitive);
@@ -435,7 +433,7 @@ impl Testing {
 
             self.notify("colors");
 
-            if nelson.success() {
+            if nelson.success(testing.board.layout().layout()) {
                 let message = format!("Test {}/{} successful", test_run, test_runs);
                 info!("{}", message);
                 test_label.set_text(&message);
@@ -467,18 +465,6 @@ impl Testing {
             glib::MainContext::default().spawn_local(clone!(@strong self_ => async move {
                 self_.nelson(
                     self_.inner().num_runs_spin_2.value_as_int(),
-                    1,
-                    NelsonKind::Bouncing,
-                ).await;
-            }));
-        }));
-    }
-
-    fn connect_test_button_3(&self) {
-        self.inner().test_buttons[2].connect_clicked(clone!(@strong self as self_ => move |_| {
-            glib::MainContext::default().spawn_local(clone!(@strong self_ => async move {
-                self_.nelson(
-                    self_.inner().num_runs_spin_3.value_as_int(),
                     2,
                     NelsonKind::Normal,
                 ).await;
@@ -569,7 +555,6 @@ impl Testing {
         obj.connect_bench_button();
         obj.connect_test_button_1();
         obj.connect_test_button_2();
-        obj.connect_test_button_3();
         obj.connect_selma_buttons();
         obj.connect_reset_button();
         obj.update_benchmarks();

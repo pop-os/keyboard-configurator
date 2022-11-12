@@ -178,6 +178,10 @@ impl Layout {
             None
         })
     }
+
+    pub fn layout(&self) -> &HashMap<String, (u8, u8)> {
+        &self.layout
+    }
 }
 
 fn parse_keymap_json(keymap_json: &str) -> (HashMap<String, u16>, HashMap<u16, String>) {
