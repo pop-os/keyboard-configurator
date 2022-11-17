@@ -188,7 +188,7 @@ impl Picker {
             self.inner().tap_hold.set_visible(is_qmk);
             self.inner().stack_switcher.set_visible(is_qmk);
             self.inner().is_qmk.set(is_qmk);
-            kb.set_picker(Some(&self));
+            kb.set_picker(Some(self));
         }
 
         *self.inner().keyboard.borrow_mut() = keyboard;

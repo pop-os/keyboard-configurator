@@ -15,9 +15,9 @@ pub struct PickerBasicGroup {
 }
 
 impl PickerBasicGroup {
-    pub fn new(name: String, cols: u32, width: f64, key_names: &[&str]) -> Self {
+    pub fn new(name: &str, cols: u32, width: f64, key_names: &[&str]) -> Self {
         let label = cascade! {
-            gtk::Label::new(Some(&name));
+            gtk::Label::new(Some(name));
             ..set_attributes(Some(&cascade! {
                 pango::AttrList::new();
                 ..insert(pango::AttrInt::new_weight(pango::Weight::Bold));
@@ -46,7 +46,7 @@ impl PickerBasicGroup {
 
         let keys: Vec<_> = key_names
             .iter()
-            .map(|name| PickerKey::new(name, width))
+            .map(|name| PickerKey::new(name, width, 1.0))
             .collect();
         for key in &keys {
             flow_box.add(key);

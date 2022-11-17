@@ -191,7 +191,7 @@ impl PickerGroupBox {
     pub fn set_key_visibility<F: Fn(&str) -> bool>(&self, f: F) {
         for group in self.inner().groups.iter() {
             let group_visible = group.keys().iter().fold(false, |group_visible, key| {
-                key.set_visible(f(&key.name()));
+                key.set_visible(f(key.name()));
                 group_visible || key.get_visible()
             });
 
@@ -202,7 +202,7 @@ impl PickerGroupBox {
 
     pub fn set_key_sensitivity<F: Fn(&str) -> bool>(&self, f: F) {
         for key in self.inner().keys.values() {
-            key.set_sensitive(f(&key.name()));
+            key.set_sensitive(f(key.name()));
         }
     }
 

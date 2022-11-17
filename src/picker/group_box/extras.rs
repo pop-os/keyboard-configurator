@@ -4,7 +4,7 @@ impl PickerGroupBox {
     pub fn extras() -> Self {
         Self::new(vec![
             Box::new(PickerBasicGroup::new(
-                "Additional Function Keys".to_string(),
+                "Additional Function Keys",
                 6,
                 1.0,
                 &[
@@ -13,7 +13,7 @@ impl PickerGroupBox {
                 ],
             )),
             Box::new(PickerBasicGroup::new(
-                "Mouse Actions".to_string(),
+                "Mouse Actions",
                 5,
                 2.0,
                 &[

@@ -56,13 +56,13 @@ glib::wrapper! {
 }
 
 impl PickerKey {
-    pub fn new(name: &str, width: f64) -> Self {
+    pub fn new(name: &str, width: f64, height: f64) -> Self {
         let keysym_label = super::SCANCODE_LABELS.get(name).unwrap();
 
         let widget: Self = glib::Object::new(&[]).unwrap();
         widget.inner().name.set(name.to_string());
-        widget.inner().label.set_label(&keysym_label);
-        widget.set_size_request((48.0 * width) as i32, 48);
+        widget.inner().label.set_label(keysym_label);
+        widget.set_size_request((48.0 * width) as i32, (48.0 * height) as i32);
         widget
     }
 

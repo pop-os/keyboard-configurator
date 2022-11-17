@@ -1,16 +1,12 @@
-use gtk::prelude::*;
-
-use super::{PickerGroup, PickerKey};
-
-const KEY_WIDTH: f64 = 48.0;
-const KEY_SPACE: f64 = 4.0;
+use super::variable_width::{PickerVariableWidthGroup, KEY_SIZE, KEY_SPACE};
+use crate::fl;
 
 // A 2U key takes same space as 2 1U including spacing
 // 2 1.5U keys take same space as 3 1U
 // Space bar is the same as 3 1U + 1 1.5U to line up with previous row
 static KEY_WIDTHS: &[(f64, &[&str])] = &[
     (
-        1.5 * KEY_WIDTH + 0.5 * KEY_SPACE,
+        1.5 * KEY_SIZE + 0.5 * KEY_SPACE,
         &[
             "DEL",
             "BKSP",
@@ -24,10 +20,10 @@ static KEY_WIDTHS: &[(f64, &[&str])] = &[
         ],
     ),
     (
-        2.0 * KEY_WIDTH + KEY_SPACE,
+        2.0 * KEY_SIZE + KEY_SPACE,
         &["LEFT_SHIFT", "RIGHT_SHIFT", "ENTER"],
     ),
-    (4.5 * KEY_WIDTH + 3.5 * KEY_SPACE, &["SPACE"]),
+    (4.5 * KEY_SIZE + 3.5 * KEY_SPACE, &["SPACE"]),
 ];
 
 static ROWS: &[&[&str]] = &[
@@ -94,53 +90,12 @@ static ROWS: &[&[&str]] = &[
     ],
 ];
 
-pub struct PickerAnsiGroup {
-    keys: Vec<PickerKey>,
-    widget: gtk::Fixed,
-}
-
-impl PickerAnsiGroup {
-    pub fn new() -> Self {
-        let mut keys = Vec::new();
-        let box_ = gtk::Box::new(gtk::Orientation::Vertical, 0);
-
-        let fixed = gtk::Fixed::new();
-
-        let mut y = 0;
-        for row in ROWS {
-            let mut x = 0;
-            for name in *row {
-                let width = KEY_WIDTHS
-                    .iter()
-                    .find_map(|(width, keys)| {
-                        if keys.contains(name) {
-                            Some(*width)
-                        } else {
-                            None
-                        }
-                    })
-                    .unwrap_or(KEY_WIDTH);
-                let key = PickerKey::new(name, width / KEY_WIDTH);
-                fixed.put(&key, x, y);
-                keys.push(key);
-                x += width as i32 + 4
-            }
-            y += KEY_WIDTH as i32 + 4;
-        }
-
-        PickerAnsiGroup {
-            keys,
-            widget: fixed,
-        }
-    }
-}
-
-impl PickerGroup for PickerAnsiGroup {
-    fn keys(&self) -> &[PickerKey] {
-        &self.keys
-    }
-
-    fn widget(&self) -> &gtk::Widget {
-        self.widget.upcast_ref()
-    }
+pub fn picker_ansi_group() -> PickerVariableWidthGroup {
+    PickerVariableWidthGroup::new(
+        ROWS,
+        KEY_WIDTHS,
+        &[],
+        None,
+        Some(&fl!("picker-shift-click")),
+    )
 }

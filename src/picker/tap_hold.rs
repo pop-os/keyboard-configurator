@@ -75,19 +75,19 @@ impl ObjectImpl for TapHoldInner {
                 *widget.inner().keycode.borrow_mut() = Some(name);
                 widget.update();
             }));
-            ..set_key_visibility(|name| is_qmk_basic(name));
+            ..set_key_visibility(is_qmk_basic);
         };
 
         let hold_group_box = cascade! {
             PickerGroupBox::new(vec![
                 Box::new(PickerBasicGroup::new(
-                    "Modifiers".to_string(),
+                    "Modifiers",
                     4,
                     1.5,
                     MODIFIERS,
                 )),
                 Box::new(PickerBasicGroup::new(
-                    "Layer Keys".to_string(),
+                    "Layer Keys",
                     4,
                     1.5,
                     LAYERS,
@@ -103,7 +103,7 @@ impl ObjectImpl for TapHoldInner {
                     }
                     Hold::Mods(new_mods)
                 } else {
-                    let n = LAYERS.iter().position(|x| *x == &name).unwrap() as u8;
+                    let n = LAYERS.iter().position(|x| *x == name).unwrap() as u8;
                     Hold::Layer(n)
                 };
                 widget.inner().hold.set(new_hold);
@@ -111,6 +111,7 @@ impl ObjectImpl for TapHoldInner {
             }));
         };
 
+        // TODO indent
         cascade! {
             widget;
             ..set_spacing(8);
@@ -123,10 +124,14 @@ impl ObjectImpl for TapHoldInner {
                 }));
                 ..set_halign(gtk::Align::Start);
             });
-            ..add(&hold_group_box);
+            ..add(cascade! {
+                &hold_group_box;
+                ..set_margin_start(8);
+            });
             ..add(&cascade! {
                 gtk::Label::new(Some(&fl!("tap-hold-multiple-mod")));
                 ..set_halign(gtk::Align::Start);
+                ..set_margin_start(8);
             });
             // XXX grey?
             ..add(&cascade! {
@@ -137,7 +142,10 @@ impl ObjectImpl for TapHoldInner {
                 }));
                 ..set_halign(gtk::Align::Start);
             });
-            ..add(&picker_group_box);
+            ..add(cascade! {
+                &picker_group_box;
+                ..set_margin_start(8);
+            });
         };
 
         self.hold_group_box.set(hold_group_box);
