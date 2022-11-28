@@ -57,7 +57,7 @@ glib::wrapper! {
 }
 
 impl Backend {
-    fn new_internal<T: Daemon + 'static>(daemon: T) -> Result<Self, String> {
+    fn new_internal<T: Daemon + 'static>(daemon: T, is_testing_mode: bool) -> Result<Self, String> {
         let self_ = glib::Object::new::<Self>(&[]).unwrap();
         let thread_client = ThreadClient::new(
             Box::new(daemon),
@@ -81,26 +81,27 @@ impl Backend {
                     },
                 }
             }),
+            is_testing_mode
         );
         self_.inner().thread_client.set(thread_client);
         Ok(self_)
     }
 
     pub fn new_dummy(board_names: Vec<String>) -> Result<Self, String> {
-        Self::new_internal(DaemonDummy::new(board_names))
+        Self::new_internal(DaemonDummy::new(board_names), false)
     }
 
     #[cfg(target_os = "linux")]
     pub fn new_s76power() -> Result<Self, String> {
-        Self::new_internal(DaemonS76Power::new()?)
+        Self::new_internal(DaemonS76Power::new()?, false)
     }
 
-    pub fn new_pkexec() -> Result<Self, String> {
-        Self::new_internal(DaemonClient::new_pkexec())
+    pub fn new_pkexec(is_testing_mode: bool) -> Result<Self, String> {
+        Self::new_internal(DaemonClient::new_pkexec(), is_testing_mode)
     }
 
-    pub fn new() -> Result<Self, String> {
-        Self::new_internal(DaemonServer::new_stdio()?)
+    pub fn new(is_testing_mode: bool) -> Result<Self, String> {
+        Self::new_internal(DaemonServer::new_stdio()?, is_testing_mode)
     }
 
     fn inner(&self) -> &BackendInner {

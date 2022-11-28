@@ -116,7 +116,7 @@ pub struct ThreadClient {
 }
 
 impl ThreadClient {
-    pub fn new<F: Fn(ThreadResponse) + 'static>(daemon: Box<dyn Daemon>, cb: F) -> Arc<Self> {
+    pub fn new<F: Fn(ThreadResponse) + 'static>(daemon: Box<dyn Daemon>, cb: F, is_testing_mode: bool) -> Arc<Self> {
         let (sender, reciever) = async_mpsc::unbounded();
         let client = Arc::new(Self {
             cancels: Mutex::new(HashMap::new()),
@@ -130,7 +130,7 @@ impl ThreadClient {
             }
         });
 
-        let join_handle = Thread::new(daemon, client.clone(), response_sender).spawn(reciever);
+        let join_handle = Thread::new(daemon, client.clone(), response_sender, is_testing_mode).spawn(reciever);
         *client.join_handle.lock().unwrap() = Some(join_handle);
         client
     }
@@ -293,6 +293,7 @@ struct Thread {
     client: Weak<ThreadClient>,
     response_channel: async_mpsc::UnboundedSender<ThreadResponse>,
     matrix_get_rate: Cell<Option<Duration>>,
+    is_testing_mode: bool,
 }
 
 impl Thread {
@@ -300,6 +301,7 @@ impl Thread {
         daemon: Box<dyn Daemon>,
         client: Arc<ThreadClient>,
         response_channel: async_mpsc::UnboundedSender<ThreadResponse>,
+        is_testing_mode: bool,
     ) -> Self {
         Self {
             daemon,
@@ -307,6 +309,7 @@ impl Thread {
             response_channel,
             boards: RefCell::new(HashMap::new()),
             matrix_get_rate: Cell::new(None),
+            is_testing_mode,
         }
     }
 

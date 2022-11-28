@@ -209,7 +209,7 @@ impl MainWindow {
         app.add_window(&window);
 
         let backend = cascade! {
-            daemon();
+            daemon(app.launch_test());
             ..connect_board_loading(clone!(@weak window => move || {
                 let loader = window.display_loader(&fl!("loading"));
                 *window.inner().board_loading.borrow_mut() = Some(loader);
@@ -392,18 +392,18 @@ impl MainWindow {
 }
 
 #[cfg(target_os = "linux")]
-fn daemon() -> Backend {
+fn daemon(is_testing_mode: bool) -> Backend {
     if unsafe { libc::geteuid() == 0 } {
         info!("Already running as root");
-        Backend::new()
+        Backend::new(is_testing_mode)
     } else {
         info!("Not running as root, spawning daemon with pkexec");
-        Backend::new_pkexec()
+        Backend::new_pkexec(is_testing_mode)
     }
     .expect("Failed to create server")
 }
 
 #[cfg(not(target_os = "linux"))]
 fn daemon() -> Backend {
-    Backend::new().expect("Failed to create server")
+    Backend::new(false).expect("Failed to create server")
 }
