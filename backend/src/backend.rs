@@ -85,7 +85,7 @@ impl Backend {
                     },
                 }
             }),
-            is_testing_mode
+            is_testing_mode,
         );
         self_.inner().thread_client.set(thread_client);
         Ok(self_)

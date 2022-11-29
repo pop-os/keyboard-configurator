@@ -18,7 +18,7 @@ use std::{
     time::Duration,
 };
 
-use super::{Benchmark, BoardId, Daemon, Matrix, Nelson, NelsonKind, is_launch_updated};
+use super::{is_launch_updated, Benchmark, BoardId, Daemon, Matrix, Nelson, NelsonKind};
 use crate::Board;
 
 #[derive(Clone, Debug)]
@@ -116,7 +116,11 @@ pub struct ThreadClient {
 }
 
 impl ThreadClient {
-    pub fn new<F: Fn(ThreadResponse) + 'static>(daemon: Box<dyn Daemon>, cb: F, is_testing_mode: bool) -> Arc<Self> {
+    pub fn new<F: Fn(ThreadResponse) + 'static>(
+        daemon: Box<dyn Daemon>,
+        cb: F,
+        is_testing_mode: bool,
+    ) -> Arc<Self> {
         let (sender, reciever) = async_mpsc::unbounded();
         let client = Arc::new(Self {
             cancels: Mutex::new(HashMap::new()),
@@ -130,7 +134,8 @@ impl ThreadClient {
             }
         });
 
-        let join_handle = Thread::new(daemon, client.clone(), response_sender, is_testing_mode).spawn(reciever);
+        let join_handle =
+            Thread::new(daemon, client.clone(), response_sender, is_testing_mode).spawn(reciever);
         *client.join_handle.lock().unwrap() = Some(join_handle);
         client
     }
@@ -432,7 +437,6 @@ impl Thread {
 
             // If in testing mode and board isn't updated set gui to require update
             board_safe = if self.is_testing_mode {
-
                 let status = is_launch_updated();
                 info!("status = {:?}", status);
                 if (status.is_ok() && status.unwrap()) || status.is_err() {
@@ -445,9 +449,12 @@ impl Thread {
                         .response_channel
                         .unbounded_send(ThreadResponse::BoardNotUpdated);
                     false
-                } else { true }
-
-            } else { true };
+                } else {
+                    true
+                }
+            } else {
+                true
+            };
 
             let (matrix_sender, matrix_reciever) = async_mpsc::unbounded();
             match Board::new(

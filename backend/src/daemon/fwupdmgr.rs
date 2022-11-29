@@ -43,8 +43,10 @@ impl Device {
     }
 
     pub fn is_newer_release(self) -> Result<bool, Error> {
-        Ok(self.Releases
-            .as_ref().ok_or(Error::NoRelease)?
+        Ok(self
+            .Releases
+            .as_ref()
+            .ok_or(Error::NoRelease)?
             .into_iter()
             .any(|release| release.created() > self.created()))
     }
