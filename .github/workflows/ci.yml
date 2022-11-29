@@ -36,7 +36,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: linux-x86_64
     steps:
-    - run: sudo apt-get install xvfb
+    - run: sudo apt-get install xvfb libfuse2
     - uses: actions/download-artifact@v2
       with:
         name: keyboard-configurator-linux-x86_64-${{ github.sha }}
