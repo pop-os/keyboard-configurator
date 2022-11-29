@@ -331,7 +331,7 @@ impl Testing {
                                     }
                                     Err(_) => (),
                                 },
-                                Err(err) => {
+                                Err(_err) => {
                                     // Replace errors with newest results
                                     *bench_result = port_result.clone();
                                 }
@@ -565,6 +565,7 @@ impl Testing {
         TestingInner::from_instance(self)
     }
 
+    #[allow(dead_code)]
     fn keyboard(&self) -> Keyboard {
         self.inner().keyboard.upgrade().unwrap()
     }
