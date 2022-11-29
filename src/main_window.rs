@@ -211,7 +211,14 @@ impl MainWindow {
         let backend = cascade! {
             daemon(app.launch_test());
             ..connect_board_loading(clone!(@weak window => move || {
+                info!("loading");
                 let loader = window.display_loader(&fl!("loading"));
+                *window.inner().board_loading.borrow_mut() = Some(loader);
+            }));
+            ..connect_board_not_updated(clone!(@weak window => move || {
+                info!("board not updated");
+                window.inner().board_loading.borrow_mut().take();
+                let loader = window.display_loader(&fl!("firmware-update-required"));
                 *window.inner().board_loading.borrow_mut() = Some(loader);
             }));
             ..connect_board_loading_done(clone!(@weak window => move || {
@@ -374,6 +381,7 @@ impl MainWindow {
     }
 
     pub fn display_loader(&self, text: &str) -> Loader {
+        info!("display loader called with {}", text);
         let load_hbox = cascade! {
             gtk::Box::new(gtk::Orientation::Horizontal, 6);
             ..add(&cascade! {

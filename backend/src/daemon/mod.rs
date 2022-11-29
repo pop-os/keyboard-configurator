@@ -5,12 +5,14 @@ use crate::{Benchmark, Matrix, Nelson, NelsonKind};
 mod client;
 mod daemon_thread;
 mod dummy;
+mod fwupdmgr;
 mod server;
 
 #[cfg(target_os = "linux")]
 mod s76power;
 #[cfg(target_os = "linux")]
 pub use self::s76power::*;
+pub use self::fwupdmgr::*;
 
 pub use self::{client::*, daemon_thread::*, dummy::*, server::*};
 

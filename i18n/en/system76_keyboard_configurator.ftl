@@ -50,6 +50,7 @@ layout-invert-f-keys = Invert F Keys
 
 loading = Keyboard(s) detected. Loading...
 loading-keyboard = Loading keymap and LEDs for {$keyboard}
+firmware-update-required = Keybaord Firmware Update Required!
 
 page-electrical = Electrical
 page-keycaps = Keycaps

@@ -30,6 +30,7 @@ impl ObjectImpl for BackendInner {
             vec![
                 Signal::builder("board-loading", &[], glib::Type::UNIT.into()).build(),
                 Signal::builder("board-loading-done", &[], glib::Type::UNIT.into()).build(),
+                Signal::builder("board-not-updated", &[], glib::Type::UNIT.into()).build(),
                 Signal::builder(
                     "board-added",
                     &[Board::static_type().into()],
@@ -78,6 +79,9 @@ impl Backend {
                         let board = &boards[&id];
                         self_.emit_by_name::<()>("board-removed", &[board]);
                         board.emit_by_name::<()>("removed", &[]);
+                    },
+                    ThreadResponse::BoardNotUpdated => {
+                        self_.emit_by_name::<()>("board-not-updated", &[]);
                     },
                 }
             }),
@@ -136,6 +140,13 @@ impl Backend {
 
     pub fn connect_board_loading_done<F: Fn() + 'static>(&self, cb: F) -> SignalHandlerId {
         self.connect_local("board-loading-done", false, move |_values| {
+            cb();
+            None
+        })
+    }
+
+    pub fn connect_board_not_updated<F: Fn() + 'static>(&self, cb: F) -> SignalHandlerId {
+        self.connect_local("board-not-updated", false, move |_values| {
             cb();
             None
         })
