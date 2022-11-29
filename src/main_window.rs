@@ -412,6 +412,6 @@ fn daemon(is_testing_mode: bool) -> Backend {
 }
 
 #[cfg(not(target_os = "linux"))]
-fn daemon() -> Backend {
+fn daemon(_is_testing_mode: bool) -> Backend {
     Backend::new(false).expect("Failed to create server")
 }
