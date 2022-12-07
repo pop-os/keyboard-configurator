@@ -3,65 +3,51 @@ use std::process::Command;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug)]
-#[allow(non_snake_case)]
+#[serde(rename_all = "PascalCase")]
 struct Devices {
-    pub Devices: Vec<Device>,
+    pub devices: Vec<Device>,
 }
 
 impl Devices {
     pub fn get_launch(self) -> Result<Device, Error> {
-        self.Devices
+        self.devices
             .into_iter()
             .find(|device| {
-                device.name().unwrap_or(&"".to_string()).contains("Launch")
-                    && device.vendor().unwrap_or(&"".to_string()) == "System76"
+                device
+                    .name
+                    .as_ref()
+                    .unwrap_or(&"".to_string())
+                    .contains("Launch")
+                    && device.vendor.as_ref().unwrap_or(&"".to_string()) == "System76"
             })
             .ok_or(Error::NoLaunch)
     }
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-#[allow(non_snake_case)]
+#[serde(rename_all = "PascalCase")]
 struct Device {
-    Name: Option<String>,
-    Vendor: Option<String>,
-    Created: usize,
-    Releases: Option<Vec<Release>>,
+    name: Option<String>,
+    vendor: Option<String>,
+    created: usize,
+    releases: Option<Vec<Release>>,
 }
 
 impl Device {
-    pub fn name(&self) -> Option<&String> {
-        self.Name.as_ref()
-    }
-
-    pub fn vendor(&self) -> Option<&String> {
-        self.Vendor.as_ref()
-    }
-
-    pub fn created(&self) -> usize {
-        self.Created
-    }
-
     pub fn is_newer_release(self) -> Result<bool, Error> {
         Ok(self
-            .Releases
+            .releases
             .as_ref()
             .ok_or(Error::NoRelease)?
             .into_iter()
-            .any(|release| release.created() > self.created()))
+            .any(|release| release.created > self.created))
     }
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-#[allow(non_snake_case)]
+#[serde(rename_all = "PascalCase")]
 struct Release {
-    Created: usize,
-}
-
-impl Release {
-    pub fn created(&self) -> usize {
-        self.Created
-    }
+    created: usize,
 }
 
 #[derive(Copy, Clone, Debug)]
