@@ -3,7 +3,7 @@
 
   inputs = {
     flake-utils.url = "github:numtide/flake-utils";
-    nixpkgs.url = "github:nixos/nixpkgs/nixos-22.05";
+    nixpkgs.url = "github:nixos/nixpkgs/nixos-22.11";
     naersk.url = "github:nix-community/naersk";
   };
 
@@ -16,7 +16,7 @@
       in {
         defaultPackage = naersk-lib.buildPackage {
           name = "system76-keyboard-configurator";
-          version = "1.2.0";
+          version = "1.3.0";
           src = ./.;
           buildInputs =
             (with pkgs; [ pkg-config rustc cargo hidapi glib gtk3 ]);
