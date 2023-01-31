@@ -34,9 +34,9 @@ impl PhysicalLayout {
                                 debug!("Key metadata {:?}", meta);
                                 physical.x += meta.x;
                                 physical.y -= meta.y;
-                                physical.w = meta.w.unwrap_or(physical.w);
-                                physical.h = meta.h.unwrap_or(physical.h);
-                                background_color = meta.c.unwrap_or(background_color);
+                                physical.width = meta.width.unwrap_or(physical.width);
+                                physical.height = meta.height.unwrap_or(physical.height);
+                                background_color = meta.color.unwrap_or(background_color);
                             }
                             PhysicalKeyEnum::Name(name) => {
                                 keys.push(PhysicalLayoutKey {
@@ -46,10 +46,10 @@ impl PhysicalLayout {
                                     background_color,
                                 });
 
-                                physical.x += physical.w;
+                                physical.x += physical.width;
 
-                                physical.w = 1.0;
-                                physical.h = 1.0;
+                                physical.width = 1.0;
+                                physical.height = 1.0;
 
                                 col_i += 1;
                             }
@@ -120,7 +120,7 @@ struct PhysicalKeyMeta {
     x: f64,
     #[serde(default)]
     y: f64,
-    w: Option<f64>,
-    h: Option<f64>,
-    c: Option<Rgb>,
+    width: Option<f64>,
+    height: Option<f64>,
+    color: Option<Rgb>,
 }
