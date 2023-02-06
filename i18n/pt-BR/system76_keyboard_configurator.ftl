@@ -46,6 +46,7 @@ layer-saturation = Saturação da Camada:
 layout-export = Exportar Layout
 layout-import = Importar Layout
 layout-reset = Restaurar Layout
+layout-invert-f-keys = Inverter Teclas F
 
 loading = Teclado(s) detectado(s). Carregando...
 loading-keyboard = Carregando mapa do teclado e LEDs para {$keyboard}
