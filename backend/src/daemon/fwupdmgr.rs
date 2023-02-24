@@ -1,5 +1,7 @@
 use std::process::Command;
 
+use once_cell::sync::Lazy;
+use regex::bytes::Regex;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -40,7 +42,7 @@ pub fn is_launch_updated() -> Result<bool, Error> {
         .args(["get-updates", "--json"])
         .output()?
         .stdout;
-    let stdout = std::str::from_utf8(&stdout)?;
 
-    Ok(!stdout.contains("Configurable Keyboard"))
+    static RE: Lazy<Regex> = Lazy::new(|| Regex::new("Launch.* Configurable Keyboard").unwrap());
+    Ok(!RE.is_match(&stdout))
 }
