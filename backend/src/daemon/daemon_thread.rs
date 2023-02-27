@@ -438,8 +438,7 @@ impl Thread {
             // If in testing mode and board isn't updated set gui to require update
             board_safe = if self.is_testing_mode {
                 let status = is_launch_updated();
-                info!("status = {:?}", status);
-                if (status.is_ok() && status.unwrap()) || status.is_err() {
+                if (status.is_ok() && !status.unwrap()) || status.is_err() {
                     info!("bad board");
                     if let Err(err) = status {
                         warn!("{}", err.to_string());
