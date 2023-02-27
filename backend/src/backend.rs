@@ -76,9 +76,10 @@ impl Backend {
                     },
                     ThreadResponse::BoardRemoved(id) => {
                         let boards = self_.inner().boards.borrow();
-                        let board = &boards[&id];
+                        if let Some(board) = &boards.get(&id) {
                         self_.emit_by_name::<()>("board-removed", &[board]);
                         board.emit_by_name::<()>("removed", &[]);
+                        }
                     },
                     ThreadResponse::BoardNotUpdated => {
                         self_.emit_by_name::<()>("board-not-updated", &[]);
