@@ -75,7 +75,7 @@ impl Benchmark {
                                     best_speed = benchmark;
                                 }
                             }
-                            Err(err) => {
+                            Err(_err) => {
                                 //TODO: do something with error
                             }
                         }

@@ -30,6 +30,7 @@ impl ObjectImpl for BackendInner {
             vec![
                 Signal::builder("board-loading", &[], glib::Type::UNIT.into()).build(),
                 Signal::builder("board-loading-done", &[], glib::Type::UNIT.into()).build(),
+                Signal::builder("board-not-updated", &[], glib::Type::UNIT.into()).build(),
                 Signal::builder(
                     "board-added",
                     &[Board::static_type().into()],
@@ -57,7 +58,7 @@ glib::wrapper! {
 }
 
 impl Backend {
-    fn new_internal<T: Daemon + 'static>(daemon: T) -> Result<Self, String> {
+    fn new_internal<T: Daemon + 'static>(daemon: T, is_testing_mode: bool) -> Result<Self, String> {
         let self_ = glib::Object::new::<Self>(&[]).unwrap();
         let thread_client = ThreadClient::new(
             Box::new(daemon),
@@ -75,32 +76,37 @@ impl Backend {
                     },
                     ThreadResponse::BoardRemoved(id) => {
                         let boards = self_.inner().boards.borrow();
-                        let board = &boards[&id];
+                        if let Some(board) = &boards.get(&id) {
                         self_.emit_by_name::<()>("board-removed", &[board]);
                         board.emit_by_name::<()>("removed", &[]);
+                        }
+                    },
+                    ThreadResponse::BoardNotUpdated => {
+                        self_.emit_by_name::<()>("board-not-updated", &[]);
                     },
                 }
             }),
+            is_testing_mode,
         );
         self_.inner().thread_client.set(thread_client);
         Ok(self_)
     }
 
     pub fn new_dummy(board_names: Vec<String>) -> Result<Self, String> {
-        Self::new_internal(DaemonDummy::new(board_names))
+        Self::new_internal(DaemonDummy::new(board_names), false)
     }
 
     #[cfg(target_os = "linux")]
     pub fn new_s76power() -> Result<Self, String> {
-        Self::new_internal(DaemonS76Power::new()?)
+        Self::new_internal(DaemonS76Power::new()?, false)
     }
 
-    pub fn new_pkexec() -> Result<Self, String> {
-        Self::new_internal(DaemonClient::new_pkexec())
+    pub fn new_pkexec(is_testing_mode: bool) -> Result<Self, String> {
+        Self::new_internal(DaemonClient::new_pkexec(), is_testing_mode)
     }
 
-    pub fn new() -> Result<Self, String> {
-        Self::new_internal(DaemonServer::new_stdio()?)
+    pub fn new(is_testing_mode: bool) -> Result<Self, String> {
+        Self::new_internal(DaemonServer::new_stdio()?, is_testing_mode)
     }
 
     fn inner(&self) -> &BackendInner {
@@ -135,6 +141,13 @@ impl Backend {
 
     pub fn connect_board_loading_done<F: Fn() + 'static>(&self, cb: F) -> SignalHandlerId {
         self.connect_local("board-loading-done", false, move |_values| {
+            cb();
+            None
+        })
+    }
+
+    pub fn connect_board_not_updated<F: Fn() + 'static>(&self, cb: F) -> SignalHandlerId {
+        self.connect_local("board-not-updated", false, move |_values| {
             cb();
             None
         })

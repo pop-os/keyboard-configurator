@@ -209,9 +209,16 @@ impl MainWindow {
         app.add_window(&window);
 
         let backend = cascade! {
-            daemon();
+            daemon(app.launch_test());
             ..connect_board_loading(clone!(@weak window => move || {
+                info!("loading");
                 let loader = window.display_loader(&fl!("loading"));
+                *window.inner().board_loading.borrow_mut() = Some(loader);
+            }));
+            ..connect_board_not_updated(clone!(@weak window => move || {
+                info!("board not updated");
+                window.inner().board_loading.borrow_mut().take();
+                let loader = window.display_loader(&fl!("firmware-update-required"));
                 *window.inner().board_loading.borrow_mut() = Some(loader);
             }));
             ..connect_board_loading_done(clone!(@weak window => move || {
@@ -374,6 +381,7 @@ impl MainWindow {
     }
 
     pub fn display_loader(&self, text: &str) -> Loader {
+        info!("display loader called with {}", text);
         let load_hbox = cascade! {
             gtk::Box::new(gtk::Orientation::Horizontal, 6);
             ..add(&cascade! {
@@ -392,18 +400,18 @@ impl MainWindow {
 }
 
 #[cfg(target_os = "linux")]
-fn daemon() -> Backend {
+fn daemon(is_testing_mode: bool) -> Backend {
     if unsafe { libc::geteuid() == 0 } {
         info!("Already running as root");
-        Backend::new()
+        Backend::new(is_testing_mode)
     } else {
         info!("Not running as root, spawning daemon with pkexec");
-        Backend::new_pkexec()
+        Backend::new_pkexec(is_testing_mode)
     }
     .expect("Failed to create server")
 }
 
 #[cfg(not(target_os = "linux"))]
-fn daemon() -> Backend {
-    Backend::new().expect("Failed to create server")
+fn daemon(_is_testing_mode: bool) -> Backend {
+    Backend::new(false).expect("Failed to create server")
 }

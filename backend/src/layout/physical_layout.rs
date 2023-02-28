@@ -5,6 +5,7 @@ use std::char;
 
 use crate::{Rect, Rgb};
 
+#[allow(dead_code)]
 pub(crate) struct PhysicalLayout {
     pub meta: PhysicalLayoutMeta,
     pub keys: Vec<PhysicalLayoutKey>,
@@ -99,6 +100,7 @@ enum PhysicalLayoutEntry {
 }
 
 #[derive(Debug, Deserialize)]
+#[allow(dead_code)]
 pub(crate) struct PhysicalLayoutMeta {
     pub name: String,
     pub author: String,
