@@ -25,8 +25,7 @@ impl BoardDummy {
                     .leds
                     .values()
                     .flatten()
-                    .find(|i| **i == index)
-                    .is_some()
+                    .any(|i| *i == index)
         }
     }
 }
