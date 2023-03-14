@@ -93,7 +93,8 @@ impl Backend {
     }
 
     pub fn new_dummy(board_names: Vec<String>) -> Result<Self, String> {
-        Self::new_internal(DaemonDummy::new(board_names), false)
+        let dummy_daemon = DaemonDummy::new(board_names)?;
+        Self::new_internal(dummy_daemon, false)
     }
 
     #[cfg(target_os = "linux")]

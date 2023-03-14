@@ -36,19 +36,25 @@ pub struct DaemonDummy {
 }
 
 impl DaemonDummy {
-    pub fn new(board_names: Vec<String>) -> Self {
-        let boards = board_names
-            .into_iter()
-            .map(|name| BoardDummy {
-                layout: Layout::from_board(&name).unwrap(),
-                name,
-                keymap: Default::default(),
-                colors: Default::default(),
-                brightnesses: Default::default(),
-                modes: Default::default(),
-            })
-            .collect();
-        Self { boards }
+    pub fn new(board_names: Vec<String>) -> Result<Self, String> {
+        let mut boards = Vec::with_capacity(board_names.len());
+        for name in board_names {
+            if let Some(layout) = Layout::from_board(&name) {
+                boards.push(BoardDummy {
+                    layout,
+                    name,
+                    keymap: Default::default(),
+                    colors: Default::default(),
+                    brightnesses: Default::default(),
+                    modes: Default::default(),
+                })
+            } else {
+                return Err(format!(
+                    "'{name}' is an invalid board name. Might need a prefix, 'system76/{name}'?"
+                ));
+            }
+        }
+        Ok(Self { boards })
     }
 
     fn board(&self, board: BoardId) -> Result<&BoardDummy, String> {

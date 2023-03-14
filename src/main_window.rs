@@ -245,11 +245,15 @@ impl MainWindow {
 
         let phony_board_names = app.phony_board_names().to_vec();
         if !phony_board_names.is_empty() {
-            let backend = Backend::new_dummy(phony_board_names).unwrap();
-            backend.connect_board_added(
-                clone!(@weak window => move |board| window.add_keyboard(board)),
-            );
-            backend.refresh();
+            match Backend::new_dummy(phony_board_names) {
+                Ok(backend) => {
+                    backend.connect_board_added(
+                        clone!(@weak window => move |board| window.add_keyboard(board)),
+                    );
+                    backend.refresh();
+                }
+                Err(err) => error!("{}", err),
+            }
         }
 
         window.inner().backend.set(backend);
