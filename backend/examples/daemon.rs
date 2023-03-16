@@ -5,17 +5,17 @@ use system76_keyboard_configurator_backend::{run_daemon, Backend};
 fn with_daemon<F: Fn(Backend)>(f: F) {
     if unsafe { libc::geteuid() == 0 } {
         eprintln!("Already running as root");
-        let server = Backend::new().expect("Failed to create server");
+        let server = Backend::new(false).expect("Failed to create server");
         f(server);
         return;
     }
 
-    f(Backend::new_pkexec().unwrap());
+    f(Backend::new_pkexec(false).unwrap());
 }
 
 #[cfg(not(target_os = "linux"))]
 fn with_daemon<F: Fn(Box<dyn Daemon>)>(f: F) {
-    let server = Backend::new().expect("Failed to create server");
+    let server = Backend::new(false).expect("Failed to create server");
     f(server);
 }
 

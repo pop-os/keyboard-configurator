@@ -3,7 +3,7 @@
 //! ```no_run
 //! use system76_keyboard_configurator_backend::Backend;
 //!
-//! let backend = Backend::new()?;
+//! let backend = Backend::new(false)?;
 //! backend.connect_board_added(|board| {
 //!     println!("{}", board.model());
 //! });

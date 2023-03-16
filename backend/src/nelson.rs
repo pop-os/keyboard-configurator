@@ -33,7 +33,7 @@ impl Nelson {
     }
 
     pub fn success(&self, layout: &HashMap<std::string::String, (u8, u8)>) -> bool {
-        let mut values: Vec<&(u8, u8)> = layout.values().collect();
+        let values: Vec<&(u8, u8)> = layout.values().collect();
         for matrix in &[&self.missing, &self.bouncing, &self.sticking] {
             for (row, col) in values.iter() {
                 if matrix.get(*row as usize, *col as usize).unwrap_or(false) {
