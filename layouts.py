@@ -86,6 +86,7 @@ QMK_MAPPING = {
     'MPLY': 'PLAY_PAUSE',
     'MEDIA_PREV_TRACK': 'MEDIA_PREV',
     'NUMLOCK': 'NUM_LOCK',
+    'NUHS': 'NONUS_HASH'
     'PGDOWN': 'PGDN',
     'PAGE_DOWN': 'PGDN',
     'PAGE_UP': 'PGUP',
