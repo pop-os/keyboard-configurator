@@ -10,6 +10,8 @@ pub(crate) use physical_layout::{PhysicalLayout, PhysicalLayoutKey};
 
 use crate::KeyMap;
 
+const QK_MOD_TAP_LEGACY: u16 = 0x6000;
+const QK_MOD_TAP_MAX_LEGACY: u16 = 0x7FFF;
 const QK_MOD_TAP: u16 = 0x2000;
 const QK_MOD_TAP_MAX: u16 = 0x3FFF;
 
@@ -37,11 +39,12 @@ pub struct Layout {
     pub(crate) physical: PhysicalLayout,
     pub(crate) layout: HashMap<String, (u8, u8)>,
     pub(crate) leds: HashMap<String, Vec<u8>>,
+    use_legacy_scancodes: bool,
 }
 
 macro_rules! keyboards {
     ($( ($board:expr, $keyboard:expr) ),* $(,)?) => {
-        fn layout_data(board: &str, version: &str) -> Option<(&'static str, &'static str, &'static str, &'static str, &'static str, &'static str)> {
+        fn layout_data(board: &str, use_legacy_scancodes: bool) -> Option<(&'static str, &'static str, &'static str, &'static str, &'static str, &'static str)> {
             match board {
                 $(
                 $board => {
@@ -49,10 +52,10 @@ macro_rules! keyboards {
                         include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/../layouts/", $board, "/meta.json"));
                     let default_json =
                         include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/../layouts/", $board, "/default.json"));
-                    let keymap_json = if version.contains("0.19.12") {
-                        include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/../layouts/keyboards/overrides/0.19.12/", $keyboard, "/keymap.json"))
-                    } else {
+                    let keymap_json = if use_legacy_scancodes {
                         include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/../layouts/keyboards/", $keyboard, "/keymap.json"))
+                    } else {
+                        include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/../layouts/keyboards/overrides/0.19.12/", $keyboard, "/keymap.json"))
                     };
                     let layout_json =
                         include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/../layouts/keyboards/", $keyboard, "/layout.json"));
@@ -85,6 +88,7 @@ impl Layout {
         layout_json: &str,
         leds_json: &str,
         physical_json: &str,
+        use_legacy_scancodes: bool,
     ) -> Self {
         let meta = serde_json::from_str(meta_json).unwrap();
         let default = KeyMap::from_str(default_json).unwrap();
@@ -100,6 +104,7 @@ impl Layout {
             physical,
             layout,
             leds,
+            use_legacy_scancodes,
         }
     }
 
@@ -127,11 +132,13 @@ impl Layout {
             &layout_json,
             &leds_json,
             &physical_json,
+            false,
         )
     }
 
     pub fn from_board(board: &str, version: &str) -> Option<Self> {
-        layout_data(board, version).map(
+        let use_legacy_scancodes = version.contains("0.7.103");
+        layout_data(board, use_legacy_scancodes).map(
             |(meta_json, default_json, keymap_json, layout_json, leds_json, physical_json)| {
                 Self::from_data(
                     meta_json,
@@ -140,6 +147,7 @@ impl Layout {
                     layout_json,
                     leds_json,
                     physical_json,
+                    use_legacy_scancodes,
                 )
             },
         )
@@ -147,8 +155,9 @@ impl Layout {
 
     /// Get the scancode number corresponding to a name
     pub fn scancode_to_name(&self, scancode: u16) -> Option<String> {
-        if scancode >= QK_MOD_TAP && scancode <= QK_MOD_TAP_MAX {
-          info!{"there is a freaking modtap {scancode}"};
+        let qk_mod_tap_max = if self.use_legacy_scancodes {QK_MOD_TAP_MAX_LEGACY} else {QK_MOD_TAP_MAX};
+        let qk_mod_tap = if self.use_legacy_scancodes {QK_MOD_TAP_LEGACY} else {QK_MOD_TAP};
+        if scancode >= qk_mod_tap && scancode < qk_mod_tap_max {
             let mod_ = (scancode >> 8) & 0x1f;
             let kc = scancode & 0xff;
             let mod_name = MOD_TAP_MODS.iter().find(|(_, v)| **v == mod_)?.0;
@@ -164,9 +173,10 @@ impl Layout {
         // Check if mod-tap
         let mt_re = Regex::new("MT\\(([^()]+), ([^()]+)\\)").unwrap();
         if let Some(captures) = mt_re.captures(name) {
+            let qk_mod_tap = if self.use_legacy_scancodes {QK_MOD_TAP_LEGACY} else {QK_MOD_TAP};
             let mod_ = *MOD_TAP_MODS.get(&captures.get(1).unwrap().as_str())?;
             let kc = *self.keymap.get(captures.get(2).unwrap().as_str())?;
-            Some(QK_MOD_TAP | ((mod_ & 0x1f) << 8) | (kc & 0xff))
+            Some(qk_mod_tap | ((mod_ & 0x1f) << 8) | (kc & 0xff))
         } else {
             self.keymap.get(name).copied()
         }

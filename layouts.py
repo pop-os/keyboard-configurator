@@ -162,20 +162,13 @@ def extract_scancodes(ecdir: str, board: str, is_qmk: bool, has_brightness: bool
     "Extract mapping from scancode names to numbers"
 
     if is_qmk:
-        includes = ["stdint.h", f"{ecdir}/quantum/keycode.h", f"{ecdir}/quantum/quantum_keycodes.h", f"{ecdir}/quantum/keycodes.h", f"{ecdir}/quantum/action_code.h"]
+        includes = ["stdint.h", f"{ecdir}/tmk_core/common/keycode.h", f"{ecdir}/quantum/quantum_keycodes.h", f"{ecdir}/tmk_core/common/action_code.h"]
         common_keymap_h = call_preprocessor(includes[1])
         quantum_keycode_h = call_preprocessor(includes[2])
-        keycodes_h = call_preprocessor(includes[3])
         scancode_defines = re.findall(
             '    (KC_[^,\s]+)', common_keymap_h)
         scancode_defines += re.findall(
-            '    (RGB_[^,\s]+)', common_keymap_h)
-        scancode_defines += re.findall(
-            '    (QK_[^,\s]+)', common_keymap_h)
-        scancode_defines += re.findall(
             '    (RGB_[^,\s]+)', quantum_keycode_h)
-        scancode_defines += re.findall(
-            '    (RGB_[^,\s]+)', keycodes_h)
         define_aliases = [(i.group(1), i.group(2)) for i in (re.match(ALIAS_RE, i) for i in open(includes[1])) if i]
         mapping = QMK_MAPPING
         mapping.update({alias: QMK_MAPPING.get(keycode, keycode) for alias, keycode in define_aliases})
@@ -235,11 +228,7 @@ def extract_scancodes(ecdir: str, board: str, is_qmk: bool, has_brightness: bool
     scancode_list = OrderedDict((name, code) for (name, code) in scancode_list.items() if name not in excluded_scancodes)
 
     # Make sure scancodes are unique
-    for thing in scancode_list:
-        print(f"  \"{thing}\": {scancode_list[thing]},")
-    #print(scancode_list.keys())
-    #print(scancode_list.values())
-    #assert len(scancode_list.keys()) == len(set(scancode_list.values()))
+    assert len(scancode_list.keys()) == len(set(scancode_list.values()))
 
     return scancode_list, mapping
 
