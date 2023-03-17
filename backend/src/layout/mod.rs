@@ -155,8 +155,11 @@ impl Layout {
 
     /// Get the scancode number corresponding to a name
     pub fn scancode_to_name(&self, scancode: u16) -> Option<String> {
-        let qk_mod_tap_max = if self.use_legacy_scancodes {QK_MOD_TAP_MAX_LEGACY} else {QK_MOD_TAP_MAX};
-        let qk_mod_tap = if self.use_legacy_scancodes {QK_MOD_TAP_LEGACY} else {QK_MOD_TAP};
+        let (qk_mod_tap, qk_mod_tap_max) = if self.use_legacy_scancodes {
+            (QK_MOD_TAP_LEGACY, QK_MOD_TAP_MAX_LEGACY)
+        } else {
+            (QK_MOD_TAP, QK_MOD_TAP_MAX)
+        };
         if scancode >= qk_mod_tap && scancode < qk_mod_tap_max {
             let mod_ = (scancode >> 8) & 0x1f;
             let kc = scancode & 0xff;
@@ -173,7 +176,11 @@ impl Layout {
         // Check if mod-tap
         let mt_re = Regex::new("MT\\(([^()]+), ([^()]+)\\)").unwrap();
         if let Some(captures) = mt_re.captures(name) {
-            let qk_mod_tap = if self.use_legacy_scancodes {QK_MOD_TAP_LEGACY} else {QK_MOD_TAP};
+            let qk_mod_tap = if self.use_legacy_scancodes {
+                QK_MOD_TAP_LEGACY
+            } else {
+                QK_MOD_TAP
+            };
             let mod_ = *MOD_TAP_MODS.get(&captures.get(1).unwrap().as_str())?;
             let kc = *self.keymap.get(captures.get(2).unwrap().as_str())?;
             Some(qk_mod_tap | ((mod_ & 0x1f) << 8) | (kc & 0xff))
@@ -215,7 +222,7 @@ mod tests {
     #[test]
     fn layout_from_board() {
         for i in layouts() {
-            Layout::from_board(i).unwrap();
+            Layout::from_board(i, "dummy").unwrap();
         }
     }
 
@@ -223,7 +230,7 @@ mod tests {
     fn default_keys_exist() {
         for i in layouts() {
             let mut missing = HashSet::new();
-            let layout = Layout::from_board(i).unwrap();
+            let layout = Layout::from_board(i, "dummy").unwrap();
             for j in layout.default.map.values().flatten() {
                 if layout.keymap.keys().find(|x| x == &j).is_none() {
                     missing.insert(j.to_owned());
@@ -235,8 +242,8 @@ mod tests {
 
     #[test]
     fn qmk_has_ec_keycodes() {
-        let layout_ec = Layout::from_board("system76/darp6").unwrap();
-        let layout_qmk = Layout::from_board("system76/launch_1").unwrap();
+        let layout_ec = Layout::from_board("system76/darp6", "dummy").unwrap();
+        let layout_qmk = Layout::from_board("system76/launch_1", "dummy").unwrap();
         for k in layout_ec.keymap.keys() {
             if k == "KBD_COLOR"
                 || k == "KBD_BKL"
@@ -274,7 +281,7 @@ mod tests {
     #[test]
     fn physical_layout_leds_logical() {
         for i in layouts() {
-            let layout = Layout::from_board(i).unwrap();
+            let layout = Layout::from_board(i, "dummy").unwrap();
             let logical_in_physical = layout
                 .physical
                 .keys
@@ -317,7 +324,7 @@ mod tests {
                 continue;
             }
 
-            let layout = Layout::from_board(i).unwrap();
+            let layout = Layout::from_board(i, "dummy").unwrap();
             assert_eq!(layout.f_keys().count(), 12);
         }
     }
