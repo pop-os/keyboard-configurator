@@ -93,6 +93,8 @@ QMK_MAPPING = {
     'PSCREEN': 'PRINT_SCREEN',
     'PSCR': 'PRINT_SCREEN',
     'QUOT': 'QUOTE',
+    'QUANTUM': 'BOOT',
+    'QUANTUM_MAX': 'BOOT_MAX',
     'RALT': 'RIGHT_ALT',
     'ROPT': 'RIGHT_ALT',
     'RBRACKET': 'BRACE_CLOSE',
