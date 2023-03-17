@@ -39,7 +39,7 @@ impl DaemonDummy {
     pub fn new(board_names: Vec<String>) -> Result<Self, String> {
         let mut boards = Vec::with_capacity(board_names.len());
         for name in board_names {
-            if let Some(layout) = Layout::from_board(&name) {
+            if let Some(layout) = Layout::from_board(&name, "dummy") {
                 boards.push(BoardDummy {
                     layout,
                     name,

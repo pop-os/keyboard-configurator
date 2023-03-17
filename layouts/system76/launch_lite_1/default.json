@@ -238,7 +238,7 @@
     ],
     "K29": [
       "L",
-      "RIGHT",
+      "RGHT",
       "ROLL_OVER",
       "ROLL_OVER"
     ],
@@ -255,7 +255,7 @@
       "ROLL_OVER"
     ],
     "K2C": [
-      "ENTER",
+      "NUM_ENTER",
       "ROLL_OVER",
       "ROLL_OVER",
       "ROLL_OVER"
@@ -417,7 +417,7 @@
       "ROLL_OVER"
     ],
     "K4B": [
-      "RIGHT",
+      "RGHT",
       "END",
       "ROLL_OVER",
       "ROLL_OVER"

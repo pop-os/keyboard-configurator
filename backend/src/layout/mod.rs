@@ -10,8 +10,8 @@ pub(crate) use physical_layout::{PhysicalLayout, PhysicalLayoutKey};
 
 use crate::KeyMap;
 
-const QK_MOD_TAP: u16 = 0x6000;
-const QK_MOD_TAP_MAX: u16 = 0x7FFF;
+const QK_MOD_TAP: u16 = 0x2000;
+const QK_MOD_TAP_MAX: u16 = 0x3FFF;
 
 pub static MOD_TAP_MODS: Lazy<HashMap<&str, u16>> = Lazy::new(|| {
     cascade! {
@@ -41,7 +41,7 @@ pub struct Layout {
 
 macro_rules! keyboards {
     ($( ($board:expr, $keyboard:expr) ),* $(,)?) => {
-        fn layout_data(board: &str) -> Option<(&'static str, &'static str, &'static str, &'static str, &'static str, &'static str)> {
+        fn layout_data(board: &str, version: &str) -> Option<(&'static str, &'static str, &'static str, &'static str, &'static str, &'static str)> {
             match board {
                 $(
                 $board => {
@@ -49,8 +49,11 @@ macro_rules! keyboards {
                         include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/../layouts/", $board, "/meta.json"));
                     let default_json =
                         include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/../layouts/", $board, "/default.json"));
-                    let keymap_json =
-                        include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/../layouts/keyboards/", $keyboard, "/keymap.json"));
+                    let keymap_json = if version.contains("0.19.12") {
+                        include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/../layouts/keyboards/overrides/0.19.12/", $keyboard, "/keymap.json"))
+                    } else {
+                        include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/../layouts/keyboards/", $keyboard, "/keymap.json"))
+                    };
                     let layout_json =
                         include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/../layouts/keyboards/", $keyboard, "/layout.json"));
                     let leds_json =
@@ -127,8 +130,8 @@ impl Layout {
         )
     }
 
-    pub fn from_board(board: &str) -> Option<Self> {
-        layout_data(board).map(
+    pub fn from_board(board: &str, version: &str) -> Option<Self> {
+        layout_data(board, version).map(
             |(meta_json, default_json, keymap_json, layout_json, leds_json, physical_json)| {
                 Self::from_data(
                     meta_json,
@@ -145,6 +148,7 @@ impl Layout {
     /// Get the scancode number corresponding to a name
     pub fn scancode_to_name(&self, scancode: u16) -> Option<String> {
         if scancode >= QK_MOD_TAP && scancode <= QK_MOD_TAP_MAX {
+          info!{"there is a freaking modtap {scancode}"};
             let mod_ = (scancode >> 8) & 0x1f;
             let kc = scancode & 0xff;
             let mod_name = MOD_TAP_MODS.iter().find(|(_, v)| **v == mod_)?.0;

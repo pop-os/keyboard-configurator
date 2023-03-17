@@ -4,7 +4,7 @@
   "map": {
     "K00": [
       "ESC",
-      "ROLL_OVER",
+      "QBOOT",
       "ROLL_OVER",
       "ROLL_OVER"
     ],
@@ -99,7 +99,7 @@
       "ROLL_OVER"
     ],
     "K0G": [
-      "MEDIA_PREV",
+      "MPRV",
       "ROLL_OVER",
       "ROLL_OVER",
       "ROLL_OVER"
@@ -111,7 +111,7 @@
       "ROLL_OVER"
     ],
     "K0I": [
-      "MEDIA_NEXT",
+      "MNXT",
       "ROLL_OVER",
       "ROLL_OVER",
       "ROLL_OVER"
@@ -207,25 +207,25 @@
       "ROLL_OVER"
     ],
     "K1F": [
-      "NUM_LOCK",
+      "NUM",
       "ROLL_OVER",
       "ROLL_OVER",
       "ROLL_OVER"
     ],
     "K1G": [
-      "NUM_SLASH",
+      "PSLS",
       "ROLL_OVER",
       "ROLL_OVER",
       "ROLL_OVER"
     ],
     "K1H": [
-      "NUM_ASTERISK",
+      "PAST",
       "ROLL_OVER",
       "ROLL_OVER",
       "ROLL_OVER"
     ],
     "K1I": [
-      "NUM_MINUS",
+      "PMNS",
       "ROLL_OVER",
       "ROLL_OVER",
       "ROLL_OVER"
@@ -339,7 +339,7 @@
       "ROLL_OVER"
     ],
     "K2I": [
-      "NUM_PLUS",
+      "PPLS",
       "ROLL_OVER",
       "ROLL_OVER",
       "ROLL_OVER"
@@ -400,7 +400,7 @@
     ],
     "K39": [
       "L",
-      "RIGHT",
+      "RGHT",
       "ROLL_OVER",
       "ROLL_OVER"
     ],
@@ -417,7 +417,7 @@
       "ROLL_OVER"
     ],
     "K3C": [
-      "ENTER",
+      "NUM_ENTER",
       "ROLL_OVER",
       "ROLL_OVER",
       "ROLL_OVER"
@@ -520,7 +520,7 @@
     ],
     "K4C": [
       "UP",
-      "ROLL_OVER",
+      "PGUP",
       "ROLL_OVER",
       "ROLL_OVER"
     ],
@@ -543,7 +543,7 @@
       "ROLL_OVER"
     ],
     "K4G": [
-      "NUM_ENTER",
+      "PENT",
       "ROLL_OVER",
       "ROLL_OVER",
       "ROLL_OVER"
@@ -604,19 +604,19 @@
     ],
     "K59": [
       "LEFT",
-      "ROLL_OVER",
+      "HOME",
       "ROLL_OVER",
       "ROLL_OVER"
     ],
     "K5A": [
       "DOWN",
-      "ROLL_OVER",
+      "PGDN",
       "ROLL_OVER",
       "ROLL_OVER"
     ],
     "K5B": [
-      "RIGHT",
-      "ROLL_OVER",
+      "RGHT",
+      "END",
       "ROLL_OVER",
       "ROLL_OVER"
     ],
@@ -627,7 +627,7 @@
       "ROLL_OVER"
     ],
     "K5D": [
-      "NUM_PERIOD",
+      "PDOT",
       "ROLL_OVER",
       "ROLL_OVER",
       "ROLL_OVER"

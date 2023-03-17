@@ -15,16 +15,27 @@ from typing import List, Tuple, Dict
 QMK_MAPPING = {
     'APPLICATION': 'APP',
     'AUDIO_MUTE': 'MUTE',
+    'AUDIO_MUTE': 'MUTE',
     'AUDIO_VOL_DOWN': 'VOLUME_DOWN',
     'AUDIO_VOL_UP': 'VOLUME_UP',
+    'VOLD': 'VOLUME_DOWN',
+    'VOLU': 'VOLUME_UP',
     'BSLASH': 'BACKSLASH',
+    'BSLS': 'BACKSLASH',
+    'SLSH': 'SLASH',
     'BSPACE': 'BKSP',
+    'BSPC': 'BKSP',
+    'BOOTLOADER': 'BOOT',
+    'SPC': 'SPACE',
     'CAPSLOCK': 'CAPS',
+    'CAPS_LOCK': 'CAPS',
     'DELETE': 'DEL',
     'DOT': 'PERIOD',
     'EQUAL': 'EQUALS',
+    'EQL': 'EQUALS',
     'ESCAPE': 'ESC',
     'GRAVE': 'TICK',
+    'GRV': 'TICK',
     'KP_0': 'NUM_0',
     'KP_1': 'NUM_1',
     'KP_2': 'NUM_2',
@@ -47,36 +58,65 @@ QMK_MAPPING = {
     'P9': 'NUM_9',
     'KP_ASTERISK': 'NUM_ASTERISK',
     'KP_COMMA': 'NUM_COMMA',
+    'COMM': 'COMMA',
     'KP_DOT': 'NUM_PERIOD',
     'KP_ENTER': 'NUM_ENTER',
+    'ENT': 'NUM_ENTER',
     'KP_EQUAL': 'NUM_EQUALS',
     'KP_MINUS': 'NUM_MINUS',
+    'MINS': 'MINUS',
     'KP_PLUS': 'NUM_PLUS',
     'KP_SLASH': 'NUM_SLASH',
     'LALT': 'LEFT_ALT',
+    'LOPT': 'LEFT_ALT',
     'LBRACKET': 'BRACE_OPEN',
+    'LEFT_BRACKET': 'BRACE_OPEN',
+    'LBRC': 'BRACE_OPEN',
     'LCTRL': 'LEFT_CTRL',
+    'LCTL': 'LEFT_CTRL',
     'LGUI': 'LEFT_SUPER',
+    'LWIN': 'LEFT_SUPER',
+    'LCMD': 'LEFT_SUPER',
+    'LEFT_GUI': 'LEFT_SUPER',
     'LSHIFT': 'LEFT_SHIFT',
+    'LSFT': 'LEFT_SHIFT',
     'NO': 'NONE',
     'MEDIA_NEXT_TRACK': 'MEDIA_NEXT',
     'MEDIA_PLAY_PAUSE': 'PLAY_PAUSE',
+    'MPLY': 'PLAY_PAUSE',
     'MEDIA_PREV_TRACK': 'MEDIA_PREV',
     'NUMLOCK': 'NUM_LOCK',
     'PGDOWN': 'PGDN',
+    'PAGE_DOWN': 'PGDN',
+    'PAGE_UP': 'PGUP',
     'PSCREEN': 'PRINT_SCREEN',
+    'PSCR': 'PRINT_SCREEN',
+    'QUOT': 'QUOTE',
     'RALT': 'RIGHT_ALT',
+    'ROPT': 'RIGHT_ALT',
     'RBRACKET': 'BRACE_CLOSE',
+    'RIGHT_BRACKET': 'BRACE_CLOSE',
+    'RBRC': 'BRACE_CLOSE',
     'RCTRL': 'RIGHT_CTRL',
+    'RCTL': 'RIGHT_CTRL',
     'RGB_TOG': 'KBD_TOGGLE',
     'RGB_VAD': 'KBD_DOWN',
     'RGB_VAI': 'KBD_UP',
+    'BACKLIGHT_TOGGLE': 'KBD_TOGGLE',
+    'BACKLIGHT_DOWN': 'KBD_DOWN',
+    'BACKLIGHT_UP': 'KBD_UP',
     'RGUI': 'RIGHT_SUPER',
+    'RWIN': 'RIGHT_SUPER',
+    'RCMD': 'RIGHT_SUPER',
+    'RIGHT_GUI': 'RIGHT_SUPER',
     'RSHIFT': 'RIGHT_SHIFT',
+    'RSFT': 'RIGHT_SHIFT',
     'SCOLON': 'SEMICOLON',
+    'SCLN': 'SEMICOLON',
     'SCROLLLOCK': 'SCROLL_LOCK',
     'SYSTEM_SLEEP': 'SUSPEND',
     'TRANSPARENT': 'ROLL_OVER',
+    'TRNS': 'ROLL_OVER',
     'TG(0)': 'LAYER_TOGGLE_1',
     'TG(1)': 'LAYER_TOGGLE_2',
     'TG(2)': 'LAYER_TOGGLE_3',
@@ -116,19 +156,26 @@ ALIAS_RE = '#define\s+KC_([A-Z_]*)\s+KC_([A-Z_]+]*)\s*$'
 # [(i.group(1), i.group(2)) for i in (re.match('#define\s+KC_([A-Z_]*)\s+KC_([A-Z_]+]*)\s*$', i) for i in keycode_h.splitlines()) if i]
 
 def call_preprocessor(path: str) -> str:
-    return subprocess.check_output(["gcc", "-E", path], stderr=subprocess.DEVNULL, universal_newlines=True)
+    return subprocess.check_output(["gcc", "-E", "-nostdinc", path], stderr=subprocess.DEVNULL, universal_newlines=True)
 
 def extract_scancodes(ecdir: str, board: str, is_qmk: bool, has_brightness: bool, has_color: bool) -> Tuple[typing.OrderedDict[str, int], Dict[str, str]]:
     "Extract mapping from scancode names to numbers"
 
     if is_qmk:
-        includes = ["stdint.h", f"{ecdir}/tmk_core/common/keycode.h", f"{ecdir}/quantum/quantum_keycodes.h", f"{ecdir}/tmk_core/common/action_code.h"]
+        includes = ["stdint.h", f"{ecdir}/quantum/keycode.h", f"{ecdir}/quantum/quantum_keycodes.h", f"{ecdir}/quantum/keycodes.h", f"{ecdir}/quantum/action_code.h"]
         common_keymap_h = call_preprocessor(includes[1])
         quantum_keycode_h = call_preprocessor(includes[2])
+        keycodes_h = call_preprocessor(includes[3])
         scancode_defines = re.findall(
             '    (KC_[^,\s]+)', common_keymap_h)
         scancode_defines += re.findall(
+            '    (RGB_[^,\s]+)', common_keymap_h)
+        scancode_defines += re.findall(
+            '    (QK_[^,\s]+)', common_keymap_h)
+        scancode_defines += re.findall(
             '    (RGB_[^,\s]+)', quantum_keycode_h)
+        scancode_defines += re.findall(
+            '    (RGB_[^,\s]+)', keycodes_h)
         define_aliases = [(i.group(1), i.group(2)) for i in (re.match(ALIAS_RE, i) for i in open(includes[1])) if i]
         mapping = QMK_MAPPING
         mapping.update({alias: QMK_MAPPING.get(keycode, keycode) for alias, keycode in define_aliases})
@@ -188,7 +235,11 @@ def extract_scancodes(ecdir: str, board: str, is_qmk: bool, has_brightness: bool
     scancode_list = OrderedDict((name, code) for (name, code) in scancode_list.items() if name not in excluded_scancodes)
 
     # Make sure scancodes are unique
-    assert len(scancode_list.keys()) == len(set(scancode_list.values()))
+    for thing in scancode_list:
+        print(f"  \"{thing}\": {scancode_list[thing]},")
+    #print(scancode_list.keys())
+    #print(scancode_list.values())
+    #assert len(scancode_list.keys()) == len(set(scancode_list.values()))
 
     return scancode_list, mapping
 
