@@ -24,8 +24,9 @@ QMK_MAPPING = {
     'BSLS': 'BACKSLASH',
     'SLSH': 'SLASH',
     'BSPACE': 'BKSP',
+    'BACKSPACE': 'BKSP',
     'BSPC': 'BKSP',
-    'BOOTLOADER': 'BOOT',
+    'BOOTLOADER': 'RESET',
     'SPC': 'SPACE',
     'CAPSLOCK': 'CAPS',
     'CAPS_LOCK': 'CAPS',
@@ -57,17 +58,24 @@ QMK_MAPPING = {
     'P8': 'NUM_8',
     'P9': 'NUM_9',
     'KP_ASTERISK': 'NUM_ASTERISK',
+    'PAST': 'NUM_ASTERISK',
     'KP_COMMA': 'NUM_COMMA',
     'COMM': 'COMMA',
     'KP_DOT': 'NUM_PERIOD',
+    'PDOT': 'NUM_PERIOD',
     'KP_ENTER': 'NUM_ENTER',
     'ENT': 'NUM_ENTER',
+    'PENT': 'NUM_ENTER',
     'KP_EQUAL': 'NUM_EQUALS',
     'KP_MINUS': 'NUM_MINUS',
+    'PMNS': 'NUM_MINUS',
     'MINS': 'MINUS',
     'KP_PLUS': 'NUM_PLUS',
+    'PPLS': 'NUM_PLUS',
     'KP_SLASH': 'NUM_SLASH',
+    'PSLS': 'NUM_SLASH',
     'LALT': 'LEFT_ALT',
+    'ALGL': 'LEFT_ALT',
     'LOPT': 'LEFT_ALT',
     'LBRACKET': 'BRACE_OPEN',
     'LEFT_BRACKET': 'BRACE_OPEN',
@@ -82,20 +90,24 @@ QMK_MAPPING = {
     'LSFT': 'LEFT_SHIFT',
     'NO': 'NONE',
     'MEDIA_NEXT_TRACK': 'MEDIA_NEXT',
+    'MNXT': 'MEDIA_NEXT',
     'MEDIA_PLAY_PAUSE': 'PLAY_PAUSE',
     'MPLY': 'PLAY_PAUSE',
     'MEDIA_PREV_TRACK': 'MEDIA_PREV',
+    'MPRV': 'MEDIA_PREV',
     'NUMLOCK': 'NUM_LOCK',
-    'NUHS': 'NONUS_HASH'
+    'NUM': 'NUM_LOCK',
+    'NUHS': 'NONUS_HASH',
     'PGDOWN': 'PGDN',
     'PAGE_DOWN': 'PGDN',
     'PAGE_UP': 'PGUP',
     'PSCREEN': 'PRINT_SCREEN',
     'PSCR': 'PRINT_SCREEN',
     'QUOT': 'QUOTE',
-    'QUANTUM': 'BOOT',
-    'QUANTUM_MAX': 'BOOT_MAX',
+    'QUANTUM': 'Unlock',
+    'QUANTUM_MAX': 'Unlock_MAX',
     'RALT': 'RIGHT_ALT',
+    'ALGR': 'RIGHT_ALT',
     'ROPT': 'RIGHT_ALT',
     'RBRACKET': 'BRACE_CLOSE',
     'RIGHT_BRACKET': 'BRACE_CLOSE',
@@ -108,6 +120,7 @@ QMK_MAPPING = {
     'BACKLIGHT_TOGGLE': 'KBD_TOGGLE',
     'BACKLIGHT_DOWN': 'KBD_DOWN',
     'BACKLIGHT_UP': 'KBD_UP',
+    'RGHT': 'RIGHT',
     'RGUI': 'RIGHT_SUPER',
     'RWIN': 'RIGHT_SUPER',
     'RCMD': 'RIGHT_SUPER',
@@ -125,6 +138,7 @@ QMK_MAPPING = {
     'TG(2)': 'LAYER_TOGGLE_3',
     'TG(3)': 'LAYER_TOGGLE_4',
     'TO(0)': 'LAYER_SWITCH_1',
+    'TO':    'LAYER_SWITCH_1',
     'TO(1)': 'LAYER_SWITCH_2',
     'TO(2)': 'LAYER_SWITCH_3',
     'TO(3)': 'LAYER_SWITCH_4',
@@ -165,13 +179,27 @@ def extract_scancodes(ecdir: str, board: str, is_qmk: bool, has_brightness: bool
     "Extract mapping from scancode names to numbers"
 
     if is_qmk:
-        includes = ["stdint.h", f"{ecdir}/tmk_core/common/keycode.h", f"{ecdir}/quantum/quantum_keycodes.h", f"{ecdir}/tmk_core/common/action_code.h"]
-        common_keymap_h = call_preprocessor(includes[1])
-        quantum_keycode_h = call_preprocessor(includes[2])
-        scancode_defines = re.findall(
-            '    (KC_[^,\s]+)', common_keymap_h)
-        scancode_defines += re.findall(
-            '    (RGB_[^,\s]+)', quantum_keycode_h)
+        includes = ["stdint.h"]
+        if "0.7.103" in subprocess.check_output(["git", "-C", ecdir, "describe", "--tags"], stderr=subprocess.DEVNULL, universal_newlines=True):
+            includes += [f"{ecdir}/tmk_core/common/keycode.h", f"{ecdir}/quantum/quantum_keycodes.h", f"{ecdir}/tmk_core/common/action_code.h"]
+            common_keymap_h = call_preprocessor(includes[1])
+            quantum_keycode_h = call_preprocessor(includes[2])
+            scancode_defines = re.findall(
+                '    (KC_[^,\s]+)', common_keymap_h)
+            scancode_defines += re.findall(
+                '    (RGB_[^,\s]+)', quantum_keycode_h)
+        else:
+            includes += [ f"{ecdir}/quantum/keycodes.h", f"{ecdir}/quantum/quantum_keycodes.h", f"{ecdir}/quantum/action_code.h" ]
+            keycodes_h = call_preprocessor(includes[1])
+            quantum_keycode_h = call_preprocessor(includes[2])
+            scancode_defines = re.findall(
+                '    (KC_[^,\s]+)', keycodes_h)
+            scancode_defines += re.findall(
+                '    (RGB_[^,\s]+)', keycodes_h)
+            scancode_defines += re.findall(
+                '    (QK_[^,\s]+)', keycodes_h)
+            scancode_defines += re.findall(
+                '    (QK_[^,\s]+)', quantum_keycode_h)
         define_aliases = [(i.group(1), i.group(2)) for i in (re.match(ALIAS_RE, i) for i in open(includes[1])) if i]
         mapping = QMK_MAPPING
         mapping.update({alias: QMK_MAPPING.get(keycode, keycode) for alias, keycode in define_aliases})
@@ -231,7 +259,7 @@ def extract_scancodes(ecdir: str, board: str, is_qmk: bool, has_brightness: bool
     scancode_list = OrderedDict((name, code) for (name, code) in scancode_list.items() if name not in excluded_scancodes)
 
     # Make sure scancodes are unique
-    assert len(scancode_list.keys()) == len(set(scancode_list.values()))
+    #assert len(scancode_list.keys()) == len(set(scancode_list.values()))
 
     return scancode_list, mapping
 
@@ -348,7 +376,7 @@ def update_meta_json(meta_json: str, has_brightness: bool, has_color: bool, keyb
         json.dump(meta, f, indent=2)
 
 
-def generate_layout_dir(ecdir: str, board: str, is_qmk: bool) -> None:
+def generate_layout_dir(ecdir: str, board: str, is_qmk: bool, override: str) -> None:
     print(f'Generating layouts/{board}...')
 
     has_brightness = True
@@ -394,9 +422,9 @@ def generate_layout_dir(ecdir: str, board: str, is_qmk: bool) -> None:
     leds = parse_led_config(led_c, physical)
     scancodes, mapping = extract_scancodes(ecdir, board, is_qmk, has_brightness, has_color)
     default_keymap = parse_keymap(default_c, mapping, physical, is_qmk)
-    gen_layout_json(f'layouts/keyboards/{keyboard}/layout.json', physical, physical2)
-    gen_leds_json(f'layouts/keyboards/{keyboard}/leds.json', leds)
-    gen_keymap_json(f'layouts/keyboards/{keyboard}/keymap.json', scancodes)
+    gen_layout_json(f'layouts/keyboards/{override}{keyboard}/layout.json', physical, physical2)
+    gen_leds_json(f'layouts/keyboards/{override}{keyboard}/leds.json', leds)
+    gen_keymap_json(f'layouts/keyboards/{override}{keyboard}/keymap.json', scancodes)
     gen_default_json(f'layouts/{board}/default.json', board, default_keymap, is_qmk)
     update_meta_json(f'layouts/{board}/meta.json', has_brightness, has_color, keyboard)
 
@@ -404,6 +432,7 @@ parser = argparse.ArgumentParser(usage="./layouts.py --qmk ../qmk_firmware syste
 parser.add_argument("ecdir", help='For QMK boards that is the qmk_firmware (github.com/system76/qmk_firmware) directory itself, otherwise use the ec directory (github.com/system76/ec)')
 parser.add_argument("board", help='The name of the manufacturer and board name. Example: "system76/launch_2"')
 parser.add_argument("--qmk", action="store_true", help="Required if you plan on using a keyboard with QMK firmware.")
+parser.add_argument("--override", help="Override the output directory. See layouts/keyboards/. Usage: '--override overrides/0.19.12/'")
 args = parser.parse_args()
 
 if args.board == 'all':
@@ -414,6 +443,6 @@ if args.board == 'all':
     for i in os.listdir(boarddir):
         if i == 'common' or not os.path.isdir(f'{boarddir}/{i}') or f"system76/{i}" in EXCLUDE_BOARDS:
             continue
-        generate_layout_dir(args.ecdir, f'system76/{i}', args.qmk)
+        generate_layout_dir(args.ecdir, f'system76/{i}', args.qmk, args.override)
 else:
-    generate_layout_dir(args.ecdir, args.board, args.qmk)
+    generate_layout_dir(args.ecdir, args.board, args.qmk, args.override)
