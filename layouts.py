@@ -27,7 +27,8 @@ QMK_MAPPING = {
     'BSPACE': 'BKSP',
     'BACKSPACE': 'BKSP',
     'BSPC': 'BKSP',
-    'BOOTLOADER': 'BOOT',
+    'BOOT': 'RESET',
+    'BOOTLOADER': 'RESET',
     'SPC': 'SPACE',
     'SLCT': 'SELECT',
     'CAPSLOCK': 'CAPS',
@@ -77,7 +78,7 @@ QMK_MAPPING = {
     'KP_DOT': 'NUM_PERIOD',
     'PDOT': 'NUM_PERIOD',
     'KP_ENTER': 'NUM_ENTER',
-    'ENT': 'NUM_ENTER',
+    'ENT': 'ENTER',
     'EXEC': 'EXECUTE',
     'PENT': 'NUM_ENTER',
     'KP_EQUAL': 'NUM_EQUALS',
@@ -125,8 +126,8 @@ QMK_MAPPING = {
     'MS_L': 'MS_LEFT',
     'MS_R': 'MS_RIGHT',
     'EJCT': 'MEDIA_EJECT',
-    'MYCM': 'COMPUTER',
-    'MY_COMPUTER': 'COMPUTER',
+    'MYCM': 'MY_COMPUTER',
+    'COMPUTER': 'MY_COMPUTER',
     'CPNL': 'CONTROL_PANEL',
     'WSCH': 'WWW_SEARCH',
     'WHOM': 'WWW_HOME',
@@ -139,9 +140,9 @@ QMK_MAPPING = {
     'WH_D': 'MS_WH_DOWN',
     'WH_L': 'MS_WH_LEFT',
     'WH_R': 'MS_WH_RIGHT',
-    'MS_ACCEL0': 'ACL0',
-    'MS_ACCEL1': 'ACL1',
-    'MS_ACCEL2': 'ACL2',
+    'ACL0': 'MS_ACCEL0',
+    'ACL1': 'MS_ACCEL1',
+    'ACL2': 'MS_ACCEL2',
     'NUMLOCK': 'NUM_LOCK',
     'NUM': 'NUM_LOCK',
     'LNUM': 'LOCKING_NUM_LOCK',
@@ -154,15 +155,15 @@ QMK_MAPPING = {
     'PSCR': 'PRINT_SCREEN',
     'PRIR': 'PRIOR',
     'PWR': 'SYSTEM_POWER',
-    'INT1': 'INTERNATIONAL_1',
-    'INT2': 'INTERNATIONAL_2',
-    'INT3': 'INTERNATIONAL_3',
-    'INT4': 'INTERNATIONAL_4',
-    'INT5': 'INTERNATIONAL_5',
-    'INT6': 'INTERNATIONAL_6',
-    'INT7': 'INTERNATIONAL_7',
-    'INT8': 'INTERNATIONAL_8',
-    'INT9': 'INTERNATIONAL_9',
+    'INTERNATIONAL_1': 'INT1',
+    'INTERNATIONAL_2': 'INT2',
+    'INTERNATIONAL_3': 'INT3',
+    'INTERNATIONAL_4': 'INT4',
+    'INTERNATIONAL_5': 'INT5',
+    'INTERNATIONAL_6': 'INT6',
+    'INTERNATIONAL_7': 'INT7',
+    'INTERNATIONAL_8': 'INT8',
+    'INTERNATIONAL_9': 'INT9',
     'LNG1': 'LANGUAGE_1',
     'LNG2': 'LANGUAGE_2',
     'LNG3': 'LANGUAGE_3',
@@ -175,7 +176,7 @@ QMK_MAPPING = {
     'PSTE': 'PASTE',
     'PROGRAMMABLE_BUTTON_1': 'PROGRAMMABLE_BUTTON',
     'QUOT': 'QUOTE',
-    'QUANTUM': 'BOOT',
+    'QUANTUM': 'RESET',
     'RALT': 'RIGHT_ALT',
     'ALGR': 'RIGHT_ALT',
     'ROPT': 'RIGHT_ALT',
@@ -197,8 +198,8 @@ QMK_MAPPING = {
     'RGB_M_K': 'RGB_MODE_KNIGHT',
     'RGB_M_X': 'RGB_MODE_XMAS',
     'RGB_M_G': 'RGB_MODE_GRADIENT',
-    'RGB_M_T': 'RGB_MODE_TEST',
-    'RGB_MODE_RGBTEST': 'RGB_MODE_TEST',
+    'RGB_M_T': 'RGB_MODE_RGBTEST',
+    'RGB_MODE_TEST': 'RGB_MODE_RGBTEST',
     'RGB_M_TW': 'RGB_MODE_TWINKLE',
     'BACKLIGHT_TOGGLE': 'KBD_TOGGLE',
     'BACKLIGHT_DOWN': 'KBD_DOWN',
@@ -222,21 +223,21 @@ QMK_MAPPING = {
     'SCRL': 'SCROLL_LOCK',
     'BRMD': 'SCROLL_LOCK',
     'JOYSTICK_BUTTON_0': 'JOYSTICK',
-    'MS_BTN1': 'BTN1',
-    'MS_BTN2': 'BTN2',
-    'MS_BTN3': 'BTN3',
-    'MS_BTN4': 'BTN4',
-    'MS_BTN5': 'BTN5',
-    'MS_BTN6': 'BTN6',
-    'MS_BTN7': 'BTN7',
-    'MS_BTN8': 'BTN8',
+    'BTN1': 'MS_BTN1',
+    'BTN2': 'MS_BTN2',
+    'BTN3': 'MS_BTN3',
+    'BTN4': 'MS_BTN4',
+    'BTN5': 'MS_BTN5',
+    'BTN6': 'MS_BTN6',
+    'BTN7': 'MS_BTN7',
+    'BTN8': 'MS_BTN8',
     'MIDI': 'MIDI_ON',
     'AUDIO': 'AUDIO_ON',
     'MACRO': 'MACRO_0',
     'SYSTEM_SLEEP': 'SUSPEND',
     'SLEP': 'SUSPEND',
     'SYRQ': 'SYSTEM_REQUEST',
-    'SYSTEM_WAKE': 'WAKE',
+    'WAKE': 'SYSTEM_WAKE',
     'SEPR': 'SEPARATOR',
     'TRANSPARENT': 'ROLL_OVER',
     'TRNS': 'ROLL_OVER',
@@ -255,6 +256,7 @@ QMK_MAPPING = {
     'MO(1)': 'FN',
     'MO(2)': 'LAYER_ACCESS_3',
     'MO(3)': 'LAYER_ACCESS_4',
+    '_______': 'ROLL_OVER',
 }
 QMK_EXTRA_SCANCODES = [
     "TG(0)",
@@ -281,33 +283,38 @@ ALIAS_RE = '#define\s+KC_([A-Z_]*)\s+KC_([A-Z_]+]*)\s*$'
 # keycode_h = open('tmk_core/common/keycode.h').read()
 # [(i.group(1), i.group(2)) for i in (re.match('#define\s+KC_([A-Z_]*)\s+KC_([A-Z_]+]*)\s*$', i) for i in keycode_h.splitlines()) if i]
 
-def call_preprocessor(path: str) -> str:
-    return subprocess.check_output(["gcc", "-E", "-nostdinc", path], stderr=subprocess.DEVNULL, universal_newlines=True)
+def call_preprocessor(input: str) -> str:
+    return subprocess.check_output(["gcc", "-E", "-nostdinc", "-"], stderr=subprocess.DEVNULL, input=input, universal_newlines=True)
 
-def comment_out_include(comment_out: bool, path: str):
-    if comment_out:
-        subprocess.run(["sed", "-i", 's/#include "/\/\/ layouts.py #includes "/', path], stderr=subprocess.DEVNULL, universal_newlines=True)
-    else: # Undo comment
-        subprocess.run(["sed", "-i", 's/\/\/ layouts.py #includes "/#include "/', path], stderr=subprocess.DEVNULL, universal_newlines=True)
+def read_stripping_includes(path: str) -> str:
+    output = ''
+    with open(path) as f:
+        for line in f:
+            if not line.startswith('#include'):
+                output += line
+    return output
 
 def extract_scancodes(ecdir: str, board: str, is_qmk: bool, has_brightness: bool, has_color: bool) -> Tuple[typing.OrderedDict[str, int], Dict[str, str]]:
     "Extract mapping from scancode names to numbers"
 
+    is_old_qmk = False
     if is_qmk:
-        includes = ["stdint.h"]
-        if "0.7.103" in subprocess.check_output(["git", "-C", ecdir, "describe", "--tags"], stderr=subprocess.DEVNULL, universal_newlines=True):
-            includes += [f"{ecdir}/tmk_core/common/keycode.h", f"{ecdir}/quantum/quantum_keycodes.h", f"{ecdir}/tmk_core/common/action_code.h"]
-            common_keymap_h = call_preprocessor(includes[1])
-            quantum_keycode_h = call_preprocessor(includes[2])
+        version = subprocess.check_output(["git", "-C", ecdir, "describe", "--tags"], stderr=subprocess.DEVNULL, universal_newlines=True)
+        is_old_qmk = "0.7.103" in version or "0.12.20" in version
+        if is_old_qmk:
+            include_paths = [f"{ecdir}/tmk_core/common/keycode.h", f"{ecdir}/quantum/quantum_keycodes.h", f"{ecdir}/tmk_core/common/action_code.h"]
+            includes = [read_stripping_includes(i) for i in include_paths]
+            common_keymap_h = call_preprocessor(includes[0])
+            quantum_keycode_h = call_preprocessor(includes[1])
             scancode_defines = re.findall(
                 '    (KC_[^,\s]+)', common_keymap_h)
             scancode_defines += re.findall(
                 '    (RGB_[^,\s]+)', quantum_keycode_h)
         else:
-            includes += [ f"{ecdir}/quantum/keycodes.h", f"{ecdir}/quantum/quantum_keycodes.h", f"{ecdir}/quantum/action_code.h" ]
-            comment_out_include(True, includes[2])
-            keycodes_h = call_preprocessor(includes[1])
-            quantum_keycode_h = call_preprocessor(includes[2])
+            include_paths = [ f"{ecdir}/quantum/keycodes.h", f"{ecdir}/quantum/quantum_keycodes.h", f"{ecdir}/quantum/action_code.h" ]
+            includes = [read_stripping_includes(i) for i in include_paths]
+            keycodes_h = call_preprocessor(includes[0])
+            quantum_keycode_h = call_preprocessor(includes[1])
             scancode_defines = re.findall(
                 '    (KC_[^,\s]+)', keycodes_h)
             scancode_defines += re.findall(
@@ -316,21 +323,25 @@ def extract_scancodes(ecdir: str, board: str, is_qmk: bool, has_brightness: bool
                 '    (QK_[^,\s]+)', keycodes_h)
             scancode_defines += re.findall(
                 '    (QK_[^,\s]+)', quantum_keycode_h)
-        define_aliases = [(i.group(1), i.group(2)) for i in (re.match(ALIAS_RE, i) for i in open(includes[1])) if i]
+        define_aliases = [(i.group(1), i.group(2)) for i in (re.match(ALIAS_RE, i) for i in includes[0].splitlines()) if i]
         mapping = QMK_MAPPING
         mapping.update({alias: QMK_MAPPING.get(keycode, keycode) for alias, keycode in define_aliases})
         for (alias, keycode) in define_aliases:
             mapping[alias] = QMK_MAPPING.get(keycode, keycode)
         scancode_defines += QMK_EXTRA_SCANCODES
     else:
-        includes = [f"{ecdir}/src/common/include/common/keymap.h"]
-        common_keymap_h = open(includes[0]).read()
+        includes = [open(f"{ecdir}/src/common/include/common/keymap.h").read()]
+        common_keymap_h = includes[0]
         scancode_defines = re.findall(
             '#define.*((?:K_\S+)|(?:KT_FN))', common_keymap_h)
         mapping = {}
 
     tmpdir = tempfile.mkdtemp()
     with open(f'{tmpdir}/keysym-extract.c', 'w') as f:
+        f.write('#include <stdint.h>\n')
+        for i in includes:
+            f.write(i.replace('#pragma once', ''))
+            f.write('\n')
         f.write('#include <stdio.h>\n')
         f.write('int main() {\n')
         for i in scancode_defines:
@@ -338,12 +349,8 @@ def extract_scancodes(ecdir: str, board: str, is_qmk: bool, has_brightness: bool
         f.write('}\n')
 
     cmd = ['gcc']
-    for i in includes:
-        cmd.append('-include')
-        cmd.append(i)
     cmd += ['-o', f'{tmpdir}/keysym-extract', f'{tmpdir}/keysym-extract.c']
     subprocess.check_call(cmd)
-    comment_out_include(True, includes[2]) # Sometimes needed. Does nothing if not.
 
     output = subprocess.check_output(
         f'{tmpdir}/keysym-extract', universal_newlines=True)
@@ -361,7 +368,8 @@ def extract_scancodes(ecdir: str, board: str, is_qmk: bool, has_brightness: bool
     scancode_list = OrderedDict(zip(scancode_names, scancodes))
 
     if is_qmk:
-        scancode_list['RESET'] = 0x5C00
+        if is_old_qmk:
+            scancode_list['RESET'] = 0x5C00
     else:
         scancode_list['NONE'] = 0x0000
 
@@ -420,7 +428,7 @@ def parse_keymap(keymap_c: str, mapping: Dict[str, str], physical: List[str], is
             if code == '0':
                 return 'NONE'
 
-            code = code.replace('K_', '').replace('KC_', '').replace('KT_', '')
+            code = code.replace('QK_', '').replace('K_', '').replace('KC_', '').replace('KT_', '')
 
             if is_qmk:
                 code = mapping.get(code, code)
@@ -446,37 +454,34 @@ def gen_layout_json(path: str, physical: List[str], physical2: List[List[str]]) 
                     for y, j in enumerate(i) if j == p)
         layout[p] = (x, y)
 
-    with open(path, 'w') as f:
-        json.dump(layout, f, indent=2)
+    write_json_file(path, layout)
 
 def gen_keymap_json(path: str, scancodes: typing.OrderedDict[str, int]) -> None:
     "Generate keymap.json file"
 
-    with open(path, 'w') as f:
-       json.dump(scancodes, f, indent=2)
+    write_json_file(path, scancodes)
 
 def gen_leds_json(path: str, leds: Dict[str, List[int]]) -> None:
     "Generate leds.json file"
 
-    with open(path, 'w') as f:
-       json.dump(leds, f, indent=2)
+    write_json_file(path, leds)
 
 def gen_default_json(path: str, board: str, keymap: Dict[str, List[str]], is_qmk: bool) -> None:
     "Generate default.json file"
 
-    with open(path, 'w') as f:
-        if is_qmk:
-            key_leds = {k: None for k in keymap.keys()}
-            layers = [
-                {"mode": (7, 127), "brightness": 176, "color": (142, 255)},
-                {"mode": (13, 127), "brightness": 176, "color": (142, 255)},
-                {"mode": (13, 127), "brightness": 176, "color": (142, 255)},
-                {"mode": (13, 127), "brightness": 176, "color": (142, 255)},
-            ]
-        else:
-            key_leds = {}
-            layers = [{"mode": None, "brightness": 0, "color": (0, 0)}]
-        json.dump({"model": board, "version": 1, "map": keymap, "key_leds": key_leds, "layers": layers}, f, indent=2)
+    if is_qmk:
+        key_leds = {k: None for k in keymap.keys()}
+        layers = [
+            {"mode": (7, 127), "brightness": 176, "color": (142, 255)},
+            {"mode": (13, 127), "brightness": 176, "color": (142, 255)},
+            {"mode": (13, 127), "brightness": 176, "color": (142, 255)},
+            {"mode": (13, 127), "brightness": 176, "color": (142, 255)},
+        ]
+    else:
+        key_leds = {}
+        layers = [{"mode": None, "brightness": 0, "color": (0, 0)}]
+
+    write_json_file(path, {"model": board, "version": 1, "map": keymap, "key_leds": key_leds, "layers": layers})
 
 
 def update_meta_json(meta_json: str, has_brightness: bool, has_color: bool, keyboard: str):
@@ -489,8 +494,13 @@ def update_meta_json(meta_json: str, has_brightness: bool, has_color: bool, keyb
     meta['has_color'] = has_color
     meta['keyboard'] = keyboard
 
-    with open(meta_json, 'w') as f:
-        json.dump(meta, f, indent=2)
+    write_json_file(meta_json, meta)
+
+
+def write_json_file(path: str, data):
+    with open(path, 'w') as f:
+        json.dump(data, f, indent=2)
+        f.write('\n')
 
 
 def generate_layout_dir(ecdir: str, board: str, is_qmk: bool, override: str) -> None:
@@ -549,7 +559,7 @@ parser = argparse.ArgumentParser(usage="./layouts.py --qmk ../qmk_firmware syste
 parser.add_argument("ecdir", help='For QMK boards that is the qmk_firmware (github.com/system76/qmk_firmware) directory itself, otherwise use the ec directory (github.com/system76/ec)')
 parser.add_argument("board", help='The name of the manufacturer and board name. Example: "system76/launch_2"')
 parser.add_argument("--qmk", action="store_true", help="Required if you plan on using a keyboard with QMK firmware.")
-parser.add_argument("--override", help="Override the output directory. See layouts/keyboards/. Usage: '--override overrides/0.19.12/'")
+parser.add_argument("--override", help="Override the output directory. See layouts/keyboards/. Usage: '--override overrides/0.19.12/'", default='')
 args = parser.parse_args()
 
 if args.board == 'all':
