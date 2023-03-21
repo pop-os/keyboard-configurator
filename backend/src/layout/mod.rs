@@ -219,44 +219,52 @@ mod tests {
     use super::*;
     use std::{collections::HashSet, fs, io};
 
+    const VERSIONS: [&str; 2] = ["0.7.103", "0.19.12"];
+
     #[test]
     fn layout_from_board() {
         for i in layouts() {
-            Layout::from_board(i, "dummy").unwrap();
+            for version in VERSIONS {
+                Layout::from_board(i, version).unwrap();
+            }
         }
     }
 
     #[test]
     fn default_keys_exist() {
         for i in layouts() {
-            let mut missing = HashSet::new();
-            let layout = Layout::from_board(i, "dummy").unwrap();
-            for j in layout.default.map.values().flatten() {
-                if layout.keymap.keys().find(|x| x == &j).is_none() {
-                    missing.insert(j.to_owned());
+            for version in VERSIONS {
+                let mut missing = HashSet::new();
+                let layout = Layout::from_board(i, version).unwrap();
+                for j in layout.default.map.values().flatten() {
+                    if layout.keymap.keys().find(|x| x == &j).is_none() {
+                        missing.insert(j.to_owned());
+                    }
                 }
+                assert_eq!(missing, HashSet::new(), "Mssing in keymap for {}", i);
             }
-            assert_eq!(missing, HashSet::new(), "Mssing in keymap for {}", i);
         }
     }
 
     #[test]
     fn qmk_has_ec_keycodes() {
-        let layout_ec = Layout::from_board("system76/darp6", "dummy").unwrap();
-        let layout_qmk = Layout::from_board("system76/launch_1", "dummy").unwrap();
-        for k in layout_ec.keymap.keys() {
-            if k == "KBD_COLOR"
-                || k == "KBD_BKL"
-                || k == "TOUCHPAD"
-                || k == "DISPLAY_TOGGLE"
-                || k == "DISPLAY_MODE"
-                || k == "FAN_TOGGLE"
-                || k == "CAMERA_TOGGLE"
-                || k == "AIRPLANE_MODE"
-            {
-                continue;
+        for version in VERSIONS {
+            let layout_ec = Layout::from_board("system76/darp6", version).unwrap();
+            let layout_qmk = Layout::from_board("system76/launch_1", version).unwrap();
+            for k in layout_ec.keymap.keys() {
+                if k == "KBD_COLOR"
+                    || k == "KBD_BKL"
+                    || k == "TOUCHPAD"
+                    || k == "DISPLAY_TOGGLE"
+                    || k == "DISPLAY_MODE"
+                    || k == "FAN_TOGGLE"
+                    || k == "CAMERA_TOGGLE"
+                    || k == "AIRPLANE_MODE"
+                {
+                    continue;
+                }
+                assert_eq!(layout_qmk.keymap.keys().find(|x| x == &k), Some(k));
             }
-            assert_eq!(layout_qmk.keymap.keys().find(|x| x == &k), Some(k));
         }
     }
 
@@ -281,39 +289,41 @@ mod tests {
     #[test]
     fn physical_layout_leds_logical() {
         for i in layouts() {
-            let layout = Layout::from_board(i, "dummy").unwrap();
-            let logical_in_physical = layout
-                .physical
-                .keys
-                .iter()
-                .map(|i| i.logical_name())
-                .collect::<HashSet<_>>();
-            let logical_in_layout = layout.layout.keys().cloned().collect::<HashSet<_>>();
-            let logical_in_leds = layout.layout.keys().cloned().collect::<HashSet<_>>();
-            assert_eq!(
-                &logical_in_physical - &logical_in_layout,
-                HashSet::new(),
-                "{}",
-                i
-            );
-            assert_eq!(
-                &logical_in_layout - &logical_in_physical,
-                HashSet::new(),
-                "{}",
-                i
-            );
-            assert_eq!(
-                &logical_in_physical - &logical_in_leds,
-                HashSet::new(),
-                "{}",
-                i
-            );
-            assert_eq!(
-                &logical_in_leds - &logical_in_physical,
-                HashSet::new(),
-                "{}",
-                i
-            );
+            for version in VERSIONS {
+                let layout = Layout::from_board(i, version).unwrap();
+                let logical_in_physical = layout
+                    .physical
+                    .keys
+                    .iter()
+                    .map(|i| i.logical_name())
+                    .collect::<HashSet<_>>();
+                let logical_in_layout = layout.layout.keys().cloned().collect::<HashSet<_>>();
+                let logical_in_leds = layout.layout.keys().cloned().collect::<HashSet<_>>();
+                assert_eq!(
+                    &logical_in_physical - &logical_in_layout,
+                    HashSet::new(),
+                    "{}",
+                    i
+                );
+                assert_eq!(
+                    &logical_in_layout - &logical_in_physical,
+                    HashSet::new(),
+                    "{}",
+                    i
+                );
+                assert_eq!(
+                    &logical_in_physical - &logical_in_leds,
+                    HashSet::new(),
+                    "{}",
+                    i
+                );
+                assert_eq!(
+                    &logical_in_leds - &logical_in_physical,
+                    HashSet::new(),
+                    "{}",
+                    i
+                );
+            }
         }
     }
 
@@ -324,8 +334,10 @@ mod tests {
                 continue;
             }
 
-            let layout = Layout::from_board(i, "dummy").unwrap();
-            assert_eq!(layout.f_keys().count(), 12);
+            for version in VERSIONS {
+                let layout = Layout::from_board(i, version).unwrap();
+                assert_eq!(layout.f_keys().count(), 12);
+            }
         }
     }
 }
