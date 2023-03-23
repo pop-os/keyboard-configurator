@@ -178,7 +178,7 @@ def extract_scancodes(ecdir: str, board: str, is_qmk: bool, has_brightness: bool
         scancode_list['NONE'] = 0x0000
 
     excluded_scancodes = ['INT_1', 'INT_2']
-    if has_color or board == 'system76/bonw14':
+    if has_color or board == 'system76/bonw14' or board == "system76/bonw15":
         excluded_scancodes += ['KBD_BKL']
     elif has_brightness:
         excluded_scancodes += ['KBD_COLOR']
@@ -332,8 +332,8 @@ def generate_layout_dir(ecdir: str, board: str, is_qmk: bool) -> None:
         kbled = m.group(1)
         if kbled == 'white_dac':
             has_color = False
-        # bonw14: Handled through USB. Can configurator support this?
-        elif kbled in ['none', 'bonw14']:
+        # bonw14/bonw15: Handled through USB. Can configurator support this?
+        elif kbled in ['none', 'bonw14', 'bonw15']:
             has_brightness = False
             has_color = False
         elif kbled not in ['rgb_pwm', 'oryp5', 'darp5']:
