@@ -1530,6 +1530,7 @@ dependencies = [
 name = "system76-keyboard-configurator-backend"
 version = "0.1.0"
 dependencies = [
+ "bitflags",
  "cascade",
  "futures",
  "futures-timer",

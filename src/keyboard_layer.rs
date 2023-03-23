@@ -138,7 +138,7 @@ impl WidgetImpl for KeyboardLayerInner {
             let mut bg_alpha = 1.;
             if let Some(layer) = self.page.get().layer() {
                 let scancode_name = k.get_scancode(layer).unwrap().1;
-                if scancode_name == "NONE" || scancode_name == "ROLL_OVER" {
+                if scancode_name.map_or(false, |x| x.is_none() || x.is_roll_over()) {
                     text_alpha = 0.5;
                     bg_alpha = 0.75;
                 }
@@ -161,18 +161,36 @@ impl WidgetImpl for KeyboardLayerInner {
                 cr.stroke().unwrap();
             }
 
-            // Draw label
-            let text = widget.page().get_label(k);
-            let layout = cascade! {
-                widget.create_pango_layout(Some(&text));
-                ..set_width((w * pango::SCALE as f64) as i32);
-                ..set_alignment(pango::Alignment::Center);
-            };
-            let text_height = layout.pixel_size().1 as f64;
+            // Draw labels, with line seperators if multiple
+            let labels = widget.page().get_label(k);
+            let layouts: Vec<_> = labels
+                .iter()
+                .map(|text| {
+                    cascade! {
+                        widget.create_pango_layout(Some(text));
+                        ..set_width((w * pango::SCALE as f64) as i32);
+                        ..set_alignment(pango::Alignment::Center);
+                    }
+                })
+                .collect();
+            let total_height = layouts
+                .iter()
+                .map(|layout| layout.pixel_size().1 as f64)
+                .sum::<f64>();
             cr.new_path();
-            cr.move_to(x, y + (h - text_height) / 2.);
             cr.set_source_rgba(fg.0, fg.1, fg.2, text_alpha);
-            pangocairo::show_layout(cr, &layout);
+            cr.set_line_width(1.);
+            cr.move_to(x, y + (h - total_height) / 2.);
+            for (i, layout) in layouts.iter().enumerate() {
+                pangocairo::show_layout(cr, &layout);
+                if i < layouts.len() - 1 {
+                    let text_height = layout.pixel_size().1 as f64;
+                    cr.rel_move_to(0.0, text_height);
+                    cr.rel_line_to(w, 0.0);
+                    cr.rel_move_to(-w, 1.0);
+                }
+            }
+            cr.stroke().unwrap();
         }
 
         Inhibit(false)

@@ -1,7 +1,7 @@
 use glib::prelude::*;
 use std::cell::Cell;
 
-use crate::{Board, Daemon, Hs, PhysicalLayoutKey, Rect, Rgb};
+use crate::{Board, Daemon, Hs, Keycode, PhysicalLayoutKey, Rect, Rgb};
 
 #[derive(Debug)]
 pub struct Key {
@@ -143,17 +143,16 @@ impl Key {
         Ok(())
     }
 
-    pub fn get_scancode(&self, layer: usize) -> Option<(u16, String)> {
+    // TODO: operate on keycode enum
+    pub fn get_scancode(&self, layer: usize) -> Option<(u16, Option<Keycode>)> {
         let board = self.board();
         let scancode = self.scancodes.get(layer)?.get();
-        let scancode_name = match board.layout().scancode_to_name(scancode) {
-            Some(some) => some,
-            None => String::new(),
-        };
+        let scancode_name = board.layout().scancode_to_name(scancode);
         Some((scancode, scancode_name))
     }
 
-    pub async fn set_scancode(&self, layer: usize, scancode_name: &str) -> Result<(), String> {
+    // TODO: operate on keycode enum
+    pub async fn set_scancode(&self, layer: usize, scancode_name: &Keycode) -> Result<(), String> {
         let board = self.board();
         let scancode = board
             .layout()
