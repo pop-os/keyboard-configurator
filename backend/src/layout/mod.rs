@@ -29,6 +29,7 @@ pub static MOD_TAP_MODS: Lazy<HashMap<&str, u16>> = Lazy::new(|| {
     }
 });
 
+#[derive(Debug)]
 pub struct Layout {
     /// Metadata for keyboard
     pub meta: Meta,
@@ -237,7 +238,7 @@ mod tests {
                 let mut missing = HashSet::new();
                 let layout = Layout::from_board(i, version).unwrap();
                 for j in layout.default.map.values().flatten() {
-                    if layout.keymap.keys().find(|x| x == &j).is_none() {
+                    if !layout.keymap.keys().any(|x| x == j) {
                         missing.insert(j.to_owned());
                     }
                 }

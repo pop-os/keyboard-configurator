@@ -2,6 +2,7 @@ use crate::fl;
 use cascade::cascade;
 use futures::future::abortable;
 use gtk::{
+    gio,
     glib::{self, clone},
     prelude::*,
 };
@@ -16,6 +17,7 @@ pub async fn choose_color<W: IsA<gtk::Widget>>(
     title: &str,
     color: Option<Hs>,
     index: KeyboardColorIndex,
+    cancellable: Option<gio::Cancellable>,
 ) -> Option<Hs> {
     let index = Rc::new(index);
     let original_colors = index.get_colors(&board);
@@ -113,11 +115,15 @@ pub async fn choose_color<W: IsA<gtk::Widget>>(
         ..show_all();
     };
 
-    let signal_id = board.connect_removed(clone!(@strong dialog => move || dialog.close()));
+    if let Some(cancellable) = cancellable {
+        cancellable.connect_closure(
+            "cancelled",
+            false,
+            glib::closure_local!(@watch dialog => move |_: glib::Object| dialog.close()),
+        );
+    }
 
     let response = dialog.run_future().await;
-
-    board.disconnect(signal_id);
 
     dialog.close();
     board.unblock_led_save();

@@ -1,16 +1,18 @@
-use glib::clone::Downgrade;
-use std::cell::Cell;
+use std::sync::{
+    atomic::{AtomicI32, Ordering},
+    Mutex,
+};
 
-use crate::{Board, Daemon, Hs, Mode, Rgb};
+use crate::{Board, Daemon, Hs, Mode, Rgb, WeakBoard};
 
 #[derive(Debug)]
 pub struct Layer {
     layer: u8,
     index: u8,
-    board: glib::WeakRef<Board>,
-    pub(crate) mode: Cell<Option<(u8, u8)>>,
-    brightness: Cell<i32>,
-    color: Cell<Hs>,
+    board: WeakBoard,
+    pub(crate) mode: Mutex<Option<(u8, u8)>>,
+    brightness: AtomicI32,
+    color: Mutex<Hs>,
 }
 
 impl Layer {
@@ -54,9 +56,9 @@ impl Layer {
             layer,
             index,
             board: board.downgrade(),
-            mode: Cell::new(mode),
-            brightness: Cell::new(brightness),
-            color: Cell::new(color),
+            mode: Mutex::new(mode),
+            brightness: AtomicI32::new(brightness),
+            color: Mutex::new(color),
         }
     }
 
@@ -66,7 +68,7 @@ impl Layer {
 
     /// Get the current mode and speed. `None` if not supported by board.
     pub fn mode(&self) -> Option<(&'static Mode, u8)> {
-        let (index, speed) = self.mode.get()?;
+        let (index, speed) = (*self.mode.lock().unwrap())?;
         Some((Mode::from_index(index)?, speed))
     }
 
@@ -76,14 +78,14 @@ impl Layer {
             .thread_client()
             .set_mode(board.board(), self.layer, mode.index, speed)
             .await?;
-        self.mode.set(Some((mode.index, speed)));
+        *self.mode.lock().unwrap() = Some((mode.index, speed));
         board.set_leds_changed();
         Ok(())
     }
 
     /// Get the current brightness
     pub fn brightness(&self) -> i32 {
-        self.brightness.get()
+        self.brightness.load(Ordering::SeqCst)
     }
 
     pub async fn set_brightness(&self, brightness: i32) -> Result<(), String> {
@@ -92,14 +94,14 @@ impl Layer {
             .thread_client()
             .set_brightness(board.board(), self.index, brightness)
             .await?;
-        self.brightness.set(brightness);
+        self.brightness.store(brightness, Ordering::SeqCst);
         board.set_leds_changed();
         Ok(())
     }
 
     /// Get the current color
     pub fn color(&self) -> Hs {
-        self.color.get()
+        *self.color.lock().unwrap()
     }
 
     pub async fn set_color(&self, hs: Hs) -> Result<(), String> {
@@ -115,7 +117,7 @@ impl Layer {
             .thread_client()
             .set_color(board.board(), self.index, color)
             .await?;
-        self.color.set(hs);
+        *self.color.lock().unwrap() = hs;
         board.set_leds_changed();
         Ok(())
     }

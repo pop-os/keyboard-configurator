@@ -1,11 +1,13 @@
-use glib::prelude::*;
-use std::cell::Cell;
+use std::sync::{
+    atomic::{AtomicU16, Ordering},
+    Mutex,
+};
 
-use crate::{Board, Daemon, Hs, PhysicalLayoutKey, Rect, Rgb};
+use crate::{Board, BoardEvent, Daemon, Hs, PhysicalLayoutKey, Rect, Rgb, WeakBoard};
 
 #[derive(Debug)]
 pub struct Key {
-    pub(crate) board: glib::WeakRef<Board>,
+    pub(crate) board: WeakBoard,
     /// Logical position (row, column)
     pub logical: (u8, u8),
     /// Logical name (something like K01, where 0 is the row and 1 is the column)
@@ -22,9 +24,9 @@ pub struct Key {
     pub leds: Vec<u8>,
     /// LED name
     pub led_name: String,
-    led_color: Cell<Option<Hs>>,
+    led_color: Mutex<Option<Hs>>,
     /// Currently loaded scancodes and their names
-    scancodes: Vec<Cell<u16>>,
+    scancodes: Vec<AtomicU16>,
     /// Background color
     pub background_color: Rgb,
 }
@@ -86,7 +88,7 @@ impl Key {
                 board.layout().scancode_to_name(scancode)
             );
 
-            scancodes.push(Cell::new(scancode));
+            scancodes.push(AtomicU16::new(scancode));
         }
 
         let mut led_color = None;
@@ -108,7 +110,7 @@ impl Key {
             electrical_name: format!("{}, {}", electrical.0, electrical.1),
             leds,
             led_name,
-            led_color: Cell::new(led_color),
+            led_color: Mutex::new(led_color),
             scancodes,
             background_color,
         }
@@ -126,7 +128,7 @@ impl Key {
     }
 
     pub fn color(&self) -> Option<Hs> {
-        self.led_color.get()
+        *self.led_color.lock().unwrap()
     }
 
     pub async fn set_color(&self, color: Option<Hs>) -> Result<(), String> {
@@ -138,14 +140,14 @@ impl Key {
                 .set_color(board.board(), *index, (r, g, b))
                 .await?;
         }
-        self.led_color.set(color);
+        *self.led_color.lock().unwrap() = color;
         board.set_leds_changed();
         Ok(())
     }
 
     pub fn get_scancode(&self, layer: usize) -> Option<(u16, String)> {
         let board = self.board();
-        let scancode = self.scancodes.get(layer)?.get();
+        let scancode = self.scancodes.get(layer)?.load(Ordering::SeqCst);
         let scancode_name = match board.layout().scancode_to_name(scancode) {
             Some(some) => some,
             None => String::new(),
@@ -169,8 +171,8 @@ impl Key {
                 scancode,
             )
             .await?;
-        self.scancodes[layer].set(scancode);
-        board.emit_by_name::<()>("keymap-changed", &[]);
+        self.scancodes[layer].store(scancode, Ordering::SeqCst);
+        board.send_event(BoardEvent::KeymapChanged);
         Ok(())
     }
 }

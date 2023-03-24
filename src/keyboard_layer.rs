@@ -1,11 +1,5 @@
 use cascade::cascade;
-use gtk::{
-    cairo, gdk,
-    glib::{self, clone},
-    pango,
-    prelude::*,
-    subclass::prelude::*,
-};
+use gtk::{cairo, gdk, glib, pango, prelude::*, subclass::prelude::*};
 use once_cell::unsync::OnceCell;
 use std::{
     cell::{Cell, RefCell},
@@ -249,7 +243,6 @@ glib::wrapper! {
 impl KeyboardLayer {
     pub fn new(page: Page, board: Board) -> Self {
         let obj = glib::Object::new::<Self>(&[]).unwrap();
-        board.connect_matrix_changed(clone!(@weak obj => move || obj.queue_draw()));
         obj.inner().page.set(page);
         obj.inner().board.set(board);
         obj

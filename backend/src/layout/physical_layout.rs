@@ -6,6 +6,7 @@ use std::char;
 use crate::{Rect, Rgb};
 
 #[allow(dead_code)]
+#[derive(Debug)]
 pub(crate) struct PhysicalLayout {
     pub meta: PhysicalLayoutMeta,
     pub keys: Vec<PhysicalLayoutKey>,
@@ -72,6 +73,7 @@ impl PhysicalLayout {
     }
 }
 
+#[derive(Debug)]
 pub(crate) struct PhysicalLayoutKey {
     pub logical: (u8, u8),
     pub physical: Rect,

@@ -1,126 +1,98 @@
-use glib::{
-    clone,
-    prelude::*,
-    subclass::{prelude::*, Signal},
-    SignalHandlerId,
+use futures::{
+    channel::mpsc as async_mpsc,
+    stream::{FusedStream, Stream},
 };
-use once_cell::sync::Lazy;
-use std::{cell::RefCell, collections::HashMap, process, sync::Arc, time::Duration};
+use std::{
+    pin::Pin,
+    process,
+    sync::Arc,
+    task::{Context, Poll},
+    time::Duration,
+};
 
 use crate::daemon::*;
-use crate::{Board, Bootloaded, DerefCell};
+use crate::{Board, BoardEvent, Bootloaded};
 
-#[derive(Default)]
-#[doc(hidden)]
-pub struct BackendInner {
-    thread_client: DerefCell<Arc<ThreadClient>>,
-    boards: RefCell<HashMap<BoardId, Board>>,
+#[derive(Clone, Debug)]
+pub enum Event {
+    BoardLoading,
+    BoardLoadingDone,
+    BoardNotUpdated,
+    Board(BoardId, BoardEvent),
+    BoardAdded(Board),
+    BoardRemoved(BoardId),
+    BootloadedAdded(Bootloaded),
+    BootloadedRemoved,
 }
 
-#[glib::object_subclass]
-impl ObjectSubclass for BackendInner {
-    const NAME: &'static str = "S76KeyboardBackend";
-    type ParentType = glib::Object;
-    type Type = Backend;
-}
+#[derive(Debug)]
+pub struct Events(async_mpsc::UnboundedReceiver<Event>);
 
-impl ObjectImpl for BackendInner {
-    fn signals() -> &'static [Signal] {
-        static SIGNALS: Lazy<Vec<Signal>> = Lazy::new(|| {
-            vec![
-                Signal::builder("board-loading", &[], glib::Type::UNIT.into()).build(),
-                Signal::builder("board-loading-done", &[], glib::Type::UNIT.into()).build(),
-                Signal::builder("bootloaded-1-added", &[], glib::Type::UNIT.into()).build(),
-                Signal::builder("bootloaded-2-added", &[], glib::Type::UNIT.into()).build(),
-                Signal::builder("bootloaded-lite-added", &[], glib::Type::UNIT.into()).build(),
-                Signal::builder("bootloaded-removed", &[], glib::Type::UNIT.into()).build(),
-                Signal::builder(
-                    "board-added",
-                    &[Board::static_type().into()],
-                    glib::Type::UNIT.into(),
-                )
-                .build(),
-                Signal::builder(
-                    "board-removed",
-                    &[Board::static_type().into()],
-                    glib::Type::UNIT.into(),
-                )
-                .build(),
-            ]
-        });
-        SIGNALS.as_ref()
-    }
+impl Stream for Events {
+    type Item = Event;
 
-    fn dispose(&self, _obj: &Self::Type) {
-        self.thread_client.close();
+    fn poll_next(self: Pin<&mut Self>, cx: &mut Context) -> Poll<Option<Event>> {
+        let receiver = &mut self.get_mut().0;
+        futures::pin_mut!(receiver);
+        receiver.poll_next(cx)
     }
 }
 
-glib::wrapper! {
-    pub struct Backend(ObjectSubclass<BackendInner>);
+impl FusedStream for Events {
+    fn is_terminated(&self) -> bool {
+        self.0.is_terminated()
+    }
 }
+
+impl Unpin for Events {}
+
+#[derive(Debug)]
+struct BackendInner {
+    thread_client: Arc<ThreadClient>,
+    executor: futures::executor::ThreadPool,
+}
+
+#[derive(Clone, Debug)]
+pub struct Backend(Arc<BackendInner>);
+
+unsafe impl Send for Backend {}
 
 impl Backend {
-    fn new_internal<T: Daemon + 'static>(daemon: T) -> Result<Self, String> {
-        let self_ = glib::Object::new::<Self>(&[]).unwrap();
-        let thread_client = ThreadClient::new(
-            Box::new(daemon),
-            clone!(@weak self_ => move |response| {
-                match response {
-                    ThreadResponse::BoardLoading => {
-                        self_.emit_by_name::<()>("board-loading", &[]);
-                    },
-                    ThreadResponse::BoardLoadingDone => {
-                        self_.emit_by_name::<()>("board-loading-done", &[]);
-                    },
-                    ThreadResponse::BoardAdded(board) => {
-                        self_.emit_by_name::<()>("board-added", &[&board]);
-                        self_.inner().boards.borrow_mut().insert(board.board(), board);
-                    },
-                    ThreadResponse::BoardRemoved(id) => {
-                        let boards = self_.inner().boards.borrow();
-                        if let Some(board) = &boards.get(&id) {
-                          self_.emit_by_name::<()>("board-removed", &[board]);
-                          board.emit_by_name::<()>("removed", &[]);
-                        }
-                    },
-                    ThreadResponse::BootloadedAdded(bootloaderboard) => {
-                      match bootloaderboard {
-                        Bootloaded::AtMega32u4 => self_.emit_by_name::<()>("bootloaded-1-added", &[]),
-                        Bootloaded::At90usb646 => self_.emit_by_name::<()>("bootloaded-2-added", &[]),
-                        Bootloaded::At90usb646Lite => self_.emit_by_name::<()>("bootloaded-lite-added", &[]),
-                      }
-                    },
-                    ThreadResponse::BootloadedRemoved => {
-                        self_.emit_by_name::<()>("bootloaded-removed", &[]);
-                    }
-                }
-            }),
-        );
-        self_.inner().thread_client.set(thread_client);
-        Ok(self_)
+    fn new_internal<T: Daemon + 'static>(daemon: T) -> Result<(Self, Events), String> {
+        let (sender, receiver) = async_mpsc::unbounded();
+
+        let executor = futures::executor::ThreadPool::builder()
+            .pool_size(1)
+            .create()
+            .unwrap();
+
+        let thread_client = ThreadClient::new(Box::new(daemon), sender);
+
+        Ok((
+            Self(Arc::new(BackendInner {
+                thread_client,
+                executor,
+            })),
+            Events(receiver),
+        ))
     }
 
-    pub fn new_dummy(board_names: Vec<String>) -> Result<Self, String> {
+    pub fn new_dummy(board_names: Vec<String>) -> Result<(Self, Events), String> {
         let dummy_daemon = DaemonDummy::new(board_names)?;
         Self::new_internal(dummy_daemon)
     }
 
     #[cfg(target_os = "linux")]
-    pub fn new_s76power() -> Result<Self, String> {
+    pub fn new_s76power() -> Result<(Self, Events), String> {
         Self::new_internal(DaemonS76Power::new()?)
     }
 
-    pub fn new_pkexec() -> Result<Self, String> {
+    pub fn new_pkexec() -> Result<(Self, Events), String> {
         Self::new_internal(DaemonClient::new_pkexec())
     }
 
-    pub fn new() -> Result<Self, String> {
+    pub fn new() -> Result<(Self, Events), String> {
         Self::new_internal(DaemonServer::new_stdio()?)
-    }
-
-    fn inner(&self) -> &BackendInner {
-        BackendInner::from_instance(self)
     }
 
     /// Test for added/removed boards, emitting `board-added`/`board-removed` signals
@@ -128,8 +100,8 @@ impl Backend {
     /// This function does not block, and loads new boards in the background.
     pub fn refresh(&self) {
         let self_ = self.clone();
-        glib::MainContext::default().spawn_local(async move {
-            if let Err(err) = self_.inner().thread_client.refresh().await {
+        self.0.executor.spawn_ok(async move {
+            if let Err(err) = self_.0.thread_client.refresh().await {
                 error!("Failed to refresh boards: {}", err);
             }
         });
@@ -137,8 +109,8 @@ impl Backend {
 
     pub fn check_for_bootloader(&self) {
         let self_ = self.clone();
-        glib::MainContext::default().spawn_local(async move {
-            if let Err(err) = self_.inner().thread_client.check_for_bootloader().await {
+        self.0.executor.spawn_ok(async move {
+            if let Err(err) = self_.0.thread_client.check_for_bootloader().await {
                 error!("Failed to check for board in bootloader mode: {}", err);
             }
         });
@@ -146,72 +118,15 @@ impl Backend {
 
     pub fn set_matrix_get_rate(&self, rate: Option<Duration>) {
         let self_ = self.clone();
-        glib::MainContext::default().spawn_local(async move {
-            let _ = self_.inner().thread_client.set_matrix_get_rate(rate).await;
+        self.0.executor.spawn_ok(async move {
+            let _ = self_.0.thread_client.set_matrix_get_rate(rate).await;
         });
     }
+}
 
-    pub fn connect_board_loading<F: Fn() + 'static>(&self, cb: F) -> SignalHandlerId {
-        self.connect_local("board-loading", false, move |_values| {
-            cb();
-            None
-        })
-    }
-
-    pub fn connect_board_loading_done<F: Fn() + 'static>(&self, cb: F) -> SignalHandlerId {
-        self.connect_local("board-loading-done", false, move |_values| {
-            cb();
-            None
-        })
-    }
-
-    pub fn connect_board_added<F: Fn(Board) + 'static>(&self, cb: F) -> SignalHandlerId {
-        self.connect_local("board-added", false, move |values| {
-            cb(values[1].get::<Board>().unwrap());
-            None
-        })
-    }
-
-    pub fn connect_board_removed<F: Fn(Board) + 'static>(&self, cb: F) -> SignalHandlerId {
-        self.connect_local("board-removed", false, move |values| {
-            cb(values[1].get::<Board>().unwrap());
-            None
-        })
-    }
-
-    pub fn connect_bootloader_1_added<F: Fn(Bootloaded) + 'static>(
-        &self,
-        cb: F,
-    ) -> SignalHandlerId {
-        self.connect_local("bootloaded-1-added", false, move |_values| {
-            cb(Bootloaded::AtMega32u4);
-            None
-        })
-    }
-    pub fn connect_bootloader_2_added<F: Fn(Bootloaded) + 'static>(
-        &self,
-        cb: F,
-    ) -> SignalHandlerId {
-        self.connect_local("bootloaded-2-added", false, move |_values| {
-            cb(Bootloaded::At90usb646);
-            None
-        })
-    }
-    pub fn connect_bootloader_lite_added<F: Fn(Bootloaded) + 'static>(
-        &self,
-        cb: F,
-    ) -> SignalHandlerId {
-        self.connect_local("bootloaded-lite-added", false, move |_values| {
-            cb(Bootloaded::At90usb646Lite);
-            None
-        })
-    }
-
-    pub fn connect_bootloader_board_removed<F: Fn() + 'static>(&self, cb: F) -> SignalHandlerId {
-        self.connect_local("bootloaded-removed", false, move |_values| {
-            cb();
-            None
-        })
+impl Drop for BackendInner {
+    fn drop(&mut self) {
+        self.thread_client.close();
     }
 }
 

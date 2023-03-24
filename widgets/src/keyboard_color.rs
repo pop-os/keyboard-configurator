@@ -2,6 +2,7 @@ use crate::fl;
 use cascade::cascade;
 use futures::{prelude::*, stream::FuturesUnordered};
 use gtk::{
+    gio,
     glib::{self, clone},
     prelude::*,
     subclass::prelude::*,
@@ -96,6 +97,7 @@ pub struct KeyboardColorInner {
     board: RefCell<Option<Board>>,
     hs: Cell<Hs>,
     index: RefCell<KeyboardColorIndex>,
+    dialog_cancellable: Cell<Option<gio::Cancellable>>,
 }
 
 #[glib::object_subclass]
@@ -163,7 +165,12 @@ impl ObjectImpl for KeyboardColorInner {
     }
 }
 
-impl WidgetImpl for KeyboardColorInner {}
+impl WidgetImpl for KeyboardColorInner {
+    fn destroy(&self, widget: &KeyboardColor) {
+        widget.cancel_dialog();
+    }
+}
+
 impl ContainerImpl for KeyboardColorInner {}
 impl BinImpl for KeyboardColorInner {}
 
@@ -186,20 +193,26 @@ impl KeyboardColor {
     }
 
     fn circle_clicked(&self) {
-        let self_ = self;
-        glib::MainContext::default().spawn_local(clone!(@weak self_ => async move {
-            let title = fl!("choose-color");
-            let resp = choose_color(
-                self_.board().unwrap().clone(),
-                &self_,
-                &title,
-                Some(self_.hs()),
-                self_.index().clone(),
-            );
-            if let Some(color) = resp.await {
-                self_.set_hs(color);
-            }
-        }));
+        self.cancel_dialog();
+
+        let cancellable = gio::Cancellable::new();
+        glib::MainContext::default().spawn_local(
+            clone!(@weak self as self_, @strong cancellable => async move {
+                let title = fl!("choose-color");
+                let resp = choose_color(
+                    self_.board().unwrap().clone(),
+                    &self_,
+                    &title,
+                    Some(self_.hs()),
+                    self_.index().clone(),
+                    Some(cancellable),
+                );
+                if let Some(color) = resp.await {
+                    self_.set_hs(color);
+                }
+            }),
+        );
+        self.inner().dialog_cancellable.set(Some(cancellable));
     }
 
     fn board(&self) -> Option<Ref<Board>> {
@@ -261,5 +274,11 @@ impl KeyboardColor {
     pub fn set_index(&self, value: KeyboardColorIndex) {
         self.inner().index.replace(value);
         self.read_color();
+    }
+
+    pub fn cancel_dialog(&self) {
+        if let Some(cancellable) = self.inner().dialog_cancellable.take() {
+            cancellable.cancel();
+        }
     }
 }

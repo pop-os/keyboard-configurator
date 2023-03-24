@@ -1,5 +1,6 @@
 use crate::fl;
 use cascade::cascade;
+use futures::StreamExt;
 use gtk::{
     gio,
     glib::{self, clone},
@@ -15,7 +16,7 @@ use std::{
 };
 
 use crate::{shortcuts_window, ConfiguratorApp, Keyboard, KeyboardLayer, Page, Picker};
-use backend::{Backend, Board, Bootloaded, DerefCell};
+use backend::{Backend, Board, BoardId, Bootloaded, DerefCell};
 
 pub struct Loader(MainWindow, gtk::Box);
 
@@ -237,29 +238,9 @@ impl MainWindow {
         let is_testing_mode = app.launch_test();
         app.add_window(&window);
 
-        let mut backend = cascade! {
-            daemon();
-            ..connect_board_loading(clone!(@weak window => move || {
-                info!("loading");
-                let loader = window.display_loader(&fl!("loading"));
-                *window.inner().board_loading.borrow_mut() = Some(loader);
-            }));
-            ..connect_board_loading_done(clone!(@weak window => move || {
-                window.inner().board_loading.borrow_mut().take();
-            }));
-            ..connect_board_added(clone!(@weak window => move |board| window.add_keyboard(board)));
-            ..connect_board_removed(clone!(@weak window => move |board| window.remove_keyboard(board)));
-        };
-
-        if is_testing_mode {
-          cascade! {
-            &mut backend;
-            ..connect_bootloader_1_added(clone!(@weak window => move |board| window.add_flash_menu(board)));
-            ..connect_bootloader_2_added(clone!(@weak window => move |board| window.add_flash_menu(board)));
-            ..connect_bootloader_lite_added(clone!(@weak window => move |board| window.add_flash_menu(board)));
-            ..connect_bootloader_board_removed(clone!(@weak window => move || window.remove_flash_menu()));
-          }
-        } else {&mut backend}.refresh();
+        let (backend, receiver) = daemon();
+        window.handle_backend_event_stream(receiver, false);
+        backend.refresh();
 
         // Refresh key matrix only when window is visible
         backend.set_matrix_get_rate(if window.is_active() {
@@ -267,21 +248,22 @@ impl MainWindow {
         } else {
             None
         });
-        window.connect_is_active_notify(clone!(@weak backend => move |window| {
-            backend.set_matrix_get_rate(if window.is_active() {
-                Some(Duration::from_millis(50))
-            } else {
-                None
-            });
-        }));
+        window.connect_is_active_notify(|window| {
+            window
+                .inner()
+                .backend
+                .set_matrix_get_rate(if window.is_active() {
+                    Some(Duration::from_millis(50))
+                } else {
+                    None
+                });
+        });
 
         let phony_board_names = app.phony_board_names().to_vec();
         if !phony_board_names.is_empty() {
             match Backend::new_dummy(phony_board_names) {
-                Ok(backend) => {
-                    backend.connect_board_added(
-                        clone!(@weak window => move |board| window.add_keyboard(board)),
-                    );
+                Ok((backend, receiver)) => {
+                    window.handle_backend_event_stream(receiver, true);
                     backend.refresh();
                 }
                 Err(err) => error!("{}", err),
@@ -309,6 +291,62 @@ impl MainWindow {
 
     fn inner(&self) -> &MainWindowInner {
         MainWindowInner::from_instance(self)
+    }
+
+    fn handle_backend_event_stream(&self, mut receiver: backend::Events, is_dummy: bool) {
+        let window_weak = self.downgrade();
+        glib::MainContext::default().spawn_local(async move {
+            while let (Some(event), Some(window)) = (receiver.next().await, window_weak.upgrade()) {
+                window.handle_backend_event(event, is_dummy);
+            }
+        });
+    }
+
+    fn handle_backend_event(&self, event: backend::Event, is_dummy: bool) {
+        match event {
+            // Ignore these events for dummy; only use for real keyboard
+            backend::Event::BoardLoading
+            | backend::Event::BoardLoadingDone
+            | backend::Event::BoardNotUpdated
+                if is_dummy => {}
+            backend::Event::BoardLoading => {
+                info!("loading");
+                let loader = self.display_loader(&fl!("loading"));
+                *self.inner().board_loading.borrow_mut() = Some(loader);
+            }
+            backend::Event::BoardLoadingDone => {
+                self.inner().board_loading.borrow_mut().take();
+            }
+            backend::Event::BoardNotUpdated => {
+                info!("board not updated");
+                self.inner().board_loading.borrow_mut().take();
+                let loader = self.display_loader(&fl!("firmware-update-required"));
+                *self.inner().board_loading.borrow_mut() = Some(loader);
+            }
+            backend::Event::BoardAdded(board) => {
+                self.add_keyboard(board);
+            }
+            backend::Event::Board(id, event) => {
+                if let backend::BoardEvent::MatrixChanged = &event {
+                    self.inner().keyboard_box.queue_draw();
+                }
+                for (keyboard, _) in &*self.inner().keyboards.borrow() {
+                    if keyboard.board().board() == id {
+                        keyboard.handle_backend_event(event);
+                        break;
+                    }
+                }
+            }
+            backend::Event::BoardRemoved(id) => {
+                self.remove_keyboard(id);
+            }
+            backend::Event::BootloadedAdded(board) => {
+                self.add_flash_menu(board);
+            }
+            backend::Event::BootloadedRemoved => {
+                self.remove_flash_menu();
+            }
+        }
     }
 
     fn show_keyboard_list(&self) {
@@ -407,9 +445,9 @@ impl MainWindow {
             .set_visible_child_name("keyboards");
     }
 
-    fn remove_keyboard(&self, board: Board) {
+    fn remove_keyboard(&self, id: BoardId) {
         let mut boards = self.inner().keyboards.borrow_mut();
-        if let Some(idx) = boards.iter().position(|(kb, _)| kb.board() == &board) {
+        if let Some(idx) = boards.iter().position(|(kb, _)| kb.board().board() == id) {
             let (keyboard, row) = boards.remove(idx);
             if self.inner().stack.visible_child().as_ref() == Some(keyboard.upcast_ref()) {
                 self.show_keyboard_list();
@@ -487,7 +525,7 @@ impl MainWindow {
 }
 
 #[cfg(target_os = "linux")]
-fn daemon() -> Backend {
+fn daemon() -> (Backend, backend::Events) {
     if unsafe { libc::geteuid() == 0 } {
         info!("Already running as root");
         Backend::new()
@@ -499,6 +537,6 @@ fn daemon() -> Backend {
 }
 
 #[cfg(not(target_os = "linux"))]
-fn daemon() -> Backend {
+fn daemon() -> (Backend, backend::Events) {
     Backend::new().expect("Failed to create server")
 }
