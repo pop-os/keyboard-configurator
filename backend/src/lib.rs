@@ -1,11 +1,18 @@
 //#![warn(missing_docs)]
 
 //! ```no_run
-//! use system76_keyboard_configurator_backend::Backend;
+//! # use futures::{executor::ThreadPool, stream::StreamExt};
+//! use system76_keyboard_configurator_backend::{Backend, Event};
 //!
-//! let backend = Backend::new()?;
-//! backend.connect_board_added(|board| {
-//!     println!("{}", board.model());
+//! # let executor = ThreadPool::new().unwrap();
+//!
+//! let (backend, mut events) = Backend::new()?;
+//! executor.spawn_ok(async move {
+//!     while let Some(event) = events.next().await {
+//!         if let Event::BoardAdded(board) = event {
+//!             println!("{}", board.model());
+//!         }
+//!     }
 //! });
 //! backend.refresh();
 //! # Ok::<(), String>(())
@@ -30,6 +37,7 @@ mod mode;
 mod nelson;
 mod rect;
 
+pub use crate::daemon::BoardId;
 use crate::daemon::*;
 pub use crate::{
     backend::*, benchmark::*, board::*, color::*, deref_cell::*, key::*, keymap::*, layer::*,

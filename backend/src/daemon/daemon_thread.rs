@@ -6,7 +6,6 @@ use futures::{
     task::LocalSpawnExt,
 };
 use futures_timer::Delay;
-use glib::clone;
 use once_cell::sync::Lazy;
 use std::{
     cell::{Cell, RefCell},
@@ -20,7 +19,7 @@ use std::{
 };
 
 use super::{Benchmark, BoardId, Daemon, Matrix, Nelson, NelsonKind};
-use crate::{Board, Bootloaded};
+use crate::{Board, BoardEvent, Bootloaded, Event};
 
 #[derive(Clone, Debug)]
 struct Item<K: Hash + Eq, V> {
@@ -108,6 +107,7 @@ impl Set {
     }
 }
 
+#[derive(Debug)]
 pub struct ThreadClient {
     cancels: Mutex<HashMap<SetEnum, AbortHandle>>,
     channel: async_mpsc::UnboundedSender<Set>,
@@ -115,39 +115,37 @@ pub struct ThreadClient {
 }
 
 impl ThreadClient {
-    pub fn new<F: Fn(ThreadResponse) + 'static>(daemon: Box<dyn Daemon>, cb: F) -> Arc<Self> {
+    pub fn new(
+        daemon: Box<dyn Daemon>,
+        event_sender: async_mpsc::UnboundedSender<Event>,
+    ) -> Arc<Self> {
         let (sender, reciever) = async_mpsc::unbounded();
         let client = Arc::new(Self {
             cancels: Mutex::new(HashMap::new()),
             channel: sender,
             join_handle: Mutex::new(None),
         });
-        let (response_sender, mut response_reciever) = async_mpsc::unbounded();
-        glib::MainContext::default().spawn_local(async move {
-            while let Some(response) = response_reciever.next().await {
-                cb(response)
-            }
-        });
 
-        let join_handle = Thread::new(daemon, client.clone(), response_sender).spawn(reciever);
+        let join_handle = Thread::new(daemon, client.clone(), event_sender).spawn(reciever);
         *client.join_handle.lock().unwrap() = Some(join_handle);
         client
     }
 
     #[allow(clippy::await_holding_lock)]
     async fn send(&self, set_enum: SetEnum) -> Result<Response, String> {
-        let mut cancels = self.cancels.lock().unwrap();
-
-        if set_enum.is_cancelable() {
-            if let Some(cancel) = cancels.remove(&set_enum) {
-                cancel.abort();
-            }
-        }
-
         let (sender, receiver) = oneshot::channel();
         let (receiver, cancel) = abortable(receiver);
-        cancels.insert(set_enum.clone(), cancel);
-        drop(cancels);
+        {
+            let mut cancels = self.cancels.lock().unwrap();
+
+            if set_enum.is_cancelable() {
+                if let Some(cancel) = cancels.remove(&set_enum) {
+                    cancel.abort();
+                }
+            }
+
+            cancels.insert(set_enum.clone(), cancel);
+        }
 
         let _ = self.channel.unbounded_send(Set {
             inner: set_enum,
@@ -295,26 +293,29 @@ impl ThreadClient {
     }
 }
 
-pub enum ThreadResponse {
-    BoardLoading,
-    BoardLoadingDone,
-    BoardAdded(Board),
-    BoardRemoved(BoardId),
+/* TODO
     BootloadedAdded(Bootloaded),
-    BootloadedRemoved,
-}
+    BootloadedRemoved
+*/
 
 struct ThreadBoard {
-    matrix: Matrix,
-    matrix_channel: async_mpsc::UnboundedSender<Matrix>,
+    matrix: Arc<Mutex<Matrix>>,
+    board: BoardId,
+    event_sender: async_mpsc::UnboundedSender<Event>,
     has_matrix: bool,
 }
 
 impl ThreadBoard {
-    fn new(matrix_channel: async_mpsc::UnboundedSender<Matrix>, has_matrix: bool) -> Self {
+    fn new(
+        board: BoardId,
+        event_sender: async_mpsc::UnboundedSender<Event>,
+        has_matrix: bool,
+        matrix: Arc<Mutex<Matrix>>,
+    ) -> Self {
         Self {
-            matrix: Matrix::default(),
-            matrix_channel,
+            matrix,
+            board,
+            event_sender,
             has_matrix,
         }
     }
@@ -324,7 +325,7 @@ struct Thread {
     daemon: Box<dyn Daemon>,
     boards: RefCell<HashMap<BoardId, ThreadBoard>>,
     client: Weak<ThreadClient>,
-    response_channel: async_mpsc::UnboundedSender<ThreadResponse>,
+    event_sender: async_mpsc::UnboundedSender<Event>,
     matrix_get_rate: Cell<Option<Duration>>,
     previous_bootloaded: RefCell<Option<Bootloaded>>,
     current_bootloaded: RefCell<Option<Bootloaded>>,
@@ -334,12 +335,12 @@ impl Thread {
     fn new(
         daemon: Box<dyn Daemon>,
         client: Arc<ThreadClient>,
-        response_channel: async_mpsc::UnboundedSender<ThreadResponse>,
+        event_sender: async_mpsc::UnboundedSender<Event>,
     ) -> Self {
         Self {
             daemon,
             client: Arc::downgrade(&client),
-            response_channel,
+            event_sender,
             boards: RefCell::new(HashMap::new()),
             matrix_get_rate: Cell::new(None),
             previous_bootloaded: RefCell::new(None),
@@ -354,20 +355,21 @@ impl Thread {
 
             let self_ = Rc::new(self);
 
+            let self_clone = self_.clone();
             spawner
-                .spawn_local(clone!(@strong self_ => async move {
+                .spawn_local(async move {
                     loop {
-                        if let Some(rate) = self_.matrix_get_rate.get() {
+                        if let Some(rate) = self_clone.matrix_get_rate.get() {
                             Delay::new(rate).await;
-                            if let Err(err) = self_.matrix_refresh_all() {
-                              error!("{}", err);
-                              return
+                            if let Err(err) = self_clone.matrix_refresh_all() {
+                                error!("{}", err);
+                                return;
                             }
                         } else {
                             Delay::new(Duration::from_millis(100)).await;
                         }
                     }
-                }))
+                })
                 .unwrap();
 
             pool.run_until(async move {
@@ -425,9 +427,12 @@ impl Thread {
                 .daemon
                 .matrix_get(*k)
                 .map_err(|err| format!("failed to get matrix: {}", err))?;
-            if v.matrix != matrix {
-                let _ = v.matrix_channel.unbounded_send(matrix.clone());
-                v.matrix = matrix;
+            let mut matrix_lock = v.matrix.lock().unwrap();
+            if *matrix_lock != matrix {
+                *matrix_lock = matrix;
+                let _ = v
+                    .event_sender
+                    .unbounded_send(Event::Board(v.board, BoardEvent::MatrixChanged));
             }
         }
         Ok(())
@@ -436,7 +441,6 @@ impl Thread {
     fn bootloader_update(&self, update: Option<Bootloaded>) -> Result<(), String> {
         *self.previous_bootloaded.borrow_mut() = *self.current_bootloaded.borrow();
         *self.current_bootloaded.borrow_mut() = update;
-        let send = |msg| self.response_channel.unbounded_send(msg);
 
         // If a new board is plugged in and is in bootloader mode, update the gui
         // only check if we are in launch test mode for production.
@@ -444,26 +448,31 @@ impl Thread {
             *self.previous_bootloaded.borrow(),
             *self.current_bootloaded.borrow(),
         ) {
-            (None, Some(board)) => send(ThreadResponse::BootloadedAdded(board)),
-            (Some(_), None) => send(ThreadResponse::BootloadedRemoved),
-            _ => Ok(()),
+            (None, Some(board)) => {
+                let _ = self
+                    .event_sender
+                    .unbounded_send(Event::BootloadedAdded(board));
+            }
+            (Some(_), None) => {
+                let _ = self.event_sender.unbounded_send(Event::BootloadedRemoved);
+            }
+            _ => {}
         }
-        .map_err(|err| format!("Failed to check for bootloader {}", err))
+        Ok(())
     }
 
     fn refresh(&self) -> Result<(), String> {
         self.daemon.refresh()?;
 
-        let send = |msg| self.response_channel.unbounded_send(msg);
         let mut boards = self.boards.borrow_mut();
 
         let new_ids = self.daemon.boards()?;
 
         // Removed boards
-        let response_channel = &self.response_channel;
+        let event_sender = &self.event_sender;
         boards.retain(|id, _| {
             if !new_ids.iter().any(|i| i == id) {
-                let _ = response_channel.unbounded_send(ThreadResponse::BoardRemoved(*id));
+                let _ = event_sender.unbounded_send(Event::BoardRemoved(*id));
                 return false;
             }
             true
@@ -477,27 +486,31 @@ impl Thread {
             }
 
             if !have_new_board {
-                let _ = send(ThreadResponse::BoardLoading);
+                let _ = self.event_sender.unbounded_send(Event::BoardLoading);
                 have_new_board = true;
             }
 
-            let (matrix_sender, matrix_reciever) = async_mpsc::unbounded();
+            let matrix = Arc::new(Mutex::new(Matrix::default()));
             match Board::new(
                 self.daemon.as_ref(),
                 self.client.upgrade().unwrap(),
                 *i,
-                matrix_reciever,
+                matrix.clone(),
+                self.event_sender.clone(),
             ) {
                 Ok(board) => {
-                    boards.insert(*i, ThreadBoard::new(matrix_sender, board.has_matrix()));
-                    let _ = send(ThreadResponse::BoardAdded(board));
+                    boards.insert(
+                        *i,
+                        ThreadBoard::new(*i, event_sender.clone(), board.has_matrix(), matrix),
+                    );
+                    let _ = self.event_sender.unbounded_send(Event::BoardAdded(board));
                 }
                 Err(err) => error!("Failed to add board: {}", err),
             }
         }
 
         if have_new_board {
-            let _ = send(ThreadResponse::BoardLoadingDone);
+            let _ = self.event_sender.unbounded_send(Event::BoardLoadingDone);
         }
 
         Ok(())

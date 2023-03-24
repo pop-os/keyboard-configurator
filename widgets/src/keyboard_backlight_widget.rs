@@ -2,6 +2,7 @@
 
 use crate::fl;
 use cascade::cascade;
+use futures::StreamExt;
 use gtk::{
     glib::{self, clone},
     prelude::*,
@@ -36,10 +37,14 @@ pub fn keyboard_backlight_widget() -> gtk::Widget {
 }
 
 fn add_boards(stack: &gtk::Stack) -> Result<(), String> {
-    let backend = Backend::new_s76power()?;
-    backend.connect_board_added(clone!(@weak stack => move |board| {
-        let name = board.model().to_owned();
-        stack.add_titled(&page(board), &name, &name);
+    let (backend, mut receiver) = Backend::new_s76power()?;
+    glib::MainContext::default().spawn_local(clone!(@strong stack => async move {
+        while let Some(event) = receiver.next().await {
+            if let backend::Event::BoardAdded(board) = event {
+                let name = board.model().to_owned();
+                stack.add_titled(&page(board), &name, &name);
+            }
+        }
     }));
     backend.refresh();
 
