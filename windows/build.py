@@ -189,9 +189,9 @@ if args.sign:
         "-password=" + os.environ["SSL_COM_PASSWORD"],
         "-totp_secret=" + os.environ["SSL_COM_TOTP_SECRET"],
         "-program_name=System76 Keyboard Configurator",
-        "-input_file_path=../../keyboard-configurator.msi",
-        "-output_dir_path=../",
-    ], cwd="sign/CodeSignTool")
+        "-input_file_path=../../../keyboard-configurator.msi",
+        "-output_dir_path=../../",
+    ], cwd="sign/CodeSignTool/CodeSignTool-v1.2.7-windows")
 
     # Update MSI
     os.remove("keyboard-configurator.msi")
