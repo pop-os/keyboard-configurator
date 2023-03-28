@@ -82,7 +82,7 @@ impl Board {
             error!("Error getting firmware version: {}", err);
             String::new()
         });
-        let layout = Layout::from_board(&model)
+        let layout = Layout::from_board(&model, &version)
             .ok_or_else(|| format!("Failed to locate layout for '{}'", model))?;
 
         let max_brightness = daemon.max_brightness(board).unwrap_or_else(|err| {

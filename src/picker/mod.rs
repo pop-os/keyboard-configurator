@@ -136,7 +136,7 @@ mod tests {
     fn picker_has_keys() {
         let mut missing = HashSet::new();
         for i in layouts() {
-            let layout = Layout::from_board(i).unwrap();
+            let layout = Layout::from_board(i, "dummy").unwrap();
             for j in layout.default.map.values().flatten() {
                 if SCANCODE_LABELS.keys().find(|x| x == &j).is_none() {
                     missing.insert(j.to_owned());

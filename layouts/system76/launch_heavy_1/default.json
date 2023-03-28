@@ -4,7 +4,7 @@
   "map": {
     "K00": [
       "ESC",
-      "ROLL_OVER",
+      "RESET",
       "ROLL_OVER",
       "ROLL_OVER"
     ],
@@ -520,7 +520,7 @@
     ],
     "K4C": [
       "UP",
-      "ROLL_OVER",
+      "PGUP",
       "ROLL_OVER",
       "ROLL_OVER"
     ],
@@ -604,19 +604,19 @@
     ],
     "K59": [
       "LEFT",
-      "ROLL_OVER",
+      "HOME",
       "ROLL_OVER",
       "ROLL_OVER"
     ],
     "K5A": [
       "DOWN",
-      "ROLL_OVER",
+      "PGDN",
       "ROLL_OVER",
       "ROLL_OVER"
     ],
     "K5B": [
       "RIGHT",
-      "ROLL_OVER",
+      "END",
       "ROLL_OVER",
       "ROLL_OVER"
     ],
