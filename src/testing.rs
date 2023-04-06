@@ -7,7 +7,8 @@ use gtk::{
     prelude::*,
     subclass::prelude::*,
 };
-use once_cell::sync::OnceCell;
+use once_cell::sync::{Lazy, OnceCell};
+use regex::Regex;
 use std::{cell::RefCell, collections::HashMap, sync::RwLock};
 
 struct TestResults {
@@ -55,6 +56,7 @@ pub struct TestingInner {
     board: DerefCell<Board>,
     keyboard: DerefCell<glib::WeakRef<Keyboard>>,
     reset_button: DerefCell<gtk::Button>,
+    usb_test: DerefCell<gtk::Box>,
     bench_button: DerefCell<gtk::ToggleButton>,
     bench_labels: DerefCell<HashMap<&'static str, gtk::Label>>,
     num_runs_spin_2: DerefCell<gtk::SpinButton>,
@@ -119,7 +121,7 @@ impl ObjectImpl for TestingInner {
             }
         }
 
-        let reset_button = gtk::Button::with_label("Reset testing");
+        let reset_button = gtk::Button::with_label("Reset Testing");
 
         obj.add(&cascade! {
             gtk::ListBox::new();
@@ -139,7 +141,7 @@ impl ObjectImpl for TestingInner {
 
         let bench_button = gtk::ToggleButton::with_label("Run USB test");
 
-        let usb_test = &cascade! {
+        let usb_test = cascade! {
             gtk::Box::new(gtk::Orientation::Vertical, 12);
             ..add(&gtk::Label::new(Some("USB Port Test")));
             ..add(&cascade! {
@@ -225,7 +227,7 @@ impl ObjectImpl for TestingInner {
             ..add(&cascade! {
                 gtk::Box::new(gtk::Orientation::Vertical, 18);
                 ..set_valign(gtk::Align::Start);
-                ..add(&row(usb_test));
+                ..add(&row(&usb_test));
                 ..add(&row(selma_test));
             });
             ..add(&cascade! {
@@ -237,6 +239,7 @@ impl ObjectImpl for TestingInner {
         });
 
         self.reset_button.set(reset_button);
+        self.usb_test.set(usb_test);
         self.bench_button.set(bench_button);
         self.bench_labels.set(bench_labels);
         self.num_runs_spin_2.set(num_runs_spin_2);
@@ -254,8 +257,6 @@ impl ObjectImpl for TestingInner {
     }
 
     fn properties() -> &'static [glib::ParamSpec] {
-        use once_cell::sync::Lazy;
-
         static PROPERTIES: Lazy<Vec<glib::ParamSpec>> = Lazy::new(|| {
             vec![glib::ParamSpecBoxed::new(
                 "colors",
@@ -549,6 +550,8 @@ impl Testing {
     }
 
     pub fn new(board: &Board, keyboard: &Keyboard) -> Self {
+        static RE: Lazy<Regex> = Lazy::new(|| Regex::new("system76/launch_lite_.*").unwrap());
+
         let obj: Self = glib::Object::new(&[]).unwrap();
         obj.inner().board.set(board.clone());
         obj.inner().keyboard.set(keyboard.downgrade());
@@ -558,6 +561,9 @@ impl Testing {
         obj.connect_selma_buttons();
         obj.connect_reset_button();
         obj.update_benchmarks();
+        if RE.is_match(board.model()) {
+            obj.inner().usb_test.set_sensitive(false);
+        }
         obj
     }
 
