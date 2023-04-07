@@ -29,6 +29,7 @@ impl Drop for Loader {
 pub struct MainWindowInner {
     backend: DerefCell<Backend>,
     back_button: DerefCell<gtk::Button>,
+    flash_menu: DerefCell<gtk::MenuButton>,
     header_bar: DerefCell<gtk::HeaderBar>,
     keyboard_box: DerefCell<gtk::Box>,
     layer_switcher: DerefCell<gtk::StackSwitcher>,
@@ -65,6 +66,24 @@ impl ObjectImpl for MainWindowInner {
             ..show();
         };
 
+        let flash = cascade! {
+            gio::Menu::new();
+            ..append_section(None, &cascade! {
+                gio::Menu::new();
+                    ..append(Some(&fl!("flash-to-launch-heavy")), Some("app.flash-to-launch-heavy-1"));
+                    ..append(Some(&fl!("flash-to-launch-2")), Some("app.flash-to-launch-2"));
+                    ..append(Some(&fl!("flash-to-launch-1")), Some("app.flash-to-launch-1"));
+                    ..append(Some(&fl!("flash-to-launch-lite-1")), Some("app.flash-to-launch-lite-1"));
+            });
+        };
+        let flash_menu = cascade! {
+                gtk::MenuButton::new();
+                ..set_menu_model(Some(&flash));
+                ..add(&cascade! {
+                    gtk::Image::from_icon_name(Some("open-menu-symbolic"), gtk::IconSize::Button);
+                });
+        };
+
         let menu = cascade! {
             gio::Menu::new();
             ..append_section(None, &cascade! {
@@ -93,6 +112,7 @@ impl ObjectImpl for MainWindowInner {
                     gtk::Image::from_icon_name(Some("open-menu-symbolic"), gtk::IconSize::Button);
                 });
             });
+            ..pack_end(&flash_menu);
         };
 
         let no_boards_msg = format!(
@@ -174,8 +194,10 @@ impl ObjectImpl for MainWindowInner {
             ..show_all();
         };
         back_button.set_visible(false);
+        flash_menu.set_visible(false);
 
         self.back_button.set(back_button);
+        self.flash_menu.set(flash_menu);
         self.header_bar.set(header_bar);
         self.keyboard_box.set(keyboard_box);
         self.layer_switcher.set(layer_switcher);
@@ -206,10 +228,15 @@ glib::wrapper! {
 impl MainWindow {
     pub fn new(app: &ConfiguratorApp) -> Self {
         let window: Self = glib::Object::new(&[]).unwrap();
+        let is_testing_mode = app.launch_test();
         app.add_window(&window);
 
+        if is_testing_mode {
+            window.inner().flash_menu.set_visible(true);
+        }
+
         let backend = cascade! {
-            daemon(app.launch_test());
+            daemon(is_testing_mode);
             ..connect_board_loading(clone!(@weak window => move || {
                 info!("loading");
                 let loader = window.display_loader(&fl!("loading"));

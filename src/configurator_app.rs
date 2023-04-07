@@ -79,7 +79,13 @@ impl ApplicationImpl for ConfiguratorAppInner {
             ..connect_activate(|_, _| about_dialog::show_about_dialog());
         };
 
+        let flash_action = cascade! {
+            gio::SimpleAction::new("flash-to-launch-heavy-1", None);
+            ..connect_activate(|_, _| println!("heavy"));
+        };
+
         app.add_action(&about_action);
+        app.add_action(&flash_action);
         app.set_accels_for_action("kbd.import", &["<Primary>o"]);
         app.set_accels_for_action("kbd.export", &["<Primary>e"]);
         for (i, _) in Page::iter_all().enumerate() {
