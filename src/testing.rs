@@ -8,7 +8,6 @@ use gtk::{
     subclass::prelude::*,
 };
 use once_cell::sync::{Lazy, OnceCell};
-use regex::Regex;
 use std::{cell::RefCell, collections::HashMap, sync::RwLock};
 
 struct TestResults {
@@ -550,8 +549,6 @@ impl Testing {
     }
 
     pub fn new(board: &Board, keyboard: &Keyboard) -> Self {
-        static RE: Lazy<Regex> = Lazy::new(|| Regex::new("system76/launch_lite_.*").unwrap());
-
         let obj: Self = glib::Object::new(&[]).unwrap();
         obj.inner().board.set(board.clone());
         obj.inner().keyboard.set(keyboard.downgrade());
@@ -561,7 +558,7 @@ impl Testing {
         obj.connect_selma_buttons();
         obj.connect_reset_button();
         obj.update_benchmarks();
-        if RE.is_match(board.model()) {
+        if board.is_lite() {
             obj.inner().usb_test.set_sensitive(false);
         }
         obj

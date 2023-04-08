@@ -22,3 +22,16 @@ __pycache__
 vendor
 vendor.tar
 gschemas.compiled
+debian/.debhelper/
+debian/debhelper-build-stamp
+debian/files
+debian/libsystem76-keyboard-configurator-dev.debhelper.log
+debian/libsystem76-keyboard-configurator-dev.substvars
+debian/libsystem76-keyboard-configurator-dev/
+debian/libsystem76-keyboard-configurator.debhelper.log
+debian/libsystem76-keyboard-configurator.substvars
+debian/libsystem76-keyboard-configurator/
+debian/system76-keyboard-configurator.debhelper.log
+debian/system76-keyboard-configurator.substvars
+debian/system76-keyboard-configurator/
+debian/tmp/

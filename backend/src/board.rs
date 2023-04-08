@@ -6,6 +6,7 @@ use glib::{
     SignalHandlerId,
 };
 use once_cell::sync::Lazy;
+use regex::Regex;
 use std::{
     cell::{Cell, Ref, RefCell},
     collections::HashMap,
@@ -228,6 +229,21 @@ impl Board {
 
     pub fn is_fake(&self) -> bool {
         *self.inner().is_fake
+    }
+
+    pub fn is_lite(&self) -> bool {
+        static RE: Lazy<Regex> = Lazy::new(|| Regex::new("system76/launch_lite_.*").unwrap());
+        RE.is_match(self.model())
+    }
+
+    pub fn is_1(&self) -> bool {
+        static RE: Lazy<Regex> = Lazy::new(|| Regex::new("system76/launch_1.*").unwrap());
+        RE.is_match(self.model())
+    }
+
+    pub fn is_2(&self) -> bool {
+        static RE: Lazy<Regex> = Lazy::new(|| Regex::new("system76/launch_(heavy_|2).*").unwrap());
+        RE.is_match(self.model())
     }
 
     pub fn has_led_save(&self) -> bool {
