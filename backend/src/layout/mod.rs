@@ -91,7 +91,7 @@ impl Layout {
         use_legacy_scancodes: bool,
     ) -> Self {
         let meta = serde_json::from_str(meta_json).unwrap();
-        let default = KeyMap::from_str(default_json).unwrap();
+        let default = default_json.parse().unwrap();
         let (keymap, scancode_names) = parse_keymap_json(keymap_json);
         let layout = serde_json::from_str(layout_json).unwrap();
         let leds = serde_json::from_str(leds_json).unwrap();
