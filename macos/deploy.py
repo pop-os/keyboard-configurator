@@ -11,16 +11,16 @@ PREFIX = '/usr/local'
 
 ADWAITA_FILES = [
     'index.theme',
-    'scalable/actions/open-menu-symbolic.svg',
-    'scalable/ui/window-close-symbolic.svg',
-    'scalable/ui/window-maximize-symbolic.svg',
-    'scalable/ui/window-minimize-symbolic.svg',
-    'scalable/ui/window-restore-symbolic.svg',
-    'scalable/actions/edit-delete-symbolic.svg',
-    'scalable/actions/go-previous-symbolic.svg',
-    'scalable/actions/list-remove-symbolic.svg',
-    'scalable/actions/list-add-symbolic.svg',
-    'scalable/actions/edit-find-symbolic.svg',
+    'symbolic/actions/open-menu-symbolic.svg',
+    'symbolic/ui/window-close-symbolic.svg',
+    'symbolic/ui/window-maximize-symbolic.svg',
+    'symbolic/ui/window-minimize-symbolic.svg',
+    'symbolic/ui/window-restore-symbolic.svg',
+    'symbolic/actions/edit-delete-symbolic.svg',
+    'symbolic/actions/go-previous-symbolic.svg',
+    'symbolic/actions/list-remove-symbolic.svg',
+    'symbolic/actions/list-add-symbolic.svg',
+    'symbolic/actions/edit-find-symbolic.svg',
 ]
 ADWAITA_FILES = [f'share/icons/Adwaita/{i}' for i in ADWAITA_FILES]
 ADDITIONAL_FILES = ['share/glib-2.0/schemas/org.gtk.Settings.FileChooser.gschema.xml'] + ADWAITA_FILES
