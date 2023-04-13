@@ -19,7 +19,7 @@ use std::{
 };
 
 use super::{is_launch_updated, Benchmark, BoardId, Daemon, Matrix, Nelson, NelsonKind};
-use crate::Board;
+use crate::{Board, Bootloaded};
 
 #[derive(Clone, Debug)]
 struct Item<K: Hash + Eq, V> {
@@ -275,6 +275,8 @@ pub enum ThreadResponse {
     BoardAdded(Board),
     BoardRemoved(BoardId),
     BoardNotUpdated,
+    BootloadedAdded(Bootloaded),
+    BootloadedRemoved,
 }
 
 struct ThreadBoard {
@@ -404,9 +406,10 @@ impl Thread {
     }
 
     fn refresh(&self) -> Result<(), String> {
+        let send = |msg| self.response_channel.unbounded_send(msg);
         let mut boards = self.boards.borrow_mut();
 
-        self.daemon.refresh()?;
+        self.daemon.refresh(self.is_testing_mode)?;
 
         let new_ids = self.daemon.boards()?;
 
@@ -420,6 +423,18 @@ impl Thread {
             true
         });
 
+        // If a new board is plugged in and is in bootloader mode, update the gui
+        // only check if we are in launch test mode for production.
+        if self.is_testing_mode {
+            if let Ok(status) = self.daemon.bootloaded_board() {
+                let _ = match status {
+                    (None, Some(board)) => send(ThreadResponse::BootloadedAdded(board)),
+                    (Some(_), None) => send(ThreadResponse::BootloadedRemoved),
+                    _ => Ok(()),
+                };
+            };
+        }
+
         // Added boards
         let mut have_new_board = false;
         let mut board_safe = true;
@@ -429,9 +444,7 @@ impl Thread {
             }
 
             if !have_new_board {
-                let _ = self
-                    .response_channel
-                    .unbounded_send(ThreadResponse::BoardLoading);
+                let _ = send(ThreadResponse::BoardLoading);
                 have_new_board = true;
             }
 
@@ -439,14 +452,12 @@ impl Thread {
             board_safe = if self.is_testing_mode {
                 let status = is_launch_updated();
                 if (status.is_ok() && !status.unwrap()) || status.is_err() {
-                    info!("bad board");
+                    info!("Plugged in Keyboard is not updated.");
                     if let Err(err) = status {
                         warn!("{}", err.to_string());
                     }
 
-                    let _ = self
-                        .response_channel
-                        .unbounded_send(ThreadResponse::BoardNotUpdated);
+                    let _ = send(ThreadResponse::BoardNotUpdated);
                     false
                 } else {
                     true
@@ -465,9 +476,7 @@ impl Thread {
                 Ok(board) => {
                     boards.insert(*i, ThreadBoard::new(matrix_sender, board.has_matrix()));
                     if board_safe {
-                        let _ = self
-                            .response_channel
-                            .unbounded_send(ThreadResponse::BoardAdded(board));
+                        let _ = send(ThreadResponse::BoardAdded(board));
                     }
                 }
                 Err(err) => error!("Failed to add board: {}", err),
@@ -475,9 +484,7 @@ impl Thread {
         }
 
         if have_new_board && board_safe {
-            let _ = self
-                .response_channel
-                .unbounded_send(ThreadResponse::BoardLoadingDone);
+            let _ = send(ThreadResponse::BoardLoadingDone);
         }
 
         Ok(())

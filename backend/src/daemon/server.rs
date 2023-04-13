@@ -2,10 +2,12 @@
 use ectool::AccessLpcLinux;
 use ectool::{Access, AccessHid, Ec};
 use hidapi::{DeviceInfo, HidApi};
+use once_cell::sync::Lazy;
 use std::{
     cell::{Cell, RefCell, RefMut},
     collections::HashMap,
     io::{self, BufRead, BufReader, Read, Write},
+    process::Command,
     str,
     thread::sleep,
     time::Duration,
@@ -13,7 +15,7 @@ use std::{
 use uuid::Uuid;
 
 use super::{err_str, BoardId, Daemon, DaemonCommand};
-use crate::{Benchmark, Matrix, Nelson, NelsonKind};
+use crate::{Benchmark, Bootloaded, Matrix, Nelson, NelsonKind};
 
 pub struct DaemonServer<R: Read + Send + 'static, W: Write + Send + 'static> {
     hidapi: RefCell<Option<HidApi>>,
@@ -23,6 +25,8 @@ pub struct DaemonServer<R: Read + Send + 'static, W: Write + Send + 'static> {
     boards: RefCell<HashMap<BoardId, (Ec<Box<dyn Access>>, Option<DeviceInfo>)>>,
     board_ids: RefCell<Vec<BoardId>>,
     nelson: RefCell<Option<Ec<AccessHid>>>,
+    prev_bootloaded: RefCell<Option<Bootloaded>>,
+    bootloaded: RefCell<Option<Bootloaded>>,
 }
 
 impl DaemonServer<io::Stdin, io::Stdout> {
@@ -71,6 +75,8 @@ impl<R: Read + Send + 'static, W: Write + Send + 'static> DaemonServer<R, W> {
             boards: RefCell::new(boards),
             board_ids: RefCell::new(board_ids),
             nelson: RefCell::new(None),
+            prev_bootloaded: RefCell::new(None),
+            bootloaded: RefCell::new(None),
         })
     }
 
@@ -121,6 +127,10 @@ impl<R: Read + Send + 'static, W: Write + Send + 'static> DaemonServer<R, W> {
 impl<R: Read + Send + 'static, W: Write + Send + 'static> Daemon for DaemonServer<R, W> {
     fn boards(&self) -> Result<Vec<BoardId>, String> {
         Ok(self.board_ids.borrow().clone())
+    }
+
+    fn bootloaded_board(&self) -> Result<(Option<Bootloaded>, Option<Bootloaded>), String> {
+        Ok((*self.prev_bootloaded.borrow(), *self.bootloaded.borrow()))
     }
 
     fn model(&self, board: BoardId) -> Result<String, String> {
@@ -281,7 +291,7 @@ impl<R: Read + Send + 'static, W: Write + Send + 'static> Daemon for DaemonServe
         unsafe { ec.led_save().map_err(err_str) }
     }
 
-    fn refresh(&self) -> Result<(), String> {
+    fn refresh(&self, is_testing_mode: bool) -> Result<(), String> {
         if let Some(api) = &mut *self.hidapi.borrow_mut() {
             // Remove USB boards that are no longer attached
             {
@@ -296,6 +306,38 @@ impl<R: Read + Send + 'static, W: Write + Send + 'static> Daemon for DaemonServe
 
             if let Err(err) = api.refresh_devices() {
                 error!("Failed to refresh hidapi devices: {}", err);
+            }
+
+            // Check for keybaords that are plugged in and are in bootloader mode.
+            // Then
+            if is_testing_mode {
+                use regex::bytes::Regex;
+                static HAS_USB_HUB: Lazy<Regex> =
+                    Lazy::new(|| Regex::new("3384:0003 System76 USB").unwrap());
+                static ATMEGA32U4: Lazy<Regex> =
+                    Lazy::new(|| Regex::new("03eb:2ff4.*atmega32u4.*bootloader").unwrap());
+                static AT90USB646: Lazy<Regex> =
+                    Lazy::new(|| Regex::new("03eb:2ff9.*at90usb646.*bootloader").unwrap());
+
+                *self.prev_bootloaded.borrow_mut() = *self.bootloaded.borrow();
+
+                let lsusb = Command::new("lsusb")
+                    .arg("--verbose")
+                    .output()
+                    .map_err(|_| "Failed to run lsusb".to_string())?
+                    .stdout;
+
+                if AT90USB646.is_match(&lsusb) {
+                    if HAS_USB_HUB.is_match(&lsusb) {
+                        *self.bootloaded.borrow_mut() = Some(Bootloaded::At90usb646);
+                    } else {
+                        *self.bootloaded.borrow_mut() = Some(Bootloaded::At90usb646Lite);
+                    }
+                } else if ATMEGA32U4.is_match(&lsusb) {
+                    *self.bootloaded.borrow_mut() = Some(Bootloaded::AtMega32u4);
+                } else {
+                    *self.bootloaded.borrow_mut() = None;
+                }
             }
 
             for info in api.device_list() {

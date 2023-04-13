@@ -10,7 +10,7 @@ use gtk::{
 use std::{cell::RefCell, time::Duration};
 
 use crate::{shortcuts_window, ConfiguratorApp, Keyboard, KeyboardLayer, Page, Picker};
-use backend::{Backend, Board, DerefCell};
+use backend::{Backend, Board, Bootloaded, DerefCell};
 
 pub struct Loader(MainWindow, gtk::Box);
 
@@ -229,11 +229,7 @@ impl MainWindow {
         let is_testing_mode = app.launch_test();
         app.add_window(&window);
 
-        if is_testing_mode {
-            window.inner().flash_button.set_visible(true);
-        }
-
-        let backend = cascade! {
+        let mut backend = cascade! {
             daemon(is_testing_mode);
             ..connect_board_loading(clone!(@weak window => move || {
                 info!("loading");
@@ -251,8 +247,17 @@ impl MainWindow {
             }));
             ..connect_board_added(clone!(@weak window => move |board| window.add_keyboard(board)));
             ..connect_board_removed(clone!(@weak window => move |board| window.remove_keyboard(board)));
-            ..refresh();
         };
+
+        if is_testing_mode {
+          cascade! {
+            &mut backend;
+            ..connect_bootloader_1_added(clone!(@weak window => move |board| window.add_flash_menu(board)));
+            ..connect_bootloader_2_added(clone!(@weak window => move |board| window.add_flash_menu(board)));
+            ..connect_bootloader_lite_added(clone!(@weak window => move |board| window.add_flash_menu(board)));
+            ..connect_bootloader_board_removed(clone!(@weak window => move || window.remove_flash_menu()));
+          }
+        } else {&mut backend}.refresh();
 
         // Refresh key matrix only when window is visible
         backend.set_matrix_get_rate(if window.is_active() {
@@ -377,31 +382,6 @@ impl MainWindow {
             row.add(&label);
         }
 
-        {
-            let menu = &self.inner().flash_menu;
-            menu.remove_all();
-            if board.is_2() {
-                menu.append(
-                    Some(&fl!("flash-to-launch-2")),
-                    Some("app.flash-to-launch-2"),
-                );
-                menu.append(
-                    Some(&fl!("flash-to-launch-heavy")),
-                    Some("app.flash-to-launch-heavy-1"),
-                );
-            } else if board.is_1() {
-                menu.append(
-                    Some(&fl!("flash-to-launch-1")),
-                    Some("app.flash-to-launch-1"),
-                );
-            } else if board.is_lite() {
-                menu.append(
-                    Some(&fl!("flash-to-launch-lite-1")),
-                    Some("app.flash-to-launch-lite-1"),
-                );
-            }
-        }
-
         self.inner().stack.add(&keyboard);
         self.inner().keyboards.borrow_mut().push((keyboard, row));
 
@@ -426,6 +406,42 @@ impl MainWindow {
                     .set_visible_child_name("no_boards");
             }
         }
+    }
+
+    fn add_flash_menu(&self, board: Bootloaded) {
+        let menu = &self.inner().flash_menu;
+        menu.remove_all();
+
+        match board {
+            Bootloaded::At90usb646 => {
+                menu.append(
+                    Some(&fl!("flash-to-launch-2")),
+                    Some("app.flash-to-launch-2"),
+                );
+                menu.append(
+                    Some(&fl!("flash-to-launch-heavy")),
+                    Some("app.flash-to-launch-heavy-1"),
+                );
+            }
+            Bootloaded::At90usb646Lite => {
+                menu.append(
+                    Some(&fl!("flash-to-launch-lite-1")),
+                    Some("app.flash-to-launch-lite-1"),
+                );
+            }
+            Bootloaded::AtMega32u4 => {
+                menu.append(
+                    Some(&fl!("flash-to-launch-1")),
+                    Some("app.flash-to-launch-1"),
+                );
+            }
+        }
+
+        self.inner().flash_button.set_visible(true);
+    }
+
+    fn remove_flash_menu(&self) {
+        self.inner().flash_button.set_visible(false);
     }
 
     fn num_keyboards(&self) -> usize {
