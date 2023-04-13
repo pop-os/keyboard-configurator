@@ -6,6 +6,8 @@ use glib::{
     SignalHandlerId,
 };
 use once_cell::sync::Lazy;
+use regex::Regex;
+use serde::{Deserialize, Serialize};
 use std::{
     cell::{Cell, Ref, RefCell},
     collections::HashMap,
@@ -57,6 +59,16 @@ impl ObjectImpl for BoardInner {
         });
         SIGNALS.as_ref()
     }
+}
+
+#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq)]
+pub enum Bootloaded {
+    // Launch 2, Launch Heavy 1,
+    At90usb646,
+    // Launch Lite 1
+    At90usb646Lite,
+    // Launch 1
+    AtMega32u4,
 }
 
 glib::wrapper! {
@@ -228,6 +240,11 @@ impl Board {
 
     pub fn is_fake(&self) -> bool {
         *self.inner().is_fake
+    }
+
+    pub fn is_lite(&self) -> bool {
+        static RE: Lazy<Regex> = Lazy::new(|| Regex::new("system76/launch_lite_.*").unwrap());
+        RE.is_match(self.model())
     }
 
     pub fn has_led_save(&self) -> bool {

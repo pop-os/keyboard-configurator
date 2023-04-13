@@ -90,7 +90,7 @@ impl Key {
         }
 
         let mut led_color = None;
-        if board.layout().meta.has_mode && leds.len() > 0 {
+        if board.layout().meta.has_mode && !leds.is_empty() {
             match daemon.color(board.board(), leds[0]) {
                 Ok((0, 0, 0)) => {}
                 Ok((r, g, b)) => led_color = Some(Rgb::new(r, g, b).to_hs_lossy()),

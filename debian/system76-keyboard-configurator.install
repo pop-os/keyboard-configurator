@@ -3,3 +3,8 @@ usr/share/applications/com.system76.keyboardconfigurator.desktop
 usr/share/metainfo/com.system76.keyboardconfigurator.appdata.xml
 usr/share/icons
 debian/com.system76.pkexec.keyboardconfigurator.policy usr/share/polkit-1/actions
+
+data/system76_launch_1_default.hex /var/lib/system76-keyboard-configurator/
+data/system76_launch_2_default.hex /var/lib/system76-keyboard-configurator/
+data/system76_launch_lite_1_default.hex /var/lib/system76-keyboard-configurator/
+data/system76_launch_heavy_1_default.hex /var/lib/system76-keyboard-configurator/

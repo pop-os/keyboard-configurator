@@ -47,7 +47,7 @@ impl ObjectImpl for PickerGroupBoxInner {
 
         let style_provider = cascade! {
             gtk::CssProvider::new();
-            ..load_from_data(&PICKER_CSS.as_bytes()).expect("Failed to parse css");
+            ..load_from_data(PICKER_CSS.as_bytes()).expect("Failed to parse css");
         };
 
         let mut groups = Vec::new();
@@ -300,5 +300,11 @@ impl PickerGroupBox {
         }
 
         rows
+    }
+}
+
+impl Default for PickerGroupBox {
+    fn default() -> Self {
+        Self::new()
     }
 }

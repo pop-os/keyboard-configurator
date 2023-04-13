@@ -285,3 +285,9 @@ impl ColorWheel {
             .unwrap()
     }
 }
+
+impl Default for ColorWheel {
+    fn default() -> Self {
+        Self::new()
+    }
+}

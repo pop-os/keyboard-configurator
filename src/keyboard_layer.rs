@@ -112,7 +112,7 @@ impl WidgetImpl for KeyboardLayerInner {
         let testing_colors = self.testing_colors.borrow();
 
         for (i, k) in widget.keys().iter().enumerate() {
-            let Rect { x, y, w, h } = widget.key_position(&k);
+            let Rect { x, y, w, h } = widget.key_position(k);
 
             let mut bg = if let Some(rgb) = testing_colors
                 .0
@@ -189,7 +189,7 @@ impl WidgetImpl for KeyboardLayerInner {
         let pressed = widget
             .keys()
             .iter()
-            .position(|k| widget.key_position(&k).contains(pos.0, pos.1));
+            .position(|k| widget.key_position(k).contains(pos.0, pos.1));
 
         if let Some(pressed) = pressed {
             let shift = evt.state().contains(gdk::ModifierType::SHIFT_MASK);
@@ -200,13 +200,11 @@ impl WidgetImpl for KeyboardLayerInner {
                 } else {
                     selected.insert(pressed);
                 }
+            } else if selected.contains(&pressed) {
+                selected.clear();
             } else {
-                if selected.contains(&pressed) {
-                    selected.clear();
-                } else {
-                    selected.clear();
-                    selected.insert(pressed);
-                }
+                selected.clear();
+                selected.insert(pressed);
             }
             widget.set_selected(selected);
         }
@@ -271,7 +269,7 @@ impl KeyboardLayer {
     }
 
     pub fn keys(&self) -> &[Key] {
-        &self.inner().board.keys()
+        self.inner().board.keys()
     }
 
     pub fn selected(&self) -> SelectedKeys {

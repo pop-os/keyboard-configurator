@@ -19,7 +19,7 @@ use std::{
 };
 
 use super::{is_launch_updated, Benchmark, BoardId, Daemon, Matrix, Nelson, NelsonKind};
-use crate::Board;
+use crate::{Board, Bootloaded};
 
 #[derive(Clone, Debug)]
 struct Item<K: Hash + Eq, V> {
@@ -64,10 +64,7 @@ enum SetEnum {
 
 impl SetEnum {
     fn is_cancelable(&self) -> bool {
-        match self {
-            Self::Nelson(_, _) | Self::Benchmark(_) => false,
-            _ => true,
-        }
+        !matches!(self, Self::Nelson(_, _) | Self::Benchmark(_))
     }
 }
 
@@ -85,21 +82,21 @@ enum Response {
     Nelson(Box<Nelson>),
 }
 
-impl Into<Response> for Benchmark {
-    fn into(self) -> Response {
-        Response::Benchmark(self)
+impl From<Benchmark> for Response {
+    fn from(benchmark: Benchmark) -> Self {
+        Response::Benchmark(benchmark)
     }
 }
 
-impl Into<Response> for () {
-    fn into(self) -> Response {
+impl From<()> for Response {
+    fn from(_unit: ()) -> Self {
         Response::Empty
     }
 }
 
-impl Into<Response> for Nelson {
-    fn into(self) -> Response {
-        Response::Nelson(Box::new(self))
+impl From<Nelson> for Response {
+    fn from(nelson: Nelson) -> Self {
+        Response::Nelson(Box::new(nelson))
     }
 }
 
@@ -140,6 +137,7 @@ impl ThreadClient {
         client
     }
 
+    #[allow(clippy::await_holding_lock)]
     async fn send(&self, set_enum: SetEnum) -> Result<Response, String> {
         let mut cancels = self.cancels.lock().unwrap();
 
@@ -275,6 +273,8 @@ pub enum ThreadResponse {
     BoardAdded(Board),
     BoardRemoved(BoardId),
     BoardNotUpdated,
+    BootloadedAdded(Bootloaded),
+    BootloadedRemoved,
 }
 
 struct ThreadBoard {
@@ -404,21 +404,34 @@ impl Thread {
     }
 
     fn refresh(&self) -> Result<(), String> {
+        let send = |msg| self.response_channel.unbounded_send(msg);
         let mut boards = self.boards.borrow_mut();
 
-        self.daemon.refresh()?;
+        self.daemon.refresh(self.is_testing_mode)?;
 
         let new_ids = self.daemon.boards()?;
 
         // Removed boards
         let response_channel = &self.response_channel;
         boards.retain(|id, _| {
-            if new_ids.iter().find(|i| *i == id).is_none() {
+            if !new_ids.iter().any(|i| i == id) {
                 let _ = response_channel.unbounded_send(ThreadResponse::BoardRemoved(*id));
                 return false;
             }
             true
         });
+
+        // If a new board is plugged in and is in bootloader mode, update the gui
+        // only check if we are in launch test mode for production.
+        if self.is_testing_mode {
+            if let Ok(status) = self.daemon.bootloaded_board() {
+                let _ = match status {
+                    (None, Some(board)) => send(ThreadResponse::BootloadedAdded(board)),
+                    (Some(_), None) => send(ThreadResponse::BootloadedRemoved),
+                    _ => Ok(()),
+                };
+            };
+        }
 
         // Added boards
         let mut have_new_board = false;
@@ -429,9 +442,7 @@ impl Thread {
             }
 
             if !have_new_board {
-                let _ = self
-                    .response_channel
-                    .unbounded_send(ThreadResponse::BoardLoading);
+                let _ = send(ThreadResponse::BoardLoading);
                 have_new_board = true;
             }
 
@@ -439,14 +450,12 @@ impl Thread {
             board_safe = if self.is_testing_mode {
                 let status = is_launch_updated();
                 if (status.is_ok() && !status.unwrap()) || status.is_err() {
-                    info!("bad board");
+                    info!("Plugged in Keyboard is not updated.");
                     if let Err(err) = status {
                         warn!("{}", err.to_string());
                     }
 
-                    let _ = self
-                        .response_channel
-                        .unbounded_send(ThreadResponse::BoardNotUpdated);
+                    let _ = send(ThreadResponse::BoardNotUpdated);
                     false
                 } else {
                     true
@@ -465,9 +474,7 @@ impl Thread {
                 Ok(board) => {
                     boards.insert(*i, ThreadBoard::new(matrix_sender, board.has_matrix()));
                     if board_safe {
-                        let _ = self
-                            .response_channel
-                            .unbounded_send(ThreadResponse::BoardAdded(board));
+                        let _ = send(ThreadResponse::BoardAdded(board));
                     }
                 }
                 Err(err) => error!("Failed to add board: {}", err),
@@ -475,9 +482,7 @@ impl Thread {
         }
 
         if have_new_board && board_safe {
-            let _ = self
-                .response_channel
-                .unbounded_send(ThreadResponse::BoardLoadingDone);
+            let _ = send(ThreadResponse::BoardLoadingDone);
         }
 
         Ok(())

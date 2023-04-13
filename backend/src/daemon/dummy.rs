@@ -1,7 +1,7 @@
 use std::{cell::RefCell, collections::HashMap};
 
 use super::{BoardId, Daemon};
-use crate::{fl, Benchmark, Layout, Matrix, Nelson, NelsonKind};
+use crate::{fl, Benchmark, Bootloaded, Layout, Matrix, Nelson, NelsonKind};
 
 struct BoardDummy {
     name: String,
@@ -19,14 +19,7 @@ impl BoardDummy {
         } else if index >= 0xf0 {
             index < 0xf0 + self.layout.meta.num_layers
         } else {
-            allow_key
-                && self
-                    .layout
-                    .leds
-                    .values()
-                    .flatten()
-                    .find(|i| **i == index)
-                    .is_some()
+            allow_key && self.layout.leds.values().flatten().any(|i| *i == index)
         }
     }
 }
@@ -67,6 +60,11 @@ impl DaemonDummy {
 impl Daemon for DaemonDummy {
     fn boards(&self) -> Result<Vec<BoardId>, String> {
         Ok((0..self.boards.len() as u128).map(BoardId).collect())
+    }
+
+    fn bootloaded_board(&self) -> Result<(Option<Bootloaded>, Option<Bootloaded>), String> {
+        // (prev, current)
+        Ok((None, None))
     }
 
     fn model(&self, board: BoardId) -> Result<String, String> {
@@ -173,7 +171,7 @@ impl Daemon for DaemonDummy {
         Ok(())
     }
 
-    fn refresh(&self) -> Result<(), String> {
+    fn refresh(&self, _is_testing_mode: bool) -> Result<(), String> {
         Ok(())
     }
 

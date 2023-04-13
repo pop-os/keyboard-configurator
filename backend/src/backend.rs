@@ -8,7 +8,7 @@ use once_cell::sync::Lazy;
 use std::{cell::RefCell, collections::HashMap, process, sync::Arc, time::Duration};
 
 use crate::daemon::*;
-use crate::{Board, DerefCell};
+use crate::{Board, Bootloaded, DerefCell};
 
 #[derive(Default)]
 #[doc(hidden)]
@@ -31,6 +31,10 @@ impl ObjectImpl for BackendInner {
                 Signal::builder("board-loading", &[], glib::Type::UNIT.into()).build(),
                 Signal::builder("board-loading-done", &[], glib::Type::UNIT.into()).build(),
                 Signal::builder("board-not-updated", &[], glib::Type::UNIT.into()).build(),
+                Signal::builder("bootloaded-1-added", &[], glib::Type::UNIT.into()).build(),
+                Signal::builder("bootloaded-2-added", &[], glib::Type::UNIT.into()).build(),
+                Signal::builder("bootloaded-lite-added", &[], glib::Type::UNIT.into()).build(),
+                Signal::builder("bootloaded-removed", &[], glib::Type::UNIT.into()).build(),
                 Signal::builder(
                     "board-added",
                     &[Board::static_type().into()],
@@ -84,6 +88,16 @@ impl Backend {
                     ThreadResponse::BoardNotUpdated => {
                         self_.emit_by_name::<()>("board-not-updated", &[]);
                     },
+                    ThreadResponse::BootloadedAdded(bootloaderboard) => {
+                      match bootloaderboard {
+                        Bootloaded::AtMega32u4 => self_.emit_by_name::<()>("bootloaded-1-added", &[]),
+                        Bootloaded::At90usb646 => self_.emit_by_name::<()>("bootloaded-2-added", &[]),
+                        Bootloaded::At90usb646Lite => self_.emit_by_name::<()>("bootloaded-lite-added", &[]),
+                      }
+                    },
+                    ThreadResponse::BootloadedRemoved => {
+                        self_.emit_by_name::<()>("bootloaded-removed", &[]);
+                    }
                 }
             }),
             is_testing_mode,
@@ -164,6 +178,41 @@ impl Backend {
     pub fn connect_board_removed<F: Fn(Board) + 'static>(&self, cb: F) -> SignalHandlerId {
         self.connect_local("board-removed", false, move |values| {
             cb(values[1].get::<Board>().unwrap());
+            None
+        })
+    }
+
+    pub fn connect_bootloader_1_added<F: Fn(Bootloaded) + 'static>(
+        &self,
+        cb: F,
+    ) -> SignalHandlerId {
+        self.connect_local("bootloaded-1-added", false, move |_values| {
+            cb(Bootloaded::AtMega32u4);
+            None
+        })
+    }
+    pub fn connect_bootloader_2_added<F: Fn(Bootloaded) + 'static>(
+        &self,
+        cb: F,
+    ) -> SignalHandlerId {
+        self.connect_local("bootloaded-2-added", false, move |_values| {
+            cb(Bootloaded::At90usb646);
+            None
+        })
+    }
+    pub fn connect_bootloader_lite_added<F: Fn(Bootloaded) + 'static>(
+        &self,
+        cb: F,
+    ) -> SignalHandlerId {
+        self.connect_local("bootloaded-lite-added", false, move |_values| {
+            cb(Bootloaded::At90usb646Lite);
+            None
+        })
+    }
+
+    pub fn connect_bootloader_board_removed<F: Fn() + 'static>(&self, cb: F) -> SignalHandlerId {
+        self.connect_local("bootloaded-removed", false, move |_values| {
+            cb();
             None
         })
     }

@@ -10,7 +10,7 @@ use gtk::{
 use std::{cell::RefCell, time::Duration};
 
 use crate::{shortcuts_window, ConfiguratorApp, Keyboard, KeyboardLayer, Page, Picker};
-use backend::{Backend, Board, DerefCell};
+use backend::{Backend, Board, Bootloaded, DerefCell};
 
 pub struct Loader(MainWindow, gtk::Box);
 
@@ -29,6 +29,8 @@ impl Drop for Loader {
 pub struct MainWindowInner {
     backend: DerefCell<Backend>,
     back_button: DerefCell<gtk::Button>,
+    flash_menu: DerefCell<gio::Menu>,
+    flash_button: DerefCell<gtk::MenuButton>,
     header_bar: DerefCell<gtk::HeaderBar>,
     keyboard_box: DerefCell<gtk::Box>,
     layer_switcher: DerefCell<gtk::StackSwitcher>,
@@ -65,6 +67,20 @@ impl ObjectImpl for MainWindowInner {
             ..show();
         };
 
+        let flash_menu = cascade! {
+            gio::Menu::new();
+            ..append_section(None, &cascade! {
+                gio::Menu::new();
+            });
+        };
+        let flash_button = cascade! {
+                gtk::MenuButton::new();
+                ..set_menu_model(Some(&flash_menu));
+                ..add(&cascade! {
+                    gtk::Image::from_icon_name(Some("applications-system-symbolic"), gtk::IconSize::Button);
+                });
+        };
+
         let menu = cascade! {
             gio::Menu::new();
             ..append_section(None, &cascade! {
@@ -93,6 +109,7 @@ impl ObjectImpl for MainWindowInner {
                     gtk::Image::from_icon_name(Some("open-menu-symbolic"), gtk::IconSize::Button);
                 });
             });
+            ..pack_end(&flash_button);
         };
 
         let no_boards_msg = format!(
@@ -174,8 +191,11 @@ impl ObjectImpl for MainWindowInner {
             ..show_all();
         };
         back_button.set_visible(false);
+        flash_button.set_visible(false);
 
         self.back_button.set(back_button);
+        self.flash_button.set(flash_button);
+        self.flash_menu.set(flash_menu);
         self.header_bar.set(header_bar);
         self.keyboard_box.set(keyboard_box);
         self.layer_switcher.set(layer_switcher);
@@ -206,10 +226,11 @@ glib::wrapper! {
 impl MainWindow {
     pub fn new(app: &ConfiguratorApp) -> Self {
         let window: Self = glib::Object::new(&[]).unwrap();
+        let is_testing_mode = app.launch_test();
         app.add_window(&window);
 
-        let backend = cascade! {
-            daemon(app.launch_test());
+        let mut backend = cascade! {
+            daemon(is_testing_mode);
             ..connect_board_loading(clone!(@weak window => move || {
                 info!("loading");
                 let loader = window.display_loader(&fl!("loading"));
@@ -226,8 +247,17 @@ impl MainWindow {
             }));
             ..connect_board_added(clone!(@weak window => move |board| window.add_keyboard(board)));
             ..connect_board_removed(clone!(@weak window => move |board| window.remove_keyboard(board)));
-            ..refresh();
         };
+
+        if is_testing_mode {
+          cascade! {
+            &mut backend;
+            ..connect_bootloader_1_added(clone!(@weak window => move |board| window.add_flash_menu(board)));
+            ..connect_bootloader_2_added(clone!(@weak window => move |board| window.add_flash_menu(board)));
+            ..connect_bootloader_lite_added(clone!(@weak window => move |board| window.add_flash_menu(board)));
+            ..connect_bootloader_board_removed(clone!(@weak window => move || window.remove_flash_menu()));
+          }
+        } else {&mut backend}.refresh();
 
         // Refresh key matrix only when window is visible
         backend.set_matrix_get_rate(if window.is_active() {
@@ -376,6 +406,42 @@ impl MainWindow {
                     .set_visible_child_name("no_boards");
             }
         }
+    }
+
+    fn add_flash_menu(&self, board: Bootloaded) {
+        let menu = &self.inner().flash_menu;
+        menu.remove_all();
+
+        match board {
+            Bootloaded::At90usb646 => {
+                menu.append(
+                    Some(&fl!("flash-to-launch-2")),
+                    Some("app.flash-to-launch-2"),
+                );
+                menu.append(
+                    Some(&fl!("flash-to-launch-heavy")),
+                    Some("app.flash-to-launch-heavy-1"),
+                );
+            }
+            Bootloaded::At90usb646Lite => {
+                menu.append(
+                    Some(&fl!("flash-to-launch-lite-1")),
+                    Some("app.flash-to-launch-lite-1"),
+                );
+            }
+            Bootloaded::AtMega32u4 => {
+                menu.append(
+                    Some(&fl!("flash-to-launch-1")),
+                    Some("app.flash-to-launch-1"),
+                );
+            }
+        }
+
+        self.inner().flash_button.set_visible(true);
+    }
+
+    fn remove_flash_menu(&self) {
+        self.inner().flash_button.set_visible(false);
     }
 
     fn num_keyboards(&self) -> usize {
