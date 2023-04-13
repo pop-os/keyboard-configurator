@@ -64,10 +64,7 @@ enum SetEnum {
 
 impl SetEnum {
     fn is_cancelable(&self) -> bool {
-        match self {
-            Self::Nelson(_, _) | Self::Benchmark(_) => false,
-            _ => true,
-        }
+        !matches!(self, Self::Nelson(_, _) | Self::Benchmark(_))
     }
 }
 
@@ -85,21 +82,21 @@ enum Response {
     Nelson(Box<Nelson>),
 }
 
-impl Into<Response> for Benchmark {
-    fn into(self) -> Response {
-        Response::Benchmark(self)
+impl From<Benchmark> for Response {
+    fn from(benchmark: Benchmark) -> Self {
+        Response::Benchmark(benchmark)
     }
 }
 
-impl Into<Response> for () {
-    fn into(self) -> Response {
+impl From<()> for Response {
+    fn from(_unit: ()) -> Self {
         Response::Empty
     }
 }
 
-impl Into<Response> for Nelson {
-    fn into(self) -> Response {
-        Response::Nelson(Box::new(self))
+impl From<Nelson> for Response {
+    fn from(nelson: Nelson) -> Self {
+        Response::Nelson(Box::new(nelson))
     }
 }
 
@@ -140,6 +137,7 @@ impl ThreadClient {
         client
     }
 
+    #[allow(clippy::await_holding_lock)]
     async fn send(&self, set_enum: SetEnum) -> Result<Response, String> {
         let mut cancels = self.cancels.lock().unwrap();
 
@@ -416,7 +414,7 @@ impl Thread {
         // Removed boards
         let response_channel = &self.response_channel;
         boards.retain(|id, _| {
-            if new_ids.iter().find(|i| *i == id).is_none() {
+            if !new_ids.iter().any(|i| i == id) {
                 let _ = response_channel.unbounded_send(ThreadResponse::BoardRemoved(*id));
                 return false;
             }

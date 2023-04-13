@@ -17,6 +17,7 @@ use uuid::Uuid;
 use super::{err_str, BoardId, Daemon, DaemonCommand};
 use crate::{Benchmark, Bootloaded, Matrix, Nelson, NelsonKind};
 
+#[allow(clippy::type_complexity)]
 pub struct DaemonServer<R: Read + Send + 'static, W: Write + Send + 'static> {
     hidapi: RefCell<Option<HidApi>>,
     running: Cell<bool>,
@@ -210,8 +211,8 @@ impl<R: Read + Send + 'static, W: Write + Send + 'static> Daemon for DaemonServe
 
             // Either missing or bouncing is set depending on test
             let (mut missing, bouncing) = match kind {
-                NelsonKind::Normal => (matrix.clone(), Matrix::default()),
-                NelsonKind::Bouncing => (Matrix::default(), matrix.clone()),
+                NelsonKind::Normal => (matrix, Matrix::default()),
+                NelsonKind::Bouncing => (Matrix::default(), matrix),
             };
 
             // Missing must be inverted, since missing keys are not pressed
@@ -237,7 +238,7 @@ impl<R: Read + Send + 'static, W: Write + Send + 'static> Daemon for DaemonServe
                 sticking,
             })
         } else {
-            Err(format!("failed to find Nelson"))
+            Err("failed to find Nelson".to_string())
         }
     }
 
@@ -351,11 +352,11 @@ impl<R: Read + Send + 'static, W: Write + Send + 'static> Daemon for DaemonServe
                     // System76 launch_heavy_1
                     (0x3384, 0x0007, 1) => {
                         // Skip if device already open
-                        if self.have_device(&info) {
+                        if self.have_device(info) {
                             continue;
                         }
 
-                        match info.open_device(&api) {
+                        match info.open_device(api) {
                             Ok(device) => match AccessHid::new(device, 10, 1000) {
                                 Ok(access) => match unsafe { Ec::new(access) } {
                                     Ok(ec) => {
@@ -389,7 +390,7 @@ impl<R: Read + Send + 'static, W: Write + Send + 'static> Daemon for DaemonServe
                             continue;
                         }
 
-                        match info.open_device(&api) {
+                        match info.open_device(api) {
                             Ok(device) => match AccessHid::new(device, 10, 1000) {
                                 Ok(access) => match unsafe { Ec::new(access) } {
                                     Ok(ec) => {

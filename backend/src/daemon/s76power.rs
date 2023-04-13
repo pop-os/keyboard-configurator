@@ -67,7 +67,7 @@ impl DaemonS76Power {
 
         for path in objects.keys() {
             if path.starts_with("/com/system76/PowerDaemon/keyboard") {
-                boards.push(Keyboard::new(&path)?);
+                boards.push(Keyboard::new(path)?);
             }
         }
 
@@ -146,14 +146,14 @@ impl Daemon for DaemonS76Power {
     }
 
     fn max_brightness(&self, board: BoardId) -> Result<i32, String> {
-        Ok(self.board(board)?.proxy.max_brightness().map_err(err_str)?)
+        self.board(board)?.proxy.max_brightness().map_err(err_str)
     }
 
     fn brightness(&self, board: BoardId, index: u8) -> Result<i32, String> {
         if index != 0xFF {
             return Err(format!("Can't set brightness index {}", index));
         }
-        Ok(self.board(board)?.proxy.brightness().map_err(err_str)?)
+        self.board(board)?.proxy.brightness().map_err(err_str)
     }
 
     fn set_brightness(&self, board: BoardId, index: u8, brightness: i32) -> Result<(), String> {

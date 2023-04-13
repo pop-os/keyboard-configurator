@@ -40,8 +40,8 @@ impl UsbHub {
 
     pub fn usb_dev(&self) -> &UsbDev {
         match self {
-            UsbHub::Usb2(usb) => &usb,
-            UsbHub::Usb3(usb) => &usb,
+            UsbHub::Usb2(usb) => usb,
+            UsbHub::Usb3(usb) => usb,
         }
     }
 
@@ -55,10 +55,12 @@ impl UsbHub {
         let hub_name = hub_path
             .file_name()
             .and_then(|x| x.to_str())
-            .ok_or(io::Error::new(
-                io::ErrorKind::InvalidData,
-                "hub_ports file_name not found or not UTF-8",
-            ))?;
+            .ok_or_else(|| {
+                io::Error::new(
+                    io::ErrorKind::InvalidData,
+                    "hub_ports file_name not found or not UTF-8",
+                )
+            })?;
         let if_path = hub_path.join(format!("{}:1.0", hub_name));
         let port_prefix = format!("{}-port", hub_name);
         for entry_res in fs::read_dir(&if_path)? {

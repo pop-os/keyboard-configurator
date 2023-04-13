@@ -94,7 +94,7 @@ impl Picker {
             self.inner()
                 .group_box
                 .set_key_visibility(|name| kb.has_scancode(name));
-            kb.set_picker(Some(&self));
+            kb.set_picker(Some(self));
         }
 
         *self.inner().keyboard.borrow_mut() = keyboard;
@@ -123,6 +123,12 @@ impl Picker {
             }
             glib::MainContext::default().spawn_local(async { futures.collect::<()>().await });
         }
+    }
+}
+
+impl Default for Picker {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

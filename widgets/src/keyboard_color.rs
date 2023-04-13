@@ -230,7 +230,8 @@ impl KeyboardColor {
                 ..insert(hs);
             });
             glib::MainContext::default().spawn_local(async move {
-                if let Err(err) = self_.index().set_color(&board, hs).await {
+                let index = self_.index().clone();
+                if let Err(err) = index.set_color(&board, hs).await {
                     error!("Failed to set keyboard color: {}", err);
                 }
                 self_.notify("hs");
@@ -245,7 +246,11 @@ impl KeyboardColor {
     fn read_color(&self) {
         if let Some(board) = self.board() {
             let colors = self.index().get_color_set(&board);
-            let hs = colors.iter().next().copied().unwrap_or(Hs::new(0., 0.));
+            let hs = colors
+                .iter()
+                .next()
+                .copied()
+                .unwrap_or_else(|| Hs::new(0., 0.));
             if self.inner().hs.replace(hs) != hs {
                 self.notify("hs");
             }

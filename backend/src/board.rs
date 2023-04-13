@@ -247,16 +247,6 @@ impl Board {
         RE.is_match(self.model())
     }
 
-    pub fn is_1(&self) -> bool {
-        static RE: Lazy<Regex> = Lazy::new(|| Regex::new("system76/launch_1.*").unwrap());
-        RE.is_match(self.model())
-    }
-
-    pub fn is_2(&self) -> bool {
-        static RE: Lazy<Regex> = Lazy::new(|| Regex::new("system76/launch_(heavy_|2).*").unwrap());
-        RE.is_match(self.model())
-    }
-
     pub fn has_led_save(&self) -> bool {
         *self.inner().has_led_save
     }

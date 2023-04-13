@@ -19,14 +19,7 @@ impl BoardDummy {
         } else if index >= 0xf0 {
             index < 0xf0 + self.layout.meta.num_layers
         } else {
-            allow_key
-                && self
-                    .layout
-                    .leds
-                    .values()
-                    .flatten()
-                    .find(|i| **i == index)
-                    .is_some()
+            allow_key && self.layout.leds.values().flatten().any(|i| *i == index)
         }
     }
 }
