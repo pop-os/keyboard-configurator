@@ -314,7 +314,7 @@ impl<R: Read + Send + 'static, W: Write + Send + 'static> Daemon for DaemonServe
             if is_testing_mode {
                 use regex::bytes::Regex;
                 static HAS_USB_HUB: Lazy<Regex> =
-                    Lazy::new(|| Regex::new("3384:0003 System76 USB").unwrap());
+                    Lazy::new(|| Regex::new("3384:000.*System76 USB").unwrap());
                 static ATMEGA32U4: Lazy<Regex> =
                     Lazy::new(|| Regex::new("03eb:2ff4.*atmega32u4.*bootloader").unwrap());
                 static AT90USB646: Lazy<Regex> =

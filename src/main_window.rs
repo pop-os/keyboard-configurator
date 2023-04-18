@@ -8,6 +8,7 @@ use gtk::{
     subclass::prelude::*,
 };
 use std::{
+    borrow::Borrow,
     cell::RefCell,
     sync::atomic::{AtomicBool, Ordering},
     time::Duration,
@@ -47,6 +48,7 @@ pub struct MainWindowInner {
     keyboards: RefCell<Vec<(Keyboard, gtk::Box)>>,
     board_loading: RefCell<Option<Loader>>,
     board_list_stack: DerefCell<gtk::Stack>,
+    is_testing_mode: DerefCell<bool>,
 }
 
 #[glib::object_subclass]
@@ -236,16 +238,10 @@ impl MainWindow {
         app.add_window(&window);
 
         let mut backend = cascade! {
-            daemon(is_testing_mode);
+            daemon();
             ..connect_board_loading(clone!(@weak window => move || {
                 info!("loading");
                 let loader = window.display_loader(&fl!("loading"));
-                *window.inner().board_loading.borrow_mut() = Some(loader);
-            }));
-            ..connect_board_not_updated(clone!(@weak window => move || {
-                info!("board not updated");
-                window.inner().board_loading.borrow_mut().take();
-                let loader = window.display_loader(&fl!("firmware-update-required"));
                 *window.inner().board_loading.borrow_mut() = Some(loader);
             }));
             ..connect_board_loading_done(clone!(@weak window => move || {
@@ -263,7 +259,7 @@ impl MainWindow {
             ..connect_bootloader_lite_added(clone!(@weak window => move |board| window.add_flash_menu(board)));
             ..connect_bootloader_board_removed(clone!(@weak window => move || window.remove_flash_menu()));
           }
-        } else {&mut backend}.refresh();
+        } else {&mut backend}.refresh(is_testing_mode);
 
         // Refresh key matrix only when window is visible
         backend.set_matrix_get_rate(if window.is_active() {
@@ -286,18 +282,19 @@ impl MainWindow {
                     backend.connect_board_added(
                         clone!(@weak window => move |board| window.add_keyboard(board)),
                     );
-                    backend.refresh();
+                    backend.refresh(is_testing_mode);
                 }
                 Err(err) => error!("{}", err),
             }
         }
 
         window.inner().backend.set(backend);
+        window.inner().is_testing_mode.set(is_testing_mode);
         glib::timeout_add_seconds_local(
             1,
             clone!(@weak window => @default-return glib::Continue(false), move || {
                 if !REFRESH_DISABLED.load(Ordering::Relaxed) {
-                  window.inner().backend.refresh();
+                  window.inner().backend.refresh(**window.inner().is_testing_mode.borrow());
                 }
                 glib::Continue(true)
             }),
@@ -356,13 +353,21 @@ impl MainWindow {
             ..set_attributes(Some(&attr_list));
         };
         let window = self;
-        let button = cascade! {
-            gtk::Button::with_label(&fl!("button-configure"));
-            ..set_halign(gtk::Align::Center);
-            ..connect_clicked(clone!(@weak window, @weak keyboard => move |_| {
-                window.show_keyboard(&keyboard);
-            }));
+        let button = if !board.is_updated() && *self.inner().is_testing_mode {
+            cascade! {
+              gtk::Button::with_label(&fl!("firmware-update-required"));
+              ..set_halign(gtk::Align::Center);
+            }
+        } else {
+            cascade! {
+                gtk::Button::with_label(&fl!("button-configure"));
+                ..set_halign(gtk::Align::Center);
+                ..connect_clicked(clone!(@weak window, @weak keyboard => move |_| {
+                    window.show_keyboard(&keyboard);
+                }));
+            }
         };
+
         let keyboard_layer = cascade! {
             KeyboardLayer::new(Page::Layer1, keyboard.board().clone());
             ..set_halign(gtk::Align::Center);
@@ -478,18 +483,18 @@ impl MainWindow {
 }
 
 #[cfg(target_os = "linux")]
-fn daemon(is_testing_mode: bool) -> Backend {
+fn daemon() -> Backend {
     if unsafe { libc::geteuid() == 0 } {
         info!("Already running as root");
-        Backend::new(is_testing_mode)
+        Backend::new()
     } else {
         info!("Not running as root, spawning daemon with pkexec");
-        Backend::new_pkexec(is_testing_mode)
+        Backend::new_pkexec()
     }
     .expect("Failed to create server")
 }
 
 #[cfg(not(target_os = "linux"))]
-fn daemon(_is_testing_mode: bool) -> Backend {
-    Backend::new(false).expect("Failed to create server")
+fn daemon() -> Backend {
+    Backend::new().expect("Failed to create server")
 }
