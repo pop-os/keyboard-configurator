@@ -306,12 +306,4 @@ impl Board {
             .set_no_input(self.board(), no_input)
             .await
     }
-
-    pub async fn disable_refresh(&self) -> Result<(), String> {
-        self.thread_client().disable_refresh().await
-    }
-
-    pub async fn enable_refresh(&self) -> Result<(), String> {
-        self.thread_client().enable_refresh().await
-    }
 }

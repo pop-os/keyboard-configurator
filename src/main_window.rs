@@ -7,12 +7,18 @@ use gtk::{
     prelude::*,
     subclass::prelude::*,
 };
-use std::{cell::RefCell, time::Duration};
+use std::{
+    cell::RefCell,
+    sync::atomic::{AtomicBool, Ordering},
+    time::Duration,
+};
 
 use crate::{shortcuts_window, ConfiguratorApp, Keyboard, KeyboardLayer, Page, Picker};
 use backend::{Backend, Board, Bootloaded, DerefCell};
 
 pub struct Loader(MainWindow, gtk::Box);
+
+pub static REFRESH_DISABLED: AtomicBool = AtomicBool::new(false);
 
 impl Drop for Loader {
     fn drop(&mut self) {
@@ -290,7 +296,9 @@ impl MainWindow {
         glib::timeout_add_seconds_local(
             1,
             clone!(@weak window => @default-return glib::Continue(false), move || {
-                window.inner().backend.refresh();
+                if !REFRESH_DISABLED.load(Ordering::Relaxed) {
+                  window.inner().backend.refresh();
+                }
                 glib::Continue(true)
             }),
         );

@@ -1,4 +1,4 @@
-use crate::{fl, Keyboard};
+use crate::{fl, Keyboard, REFRESH_DISABLED};
 use backend::{Board, DerefCell, NelsonKind, Rgb};
 use cascade::cascade;
 use futures::channel::oneshot;
@@ -8,7 +8,11 @@ use gtk::{
     subclass::prelude::*,
 };
 use once_cell::sync::{Lazy, OnceCell};
-use std::{cell::RefCell, collections::HashMap, sync::RwLock};
+use std::{
+    cell::RefCell,
+    collections::HashMap,
+    sync::{atomic::Ordering, RwLock},
+};
 
 struct TestResults {
     bench: RwLock<HashMap<&'static str, Result<f64, String>>>,
@@ -377,7 +381,6 @@ impl Testing {
     }
 
     async fn nelson(&self, test_runs: i32, test_index: usize, nelson_kind: NelsonKind) {
-        self.disable_refresh().await;
         let testing = self.inner();
 
         info!("Disabling test buttons");
@@ -451,13 +454,14 @@ impl Testing {
 
         info!("Enabling test buttons");
         self.test_buttons_sensitive(true);
-        self.enable_refresh().await;
     }
 
     fn connect_test_button_1(&self) {
         self.inner().test_buttons[0].connect_clicked(clone!(@strong self as self_ => move |_| {
             glib::MainContext::default().spawn_local(clone!(@strong self_ => async move {
+                REFRESH_DISABLED.store(true, Ordering::Relaxed);
                 self_.nelson(1, 0, NelsonKind::Normal).await;
+                REFRESH_DISABLED.store(false, Ordering::Relaxed);
             }));
         }));
     }
@@ -465,11 +469,13 @@ impl Testing {
     fn connect_test_button_2(&self) {
         self.inner().test_buttons[1].connect_clicked(clone!(@strong self as self_ => move |_| {
             glib::MainContext::default().spawn_local(clone!(@strong self_ => async move {
+                REFRESH_DISABLED.store(true, Ordering::Relaxed);
                 self_.nelson(
                     self_.inner().num_runs_spin_2.value_as_int(),
                     2,
                     NelsonKind::Normal,
                 ).await;
+                REFRESH_DISABLED.store(false, Ordering::Relaxed);
             }));
         }));
     }
@@ -573,18 +579,6 @@ impl Testing {
     #[allow(dead_code)]
     fn keyboard(&self) -> Keyboard {
         self.inner().keyboard.upgrade().unwrap()
-    }
-
-    async fn disable_refresh(&self) {
-        if let Err(err) = self.inner().board.disable_refresh().await {
-            error!("Error disableing refresh: {}", err);
-        }
-    }
-
-    async fn enable_refresh(&self) {
-        if let Err(err) = self.inner().board.enable_refresh().await {
-            error!("Error enabling refresh: {}", err);
-        }
     }
 
     async fn set_no_input(&self, no_input: bool) {
