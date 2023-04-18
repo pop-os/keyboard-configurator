@@ -377,6 +377,7 @@ impl Testing {
     }
 
     async fn nelson(&self, test_runs: i32, test_index: usize, nelson_kind: NelsonKind) {
+        self.disable_refresh().await;
         let testing = self.inner();
 
         info!("Disabling test buttons");
@@ -450,6 +451,7 @@ impl Testing {
 
         info!("Enabling test buttons");
         self.test_buttons_sensitive(true);
+        self.enable_refresh().await;
     }
 
     fn connect_test_button_1(&self) {
@@ -571,6 +573,18 @@ impl Testing {
     #[allow(dead_code)]
     fn keyboard(&self) -> Keyboard {
         self.inner().keyboard.upgrade().unwrap()
+    }
+
+    async fn disable_refresh(&self) {
+        if let Err(err) = self.inner().board.disable_refresh().await {
+            error!("Error disableing refresh: {}", err);
+        }
+    }
+
+    async fn enable_refresh(&self) {
+        if let Err(err) = self.inner().board.enable_refresh().await {
+            error!("Error enabling refresh: {}", err);
+        }
     }
 
     async fn set_no_input(&self, no_input: bool) {

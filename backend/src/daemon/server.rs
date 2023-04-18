@@ -187,9 +187,9 @@ impl<R: Read + Send + 'static, W: Write + Send + 'static> Daemon for DaemonServe
 
     fn nelson(&self, board: BoardId, kind: NelsonKind) -> Result<Nelson, String> {
         if let Some(nelson) = &mut *self.nelson.borrow_mut() {
-            let delay_ms = 300;
-            info!("Nelson delay is {} ms", delay_ms);
-            let delay = Duration::from_millis(delay_ms);
+            const DELAY_MS: u64 = 130;
+            info!("Nelson delay is {} ms", DELAY_MS);
+            let delay = Duration::from_millis(DELAY_MS);
 
             // Check if Nelson is already closed
             if unsafe { nelson.led_get_value(0).map_err(err_str)?.0 > 0 } {

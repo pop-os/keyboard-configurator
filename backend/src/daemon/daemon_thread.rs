@@ -13,6 +13,7 @@ use std::{
     collections::HashMap,
     hash::{Hash, Hasher},
     rc::Rc,
+    sync::atomic::{AtomicBool, Ordering},
     sync::{Arc, Mutex, Weak},
     thread::{self, JoinHandle},
     time::Duration,
@@ -20,6 +21,8 @@ use std::{
 
 use super::{is_launch_updated, Benchmark, BoardId, Daemon, Matrix, Nelson, NelsonKind};
 use crate::{Board, Bootloaded};
+
+static REFRESH_DISABLED: AtomicBool = AtomicBool::new(false);
 
 #[derive(Clone, Debug)]
 struct Item<K: Hash + Eq, V> {
@@ -57,6 +60,8 @@ enum SetEnum {
     Nelson(BoardId, NelsonKind),
     LedSave(BoardId),
     MatrixGetRate(Item<(), Option<Duration>>),
+    DisableRefresh,
+    EnableRefresh,
     Refresh,
     NoInput(BoardId, bool),
     Exit,
@@ -164,6 +169,14 @@ impl ThreadClient {
 
     async fn send_noresp(&self, set_enum: SetEnum) -> Result<(), String> {
         self.send(set_enum).await.and(Ok(()))
+    }
+
+    pub async fn disable_refresh(&self) -> Result<(), String> {
+        self.send_noresp(SetEnum::DisableRefresh).await
+    }
+
+    pub async fn enable_refresh(&self) -> Result<(), String> {
+        self.send_noresp(SetEnum::EnableRefresh).await
     }
 
     pub async fn refresh(&self) -> Result<(), String> {
@@ -375,6 +388,8 @@ impl Thread {
                 set.reply(Ok(()))
             }
             SetEnum::Refresh => set.reply(self.refresh()),
+            SetEnum::DisableRefresh => set.reply(self.disable_refresh()),
+            SetEnum::EnableRefresh => set.reply(self.enable_refresh()),
             SetEnum::NoInput(board, no_input) => {
                 set.reply(self.daemon.set_no_input(board, no_input))
             }
@@ -403,9 +418,24 @@ impl Thread {
         }
     }
 
+    fn disable_refresh(&self) -> Result<(), String> {
+        info!("Disabling refresh");
+        REFRESH_DISABLED.store(true, Ordering::Relaxed);
+        Ok(())
+    }
+
+    fn enable_refresh(&self) -> Result<(), String> {
+        info!("Enabling refresh");
+        REFRESH_DISABLED.store(false, Ordering::Relaxed);
+        Ok(())
+    }
+
     fn refresh(&self) -> Result<(), String> {
-        let send = |msg| self.response_channel.unbounded_send(msg);
+        if REFRESH_DISABLED.load(Ordering::Relaxed) {
+            return Ok(());
+        }
         let mut boards = self.boards.borrow_mut();
+        let send = |msg| self.response_channel.unbounded_send(msg);
 
         self.daemon.refresh(self.is_testing_mode)?;
 
