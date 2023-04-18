@@ -1,4 +1,4 @@
-use crate::{fl, Keyboard};
+use crate::{fl, Keyboard, REFRESH_DISABLED};
 use backend::{Board, DerefCell, NelsonKind, Rgb};
 use cascade::cascade;
 use futures::channel::oneshot;
@@ -8,7 +8,11 @@ use gtk::{
     subclass::prelude::*,
 };
 use once_cell::sync::{Lazy, OnceCell};
-use std::{cell::RefCell, collections::HashMap, sync::RwLock};
+use std::{
+    cell::RefCell,
+    collections::HashMap,
+    sync::{atomic::Ordering, RwLock},
+};
 
 struct TestResults {
     bench: RwLock<HashMap<&'static str, Result<f64, String>>>,
@@ -455,7 +459,9 @@ impl Testing {
     fn connect_test_button_1(&self) {
         self.inner().test_buttons[0].connect_clicked(clone!(@strong self as self_ => move |_| {
             glib::MainContext::default().spawn_local(clone!(@strong self_ => async move {
+                REFRESH_DISABLED.store(true, Ordering::Relaxed);
                 self_.nelson(1, 0, NelsonKind::Normal).await;
+                REFRESH_DISABLED.store(false, Ordering::Relaxed);
             }));
         }));
     }
@@ -463,11 +469,13 @@ impl Testing {
     fn connect_test_button_2(&self) {
         self.inner().test_buttons[1].connect_clicked(clone!(@strong self as self_ => move |_| {
             glib::MainContext::default().spawn_local(clone!(@strong self_ => async move {
+                REFRESH_DISABLED.store(true, Ordering::Relaxed);
                 self_.nelson(
                     self_.inner().num_runs_spin_2.value_as_int(),
                     2,
                     NelsonKind::Normal,
                 ).await;
+                REFRESH_DISABLED.store(false, Ordering::Relaxed);
             }));
         }));
     }
