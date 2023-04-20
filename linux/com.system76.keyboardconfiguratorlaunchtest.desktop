@@ -1,0 +1,7 @@
+[Desktop Entry]
+Name=System76 Keyboard Tester
+Exec=system76-keyboard-configurator --launch-test
+Icon=com.system76.keyboardconfigurator
+Type=Application
+StartupNotify=true
+Categories=Utility;

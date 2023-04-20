@@ -1,8 +1,0 @@
-#!/bin/sh
-set -e
-
-DESKTOP_FILE="/usr/share/applications/com.system76.keyboardconfigurator.desktop"
-
-sed -i 's/^Exec=system76-keyboard-configurator$/Exec=system76-keyboard-configurator --launch-test/' "$DESKTOP_FILE"
-
-exit 0
