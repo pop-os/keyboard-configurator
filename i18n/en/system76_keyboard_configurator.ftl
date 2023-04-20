@@ -48,10 +48,10 @@ layout-import = Import Layout
 layout-reset = Reset Layout
 layout-invert-f-keys = Invert F Keys
 
-flash-to-launch-heavy = Flash to Launch Heavy 1.0
-flash-to-launch-2 = Flash to Launch 2.0
-flash-to-launch-1 = Flash to Launch 1.0
-flash-to-launch-lite-1 = Flash to Launch Lite 1.0
+flash-to-launch-heavy = Flash to Launch Heavy 1
+flash-to-launch-2 = Flash to Launch 2
+flash-to-launch-1 = Flash to Launch 1
+flash-to-launch-lite-1 = Flash to Launch Lite 1
 
 loading = Keyboard(s) detected. Loading...
 loading-keyboard = Loading keymap and LEDs for {$keyboard}
