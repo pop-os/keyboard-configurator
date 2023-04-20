@@ -18,7 +18,7 @@ use std::{
     time::Duration,
 };
 
-use super::{is_launch_updated, Benchmark, BoardId, Daemon, Matrix, Nelson, NelsonKind};
+use super::{Benchmark, BoardId, Daemon, Matrix, Nelson, NelsonKind};
 use crate::{Board, Bootloaded};
 
 #[derive(Clone, Debug)]
@@ -57,7 +57,7 @@ enum SetEnum {
     Nelson(BoardId, NelsonKind),
     LedSave(BoardId),
     MatrixGetRate(Item<(), Option<Duration>>),
-    Refresh,
+    Refresh(bool),
     NoInput(BoardId, bool),
     Exit,
 }
@@ -113,11 +113,7 @@ pub struct ThreadClient {
 }
 
 impl ThreadClient {
-    pub fn new<F: Fn(ThreadResponse) + 'static>(
-        daemon: Box<dyn Daemon>,
-        cb: F,
-        is_testing_mode: bool,
-    ) -> Arc<Self> {
+    pub fn new<F: Fn(ThreadResponse) + 'static>(daemon: Box<dyn Daemon>, cb: F) -> Arc<Self> {
         let (sender, reciever) = async_mpsc::unbounded();
         let client = Arc::new(Self {
             cancels: Mutex::new(HashMap::new()),
@@ -131,8 +127,7 @@ impl ThreadClient {
             }
         });
 
-        let join_handle =
-            Thread::new(daemon, client.clone(), response_sender, is_testing_mode).spawn(reciever);
+        let join_handle = Thread::new(daemon, client.clone(), response_sender).spawn(reciever);
         *client.join_handle.lock().unwrap() = Some(join_handle);
         client
     }
@@ -166,8 +161,8 @@ impl ThreadClient {
         self.send(set_enum).await.and(Ok(()))
     }
 
-    pub async fn refresh(&self) -> Result<(), String> {
-        self.send_noresp(SetEnum::Refresh).await
+    pub async fn refresh(&self, is_testing_mode: bool) -> Result<(), String> {
+        self.send_noresp(SetEnum::Refresh(is_testing_mode)).await
     }
 
     pub async fn keymap_set(
@@ -272,7 +267,6 @@ pub enum ThreadResponse {
     BoardLoadingDone,
     BoardAdded(Board),
     BoardRemoved(BoardId),
-    BoardNotUpdated,
     BootloadedAdded(Bootloaded),
     BootloadedRemoved,
 }
@@ -299,7 +293,6 @@ struct Thread {
     client: Weak<ThreadClient>,
     response_channel: async_mpsc::UnboundedSender<ThreadResponse>,
     matrix_get_rate: Cell<Option<Duration>>,
-    is_testing_mode: bool,
 }
 
 impl Thread {
@@ -307,7 +300,6 @@ impl Thread {
         daemon: Box<dyn Daemon>,
         client: Arc<ThreadClient>,
         response_channel: async_mpsc::UnboundedSender<ThreadResponse>,
-        is_testing_mode: bool,
     ) -> Self {
         Self {
             daemon,
@@ -315,7 +307,6 @@ impl Thread {
             response_channel,
             boards: RefCell::new(HashMap::new()),
             matrix_get_rate: Cell::new(None),
-            is_testing_mode,
         }
     }
 
@@ -331,7 +322,10 @@ impl Thread {
                     loop {
                         if let Some(rate) = self_.matrix_get_rate.get() {
                             Delay::new(rate).await;
-                            self_.matrix_refresh_all();
+                            if let Err(err) = self_.matrix_refresh_all() {
+                              error!("{}", err);
+                              return
+                            }
                         } else {
                             Delay::new(Duration::from_millis(100)).await;
                         }
@@ -374,7 +368,7 @@ impl Thread {
                 self.matrix_get_rate.set(value);
                 set.reply(Ok(()))
             }
-            SetEnum::Refresh => set.reply(self.refresh()),
+            SetEnum::Refresh(is_testing_mode) => set.reply(self.refresh(is_testing_mode)),
             SetEnum::NoInput(board, no_input) => {
                 set.reply(self.daemon.set_no_input(board, no_input))
             }
@@ -384,30 +378,28 @@ impl Thread {
         true
     }
 
-    fn matrix_refresh_all(&self) {
+    fn matrix_refresh_all(&self) -> Result<(), String> {
         for (k, v) in self.boards.borrow_mut().iter_mut() {
             if !v.has_matrix {
                 continue;
             }
-            let matrix = match self.daemon.matrix_get(*k) {
-                Ok(matrix) => matrix,
-                Err(err) => {
-                    error!("Failed to get matrix: {}", err);
-                    break;
-                }
-            };
+            let matrix = self
+                .daemon
+                .matrix_get(*k)
+                .map_err(|err| format!("failed to get matrix: {}", err))?;
             if v.matrix != matrix {
                 let _ = v.matrix_channel.unbounded_send(matrix.clone());
                 v.matrix = matrix;
             }
         }
+        Ok(())
     }
 
-    fn refresh(&self) -> Result<(), String> {
+    fn refresh(&self, is_testing_mode: bool) -> Result<(), String> {
+        self.daemon.refresh(is_testing_mode)?;
+
         let send = |msg| self.response_channel.unbounded_send(msg);
         let mut boards = self.boards.borrow_mut();
-
-        self.daemon.refresh(self.is_testing_mode)?;
 
         let new_ids = self.daemon.boards()?;
 
@@ -423,7 +415,7 @@ impl Thread {
 
         // If a new board is plugged in and is in bootloader mode, update the gui
         // only check if we are in launch test mode for production.
-        if self.is_testing_mode {
+        if is_testing_mode {
             if let Ok(status) = self.daemon.bootloaded_board() {
                 let _ = match status {
                     (None, Some(board)) => send(ThreadResponse::BootloadedAdded(board)),
@@ -435,7 +427,6 @@ impl Thread {
 
         // Added boards
         let mut have_new_board = false;
-        let mut board_safe = true;
         for i in &new_ids {
             if boards.contains_key(i) {
                 continue;
@@ -446,24 +437,6 @@ impl Thread {
                 have_new_board = true;
             }
 
-            // If in testing mode and board isn't updated set gui to require update
-            board_safe = if self.is_testing_mode {
-                let status = is_launch_updated();
-                if (status.is_ok() && !status.unwrap()) || status.is_err() {
-                    info!("Plugged in Keyboard is not updated.");
-                    if let Err(err) = status {
-                        warn!("{}", err.to_string());
-                    }
-
-                    let _ = send(ThreadResponse::BoardNotUpdated);
-                    false
-                } else {
-                    true
-                }
-            } else {
-                true
-            };
-
             let (matrix_sender, matrix_reciever) = async_mpsc::unbounded();
             match Board::new(
                 self.daemon.as_ref(),
@@ -473,15 +446,13 @@ impl Thread {
             ) {
                 Ok(board) => {
                     boards.insert(*i, ThreadBoard::new(matrix_sender, board.has_matrix()));
-                    if board_safe {
-                        let _ = send(ThreadResponse::BoardAdded(board));
-                    }
+                    let _ = send(ThreadResponse::BoardAdded(board));
                 }
                 Err(err) => error!("Failed to add board: {}", err),
             }
         }
 
-        if have_new_board && board_safe {
+        if have_new_board {
             let _ = send(ThreadResponse::BoardLoadingDone);
         }
 

@@ -3,11 +3,11 @@
 //! ```no_run
 //! use system76_keyboard_configurator_backend::Backend;
 //!
-//! let backend = Backend::new(false)?;
+//! let backend = Backend::new()?;
 //! backend.connect_board_added(|board| {
 //!     println!("{}", board.model());
 //! });
-//! backend.refresh();
+//! backend.refresh(false);
 //! # Ok::<(), String>(())
 //! ```
 

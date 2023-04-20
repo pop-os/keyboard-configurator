@@ -11,6 +11,7 @@ use serde::{Deserialize, Serialize};
 use std::{
     cell::{Cell, Ref, RefCell},
     collections::HashMap,
+    process::Command,
     sync::Arc,
 };
 
@@ -38,6 +39,7 @@ pub struct BoardInner {
     is_fake: DerefCell<bool>,
     has_keymap: DerefCell<bool>,
     matrix: RefCell<Matrix>,
+    updated: DerefCell<bool>,
 }
 
 #[glib::object_subclass]
@@ -124,6 +126,10 @@ impl Board {
         self_.inner().has_matrix.set(has_matrix);
         self_.inner().is_fake.set(daemon.is_fake());
         self_.inner().has_keymap.set(has_keymap);
+        self_
+            .inner()
+            .updated
+            .set(is_launch_updated().unwrap_or(false));
 
         let keys = self_
             .layout()
@@ -247,6 +253,10 @@ impl Board {
         RE.is_match(self.model())
     }
 
+    pub fn is_updated(&self) -> bool {
+        *self.inner().updated
+    }
+
     pub fn has_led_save(&self) -> bool {
         *self.inner().has_led_save
     }
@@ -306,4 +316,16 @@ impl Board {
             .set_no_input(self.board(), no_input)
             .await
     }
+}
+
+pub fn is_launch_updated() -> Result<bool, String> {
+    use regex::bytes::Regex;
+    let stdout = Command::new("fwupdmgr")
+        .args(["get-updates", "--json"])
+        .output()
+        .map_err(|e| format!("Failed to use fwupdmgr: {}", e))?
+        .stdout;
+
+    static RE: Lazy<Regex> = Lazy::new(|| Regex::new("Launch.* Configurable Keyboard").unwrap());
+    Ok(!RE.is_match(&stdout))
 }
