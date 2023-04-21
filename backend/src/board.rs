@@ -63,7 +63,7 @@ impl ObjectImpl for BoardInner {
     }
 }
 
-#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq)]
+#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Hash, Eq)]
 pub enum Bootloaded {
     // Launch 2, Launch Heavy 1,
     At90usb646,

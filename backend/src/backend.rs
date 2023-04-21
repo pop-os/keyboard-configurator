@@ -126,11 +126,20 @@ impl Backend {
     /// Test for added/removed boards, emitting `board-added`/`board-removed` signals
     ///
     /// This function does not block, and loads new boards in the background.
-    pub fn refresh(&self, is_testing_mode: bool) {
+    pub fn refresh(&self) {
         let self_ = self.clone();
         glib::MainContext::default().spawn_local(async move {
-            if let Err(err) = self_.inner().thread_client.refresh(is_testing_mode).await {
+            if let Err(err) = self_.inner().thread_client.refresh().await {
                 error!("Failed to refresh boards: {}", err);
+            }
+        });
+    }
+
+    pub fn check_for_bootloader(&self) {
+        let self_ = self.clone();
+        glib::MainContext::default().spawn_local(async move {
+            if let Err(err) = self_.inner().thread_client.check_for_bootloader().await {
+                error!("Failed to check for board in bootloader mode: {}", err);
             }
         });
     }

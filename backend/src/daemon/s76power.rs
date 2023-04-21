@@ -6,7 +6,7 @@ use std::iter::Iterator;
 use zbus::{dbus_proxy, fdo::ObjectManagerProxy, Connection};
 
 use super::{err_str, BoardId, Daemon, Matrix};
-use crate::{fl, Benchmark, Bootloaded, Nelson, NelsonKind, Rgb};
+use crate::{fl, Benchmark, Nelson, NelsonKind, Rgb};
 
 const DBUS_NAME: &str = "com.system76.PowerDaemon";
 
@@ -78,11 +78,6 @@ impl DaemonS76Power {
 impl Daemon for DaemonS76Power {
     fn boards(&self) -> Result<Vec<BoardId>, String> {
         Ok((0..self.boards.len() as u128).map(BoardId).collect())
-    }
-
-    fn bootloaded_board(&self) -> Result<(Option<Bootloaded>, Option<Bootloaded>), String> {
-        // (prev, current)
-        Ok((None, None))
     }
 
     fn model(&self, _board: BoardId) -> Result<String, String> {
@@ -178,7 +173,7 @@ impl Daemon for DaemonS76Power {
         Err("Unimplemented".to_string())
     }
 
-    fn refresh(&self, _is_testing_mode: bool) -> Result<(), String> {
+    fn refresh(&self) -> Result<(), String> {
         Ok(())
     }
 

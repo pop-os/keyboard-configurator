@@ -7,6 +7,7 @@ use futures::{
 };
 use futures_timer::Delay;
 use glib::clone;
+use once_cell::sync::Lazy;
 use std::{
     cell::{Cell, RefCell},
     cmp::PartialEq,
@@ -57,7 +58,8 @@ enum SetEnum {
     Nelson(BoardId, NelsonKind),
     LedSave(BoardId),
     MatrixGetRate(Item<(), Option<Duration>>),
-    Refresh(bool),
+    Refresh,
+    BootLoaderUpdate(Option<Bootloaded>),
     NoInput(BoardId, bool),
     Exit,
 }
@@ -161,8 +163,39 @@ impl ThreadClient {
         self.send(set_enum).await.and(Ok(()))
     }
 
-    pub async fn refresh(&self, is_testing_mode: bool) -> Result<(), String> {
-        self.send_noresp(SetEnum::Refresh(is_testing_mode)).await
+    pub async fn refresh(&self) -> Result<(), String> {
+        self.send_noresp(SetEnum::Refresh).await
+    }
+
+    pub async fn check_for_bootloader(&self) -> Result<(), String> {
+        use regex::bytes::Regex;
+        static HAS_USB_HUB: Lazy<Regex> =
+            Lazy::new(|| Regex::new("3384:000.*System76 USB").unwrap());
+        static ATMEGA32U4: Lazy<Regex> =
+            Lazy::new(|| Regex::new("03eb:2ff4.*atmega32u4.*bootloader").unwrap());
+        static AT90USB646: Lazy<Regex> =
+            Lazy::new(|| Regex::new("03eb:2ff9.*at90usb646.*bootloader").unwrap());
+
+        let lsusb = async_process::Command::new("lsusb")
+            .arg("--verbose")
+            .output()
+            .await
+            .map_err(|_| "Failed to run lsusb".to_string())?
+            .stdout;
+
+        let update = if AT90USB646.is_match(&lsusb) {
+            if HAS_USB_HUB.is_match(&lsusb) {
+                Some(Bootloaded::At90usb646)
+            } else {
+                Some(Bootloaded::At90usb646Lite)
+            }
+        } else if ATMEGA32U4.is_match(&lsusb) {
+            Some(Bootloaded::AtMega32u4)
+        } else {
+            None
+        };
+
+        self.send_noresp(SetEnum::BootLoaderUpdate(update)).await
     }
 
     pub async fn keymap_set(
@@ -293,6 +326,8 @@ struct Thread {
     client: Weak<ThreadClient>,
     response_channel: async_mpsc::UnboundedSender<ThreadResponse>,
     matrix_get_rate: Cell<Option<Duration>>,
+    previous_bootloaded: RefCell<Option<Bootloaded>>,
+    current_bootloaded: RefCell<Option<Bootloaded>>,
 }
 
 impl Thread {
@@ -307,6 +342,8 @@ impl Thread {
             response_channel,
             boards: RefCell::new(HashMap::new()),
             matrix_get_rate: Cell::new(None),
+            previous_bootloaded: RefCell::new(None),
+            current_bootloaded: RefCell::new(None),
         }
     }
 
@@ -368,7 +405,8 @@ impl Thread {
                 self.matrix_get_rate.set(value);
                 set.reply(Ok(()))
             }
-            SetEnum::Refresh(is_testing_mode) => set.reply(self.refresh(is_testing_mode)),
+            SetEnum::Refresh => set.reply(self.refresh()),
+            SetEnum::BootLoaderUpdate(update) => set.reply(self.bootloader_update(update)),
             SetEnum::NoInput(board, no_input) => {
                 set.reply(self.daemon.set_no_input(board, no_input))
             }
@@ -395,8 +433,26 @@ impl Thread {
         Ok(())
     }
 
-    fn refresh(&self, is_testing_mode: bool) -> Result<(), String> {
-        self.daemon.refresh(is_testing_mode)?;
+    fn bootloader_update(&self, update: Option<Bootloaded>) -> Result<(), String> {
+        *self.previous_bootloaded.borrow_mut() = *self.current_bootloaded.borrow();
+        *self.current_bootloaded.borrow_mut() = update;
+        let send = |msg| self.response_channel.unbounded_send(msg);
+
+        // If a new board is plugged in and is in bootloader mode, update the gui
+        // only check if we are in launch test mode for production.
+        match (
+            *self.previous_bootloaded.borrow(),
+            *self.current_bootloaded.borrow(),
+        ) {
+            (None, Some(board)) => send(ThreadResponse::BootloadedAdded(board)),
+            (Some(_), None) => send(ThreadResponse::BootloadedRemoved),
+            _ => Ok(()),
+        }
+        .map_err(|err| format!("Failed to check for bootloader {}", err))
+    }
+
+    fn refresh(&self) -> Result<(), String> {
+        self.daemon.refresh()?;
 
         let send = |msg| self.response_channel.unbounded_send(msg);
         let mut boards = self.boards.borrow_mut();
@@ -412,18 +468,6 @@ impl Thread {
             }
             true
         });
-
-        // If a new board is plugged in and is in bootloader mode, update the gui
-        // only check if we are in launch test mode for production.
-        if is_testing_mode {
-            if let Ok(status) = self.daemon.bootloaded_board() {
-                let _ = match status {
-                    (None, Some(board)) => send(ThreadResponse::BootloadedAdded(board)),
-                    (Some(_), None) => send(ThreadResponse::BootloadedRemoved),
-                    _ => Ok(()),
-                };
-            };
-        }
 
         // Added boards
         let mut have_new_board = false;
