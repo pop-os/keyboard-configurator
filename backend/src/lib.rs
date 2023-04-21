@@ -7,7 +7,7 @@
 //! backend.connect_board_added(|board| {
 //!     println!("{}", board.model());
 //! });
-//! backend.refresh(false);
+//! backend.refresh();
 //! # Ok::<(), String>(())
 //! ```
 

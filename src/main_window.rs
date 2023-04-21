@@ -259,7 +259,7 @@ impl MainWindow {
             ..connect_bootloader_lite_added(clone!(@weak window => move |board| window.add_flash_menu(board)));
             ..connect_bootloader_board_removed(clone!(@weak window => move || window.remove_flash_menu()));
           }
-        } else {&mut backend}.refresh(is_testing_mode);
+        } else {&mut backend}.refresh();
 
         // Refresh key matrix only when window is visible
         backend.set_matrix_get_rate(if window.is_active() {
@@ -282,7 +282,7 @@ impl MainWindow {
                     backend.connect_board_added(
                         clone!(@weak window => move |board| window.add_keyboard(board)),
                     );
-                    backend.refresh(is_testing_mode);
+                    backend.refresh();
                 }
                 Err(err) => error!("{}", err),
             }
@@ -294,7 +294,11 @@ impl MainWindow {
             1,
             clone!(@weak window => @default-return glib::Continue(false), move || {
                 if !REFRESH_DISABLED.load(Ordering::Relaxed) {
-                  window.inner().backend.refresh(**window.inner().is_testing_mode.borrow());
+                  let inner = window.inner();
+                  inner.backend.refresh();
+                  if **inner.is_testing_mode.borrow() && !inner.back_button.is_visible() {
+                      inner.backend.check_for_bootloader()
+                  }
                 }
                 glib::Continue(true)
             }),
