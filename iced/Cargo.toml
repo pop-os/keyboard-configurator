@@ -1,0 +1,12 @@
+[package]
+name = "system76-keyboard-configurator-iced"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+backend = { package = "system76-keyboard-configurator-backend", path = "../backend" }
+delegate = "0.9.0"
+futures = "0.3.28"
+glib = "0.15.0"
+libcosmic = { git = "https://github.com/pop-os/libcosmic" }
+tokio = {version = "1", features = ["sync"] }

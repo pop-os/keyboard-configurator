@@ -6,7 +6,7 @@ license = "GPL-3.0-or-later"
 edition = "2018"
 
 [workspace]
-members = [ "tools", "ffi", "backend", "widgets" ]
+members = [ "tools", "ffi", "backend", "widgets", "iced" ]
 
 [dependencies]
 cascade = "1"
