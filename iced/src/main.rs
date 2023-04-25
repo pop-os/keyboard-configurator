@@ -1,8 +1,9 @@
 // TODO Need multi-window, cross platform
 
 use cosmic::{
-    iced::{self, keyboard::KeyCode, widget, Application, Command, Subscription},
+    iced::{self, keyboard::KeyCode, widget, Application, Color, Command, Rectangle, Subscription},
     iced_native::window::Id as SurfaceId,
+    iced_style,
 };
 use futures::StreamExt;
 use std::{collections::HashMap, mem};
@@ -11,6 +12,7 @@ use tokio::sync::oneshot;
 use backend::{Backend, Key, Layout, Rgb};
 
 mod fixed_widget;
+use fixed_widget::FixedWidget;
 
 const SCALE: f64 = 64.;
 
@@ -99,10 +101,17 @@ impl Application for App {
 }
 
 fn key_button_appearance(_: &cosmic::Theme) -> cosmic::iced_style::button::Appearance {
-    todo!()
+    cosmic::iced_style::button::Appearance {
+        shadow_offset: iced::Vector::new(0.0, 0.0),
+        background: Some(iced_style::Background::Color(Color::BLACK)),
+        border_radius: 4.0.into(),
+        border_width: 0.0,
+        border_color: Color::WHITE,
+        text_color: Color::WHITE,
+    }
 }
 
-fn key_view(key: &Key, pressed_color: Rgb, layer: usize) -> cosmic::Element<Msg> {
+fn key_view(key: &Key, pressed_color: Rgb, layer: usize) -> (cosmic::Element<Msg>, Rectangle) {
     let bg = if key.pressed() {
         pressed_color
     } else {
@@ -119,16 +128,21 @@ fn key_view(key: &Key, pressed_color: Rgb, layer: usize) -> cosmic::Element<Msg>
     let scancode_name = key.get_scancode(layer).unwrap().1;
 
     let label = iced::widget::text(&scancode_name).style(cosmic::theme::Text::Color(fg));
-    iced::widget::button(label)
-        /*
+    let element = iced::widget::button(label)
         .style(cosmic::theme::Button::Custom {
             active: key_button_appearance,
             hover: key_button_appearance,
         })
-        */
         //        .width(iced::Length::Fixed((key.physical.w * SCALE) as f32))
         //        .height(iced::Length::Fixed((key.physical.h* SCALE) as f32))
-        .into()
+        .into();
+    let rectangle = Rectangle {
+        x: (key.physical.x * SCALE) as f32,
+        y: (key.physical.y * SCALE) as f32,
+        width: (key.physical.w * SCALE) as f32,
+        height: (key.physical.h * SCALE) as f32,
+    };
+    (element, rectangle)
 }
 
 fn keyboard_view(keyboard: &Keyboard) -> cosmic::Element<Msg> {
@@ -139,7 +153,7 @@ fn keyboard_view(keyboard: &Keyboard) -> cosmic::Element<Msg> {
     }
     iced::widget::column![
         cosmic::widget::text(&meta.display_name),
-        iced::widget::row(key_views)
+        FixedWidget::new(key_views),
     ]
     .into()
 }
@@ -162,9 +176,17 @@ fn backend_subscription() -> iced::Subscription<BackendEvent> {
 }
 
 async fn reset_layout(board: backend::Board) {
+    let key_indices = board
+        .keys()
+        .iter()
+        .enumerate()
+        .map(|(i, k)| (&k.logical_name, i))
+        .collect::<HashMap<_, _>>();
+
     let layout = &board.layout().default;
-    for (n, (k, v)) in layout.map.iter().enumerate() {
+    for (k, v) in layout.map.iter() {
         for (layer, scancode_name) in v.iter().enumerate() {
+            let n = key_indices[&k];
             board.keys()[n]
                 .set_scancode(layer, scancode_name)
                 .await
