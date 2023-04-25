@@ -1,22 +1,22 @@
 use std::env;
-use system76_keyboard_configurator_backend::{run_daemon, Backend};
+use system76_keyboard_configurator_backend::{run_daemon, Backend, Events};
 
 #[cfg(target_os = "linux")]
-fn with_daemon<F: Fn(Backend)>(f: F) {
-    if unsafe { libc::geteuid() == 0 } {
+fn with_daemon<F: Fn(Backend, Events)>(f: F) {
+    let (backend, events) = if unsafe { libc::geteuid() == 0 } {
         eprintln!("Already running as root");
-        let server = Backend::new().expect("Failed to create server");
-        f(server);
-        return;
-    }
+        Backend::new().expect("Failed to create server")
+    } else {
+        Backend::new_pkexec().unwrap()
+    };
 
-    f(Backend::new_pkexec().unwrap());
+    f(backend, events);
 }
 
 #[cfg(not(target_os = "linux"))]
-fn with_daemon<F: Fn(Box<dyn Daemon>)>(f: F) {
-    let server = Backend::new().expect("Failed to create server");
-    f(server);
+fn with_daemon<F: Fn(Backend, Events)>(f: F) {
+    let (backend, events) = Backend::new().expect("Failed to create server");
+    f(backend, events);
 }
 
 fn main() {
@@ -26,7 +26,7 @@ fn main() {
         }
     }
 
-    with_daemon(|_daemon| {
+    with_daemon(|_backend, _events| {
         // println!("boards: {:?}", daemon.boards());
     });
 }

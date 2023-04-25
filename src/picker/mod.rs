@@ -33,7 +33,7 @@ pub static SCANCODE_LABELS: Lazy<HashMap<String, String>> = Lazy::new(|| {
 #[derive(Default)]
 pub struct PickerInner {
     group_box: DerefCell<PickerGroupBox>,
-    keyboard: RefCell<Option<Keyboard>>,
+    keyboard: RefCell<Option<glib::WeakRef<Keyboard>>>,
 }
 
 #[glib::object_subclass]
@@ -84,8 +84,16 @@ impl Picker {
         PickerInner::from_instance(self)
     }
 
+    fn keyboard(&self) -> Option<Keyboard> {
+        self.inner()
+            .keyboard
+            .borrow()
+            .as_ref()
+            .and_then(|x| x.upgrade())
+    }
+
     pub(crate) fn set_keyboard(&self, keyboard: Option<Keyboard>) {
-        if let Some(old_kb) = &*self.inner().keyboard.borrow() {
+        if let Some(old_kb) = self.keyboard() {
             old_kb.set_picker(None);
         }
 
@@ -97,7 +105,7 @@ impl Picker {
             kb.set_picker(Some(self));
         }
 
-        *self.inner().keyboard.borrow_mut() = keyboard;
+        *self.inner().keyboard.borrow_mut() = keyboard.map(|x| x.downgrade());
     }
 
     pub(crate) fn set_selected(&self, scancode_names: Vec<String>) {
@@ -105,7 +113,7 @@ impl Picker {
     }
 
     fn key_pressed(&self, name: String) {
-        let kb = match self.inner().keyboard.borrow().clone() {
+        let kb = match self.keyboard() {
             Some(kb) => kb,
             None => {
                 return;

@@ -7,21 +7,11 @@ type PaletteHsv = palette::Hsv<palette::encoding::Srgb, f64>;
 type PaletteLinSrgb = palette::LinSrgb<f64>;
 
 /// Floating point hue/saturation color
+#[cfg_attr(feature = "glib", derive(glib::Boxed))]
 #[derive(
-    Clone,
-    Copy,
-    Debug,
-    Serialize,
-    Deserialize,
-    Default,
-    PartialEq,
-    glib::Boxed,
-    Hash,
-    Eq,
-    Ord,
-    PartialOrd,
+    Clone, Copy, Debug, Serialize, Deserialize, Default, PartialEq, Hash, Eq, Ord, PartialOrd,
 )]
-#[boxed_type(name = "S76Hs")]
+#[cfg_attr(feature = "glib", boxed_type(name = "S76Hs"))]
 pub struct Hs {
     /// Hue, in radians
     pub h: NotNan<f64>,
@@ -56,8 +46,9 @@ impl Hs {
 }
 
 /// Integer RGB color
-#[derive(Clone, Copy, Debug, Default, glib::Boxed)]
-#[boxed_type(name = "S76Rgb")]
+#[cfg_attr(feature = "glib", derive(glib::Boxed))]
+#[derive(Clone, Copy, Debug, Default)]
+#[cfg_attr(feature = "glib", boxed_type(name = "S76Rgb"))]
 pub struct Rgb {
     /// Red
     pub r: u8,

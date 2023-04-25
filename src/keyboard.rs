@@ -16,7 +16,7 @@ use std::{
 };
 
 use crate::{show_error_dialog, Backlight, KeyboardLayer, MainWindow, Page, Picker, Testing};
-use backend::{Board, DerefCell, KeyMap, Layout, Mode};
+use backend::{Board, BoardEvent, DerefCell, KeyMap, Layout, Mode};
 use widgets::SelectedKeys;
 
 #[derive(Default)]
@@ -188,10 +188,6 @@ impl Keyboard {
             .invert_f_action
             .set_enabled(!board.layout().meta.no_fn_f);
 
-        board.connect_keymap_changed(clone!(@weak keyboard => move ||
-            keyboard.queue_draw();
-        ));
-
         let stack = &keyboard.inner().stack;
 
         if launch_test {
@@ -263,6 +259,19 @@ impl Keyboard {
 
     fn inner(&self) -> &KeyboardInner {
         KeyboardInner::from_instance(self)
+    }
+
+    pub fn handle_backend_event(&self, event: BoardEvent) {
+        match event {
+            BoardEvent::KeymapChanged => self.queue_draw(),
+            BoardEvent::LedsChanged => {}
+            BoardEvent::MatrixChanged => {
+                self.queue_draw();
+                if let Some(testing) = self.inner().testing.as_ref() {
+                    testing.selma_update_colors();
+                }
+            }
+        }
     }
 
     pub fn action_group(&self) -> &gio::ActionGroup {

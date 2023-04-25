@@ -1,67 +1,60 @@
-use futures::{channel::mpsc as async_mpsc, prelude::*};
-use glib::{
-    clone,
-    prelude::*,
-    subclass::{prelude::*, Signal},
-    SignalHandlerId,
-};
-use once_cell::sync::Lazy;
+use futures::channel::mpsc as async_mpsc;
+use once_cell::sync::{Lazy, OnceCell};
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::{
-    cell::{Cell, Ref, RefCell},
     collections::HashMap,
     process::Command,
-    sync::Arc,
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Arc, Mutex, MutexGuard, Weak,
+    },
 };
 
 use crate::daemon::ThreadClient;
 use crate::{
-    Benchmark, BoardId, Daemon, DerefCell, Key, KeyMap, KeyMapLayer, Layer, Layout, Matrix, Nelson,
+    Benchmark, BoardId, Daemon, Event, Key, KeyMap, KeyMapLayer, Layer, Layout, Matrix, Nelson,
     NelsonKind,
 };
 
-#[derive(Default)]
-#[doc(hidden)]
-pub struct BoardInner {
-    thread_client: DerefCell<Arc<ThreadClient>>,
-    board: DerefCell<BoardId>,
-    model: DerefCell<String>,
-    version: DerefCell<String>,
-    layout: DerefCell<Layout>,
-    keys: DerefCell<Vec<Key>>,
-    layers: DerefCell<Vec<Layer>>,
-    max_brightness: DerefCell<i32>,
-    leds_changed: Cell<bool>,
-    has_led_save: DerefCell<bool>,
-    led_save_blocked: Cell<bool>,
-    has_matrix: DerefCell<bool>,
-    is_fake: DerefCell<bool>,
-    has_keymap: DerefCell<bool>,
-    matrix: RefCell<Matrix>,
-    updated: DerefCell<bool>,
+#[derive(Clone, Debug)]
+pub enum BoardEvent {
+    KeymapChanged,
+    LedsChanged,
+    MatrixChanged,
 }
 
-#[glib::object_subclass]
-impl ObjectSubclass for BoardInner {
-    const NAME: &'static str = "S76DaemonBoard";
-    type ParentType = glib::Object;
-    type Type = Board;
+#[derive(Debug)]
+struct BoardInner {
+    thread_client: Arc<ThreadClient>,
+    board: BoardId,
+    model: String,
+    version: String,
+    layout: Layout,
+    keys: OnceCell<Vec<Key>>,
+    layers: OnceCell<Vec<Layer>>,
+    max_brightness: i32,
+    leds_changed: AtomicBool,
+    has_led_save: bool,
+    led_save_blocked: AtomicBool,
+    has_matrix: bool,
+    is_fake: bool,
+    has_keymap: bool,
+    matrix: Arc<Mutex<Matrix>>,
+    updated: bool,
+    event_sender: async_mpsc::UnboundedSender<Event>,
 }
 
-impl ObjectImpl for BoardInner {
-    fn signals() -> &'static [Signal] {
-        static SIGNALS: Lazy<Vec<Signal>> = Lazy::new(|| {
-            vec![
-                Signal::builder("keymap-changed", &[], glib::Type::UNIT.into()).build(),
-                Signal::builder("leds-changed", &[], glib::Type::UNIT.into()).build(),
-                Signal::builder("matrix-changed", &[], glib::Type::UNIT.into()).build(),
-                Signal::builder("removed", &[], glib::Type::UNIT.into()).build(),
-            ]
-        });
-        SIGNALS.as_ref()
+#[derive(Clone, Debug)]
+pub struct Board(Arc<BoardInner>);
+
+impl PartialEq for Board {
+    fn eq(&self, other: &Self) -> bool {
+        Arc::ptr_eq(&self.0, &other.0)
     }
 }
+
+impl Eq for Board {}
 
 #[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Hash, Eq)]
 pub enum Bootloaded {
@@ -73,18 +66,16 @@ pub enum Bootloaded {
     AtMega32u4,
 }
 
-glib::wrapper! {
-    pub struct Board(ObjectSubclass<BoardInner>);
-}
-
-unsafe impl Send for Board {}
+#[derive(Debug)]
+pub(crate) struct WeakBoard(Weak<BoardInner>);
 
 impl Board {
     pub fn new(
         daemon: &dyn Daemon,
         thread_client: Arc<ThreadClient>,
         board: BoardId,
-        mut matrix_reciever: async_mpsc::UnboundedReceiver<Matrix>,
+        matrix: Arc<Mutex<Matrix>>,
+        event_sender: async_mpsc::UnboundedSender<Event>,
     ) -> Result<Self, String> {
         let model = match daemon.model(board) {
             Ok(model) => model,
@@ -115,21 +106,25 @@ impl Board {
         let logical = layout.layout.values().next().unwrap();
         let has_keymap = daemon.keymap_get(board, 0, logical.0, logical.1).is_ok();
 
-        let self_ = glib::Object::new::<Board>(&[]).unwrap();
-        self_.inner().thread_client.set(thread_client);
-        self_.inner().board.set(board);
-        self_.inner().model.set(model);
-        self_.inner().version.set(version);
-        self_.inner().layout.set(layout);
-        self_.inner().max_brightness.set(max_brightness);
-        self_.inner().has_led_save.set(has_led_save);
-        self_.inner().has_matrix.set(has_matrix);
-        self_.inner().is_fake.set(daemon.is_fake());
-        self_.inner().has_keymap.set(has_keymap);
-        self_
-            .inner()
-            .updated
-            .set(is_launch_updated().unwrap_or(false));
+        let self_ = Board(Arc::new(BoardInner {
+            thread_client,
+            board,
+            model,
+            version,
+            layout,
+            max_brightness,
+            has_led_save,
+            has_matrix,
+            is_fake: daemon.is_fake(),
+            has_keymap,
+            keys: OnceCell::new(),
+            layers: OnceCell::new(),
+            leds_changed: AtomicBool::new(false),
+            led_save_blocked: AtomicBool::new(false),
+            matrix,
+            event_sender,
+            updated: is_launch_updated().unwrap_or(false),
+        }));
 
         let keys = self_
             .layout()
@@ -138,82 +133,50 @@ impl Board {
             .iter()
             .map(|i| Key::new(daemon, &self_, i))
             .collect();
-        self_.inner().keys.set(keys);
+        self_.0.keys.set(keys).unwrap();
 
         let layers = (0..num_layers)
             .map(|layer| Layer::new(daemon, &self_, layer))
             .collect();
-        self_.inner().layers.set(layers);
-
-        glib::MainContext::default().spawn(clone!(@strong self_ => async move {
-            while let Some(matrix) = matrix_reciever.next().await {
-                self_.inner().matrix.replace(matrix);
-                self_.emit_by_name::<()>("matrix-changed", &[]);
-            }
-        }));
+        self_.0.layers.set(layers).unwrap();
 
         Ok(self_)
     }
 
-    fn inner(&self) -> &BoardInner {
-        BoardInner::from_instance(self)
-    }
-
-    pub fn connect_removed<F: Fn() + 'static>(&self, cb: F) -> SignalHandlerId {
-        self.connect_local("removed", false, move |_| {
-            cb();
-            None
-        })
-    }
-
-    pub fn connect_keymap_changed<F: Fn() + 'static>(&self, cb: F) -> SignalHandlerId {
-        self.connect_local("keymap-changed", false, move |_| {
-            cb();
-            None
-        })
+    pub(crate) fn send_event(&self, event: BoardEvent) {
+        let _ = self
+            .0
+            .event_sender
+            .unbounded_send(Event::Board(self.0.board, event));
     }
 
     pub(crate) fn set_leds_changed(&self) {
-        self.inner().leds_changed.set(true);
-        self.emit_by_name::<()>("leds-changed", &[]);
-    }
-
-    pub fn connect_leds_changed<F: Fn() + 'static>(&self, cb: F) -> SignalHandlerId {
-        self.connect_local("leds-changed", false, move |_| {
-            cb();
-            None
-        })
+        self.0.leds_changed.store(true, Ordering::SeqCst);
+        self.send_event(BoardEvent::LedsChanged);
     }
 
     pub fn board(&self) -> BoardId {
-        *self.inner().board
+        self.0.board
     }
 
     pub(crate) fn thread_client(&self) -> &ThreadClient {
-        &self.inner().thread_client
+        &self.0.thread_client
     }
 
     pub fn model(&self) -> &str {
-        &self.inner().model
+        &self.0.model
     }
 
     pub fn version(&self) -> &str {
-        &self.inner().version
+        &self.0.version
     }
 
     pub fn has_matrix(&self) -> bool {
-        *self.inner().has_matrix
-    }
-
-    pub fn connect_matrix_changed<F: Fn() + 'static>(&self, cb: F) -> SignalHandlerId {
-        self.connect_local("matrix-changed", false, move |_| {
-            cb();
-            None
-        })
+        self.0.has_matrix
     }
 
     pub fn max_brightness(&self) -> i32 {
-        *self.inner().max_brightness
+        self.0.max_brightness
     }
 
     pub async fn benchmark(&self) -> Result<Benchmark, String> {
@@ -225,27 +188,27 @@ impl Board {
     }
 
     pub async fn led_save(&self) -> Result<(), String> {
-        if self.inner().led_save_blocked.get() {
+        if self.0.led_save_blocked.load(Ordering::SeqCst) {
             return Ok(());
         }
-        if self.has_led_save() && self.inner().leds_changed.get() {
+        if self.has_led_save() && self.0.leds_changed.load(Ordering::SeqCst) {
             self.thread_client().led_save(self.board()).await?;
-            self.inner().leds_changed.set(false);
+            self.0.leds_changed.store(false, Ordering::SeqCst);
             debug!("led_save");
         }
         Ok(())
     }
 
     pub fn block_led_save(&self) {
-        self.inner().led_save_blocked.set(true);
+        self.0.led_save_blocked.store(true, Ordering::SeqCst);
     }
 
     pub fn unblock_led_save(&self) {
-        self.inner().led_save_blocked.set(false);
+        self.0.led_save_blocked.store(false, Ordering::SeqCst);
     }
 
     pub fn is_fake(&self) -> bool {
-        *self.inner().is_fake
+        self.0.is_fake
     }
 
     pub fn is_lite(&self) -> bool {
@@ -254,31 +217,31 @@ impl Board {
     }
 
     pub fn is_updated(&self) -> bool {
-        *self.inner().updated
+        self.0.updated
     }
 
     pub fn has_led_save(&self) -> bool {
-        *self.inner().has_led_save
+        self.0.has_led_save
     }
 
     pub fn has_keymap(&self) -> bool {
-        *self.inner().has_keymap
+        self.0.has_keymap
     }
 
     pub fn layout(&self) -> &Layout {
-        &*self.inner().layout
+        &self.0.layout
     }
 
     pub fn layers(&self) -> &[Layer] {
-        &*self.inner().layers
+        self.0.layers.get().unwrap()
     }
 
     pub fn keys(&self) -> &[Key] {
-        &*self.inner().keys
+        self.0.keys.get().unwrap()
     }
 
-    pub(crate) fn matrix(&self) -> Ref<Matrix> {
-        self.inner().matrix.borrow()
+    pub(crate) fn matrix(&self) -> MutexGuard<Matrix> {
+        self.0.matrix.lock().unwrap()
     }
 
     pub fn export_keymap(&self) -> KeyMap {
@@ -297,7 +260,7 @@ impl Board {
             .layers()
             .iter()
             .map(|layer| KeyMapLayer {
-                mode: layer.mode.get(),
+                mode: *layer.mode.lock().unwrap(),
                 brightness: layer.brightness(),
                 color: layer.color(),
             })
@@ -315,6 +278,16 @@ impl Board {
         self.thread_client()
             .set_no_input(self.board(), no_input)
             .await
+    }
+
+    pub(crate) fn downgrade(&self) -> WeakBoard {
+        WeakBoard(Arc::downgrade(&self.0))
+    }
+}
+
+impl WeakBoard {
+    pub fn upgrade(&self) -> Option<Board> {
+        Some(Board(self.0.upgrade()?))
     }
 }
 

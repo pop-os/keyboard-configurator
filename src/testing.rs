@@ -9,7 +9,7 @@ use gtk::{
 };
 use once_cell::sync::{Lazy, OnceCell};
 use std::{
-    cell::RefCell,
+    cell::{Cell, RefCell},
     collections::HashMap,
     sync::{atomic::Ordering, RwLock},
 };
@@ -68,6 +68,7 @@ pub struct TestingInner {
     selma_start_button: DerefCell<gtk::Button>,
     selma_stop_button: DerefCell<gtk::Button>,
     selma_stop_sender: RefCell<Option<oneshot::Sender<()>>>,
+    selma_running: Cell<bool>,
     colors: RefCell<TestingColors>,
 }
 
@@ -480,7 +481,11 @@ impl Testing {
         }));
     }
 
-    fn selma_update_colors(&self) {
+    pub fn selma_update_colors(&self) {
+        if !self.inner().selma_running.get() {
+            return;
+        }
+
         let mut colors = self.inner().colors.borrow_mut();
         for k in self.inner().board.keys() {
             let (row, col) = k.electrical;
@@ -505,20 +510,15 @@ impl Testing {
         self.set_no_input(true).await;
 
         testing.colors.borrow_mut().0.clear();
-        let matrix_changed_handle =
-            testing
-                .board
-                .connect_matrix_changed(clone!(@strong self as self_ => move || {
-                    self_.selma_update_colors();
-                }));
         self.selma_update_colors();
+        self.inner().selma_running.set(true);
 
         // Wait for stop button to be pressed
         let (sender, reciever) = oneshot::channel();
         *testing.selma_stop_sender.borrow_mut() = Some(sender);
         let _ = reciever.await;
 
-        testing.board.disconnect(matrix_changed_handle);
+        self.inner().selma_running.set(false);
 
         info!("Re-enable keyboard input events");
         self.set_no_input(false).await;
