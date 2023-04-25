@@ -14,7 +14,9 @@ use backend::{Backend, Key, Layout, Rgb};
 mod fixed_widget;
 use fixed_widget::FixedWidget;
 
-const SCALE: f64 = 64.;
+const SCALE: f32 = 64.;
+const MARGIN: f32 = 4.;
+const RADIUS: f32 = 4.;
 
 #[derive(Clone, Debug)]
 enum Msg {
@@ -104,10 +106,20 @@ fn key_button_appearance(_: &cosmic::Theme) -> cosmic::iced_style::button::Appea
     cosmic::iced_style::button::Appearance {
         shadow_offset: iced::Vector::new(0.0, 0.0),
         background: Some(iced_style::Background::Color(Color::BLACK)),
-        border_radius: 4.0.into(),
+        border_radius: RADIUS.into(),
         border_width: 0.0,
         border_color: Color::WHITE,
         text_color: Color::WHITE,
+    }
+}
+
+// TODO narrow view?
+fn key_position_wide(physical: &backend::Rect) -> Rectangle {
+    Rectangle {
+        x: physical.x as f32 * SCALE + MARGIN,
+        y: physical.y as f32 * SCALE + MARGIN,
+        width: physical.w as f32 * SCALE - MARGIN * 2.0,
+        height: physical.h as f32 * SCALE - MARGIN * 2.0,
     }
 }
 
@@ -133,16 +145,8 @@ fn key_view(key: &Key, pressed_color: Rgb, layer: usize) -> (cosmic::Element<Msg
             active: key_button_appearance,
             hover: key_button_appearance,
         })
-        //        .width(iced::Length::Fixed((key.physical.w * SCALE) as f32))
-        //        .height(iced::Length::Fixed((key.physical.h* SCALE) as f32))
         .into();
-    let rectangle = Rectangle {
-        x: (key.physical.x * SCALE) as f32,
-        y: (key.physical.y * SCALE) as f32,
-        width: (key.physical.w * SCALE) as f32,
-        height: (key.physical.h * SCALE) as f32,
-    };
-    (element, rectangle)
+    (element, key_position_wide(&key.physical))
 }
 
 fn keyboard_view(keyboard: &Keyboard) -> cosmic::Element<Msg> {
