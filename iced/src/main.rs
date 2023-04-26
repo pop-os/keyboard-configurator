@@ -11,6 +11,7 @@ mod fixed_widget;
 use fixed_widget::FixedWidget;
 mod localize;
 mod page;
+pub use page::Page;
 mod picker_json;
 mod view;
 
@@ -97,7 +98,7 @@ impl Application for App {
         iced::widget::column(
             self.keyboards
                 .iter()
-                .map(|keyboard| view::keyboard(&keyboard.board))
+                .map(|keyboard| view::keyboard(&keyboard.board, Page::Layer1))
                 .collect(),
         )
         .into()

@@ -3,7 +3,7 @@ use cosmic::{
     iced_style,
 };
 
-use crate::Msg;
+use crate::{Msg, Page};
 
 const SCALE: f32 = 64.;
 const MARGIN: f32 = 4.;
@@ -38,6 +38,7 @@ fn key_position_wide(physical: &backend::Rect) -> Rectangle {
 
 pub(crate) fn key(
     key: &backend::Key,
+    page: Page,
     pressed_color: backend::Rgb,
     layer: usize,
 ) -> (cosmic::Element<Msg>, Rectangle) {
@@ -54,9 +55,10 @@ pub(crate) fn key(
         iced::Color::WHITE
     };
 
-    let scancode_name = key.get_scancode(layer).unwrap().1;
+    let label_text = page.get_label(key);
+    let label_text = label_text.replace('\n', " "); // TODO
 
-    let label = iced::widget::text(&scancode_name).style(cosmic::theme::Text::Color(fg));
+    let label = iced::widget::text(&label_text).style(cosmic::theme::Text::Color(fg));
     let element = iced::widget::button(label)
         .style(cosmic::theme::Button::Custom {
             active: Box::new(move |theme| key_button_appearance(theme, bg, false)),
