@@ -13,20 +13,17 @@ const SELECTED_COLOR: Color = Color::from_rgb(0.984, 0.722, 0.424);
 
 fn key_button_appearance(
     _: &cosmic::Theme,
+    background: Color,
     selected: bool,
 ) -> cosmic::iced_style::button::Appearance {
     cosmic::iced_style::button::Appearance {
         shadow_offset: iced::Vector::new(0.0, 0.0),
-        background: Some(iced_style::Background::Color(Color::BLACK)),
+        background: Some(iced_style::Background::Color(background)),
         border_radius: RADIUS.into(),
         border_width: if selected { SELECTED_BORDER } else { 0.0 },
         border_color: SELECTED_COLOR,
         text_color: Color::WHITE,
     }
-}
-
-fn key_button_appearance_default(theme: &cosmic::Theme) -> cosmic::iced_style::button::Appearance {
-    key_button_appearance(theme, false)
 }
 
 // TODO narrow view?
@@ -62,8 +59,8 @@ pub(crate) fn key(
     let label = iced::widget::text(&scancode_name).style(cosmic::theme::Text::Color(fg));
     let element = iced::widget::button(label)
         .style(cosmic::theme::Button::Custom {
-            active: key_button_appearance_default,
-            hover: key_button_appearance_default,
+            active: Box::new(move |theme| key_button_appearance(theme, bg, false)),
+            hover: Box::new(move |theme| key_button_appearance(theme, bg, false)),
         })
         .into();
     (element, key_position_wide(&key.physical))

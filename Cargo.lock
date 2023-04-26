@@ -1927,7 +1927,7 @@ dependencies = [
 [[package]]
 name = "iced"
 version = "0.6.0"
-source = "git+https://github.com/pop-os/libcosmic#c878e2446557c16daa47acbd778365699d368b0f"
+source = "git+https://github.com/pop-os/libcosmic?branch=button-theme#a588b9ae7483014cf477016a1e2e6ed9d1dfdb9b"
 dependencies = [
  "iced_core",
  "iced_dyrend",
@@ -1945,7 +1945,7 @@ dependencies = [
 [[package]]
 name = "iced_core"
 version = "0.6.2"
-source = "git+https://github.com/pop-os/libcosmic#c878e2446557c16daa47acbd778365699d368b0f"
+source = "git+https://github.com/pop-os/libcosmic?branch=button-theme#a588b9ae7483014cf477016a1e2e6ed9d1dfdb9b"
 dependencies = [
  "bitflags",
  "palette 0.6.1",
@@ -1955,7 +1955,7 @@ dependencies = [
 [[package]]
 name = "iced_dyrend"
 version = "0.1.0"
-source = "git+https://github.com/pop-os/libcosmic#c878e2446557c16daa47acbd778365699d368b0f"
+source = "git+https://github.com/pop-os/libcosmic?branch=button-theme#a588b9ae7483014cf477016a1e2e6ed9d1dfdb9b"
 dependencies = [
  "iced_glow",
  "iced_graphics",
@@ -1969,7 +1969,7 @@ dependencies = [
 [[package]]
 name = "iced_futures"
 version = "0.5.1"
-source = "git+https://github.com/pop-os/libcosmic#c878e2446557c16daa47acbd778365699d368b0f"
+source = "git+https://github.com/pop-os/libcosmic?branch=button-theme#a588b9ae7483014cf477016a1e2e6ed9d1dfdb9b"
 dependencies = [
  "futures",
  "log",
@@ -1981,7 +1981,7 @@ dependencies = [
 [[package]]
 name = "iced_glow"
 version = "0.5.1"
-source = "git+https://github.com/pop-os/libcosmic#c878e2446557c16daa47acbd778365699d368b0f"
+source = "git+https://github.com/pop-os/libcosmic?branch=button-theme#a588b9ae7483014cf477016a1e2e6ed9d1dfdb9b"
 dependencies = [
  "bytemuck",
  "euclid",
@@ -1996,7 +1996,7 @@ dependencies = [
 [[package]]
 name = "iced_graphics"
 version = "0.5.0"
-source = "git+https://github.com/pop-os/libcosmic#c878e2446557c16daa47acbd778365699d368b0f"
+source = "git+https://github.com/pop-os/libcosmic?branch=button-theme#a588b9ae7483014cf477016a1e2e6ed9d1dfdb9b"
 dependencies = [
  "bitflags",
  "bytemuck",
@@ -2016,7 +2016,7 @@ dependencies = [
 [[package]]
 name = "iced_lazy"
 version = "0.3.0"
-source = "git+https://github.com/pop-os/libcosmic#c878e2446557c16daa47acbd778365699d368b0f"
+source = "git+https://github.com/pop-os/libcosmic?branch=button-theme#a588b9ae7483014cf477016a1e2e6ed9d1dfdb9b"
 dependencies = [
  "iced_native",
  "ouroboros 0.13.0",
@@ -2025,7 +2025,7 @@ dependencies = [
 [[package]]
 name = "iced_native"
 version = "0.7.0"
-source = "git+https://github.com/pop-os/libcosmic#c878e2446557c16daa47acbd778365699d368b0f"
+source = "git+https://github.com/pop-os/libcosmic?branch=button-theme#a588b9ae7483014cf477016a1e2e6ed9d1dfdb9b"
 dependencies = [
  "iced_core",
  "iced_futures",
@@ -2038,7 +2038,7 @@ dependencies = [
 [[package]]
 name = "iced_softbuffer"
 version = "0.1.0"
-source = "git+https://github.com/pop-os/libcosmic#c878e2446557c16daa47acbd778365699d368b0f"
+source = "git+https://github.com/pop-os/libcosmic?branch=button-theme#a588b9ae7483014cf477016a1e2e6ed9d1dfdb9b"
 dependencies = [
  "cosmic-text",
  "iced_graphics",
@@ -2053,7 +2053,7 @@ dependencies = [
 [[package]]
 name = "iced_style"
 version = "0.5.1"
-source = "git+https://github.com/pop-os/libcosmic#c878e2446557c16daa47acbd778365699d368b0f"
+source = "git+https://github.com/pop-os/libcosmic?branch=button-theme#a588b9ae7483014cf477016a1e2e6ed9d1dfdb9b"
 dependencies = [
  "iced_core",
  "once_cell",
@@ -2063,7 +2063,7 @@ dependencies = [
 [[package]]
 name = "iced_wgpu"
 version = "0.7.0"
-source = "git+https://github.com/pop-os/libcosmic#c878e2446557c16daa47acbd778365699d368b0f"
+source = "git+https://github.com/pop-os/libcosmic?branch=button-theme#a588b9ae7483014cf477016a1e2e6ed9d1dfdb9b"
 dependencies = [
  "bitflags",
  "bytemuck",
@@ -2083,7 +2083,7 @@ dependencies = [
 [[package]]
 name = "iced_winit"
 version = "0.6.0"
-source = "git+https://github.com/pop-os/libcosmic#c878e2446557c16daa47acbd778365699d368b0f"
+source = "git+https://github.com/pop-os/libcosmic?branch=button-theme#a588b9ae7483014cf477016a1e2e6ed9d1dfdb9b"
 dependencies = [
  "iced_futures",
  "iced_graphics",
@@ -2259,7 +2259,7 @@ checksum = "6a987beff54b60ffa6d51982e1aa1146bc42f19bd26be28b0586f252fccf5317"
 [[package]]
 name = "libcosmic"
 version = "0.1.0"
-source = "git+https://github.com/pop-os/libcosmic#c878e2446557c16daa47acbd778365699d368b0f"
+source = "git+https://github.com/pop-os/libcosmic?branch=button-theme#a588b9ae7483014cf477016a1e2e6ed9d1dfdb9b"
 dependencies = [
  "apply",
  "cosmic-theme",
