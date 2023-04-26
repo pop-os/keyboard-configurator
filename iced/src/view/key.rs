@@ -1,6 +1,5 @@
 use cosmic::{
-    iced::{self, keyboard::KeyCode, widget, Application, Color, Command, Rectangle, Subscription},
-    iced_native::window::Id as SurfaceId,
+    iced::{self, Application, Color, Rectangle},
     iced_style,
 };
 

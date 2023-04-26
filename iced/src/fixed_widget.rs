@@ -1,13 +1,6 @@
 use cosmic::{
     iced::{Length, Point, Rectangle, Vector},
-    iced_native::{
-        event, layout, mouse, overlay, renderer,
-        widget::{
-            operation::{self, Operation},
-            tree::{self, Tree},
-        },
-        Clipboard, Event, Shell, Size, Widget,
-    },
+    iced_native::{layout, renderer, widget::tree::Tree, Size, Widget},
 };
 
 pub struct FixedWidget<'a, Message> {

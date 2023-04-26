@@ -1,14 +1,10 @@
 // TODO Need multi-window, cross platform
 
-use cosmic::{
-    iced::{self, keyboard::KeyCode, widget, Application, Color, Command, Rectangle, Subscription},
-    iced_native::window::Id as SurfaceId,
-    iced_style,
-};
+use cosmic::iced::{self, Application, Command, Subscription};
 use futures::StreamExt;
-use std::{collections::HashMap, mem};
+use std::collections::HashMap;
 
-use backend::{Backend, Key, Layout, Rgb};
+use backend::Backend;
 
 mod fixed_widget;
 use fixed_widget::FixedWidget;
