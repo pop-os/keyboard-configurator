@@ -7,18 +7,12 @@ use cosmic::{
 };
 use futures::StreamExt;
 use std::{collections::HashMap, mem};
-use tokio::sync::oneshot;
 
 use backend::{Backend, Key, Layout, Rgb};
 
 mod fixed_widget;
 use fixed_widget::FixedWidget;
-
-const SCALE: f32 = 64.;
-const MARGIN: f32 = 4.;
-const RADIUS: f32 = 4.;
-const SELECTED_BORDER: f32 = 4.0;
-const SELECTED_COLOR: Color = Color::from_rgb(0.984, 0.722, 0.424);
+mod view;
 
 #[derive(Clone, Debug)]
 enum Msg {
@@ -100,72 +94,14 @@ impl Application for App {
     }
 
     fn view(&self) -> cosmic::Element<Msg> {
-        iced::widget::column(self.keyboards.iter().map(keyboard_view).collect()).into()
+        iced::widget::column(
+            self.keyboards
+                .iter()
+                .map(|keyboard| view::keyboard(&keyboard.board))
+                .collect(),
+        )
+        .into()
     }
-}
-
-fn key_button_appearance(_: &cosmic::Theme, selected: bool) -> cosmic::iced_style::button::Appearance {
-    cosmic::iced_style::button::Appearance {
-        shadow_offset: iced::Vector::new(0.0, 0.0),
-        background: Some(iced_style::Background::Color(Color::BLACK)),
-        border_radius: RADIUS.into(),
-        border_width: if selected { SELECTED_BORDER } else { 0.0 },
-        border_color: SELECTED_COLOR,
-        text_color: Color::WHITE,
-    }
-}
-
-fn key_button_appearance_default(theme: &cosmic::Theme) -> cosmic::iced_style::button::Appearance {
-    key_button_appearance(theme, false)
-}
-
-// TODO narrow view?
-fn key_position_wide(physical: &backend::Rect) -> Rectangle {
-    Rectangle {
-        x: physical.x as f32 * SCALE + MARGIN,
-        y: physical.y as f32 * SCALE + MARGIN,
-        width: physical.w as f32 * SCALE - MARGIN * 2.0,
-        height: physical.h as f32 * SCALE - MARGIN * 2.0,
-    }
-}
-
-fn key_view(key: &Key, pressed_color: Rgb, layer: usize) -> (cosmic::Element<Msg>, Rectangle) {
-    let bg = if key.pressed() {
-        pressed_color
-    } else {
-        key.background_color
-    };
-    let bg = iced::Color::from_rgb8(bg.r, bg.g, bg.b);
-
-    let fg = if (bg.r + bg.g + bg.b) / 3. >= 0.5 {
-        iced::Color::BLACK
-    } else {
-        iced::Color::WHITE
-    };
-
-    let scancode_name = key.get_scancode(layer).unwrap().1;
-
-    let label = iced::widget::text(&scancode_name).style(cosmic::theme::Text::Color(fg));
-    let element = iced::widget::button(label)
-        .style(cosmic::theme::Button::Custom {
-            active: key_button_appearance_default,
-            hover: key_button_appearance_default,
-        })
-        .into();
-    (element, key_position_wide(&key.physical))
-}
-
-fn keyboard_view(keyboard: &Keyboard) -> cosmic::Element<Msg> {
-    let meta = &keyboard.board.layout().meta;
-    let mut key_views = Vec::new();
-    for key in keyboard.board.keys() {
-        key_views.push(key_view(key, meta.pressed_color, 0));
-    }
-    iced::widget::column![
-        cosmic::widget::text(&meta.display_name),
-        FixedWidget::new(key_views),
-    ]
-    .into()
 }
 
 #[derive(Clone, Debug)]
