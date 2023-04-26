@@ -1,5 +1,6 @@
 // TODO Need multi-window, cross platform
 
+use i18n_embed::DesktopLanguageRequester;
 use cosmic::iced::{self, Application, Command, Subscription};
 use futures::StreamExt;
 use std::collections::HashMap;
@@ -8,6 +9,9 @@ use backend::Backend;
 
 mod fixed_widget;
 use fixed_widget::FixedWidget;
+mod localize;
+mod page;
+mod picker_json;
 mod view;
 
 #[derive(Clone, Debug)]
@@ -138,8 +142,24 @@ async fn reset_layout(board: backend::Board) {
 }
 
 pub fn main() -> iced::Result {
+    translate();
     App::run(iced::Settings {
         antialiasing: true,
         ..iced::Settings::default()
     })
+}
+
+fn translate() {
+    let requested_languages = DesktopLanguageRequester::requested_languages();
+
+    let localizers = vec![
+        ("keyboard-configurator", crate::localize::localizer()),
+        ("backend", backend::localizer()),
+    ];
+
+    for (crate_name, localizer) in localizers {
+        if let Err(error) = localizer.select(&requested_languages) {
+            eprintln!("Error while loading languages for {} {}", crate_name, error);
+        }
+    }
 }
