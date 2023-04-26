@@ -1,7 +1,7 @@
 on:
   push:
-    branches: '**'
-    tags-ignore: '**'
+    branches: "**"
+    tags-ignore: "**"
   pull_request:
   release:
     types: [published]
@@ -14,127 +14,127 @@ jobs:
   run-tests:
     runs-on: ubuntu-latest
     steps:
-    - run: sudo apt-get update && sudo apt-get install libgtk-3-dev libhidapi-dev libudev-dev
-    - uses: actions/checkout@v2
-    - run: rustup component add rustfmt
-    - run: cargo test --all
-    - run: cargo fmt -- --check
+      - run: sudo apt-get update && sudo apt-get install libgtk-3-dev libhidapi-dev libudev-dev
+      - uses: actions/checkout@v3
+      - run: rustup component add rustfmt
+      - run: cargo test --all
+      - run: cargo fmt -- --check
 
   linux-x86_64:
     runs-on: ubuntu-20.04
     steps:
-    - run: sudo apt-get update && sudo apt-get install cargo libgtk-3-dev libhidapi-dev libudev-dev patchelf
-    - uses: actions/checkout@v2
-    - run: cd linux && ./build.py $RELEASE
-    - uses: actions/upload-artifact@v2
-      with:
-        if-no-files-found: error
-        name: keyboard-configurator-linux-x86_64-${{ github.sha }}
-        path: linux/keyboard-configurator-x86_64.AppImage
+      - run: sudo apt-get update && sudo apt-get install cargo libgtk-3-dev libhidapi-dev libudev-dev patchelf
+      - uses: actions/checkout@v3
+      - run: cd linux && ./build.py $RELEASE
+      - uses: actions/upload-artifact@v3
+        with:
+          if-no-files-found: error
+          name: keyboard-configurator-linux-x86_64-${{ github.sha }}
+          path: linux/keyboard-configurator-x86_64.AppImage
 
   linux-x86_64-test:
     runs-on: ubuntu-latest
     needs: linux-x86_64
     steps:
-    - run: sudo apt-get install xvfb libfuse2
-    - uses: actions/download-artifact@v2
-      with:
-        name: keyboard-configurator-linux-x86_64-${{ github.sha }}
-    - run: chmod +x keyboard-configurator-x86_64.AppImage
-    - run: xvfb-run ./keyboard-configurator-x86_64.AppImage --help-gtk
+      - run: sudo apt-get install xvfb libfuse2
+      - uses: actions/download-artifact@v3
+        with:
+          name: keyboard-configurator-linux-x86_64-${{ github.sha }}
+      - run: chmod +x keyboard-configurator-x86_64.AppImage
+      - run: xvfb-run ./keyboard-configurator-x86_64.AppImage --help-gtk
 
   windows-mingw32:
     runs-on: windows-latest
     steps:
-    - uses: msys2/setup-msys2@v2
-      with:
-        msystem: MINGW32
-        install: mingw-w64-i686-gtk3 mingw-w64-i686-rust mingw-w64-i686-toolchain mingw-w64-i686-ntldd mingw-w64-i686-imagemagick
-    - uses: actions/checkout@v2
-    - name: Build and package
-      shell: msys2 {0}
-      env:
-        SSL_COM_USERNAME: ${{ github.event_name == 'release' && secrets.SSL_COM_USERNAME || '' }}
-        SSL_COM_PASSWORD: ${{ github.event_name == 'release' && secrets.SSL_COM_PASSWORD || '' }}
-        SSL_COM_CREDENTIAL_ID: ${{ github.event_name == 'release' && secrets.SSL_COM_CREDENTIAL_ID || '' }}
-        SSL_COM_TOTP_SECRET: ${{ github.event_name == 'release' && secrets.SSL_COM_TOTP_SECRET || '' }}
-        SIGN: ${{ github.event_name == 'release' && '--sign' || '' }}
-      run: cd windows && python build.py $RELEASE $SIGN
-    - uses: actions/upload-artifact@v2
-      with:
-        if-no-files-found: error
-        name: keyboard-configurator-mingw32-${{ github.sha }}
-        path: windows/keyboard-configurator.msi
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW32
+          install: mingw-w64-i686-gtk3 mingw-w64-i686-rust mingw-w64-i686-toolchain mingw-w64-i686-ntldd mingw-w64-i686-imagemagick
+      - uses: actions/checkout@v3
+      - name: Build and package
+        shell: msys2 {0}
+        env:
+          SSL_COM_USERNAME: ${{ github.event_name == 'release' && secrets.SSL_COM_USERNAME || '' }}
+          SSL_COM_PASSWORD: ${{ github.event_name == 'release' && secrets.SSL_COM_PASSWORD || '' }}
+          SSL_COM_CREDENTIAL_ID: ${{ github.event_name == 'release' && secrets.SSL_COM_CREDENTIAL_ID || '' }}
+          SSL_COM_TOTP_SECRET: ${{ github.event_name == 'release' && secrets.SSL_COM_TOTP_SECRET || '' }}
+          SIGN: ${{ github.event_name == 'release' && '--sign' || '' }}
+        run: cd windows && python build.py $RELEASE $SIGN
+      - uses: actions/upload-artifact@v3
+        with:
+          if-no-files-found: error
+          name: keyboard-configurator-mingw32-${{ github.sha }}
+          path: windows/keyboard-configurator.msi
 
   windows-mingw32-test:
     runs-on: windows-latest
     needs: windows-mingw32
     steps:
-    - uses: actions/download-artifact@v2
-      with:
-        name: keyboard-configurator-mingw32-${{ github.sha }}
-    - run: msiexec /i keyboard-configurator.msi /qb
-    - run: '& "C:\Program Files (x86)\System76\Keyboard Configurator\system76-keyboard-configurator.exe" --help-gtk'
+      - uses: actions/download-artifact@v3
+        with:
+          name: keyboard-configurator-mingw32-${{ github.sha }}
+      - run: msiexec /i keyboard-configurator.msi /qb
+      - run: '& "C:\Program Files (x86)\System76\Keyboard Configurator\system76-keyboard-configurator.exe" --help-gtk'
 
   macos:
     runs-on: macos-latest
     steps:
-    - run: brew install gtk+3 imagemagick librsvg adwaita-icon-theme
-    - run: npm install -g appdmg
-    - run: echo "$HOME/.local/bin" >> $GITHUB_PATH
-    - uses: actions/checkout@v2
-    - env:
-        AC_PASSWORD: ${{ github.event_name == 'release' && secrets.AC_PASSWORD || '' }}
-        AC_USERNAME: ${{ github.event_name == 'release' && secrets.AC_USERNAME || '' }}
-        MACOS_CERTIFICATE: ${{ github.event_name == 'release' && secrets.MACOS_CERTIFICATE || '' }}
-        MACOS_SCRIPT: ${{ github.event_name == 'release' && 'bash ./signing.sh' || 'python3 ./build.py' }}
-      run: cd macos && $MACOS_SCRIPT $RELEASE
-    - uses: actions/upload-artifact@v2
-      with:
-        if-no-files-found: error
-        name: keyboard-configurator-macos-${{ github.sha }}
-        path: macos/keyboard-configurator.dmg
+      - run: brew install gtk+3 imagemagick librsvg adwaita-icon-theme
+      - run: npm install -g appdmg
+      - run: echo "$HOME/.local/bin" >> $GITHUB_PATH
+      - uses: actions/checkout@v3
+      - env:
+          AC_PASSWORD: ${{ github.event_name == 'release' && secrets.AC_PASSWORD || '' }}
+          AC_USERNAME: ${{ github.event_name == 'release' && secrets.AC_USERNAME || '' }}
+          MACOS_CERTIFICATE: ${{ github.event_name == 'release' && secrets.MACOS_CERTIFICATE || '' }}
+          MACOS_SCRIPT: ${{ github.event_name == 'release' && 'bash ./signing.sh' || 'python3 ./build.py' }}
+        run: cd macos && $MACOS_SCRIPT $RELEASE
+      - uses: actions/upload-artifact@v3
+        with:
+          if-no-files-found: error
+          name: keyboard-configurator-macos-${{ github.sha }}
+          path: macos/keyboard-configurator.dmg
 
   macos-test:
     runs-on: macos-latest
     needs: macos
     steps:
-    - uses: actions/download-artifact@v2
-      with:
-        name: keyboard-configurator-macos-${{ github.sha }}
-    - run: mkdir mnt && hdiutil attach keyboard-configurator.dmg -mountpoint $PWD/mnt
-    - run: '"./mnt/System76 Keyboard Configurator.app/Contents/MacOS/keyboard-configurator" --help-gtk'
-    - run: 'open "mnt/System76 Keyboard Configurator.app" --args --help-gtk'
+      - uses: actions/download-artifact@v3
+        with:
+          name: keyboard-configurator-macos-${{ github.sha }}
+      - run: mkdir mnt && hdiutil attach keyboard-configurator.dmg -mountpoint $PWD/mnt
+      - run: '"./mnt/System76 Keyboard Configurator.app/Contents/MacOS/keyboard-configurator" --help-gtk'
+      - run: 'open "mnt/System76 Keyboard Configurator.app" --args --help-gtk'
 
   upload-to-release:
     if: github.event_name == 'release'
     runs-on: ubuntu-latest
     needs: [linux-x86_64, windows-mingw32, macos]
     steps:
-    - uses: actions/checkout@v2
-    - run: echo VERSION=$(./.github/workflows/version.py) > $GITHUB_ENV
-    - uses: actions/download-artifact@v2
-    - uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ github.event.release.upload_url }}
-        asset_path: keyboard-configurator-linux-x86_64-${{ github.sha }}/keyboard-configurator-x86_64.AppImage
-        asset_name: keyboard-configurator-${{ env.VERSION }}-x86_64.AppImage
-        asset_content_type: application/vnd.appimage
-    - uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ github.event.release.upload_url }}
-        asset_path: keyboard-configurator-mingw32-${{ github.sha }}/keyboard-configurator.msi
-        asset_name: keyboard-configurator-${{ env.VERSION }}.msi
-        asset_content_type: application/x-msi
-    - uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ github.event.release.upload_url }}
-        asset_path: keyboard-configurator-macos-${{ github.sha }}/keyboard-configurator.dmg
-        asset_name: keyboard-configurator-${{ env.VERSION }}.dmg
-        asset_content_type: application/x-apple-diskimage
+      - uses: actions/checkout@v3
+      - run: echo VERSION=$(./.github/workflows/version.py) > $GITHUB_ENV
+      - uses: actions/download-artifact@v3
+      - uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: keyboard-configurator-linux-x86_64-${{ github.sha }}/keyboard-configurator-x86_64.AppImage
+          asset_name: keyboard-configurator-${{ env.VERSION }}-x86_64.AppImage
+          asset_content_type: application/vnd.appimage
+      - uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: keyboard-configurator-mingw32-${{ github.sha }}/keyboard-configurator.msi
+          asset_name: keyboard-configurator-${{ env.VERSION }}.msi
+          asset_content_type: application/x-msi
+      - uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: keyboard-configurator-macos-${{ github.sha }}/keyboard-configurator.dmg
+          asset_name: keyboard-configurator-${{ env.VERSION }}.dmg
+          asset_content_type: application/x-apple-diskimage
