@@ -1,5 +1,6 @@
 use cosmic::{
     iced::{self, Application, Color, Rectangle},
+    iced_native::alignment::{Horizontal, Vertical},
     iced_style,
 };
 
@@ -56,14 +57,27 @@ pub(crate) fn key(
     };
 
     let label_text = page.get_label(key);
-    let label_text = label_text.replace('\n', " "); // TODO
-
-    let label = iced::widget::text(&label_text).style(cosmic::theme::Text::Color(fg));
-    let element = iced::widget::button(label)
-        .style(cosmic::theme::Button::Custom {
-            active: Box::new(move |theme| key_button_appearance(theme, bg, false)),
-            hover: Box::new(move |theme| key_button_appearance(theme, bg, false)),
+    let labels = label_text
+        .split('\n')
+        .map(|text| {
+            iced::widget::text(&text)
+                .style(cosmic::theme::Text::Color(fg))
+                .horizontal_alignment(Horizontal::Center)
+                .width(iced::Length::Fill)
+                .into()
         })
-        .into();
+        .collect();
+
+    let element = iced::widget::button(
+        iced::widget::column(labels)
+            .width(iced::Length::Fill)
+            .height(iced::Length::Fill),
+    )
+    .height(iced::Length::Fill)
+    .style(cosmic::theme::Button::Custom {
+        active: Box::new(move |theme| key_button_appearance(theme, bg, false)),
+        hover: Box::new(move |theme| key_button_appearance(theme, bg, false)),
+    })
+    .into();
     (element, key_position_wide(&key.physical))
 }

@@ -1,8 +1,8 @@
 // TODO Need multi-window, cross platform
 
-use i18n_embed::DesktopLanguageRequester;
 use cosmic::iced::{self, Application, Command, Subscription};
 use futures::StreamExt;
+use i18n_embed::DesktopLanguageRequester;
 use std::collections::HashMap;
 
 use backend::Backend;
