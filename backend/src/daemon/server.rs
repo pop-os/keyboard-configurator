@@ -15,6 +15,9 @@ use uuid::Uuid;
 use super::{err_str, BoardId, Daemon, DaemonCommand};
 use crate::{Benchmark, Matrix, Nelson, NelsonKind};
 
+const QMK_RAW_USAGE_PAGE: u16 = 0xFF60;
+const QMK_RAW_USAGE_ID: u16 = 0x61;
+
 #[allow(clippy::type_complexity)]
 pub struct DaemonServer<R: Read + Send + 'static, W: Write + Send + 'static> {
     hidapi: RefCell<Option<HidApi>>,
@@ -300,15 +303,17 @@ impl<R: Read + Send + 'static, W: Write + Send + 'static> Daemon for DaemonServe
             }
 
             for info in api.device_list() {
-                match (info.vendor_id(), info.product_id(), info.interface_number()) {
-                    // System76 launch_1
-                    (0x3384, 0x0001, 1) |
-                    // System76 launch_lite_1
-                    (0x3384, 0x0005, 1) |
-                    // System76 launch_2
-                    (0x3384, 0x0006, 1) |
-                    // System76 launch_heavy_1
-                    (0x3384, 0x0007, 1) => {
+                match (
+                    info.vendor_id(),
+                    info.product_id(),
+                    info.interface_number(),
+                    info.usage_page(),
+                    info.usage(),
+                ) {
+                    // System76 launch_1, launch_lite_1, launch_2, launch_heavy_1
+                    (0x3384, 0x0001 | 0x0005 | 0x0006 | 0x0007, interface, usage_page, usage)
+                        if is_qmk_raw_interface(interface, usage_page, usage) =>
+                    {
                         // Skip if device already open
                         if self.have_device(info) {
                             continue;
@@ -343,7 +348,7 @@ impl<R: Read + Send + 'static, W: Write + Send + 'static> Daemon for DaemonServe
                         }
                     }
                     // System76 launch-nelson
-                    (0x3384, 0x0002, 0) => {
+                    (0x3384, 0x0002, 0, _, _) => {
                         if self.nelson.borrow().is_some() {
                             continue;
                         }
@@ -388,5 +393,16 @@ impl<R: Read + Send + 'static, W: Write + Send + 'static> Daemon for DaemonServe
     fn exit(&self) -> Result<(), String> {
         self.running.set(false);
         Ok(())
+    }
+}
+
+// Getting the interface number isn't working on macOS 13.3
+// (https://github.com/libusb/hidapi/pull/530)
+// And `usage_page` and `usage` seem to have issues on Linux with older versions of `hidapi`.
+fn is_qmk_raw_interface(interface: i32, usage_page: u16, usage: u16) -> bool {
+    if cfg!(target_os = "macos") {
+        (usage_page, usage) == (QMK_RAW_USAGE_PAGE, QMK_RAW_USAGE_ID)
+    } else {
+        interface == 1
     }
 }
