@@ -73,6 +73,7 @@ pub(crate) fn key(
             .width(iced::Length::Fill)
             .height(iced::Length::Fill),
     )
+    .on_press(Msg::Press)
     .height(iced::Length::Fill)
     .style(cosmic::theme::Button::Custom {
         active: Box::new(move |theme| key_button_appearance(theme, bg, false)),

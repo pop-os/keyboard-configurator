@@ -18,6 +18,7 @@ mod view;
 #[derive(Clone, Debug)]
 enum Msg {
     Backend(BackendEvent),
+    Press
 }
 
 struct Keyboard {
@@ -85,6 +86,7 @@ impl Application for App {
                 | backend::Event::BootloadedAdded(_)
                 | backend::Event::BootloadedRemoved => {}
             },
+            Msg::Press => {}
         }
 
         Command::none()
