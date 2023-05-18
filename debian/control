@@ -26,6 +26,7 @@ Architecture: amd64 arm64
 Depends:
   system76-keyboard-configurator,
   avrdude,
+  dfu-programmer,
 Description: Internal testing version of the System76 keyboard configurator.
 
 Package: libsystem76-keyboard-configurator
