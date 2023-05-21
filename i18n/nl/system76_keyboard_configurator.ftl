@@ -60,7 +60,7 @@ page-logical = Logisch
 no-boards = Er is geen toetsenbord aangetroffen
 no-boards-msg = Zorg er voor dat uw toetsenbord beschikt over de nieuwste
  System76 Open Firmware.
-Als u gebruikmaakt van een extern toetsenbord, zorg er dan voor dat
+ Als u gebruikmaakt van een extern toetsenbord, zorg er dan voor dat
  het toetsenbord goed is aangesloten.
 
 show-help-overlay = Sneltoetsen
