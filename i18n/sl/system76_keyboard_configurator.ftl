@@ -33,7 +33,7 @@ keyboard-color = Barva:
 
 key-color = Barva tipke:
 
-keymap-for-board = Mapa tipk je za ploščo '{$ model}'
+keymap-for-board = Mapa tipk je za ploščo '{$model}'
 
 layer-all-brightness = Svetlost (vsi sloji):
 layer-animation-speed = Hitrost animacije sloja:
