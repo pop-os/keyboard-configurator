@@ -84,28 +84,28 @@ impl ApplicationImpl for ConfiguratorAppInner {
             gio::SimpleAction::new("flash-to-launch-1", None);
             ..connect_activate(|_, _| {
                 let _ = Command::new("dfu-programmer").args(["atmega32u4", "erase"]).status();
-                let _ = Command::new("dfu-programmer").args(["atmega32u4", "flash", "/var/lib/system76-keyboard-configurator/system76_launch_1_default.hex"]).status();
+                let _ = Command::new("dfu-programmer").args(["atmega32u4", "flash", "/var/lib/system76-keyboard-configurator/system76_launch_1_default.hex", "--suppress-bootloader-mem"]).status();
                 let _ = Command::new("dfu-programmer").args(["atmega32u4", "start"]).status();
             });
         };
         let flash_2 = cascade! {
             gio::SimpleAction::new("flash-to-launch-2", None);
             ..connect_activate(|_, _| {
-                let _ = Command::new("dfu-programmer").args(["at90usb646", "flash", "/var/lib/system76-keyboard-configurator/system76_launch_2_default.hex"]).status();
+                let _ = Command::new("dfu-programmer").args(["at90usb646", "flash", "/var/lib/system76-keyboard-configurator/system76_launch_2_default.hex", "--suppress-bootloader-mem"]).status();
                 let _ = Command::new("dfu-programmer").args(["at90usb646", "reset"]).status();
             });
         };
         let flash_lite_1 = cascade! {
             gio::SimpleAction::new("flash-to-launch-lite-1", None);
             ..connect_activate(|_, _| {
-                let _ = Command::new("dfu-programmer").args(["at90usb646", "flash", "/var/lib/system76-keyboard-configurator/system76_launch_lite_1_default.hex"]).status();
+                let _ = Command::new("dfu-programmer").args(["at90usb646", "flash", "/var/lib/system76-keyboard-configurator/system76_launch_lite_1_default.hex", "--suppress-bootloader-mem"]).status();
                 let _ = Command::new("dfu-programmer").args(["at90usb646", "reset"]).status();
             });
         };
         let flash_heavy_1 = cascade! {
             gio::SimpleAction::new("flash-to-launch-heavy-1", None);
             ..connect_activate(|_, _| {
-                let _ = Command::new("dfu-programmer").args(["at90usb646", "flash", "/var/lib/system76-keyboard-configurator/system76_launch_heavy_1_default.hex"]).status();
+                let _ = Command::new("dfu-programmer").args(["at90usb646", "flash", "/var/lib/system76-keyboard-configurator/system76_launch_heavy_1_default.hex", "--suppress-bootloader-mem"]).status();
                 let _ = Command::new("dfu-programmer").args(["at90usb646", "reset"]).status();
             });
         };
