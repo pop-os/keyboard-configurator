@@ -138,7 +138,9 @@ impl Layout {
     }
 
     pub fn from_board(board: &str, version: &str) -> Option<Self> {
-        let use_legacy_scancodes = version.contains("0.7.103") || version.contains("0.12.20");
+        let use_legacy_scancodes = version.contains("0.7.103")
+            || version.contains("0.7.104")
+            || version.contains("0.12.20");
         layout_data(board, use_legacy_scancodes).map(
             |(meta_json, default_json, keymap_json, layout_json, leds_json, physical_json)| {
                 Self::from_data(
@@ -220,7 +222,7 @@ mod tests {
     use super::*;
     use std::{collections::HashSet, fs, io};
 
-    const VERSIONS: [&str; 2] = ["0.7.103", "0.19.12"];
+    const VERSIONS: [&str; 3] = ["0.7.103", "0.7.104", "0.19.12"];
 
     #[test]
     fn layout_from_board() {
