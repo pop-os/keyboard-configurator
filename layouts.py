@@ -297,7 +297,7 @@ def extract_scancodes(ecdir: str, board: str, is_qmk: bool, has_brightness: bool
     is_old_qmk = False
     if is_qmk:
         version = subprocess.check_output(["git", "-C", ecdir, "describe", "--tags"], stderr=subprocess.DEVNULL, universal_newlines=True)
-        is_old_qmk = "0.7.103" in version or "0.12.20" in version
+        is_old_qmk = "0.7.103" in version or "0.7.104" in version or "0.12.20" in version
         if is_old_qmk:
             include_paths = [f"{ecdir}/tmk_core/common/keycode.h", f"{ecdir}/quantum/quantum_keycodes.h", f"{ecdir}/tmk_core/common/action_code.h"]
             includes = [read_stripping_includes(i) for i in include_paths]
