@@ -356,8 +356,11 @@ impl MainWindow {
             .set_transition_type(gtk::StackTransitionType::SlideRight);
         inner.stack.set_visible_child(&*inner.board_list_stack);
         inner.header_bar.set_custom_title(None::<&gtk::Widget>);
+        inner.layer_switcher.set_stack(None::<&gtk::Stack>);
         self.insert_action_group("kbd", None::<&gio::ActionGroup>);
         inner.back_button.set_visible(false);
+
+        inner.picker.set_keyboard(None);
     }
 
     fn show_keyboard(&self, keyboard: &Keyboard) {
