@@ -361,10 +361,7 @@ impl Thread {
                     loop {
                         if let Some(rate) = self_clone.matrix_get_rate.get() {
                             Delay::new(rate).await;
-                            if let Err(err) = self_clone.matrix_refresh_all() {
-                                error!("{}", err);
-                                return;
-                            }
+                            self_clone.matrix_refresh_all();
                         } else {
                             Delay::new(Duration::from_millis(100)).await;
                         }
@@ -418,15 +415,18 @@ impl Thread {
         true
     }
 
-    fn matrix_refresh_all(&self) -> Result<(), String> {
+    fn matrix_refresh_all(&self) {
         for (k, v) in self.boards.borrow_mut().iter_mut() {
             if !v.has_matrix {
                 continue;
             }
-            let matrix = self
-                .daemon
-                .matrix_get(*k)
-                .map_err(|err| format!("failed to get matrix: {}", err))?;
+            let matrix = match self.daemon.matrix_get(*k) {
+                Ok(ok) => ok,
+                Err(err) => {
+                    error!("failed to get matrix: {}", err);
+                    continue;
+                }
+            };
             let mut matrix_lock = v.matrix.lock().unwrap();
             if *matrix_lock != matrix {
                 *matrix_lock = matrix;
@@ -435,7 +435,6 @@ impl Thread {
                     .unbounded_send(Event::Board(v.board, BoardEvent::MatrixChanged));
             }
         }
-        Ok(())
     }
 
     fn bootloader_update(&self, update: Option<Bootloaded>) -> Result<(), String> {
