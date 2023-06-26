@@ -1,4 +1,5 @@
 {
+  "NONE": 0,
   "FN": 4096,
   "DISPLAY_MODE": 8192,
   "PRINT_SCREEN": 8193,
@@ -21,6 +22,7 @@
   "MEDIA_NEXT": 333,
   "MEDIA_PREV": 277,
   "TOUCHPAD": 355,
+  "MIC_MUTE": 374,
   "F1": 5,
   "F2": 6,
   "F3": 4,
@@ -122,6 +124,5 @@
   "NUM_6": 116,
   "NUM_7": 108,
   "NUM_8": 117,
-  "NUM_9": 125,
-  "NONE": 0
+  "NUM_9": 125
 }

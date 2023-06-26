@@ -519,6 +519,10 @@
       {
         "keysym": "MEDIA_PREV",
         "label": "Prev Track"
+      },
+      {
+        "keysym": "MIC_MUTE",
+        "label": "Mic Mute"
       }
     ]
   },
