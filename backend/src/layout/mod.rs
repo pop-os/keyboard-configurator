@@ -263,6 +263,7 @@ mod tests {
                     || k == "FAN_TOGGLE"
                     || k == "CAMERA_TOGGLE"
                     || k == "AIRPLANE_MODE"
+                    || k == "MIC_MUTE"
                 {
                     continue;
                 }
