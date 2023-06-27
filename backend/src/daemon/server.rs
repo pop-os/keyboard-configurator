@@ -180,7 +180,7 @@ impl<R: Read + Send + 'static, W: Write + Send + 'static> Daemon for DaemonServe
 
     fn nelson(&self, board: BoardId, kind: NelsonKind) -> Result<Nelson, String> {
         if let Some(nelson) = &mut *self.nelson.borrow_mut() {
-            const DELAY_MS: u64 = 130;
+            const DELAY_MS: u64 = 200;
             info!("Nelson delay is {} ms", DELAY_MS);
             let delay = Duration::from_millis(DELAY_MS);
 
