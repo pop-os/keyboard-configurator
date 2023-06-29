@@ -27,12 +27,12 @@ security set-key-partition-list -S apple-tool:,apple: -s -k "${PASSWORD}" "${KEY
 security delete-keychain "${KEYCHAIN}"
 
 # Submit for notarization
-xcrun altool \
-    --notarize-app \
-    --primary-bundle-id com.system76.keyboardconfigurator \
-    --username "${AC_USERNAME}" \
+xcrun notarytool submit \
+    --apple-id "${AC_USERNAME}" \
+    --team-id 'Y3W4TDQXXQ' \
     --password "${AC_PASSWORD}" \
-    --file keyboard-configurator.dmg
+    --wait \
+    keyboard-configurator.dmg
 
 # Try to staple notarization
 set +e
