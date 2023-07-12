@@ -108,56 +108,39 @@ impl ObjectSubclass for KeyboardColorInner {
 }
 
 impl ObjectImpl for KeyboardColorInner {
-    fn constructed(&self, obj: &KeyboardColor) {
-        self.parent_constructed(obj);
+    fn constructed(&self) {
+        self.parent_constructed();
 
+        let wheel = self.obj();
         let circle = cascade! {
             ColorCircle::new(30);
-            ..connect_clicked(clone!(@weak obj => move |_| obj.circle_clicked()));
+            ..connect_clicked(clone!(@weak wheel => move |_| wheel.circle_clicked()));
         };
 
-        obj.add(&circle);
+        self.obj().add(&circle);
 
         self.circle.set(circle);
     }
 
     fn properties() -> &'static [glib::ParamSpec] {
         use once_cell::sync::Lazy;
-        static PROPERTIES: Lazy<Vec<glib::ParamSpec>> = Lazy::new(|| {
-            vec![glib::ParamSpecBoxed::new(
-                "hs",
-                "hs",
-                "hs",
-                Hs::static_type(),
-                glib::ParamFlags::READWRITE,
-            )]
-        });
+        static PROPERTIES: Lazy<Vec<glib::ParamSpec>> =
+            Lazy::new(|| vec![glib::ParamSpecBoxed::builder::<Hs>("hs").build()]);
 
         PROPERTIES.as_ref()
     }
 
-    fn set_property(
-        &self,
-        widget: &KeyboardColor,
-        _id: usize,
-        value: &glib::Value,
-        pspec: &glib::ParamSpec,
-    ) {
+    fn set_property(&self, _id: usize, value: &glib::Value, pspec: &glib::ParamSpec) {
         match pspec.name() {
             "hs" => {
                 let hs: &Hs = value.get().unwrap();
-                widget.set_hs(*hs);
+                self.obj().set_hs(*hs);
             }
             _ => unimplemented!(),
         }
     }
 
-    fn property(
-        &self,
-        _widget: &KeyboardColor,
-        _id: usize,
-        pspec: &glib::ParamSpec,
-    ) -> glib::Value {
+    fn property(&self, _id: usize, pspec: &glib::ParamSpec) -> glib::Value {
         match pspec.name() {
             "hs" => self.hs.get().to_value(),
             _ => unimplemented!(),
@@ -166,8 +149,8 @@ impl ObjectImpl for KeyboardColorInner {
 }
 
 impl WidgetImpl for KeyboardColorInner {
-    fn destroy(&self, widget: &KeyboardColor) {
-        widget.cancel_dialog();
+    fn destroy(&self) {
+        self.obj().cancel_dialog();
     }
 }
 
@@ -182,14 +165,14 @@ glib::wrapper! {
 impl KeyboardColor {
     pub fn new(board: Option<Board>, index: KeyboardColorIndex) -> Self {
         cascade! {
-            glib::Object::new::<Self>(&[]).unwrap();
+            glib::Object::new::<Self>();
             ..set_board(board);
             ..set_index(index);
         }
     }
 
     fn inner(&self) -> &KeyboardColorInner {
-        KeyboardColorInner::from_instance(self)
+        KeyboardColorInner::from_obj(self)
     }
 
     fn circle_clicked(&self) {

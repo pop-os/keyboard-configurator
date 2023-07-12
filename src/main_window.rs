@@ -60,9 +60,10 @@ impl ObjectSubclass for MainWindowInner {
 }
 
 impl ObjectImpl for MainWindowInner {
-    fn constructed(&self, window: &MainWindow) {
-        self.parent_constructed(window);
+    fn constructed(&self) {
+        self.parent_constructed();
 
+        let window = self.obj();
         let back_button = cascade! {
             gtk::Button::new();
             ..add(&gtk::Image::from_icon_name(Some("go-previous-symbolic"), gtk::IconSize::Button));
@@ -216,8 +217,8 @@ impl ObjectImpl for MainWindowInner {
     }
 }
 impl WidgetImpl for MainWindowInner {
-    fn destroy(&self, window: &MainWindow) {
-        self.parent_destroy(window);
+    fn destroy(&self) {
+        self.parent_destroy();
         info!("Window close");
     }
 }
@@ -234,7 +235,7 @@ glib::wrapper! {
 
 impl MainWindow {
     pub fn new(app: &ConfiguratorApp) -> Self {
-        let window: Self = glib::Object::new(&[]).unwrap();
+        let window: Self = glib::Object::new();
         let is_testing_mode = app.launch_test();
         app.add_window(&window);
 
@@ -290,7 +291,7 @@ impl MainWindow {
     }
 
     fn inner(&self) -> &MainWindowInner {
-        MainWindowInner::from_instance(self)
+        MainWindowInner::from_obj(self)
     }
 
     fn handle_backend_event_stream(&self, mut receiver: backend::Events, is_dummy: bool) {

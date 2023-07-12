@@ -35,60 +35,39 @@ impl ObjectSubclass for KeyboardLayerInner {
 }
 
 impl ObjectImpl for KeyboardLayerInner {
-    fn constructed(&self, widget: &KeyboardLayer) {
-        self.parent_constructed(widget);
+    fn constructed(&self) {
+        self.parent_constructed();
 
-        widget.add_events(gdk::EventMask::BUTTON_PRESS_MASK);
+        self.obj().add_events(gdk::EventMask::BUTTON_PRESS_MASK);
     }
 
     fn properties() -> &'static [glib::ParamSpec] {
         use once_cell::sync::Lazy;
         static PROPERTIES: Lazy<Vec<glib::ParamSpec>> = Lazy::new(|| {
             vec![
-                glib::ParamSpecBoxed::new(
-                    "selected",
-                    "selected",
-                    "selected",
-                    SelectedKeys::static_type(),
-                    glib::ParamFlags::READWRITE,
-                ),
-                glib::ParamSpecBoxed::new(
-                    "testing-colors",
-                    "testing-colors",
-                    "testing-colors",
-                    TestingColors::static_type(),
-                    glib::ParamFlags::READWRITE,
-                ),
+                glib::ParamSpecBoxed::builder::<SelectedKeys>("selected").build(),
+                glib::ParamSpecBoxed::builder::<TestingColors>("testing-colors").build(),
             ]
         });
 
         PROPERTIES.as_ref()
     }
 
-    fn set_property(
-        &self,
-        widget: &KeyboardLayer,
-        _id: usize,
-        value: &glib::Value,
-        pspec: &glib::ParamSpec,
-    ) {
+    fn set_property(&self, _id: usize, value: &glib::Value, pspec: &glib::ParamSpec) {
         match pspec.name() {
-            "selected" => widget.set_selected(value.get::<&SelectedKeys>().unwrap().clone()),
+            "selected" => self
+                .obj()
+                .set_selected(value.get::<&SelectedKeys>().unwrap().clone()),
             "testing-colors" => {
                 self.testing_colors
                     .replace(value.get::<&TestingColors>().unwrap().clone());
-                widget.queue_draw();
+                self.obj().queue_draw();
             }
             _ => unimplemented!(),
         }
     }
 
-    fn property(
-        &self,
-        _widget: &KeyboardLayer,
-        _id: usize,
-        pspec: &glib::ParamSpec,
-    ) -> glib::Value {
+    fn property(&self, _id: usize, pspec: &glib::ParamSpec) -> glib::Value {
         match pspec.name() {
             "selected" => self.selected.borrow().to_value(),
             "testing-colors" => self.testing_colors.borrow().to_value(),
@@ -98,15 +77,15 @@ impl ObjectImpl for KeyboardLayerInner {
 }
 
 impl WidgetImpl for KeyboardLayerInner {
-    fn draw(&self, widget: &KeyboardLayer, cr: &cairo::Context) -> Inhibit {
-        self.parent_draw(widget, cr);
+    fn draw(&self, cr: &cairo::Context) -> Inhibit {
+        self.parent_draw(cr);
 
         let selected = Rgb::new(0xfb, 0xb8, 0x6c).to_floats();
 
         let testing_colors = self.testing_colors.borrow();
 
-        for (i, k) in widget.keys().iter().enumerate() {
-            let Rect { x, y, w, h } = widget.key_position(k);
+        for (i, k) in self.obj().keys().iter().enumerate() {
+            let Rect { x, y, w, h } = self.obj().key_position(k);
 
             let mut bg = if let Some(rgb) = testing_colors
                 .0
@@ -149,16 +128,16 @@ impl WidgetImpl for KeyboardLayerInner {
             cr.set_source_rgba(bg.0, bg.1, bg.2, bg_alpha);
             cr.fill_preserve().unwrap();
 
-            if self.selectable.get() && widget.selected().contains(&i) {
+            if self.selectable.get() && self.obj().selected().contains(&i) {
                 cr.set_source_rgb(selected.0, selected.1, selected.2);
                 cr.set_line_width(4.);
                 cr.stroke().unwrap();
             }
 
             // Draw label
-            let text = widget.page().get_label(k);
+            let text = self.obj().page().get_label(k);
             let layout = cascade! {
-                widget.create_pango_layout(Some(&text));
+                self.obj().create_pango_layout(Some(&text));
                 ..set_width((w * pango::SCALE as f64) as i32);
                 ..set_alignment(pango::Alignment::Center);
             };
@@ -172,22 +151,23 @@ impl WidgetImpl for KeyboardLayerInner {
         Inhibit(false)
     }
 
-    fn button_press_event(&self, widget: &KeyboardLayer, evt: &gdk::EventButton) -> Inhibit {
-        self.parent_button_press_event(widget, evt);
+    fn button_press_event(&self, evt: &gdk::EventButton) -> Inhibit {
+        self.parent_button_press_event(evt);
 
         if !self.selectable.get() {
             return Inhibit(false);
         }
 
         let pos = evt.position();
-        let pressed = widget
+        let pressed = self
+            .obj()
             .keys()
             .iter()
-            .position(|k| widget.key_position(k).contains(pos.0, pos.1));
+            .position(|k| self.obj().key_position(k).contains(pos.0, pos.1));
 
         if let Some(pressed) = pressed {
             let shift = evt.state().contains(gdk::ModifierType::SHIFT_MASK);
-            let mut selected = widget.selected();
+            let mut selected = self.obj().selected();
             if shift {
                 if selected.contains(&pressed) {
                     selected.remove(&pressed);
@@ -200,36 +180,36 @@ impl WidgetImpl for KeyboardLayerInner {
                 selected.clear();
                 selected.insert(pressed);
             }
-            widget.set_selected(selected);
+            self.obj().set_selected(selected);
         }
 
         Inhibit(false)
     }
 
-    fn request_mode(&self, _widget: &Self::Type) -> gtk::SizeRequestMode {
+    fn request_mode(&self) -> gtk::SizeRequestMode {
         gtk::SizeRequestMode::HeightForWidth
     }
 
-    fn preferred_width(&self, widget: &Self::Type) -> (i32, i32) {
-        (widget.narrow_width(), widget.wide_width())
+    fn preferred_width(&self) -> (i32, i32) {
+        (self.obj().narrow_width(), self.obj().wide_width())
     }
 
-    fn preferred_height(&self, widget: &Self::Type) -> (i32, i32) {
-        let height = widget.narrow_height();
+    fn preferred_height(&self) -> (i32, i32) {
+        let height = self.obj().narrow_height();
         (height, height)
     }
 
-    fn preferred_height_for_width(&self, widget: &Self::Type, width: i32) -> (i32, i32) {
-        let height = if width < widget.wide_width() {
-            widget.narrow_height()
+    fn preferred_height_for_width(&self, width: i32) -> (i32, i32) {
+        let height = if width < self.obj().wide_width() {
+            self.obj().narrow_height()
         } else {
-            widget.wide_height()
+            self.obj().wide_height()
         };
         (height, height)
     }
 
-    fn preferred_width_for_height(&self, widget: &Self::Type, _width: i32) -> (i32, i32) {
-        self.preferred_width(widget)
+    fn preferred_width_for_height(&self, _width: i32) -> (i32, i32) {
+        self.preferred_width()
     }
 }
 
@@ -242,14 +222,14 @@ glib::wrapper! {
 
 impl KeyboardLayer {
     pub fn new(page: Page, board: Board) -> Self {
-        let obj = glib::Object::new::<Self>(&[]).unwrap();
+        let obj = glib::Object::new::<Self>();
         obj.inner().page.set(page);
         obj.inner().board.set(board);
         obj
     }
 
     fn inner(&self) -> &KeyboardLayerInner {
-        KeyboardLayerInner::from_instance(self)
+        KeyboardLayerInner::from_obj(self)
     }
 
     pub fn page(&self) -> Page {

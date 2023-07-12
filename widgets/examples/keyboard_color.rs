@@ -1,12 +1,11 @@
 #![windows_subsystem = "windows"]
 
 use cascade::cascade;
-use gtk::{gio, prelude::*};
-use std::process;
+use gtk::{gio, glib, prelude::*};
 
 use system76_keyboard_configurator_widgets::keyboard_backlight_widget;
 
-fn main() {
+fn main() -> glib::ExitCode {
     gtk::init().unwrap();
 
     let application = cascade! {
@@ -29,5 +28,5 @@ fn main() {
         });
     };
 
-    process::exit(application.run());
+    application.run()
 }

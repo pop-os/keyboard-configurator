@@ -41,7 +41,9 @@ impl ObjectSubclass for BacklightInner {
 }
 
 impl ObjectImpl for BacklightInner {
-    fn constructed(&self, obj: &Self::Type) {
+    fn constructed(&self) {
+        let obj = self.obj();
+
         self.do_not_set.set(true);
 
         let mode_combobox = cascade! {
@@ -80,11 +82,11 @@ impl ObjectImpl for BacklightInner {
         let saturation_adjustment = cascade! {
             gtk::Adjustment::new(0., 0., 100., 1., 1., 0.);
             ..bind_property("value", &keyboard_color, "hs")
-                .transform_from(|_, value| {
+                .transform_from(|_, value: glib::Value| {
                     let hs: &Hs = value.get().unwrap();
                     Some((hs.s * 100.).to_value())
                 })
-                .transform_to(|_, value| {
+                .transform_to(|_, value: glib::Value| {
                     let s: f64 = value.get().unwrap();
                     Some(Hs::new(0., s / 100.).to_value())
                 })
@@ -171,61 +173,41 @@ impl ObjectImpl for BacklightInner {
         self.saturation_row.set(saturation_row);
     }
 
-    fn dispose(&self, obj: &Self::Type) {
-        obj.led_save();
+    fn dispose(&self) {
+        self.obj().led_save();
     }
 
     fn properties() -> &'static [glib::ParamSpec] {
         static PROPERTIES: Lazy<Vec<glib::ParamSpec>> = Lazy::new(|| {
             vec![
-                glib::ParamSpecString::new(
-                    "mode",
-                    "mode",
-                    "mode",
-                    None,
-                    glib::ParamFlags::READABLE,
-                ),
-                glib::ParamSpecBoxed::new(
-                    "selected",
-                    "selected",
-                    "selected",
-                    SelectedKeys::static_type(),
-                    glib::ParamFlags::WRITABLE,
-                ),
-                glib::ParamSpecBoolean::new(
-                    "is-per-key",
-                    "is-per-key",
-                    "is-per-key",
-                    false,
-                    glib::ParamFlags::READABLE,
-                ),
+                glib::ParamSpecString::builder("mode").read_only().build(),
+                glib::ParamSpecBoxed::builder::<SelectedKeys>("selected")
+                    .write_only()
+                    .build(),
+                glib::ParamSpecBoolean::builder("is-per-key")
+                    .read_only()
+                    .build(),
             ]
         });
 
         PROPERTIES.as_ref()
     }
 
-    fn set_property(
-        &self,
-        obj: &Self::Type,
-        _id: usize,
-        value: &glib::Value,
-        pspec: &glib::ParamSpec,
-    ) {
+    fn set_property(&self, _id: usize, value: &glib::Value, pspec: &glib::ParamSpec) {
         match pspec.name() {
             "selected" => {
                 let selected: &SelectedKeys = value.get().unwrap();
-                obj.inner().selected.replace(selected.clone());
-                obj.update_per_key();
+                self.selected.replace(selected.clone());
+                self.obj().update_per_key();
             }
             _ => unimplemented!(),
         }
     }
 
-    fn property(&self, obj: &Self::Type, _id: usize, pspec: &glib::ParamSpec) -> glib::Value {
+    fn property(&self, _id: usize, pspec: &glib::ParamSpec) -> glib::Value {
         match pspec.name() {
-            "mode" => obj.mode().id.to_value(),
-            "is-per-key" => obj.mode().is_per_key().to_value(),
+            "mode" => self.obj().mode().id.to_value(),
+            "is-per-key" => self.obj().mode().is_per_key().to_value(),
             _ => unimplemented!(),
         }
     }
@@ -245,7 +227,7 @@ impl Backlight {
         let max_brightness = board.max_brightness() as f64;
         let has_led_save = board.has_led_save();
 
-        let obj: Self = glib::Object::new(&[]).unwrap();
+        let obj: Self = glib::Object::new();
         obj.inner().board.set(board.clone());
         obj.inner().keyboard_color.set_board(Some(board));
         obj.inner().brightness_scale.set_range(0.0, max_brightness);
@@ -280,7 +262,7 @@ impl Backlight {
     }
 
     fn inner(&self) -> &BacklightInner {
-        BacklightInner::from_instance(self)
+        BacklightInner::from_obj(self)
     }
 
     fn board(&self) -> &Board {

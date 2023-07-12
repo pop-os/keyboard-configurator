@@ -80,7 +80,7 @@ impl ObjectSubclass for TestingInner {
 }
 
 impl ObjectImpl for TestingInner {
-    fn constructed(&self, obj: &Self::Type) {
+    fn constructed(&self) {
         fn row(widget: &impl IsA<gtk::Widget>) -> gtk::ListBoxRow {
             cascade! {
                 gtk::ListBoxRow::new();
@@ -127,7 +127,7 @@ impl ObjectImpl for TestingInner {
 
         let reset_button = gtk::Button::with_label("Reset Testing");
 
-        obj.add(&cascade! {
+        self.obj().add(&cascade! {
             gtk::ListBox::new();
             ..set_valign(gtk::Align::Start);
             ..style_context().add_class("frame");
@@ -225,7 +225,7 @@ impl ObjectImpl for TestingInner {
             });
         };
 
-        obj.add(&cascade! {
+        self.obj().add(&cascade! {
             gtk::Box::new(gtk::Orientation::Horizontal, 18);
             ..set_valign(gtk::Align::Start);
             ..add(&cascade! {
@@ -253,7 +253,7 @@ impl ObjectImpl for TestingInner {
         self.selma_stop_button.set(selma_stop_button);
 
         cascade! {
-            obj;
+            self.obj();
             ..set_orientation(gtk::Orientation::Vertical);
             ..set_spacing(18);
             ..show_all();
@@ -262,19 +262,15 @@ impl ObjectImpl for TestingInner {
 
     fn properties() -> &'static [glib::ParamSpec] {
         static PROPERTIES: Lazy<Vec<glib::ParamSpec>> = Lazy::new(|| {
-            vec![glib::ParamSpecBoxed::new(
-                "colors",
-                "colors",
-                "colors",
-                TestingColors::static_type(),
-                glib::ParamFlags::READABLE,
-            )]
+            vec![glib::ParamSpecBoxed::builder::<TestingColors>("colors")
+                .read_only()
+                .build()]
         });
 
         PROPERTIES.as_ref()
     }
 
-    fn property(&self, _obj: &Self::Type, _id: usize, pspec: &glib::ParamSpec) -> glib::Value {
+    fn property(&self, _id: usize, pspec: &glib::ParamSpec) -> glib::Value {
         match pspec.name() {
             "colors" => self.colors.borrow().to_value(),
             _ => unimplemented!(),
@@ -557,7 +553,7 @@ impl Testing {
     }
 
     pub fn new(board: &Board, keyboard: &Keyboard) -> Self {
-        let obj: Self = glib::Object::new(&[]).unwrap();
+        let obj: Self = glib::Object::new();
         obj.inner().board.set(board.clone());
         obj.inner().keyboard.set(keyboard.downgrade());
         obj.connect_bench_button();
@@ -573,7 +569,7 @@ impl Testing {
     }
 
     fn inner(&self) -> &TestingInner {
-        TestingInner::from_instance(self)
+        TestingInner::from_obj(self)
     }
 
     #[allow(dead_code)]

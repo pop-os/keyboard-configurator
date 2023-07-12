@@ -42,8 +42,10 @@ impl ObjectSubclass for KeyboardInner {
 }
 
 impl ObjectImpl for KeyboardInner {
-    fn constructed(&self, keyboard: &Keyboard) {
-        self.parent_constructed(keyboard);
+    fn constructed(&self) {
+        self.parent_constructed();
+
+        let keyboard = self.obj();
 
         let layer_stack = cascade! {
             gtk::Stack::new();
@@ -85,7 +87,7 @@ impl ObjectImpl for KeyboardInner {
         };
 
         cascade! {
-            keyboard;
+            &keyboard;
             ..set_orientation(gtk::Orientation::Vertical);
             ..set_spacing(32);
             ..add(&stack_switcher);
@@ -136,35 +138,24 @@ impl ObjectImpl for KeyboardInner {
 
     fn properties() -> &'static [glib::ParamSpec] {
         use once_cell::sync::Lazy;
-        static PROPERTIES: Lazy<Vec<glib::ParamSpec>> = Lazy::new(|| {
-            vec![glib::ParamSpecBoxed::new(
-                "selected",
-                "selected",
-                "selected",
-                SelectedKeys::static_type(),
-                glib::ParamFlags::READWRITE,
-            )]
-        });
+        static PROPERTIES: Lazy<Vec<glib::ParamSpec>> =
+            Lazy::new(|| vec![glib::ParamSpecBoxed::builder::<SelectedKeys>("selected").build()]);
 
         PROPERTIES.as_ref()
     }
 
-    fn set_property(
-        &self,
-        keyboard: &Keyboard,
-        _id: usize,
-        value: &glib::Value,
-        pspec: &glib::ParamSpec,
-    ) {
+    fn set_property(&self, _id: usize, value: &glib::Value, pspec: &glib::ParamSpec) {
         match pspec.name() {
-            "selected" => keyboard.set_selected(value.get::<&SelectedKeys>().unwrap().clone()),
+            "selected" => self
+                .obj()
+                .set_selected(value.get::<&SelectedKeys>().unwrap().clone()),
             _ => unimplemented!(),
         }
     }
 
-    fn property(&self, keyboard: &Keyboard, _id: usize, pspec: &glib::ParamSpec) -> glib::Value {
+    fn property(&self, _id: usize, pspec: &glib::ParamSpec) -> glib::Value {
         match pspec.name() {
-            "selected" => keyboard.selected().to_value(),
+            "selected" => self.obj().selected().to_value(),
             _ => unimplemented!(),
         }
     }
@@ -181,7 +172,7 @@ glib::wrapper! {
 
 impl Keyboard {
     pub fn new(board: Board, debug_layers: bool, launch_test: bool) -> Self {
-        let keyboard: Self = glib::Object::new(&[]).unwrap();
+        let keyboard: Self = glib::Object::new();
 
         keyboard
             .inner()
@@ -258,7 +249,7 @@ impl Keyboard {
     }
 
     fn inner(&self) -> &KeyboardInner {
-        KeyboardInner::from_instance(self)
+        KeyboardInner::from_obj(self)
     }
 
     pub fn handle_backend_event(&self, event: BoardEvent) {
@@ -417,7 +408,7 @@ impl Keyboard {
 
         let chooser = cascade! {
             gtk::FileChooserNative::new(Some(&fl!("layout-import")), None::<&gtk::Window>, gtk::FileChooserAction::Open, Some(&fl!("button-import")), Some(&fl!("button-cancel")));
-            ..add_filter(&filter);
+            ..add_filter(filter);
         };
 
         if chooser.run() == gtk::ResponseType::Accept {
@@ -448,7 +439,7 @@ impl Keyboard {
 
         let chooser = cascade! {
             gtk::FileChooserNative::new(Some(&fl!("layout-export")), None::<&gtk::Window>, gtk::FileChooserAction::Save, Some("Export"), Some("Cancel"));
-            ..add_filter(&filter);
+            ..add_filter(filter);
             ..set_current_name(&format!("{}.json", fl!("untitled-layout")));
             ..set_do_overwrite_confirmation(true);
         };

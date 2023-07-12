@@ -5,7 +5,6 @@ extern crate log;
 
 use i18n_embed::DesktopLanguageRequester;
 use std::env;
-use std::process;
 
 mod about_dialog;
 mod backlight;
@@ -20,13 +19,15 @@ mod picker;
 mod shortcuts_window;
 mod testing;
 
+use gtk::glib;
+
 pub use self::configurator_app::run;
 use self::{
     backlight::*, configurator_app::*, error_dialog::*, keyboard::*, keyboard_layer::*,
     main_window::*, page::*, picker::*, shortcuts_window::*, testing::*,
 };
 
-fn main() {
+fn main() -> glib::ExitCode {
     translate();
     env_logger::Builder::from_env(
         env_logger::Env::default().filter_or(env_logger::DEFAULT_FILTER_ENV, "info"),
@@ -42,7 +43,7 @@ fn main() {
         }
     }
 
-    process::exit(crate::run());
+    crate::run()
 }
 
 fn translate() {

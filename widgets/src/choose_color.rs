@@ -103,7 +103,7 @@ pub async fn choose_color<W: IsA<gtk::Widget>>(
     let window = w.toplevel().and_then(|x| x.downcast::<gtk::Window>().ok());
 
     let dialog = cascade! {
-        gtk::builders::DialogBuilder::new()
+        gtk::Dialog::builder()
             .title(title)
             .use_header_bar(1)
             .modal(true)

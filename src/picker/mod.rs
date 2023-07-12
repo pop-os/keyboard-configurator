@@ -44,8 +44,10 @@ impl ObjectSubclass for PickerInner {
 }
 
 impl ObjectImpl for PickerInner {
-    fn constructed(&self, picker: &Picker) {
-        self.parent_constructed(picker);
+    fn constructed(&self) {
+        self.parent_constructed();
+
+        let picker = self.obj();
 
         let group_box = cascade! {
             PickerGroupBox::new();
@@ -77,11 +79,11 @@ glib::wrapper! {
 
 impl Picker {
     pub fn new() -> Self {
-        glib::Object::new(&[]).unwrap()
+        glib::Object::new()
     }
 
     fn inner(&self) -> &PickerInner {
-        PickerInner::from_instance(self)
+        PickerInner::from_obj(self)
     }
 
     fn keyboard(&self) -> Option<Keyboard> {

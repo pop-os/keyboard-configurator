@@ -44,7 +44,7 @@ pub struct Layout {
 }
 
 macro_rules! keyboards {
-    ($( ($board:expr, $keyboard:expr) ),* $(,)?) => {
+    ($( ($board:expr, $keyboard:expr, $is_qmk:expr) ),* $(,)?) => {
         fn layout_data(board: &str, use_legacy_scancodes: bool) -> Option<(&'static str, &'static str, &'static str, &'static str, &'static str, &'static str)> {
             match board {
                 $(
