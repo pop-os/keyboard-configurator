@@ -21,11 +21,11 @@ impl ObjectSubclass for ColorCircleInner {
 impl ObjectImpl for ColorCircleInner {}
 
 impl WidgetImpl for ColorCircleInner {
-    fn draw(&self, widget: &ColorCircle, cr: &cairo::Context) -> Inhibit {
-        let width = f64::from(widget.allocated_width());
-        let height = f64::from(widget.allocated_height());
+    fn draw(&self, cr: &cairo::Context) -> Inhibit {
+        let width = f64::from(self.obj().allocated_width());
+        let height = f64::from(self.obj().allocated_height());
 
-        let flags = widget.state_flags();
+        let flags = self.obj().state_flags();
 
         let radius = width.min(height) / 2.;
         let alpha = if flags.contains(gtk::StateFlags::INSENSITIVE) {
@@ -74,13 +74,13 @@ glib::wrapper! {
 impl ColorCircle {
     pub fn new(size: i32) -> Self {
         cascade! {
-            glib::Object::new::<Self>(&[]).unwrap();
+            glib::Object::new::<Self>();
             ..set_size_request(size, size);
         }
     }
 
     fn inner(&self) -> &ColorCircleInner {
-        ColorCircleInner::from_instance(self)
+        ColorCircleInner::from_obj(self)
     }
 
     pub fn set_colors(&self, colors: BTreeSet<Hs>) {

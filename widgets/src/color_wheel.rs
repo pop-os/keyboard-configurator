@@ -32,14 +32,15 @@ impl ObjectSubclass for ColorWheelInner {
 }
 
 impl ObjectImpl for ColorWheelInner {
-    fn constructed(&self, wheel: &ColorWheel) {
-        self.parent_constructed(wheel);
+    fn constructed(&self) {
+        self.parent_constructed();
 
         self.thread_pool
             .set(glib::ThreadPool::shared(None).unwrap());
 
+        let wheel = self.obj();
         self.gesture_drag.set(cascade! {
-            gtk::GestureDrag::new(wheel);
+            gtk::GestureDrag::new(&*wheel);
             ..set_propagation_phase(gtk::PropagationPhase::Bubble);
             ..connect_drag_begin(clone!(@weak wheel => move |_, start_x, start_y| {
                 wheel.mouse_select((start_x, start_y));
@@ -56,85 +57,65 @@ impl ObjectImpl for ColorWheelInner {
         use once_cell::sync::Lazy;
         static PROPERTIES: Lazy<Vec<glib::ParamSpec>> = Lazy::new(|| {
             vec![
-                glib::ParamSpecBoxed::new(
-                    "hs",
-                    "hs",
-                    "hs",
-                    Hs::static_type(),
-                    glib::ParamFlags::READWRITE,
-                ),
-                glib::ParamSpecDouble::new(
-                    "hue",
-                    "hue",
-                    "hue",
-                    0.,
-                    360.,
-                    0.,
-                    glib::ParamFlags::READWRITE,
-                ),
-                glib::ParamSpecDouble::new(
-                    "saturation",
-                    "saturation",
-                    "saturation",
-                    0.,
-                    100.,
-                    0.,
-                    glib::ParamFlags::READWRITE,
-                ),
+                glib::ParamSpecBoxed::builder::<Hs>("hs").build(),
+                glib::ParamSpecDouble::builder("hue")
+                    .minimum(0.)
+                    .maximum(360.)
+                    .default_value(0.)
+                    .build(),
+                glib::ParamSpecDouble::builder("saturation")
+                    .minimum(0.)
+                    .maximum(100.)
+                    .default_value(0.)
+                    .build(),
             ]
         });
 
         PROPERTIES.as_ref()
     }
 
-    fn set_property(
-        &self,
-        wheel: &ColorWheel,
-        _id: usize,
-        value: &glib::Value,
-        pspec: &glib::ParamSpec,
-    ) {
+    fn set_property(&self, _id: usize, value: &glib::Value, pspec: &glib::ParamSpec) {
         match pspec.name() {
             "hs" => {
-                wheel.set_hs(*value.get::<&Hs>().unwrap());
+                self.obj().set_hs(*value.get::<&Hs>().unwrap());
             }
             "hue" => {
                 let mut hue: f64 = value.get().unwrap();
                 hue = (hue * PI / 180.).max(0.).min(2. * PI);
-                let hs = wheel.hs();
-                wheel.set_hs(Hs::new(hue, *hs.s));
+                let hs = self.obj().hs();
+                self.obj().set_hs(Hs::new(hue, *hs.s));
             }
             "saturation" => {
                 let mut saturation: f64 = value.get().unwrap();
                 saturation = (saturation / 100.).max(0.).min(1.);
-                let hs = wheel.hs();
-                wheel.set_hs(hs);
-                wheel.set_hs(Hs::new(*hs.h, saturation));
+                let hs = self.obj().hs();
+                self.obj().set_hs(hs);
+                self.obj().set_hs(Hs::new(*hs.h, saturation));
             }
             _ => unimplemented!(),
         }
     }
 
-    fn property(&self, wheel: &ColorWheel, _id: usize, pspec: &glib::ParamSpec) -> glib::Value {
+    fn property(&self, _id: usize, pspec: &glib::ParamSpec) -> glib::Value {
         match pspec.name() {
-            "hs" => wheel.hs().to_value(),
+            "hs" => self.obj().hs().to_value(),
             "hue" => {
-                let mut hue = *wheel.hs().h * 180. / PI;
+                let mut hue = *self.obj().hs().h * 180. / PI;
                 hue = (360. + hue) % 360.;
                 hue.to_value()
             }
-            "saturation" => (wheel.hs().s * 100.).to_value(),
+            "saturation" => (self.obj().hs().s * 100.).to_value(),
             _ => unimplemented!(),
         }
     }
 }
 
 impl WidgetImpl for ColorWheelInner {
-    fn draw(&self, wheel: &ColorWheel, cr: &cairo::Context) -> Inhibit {
-        self.parent_draw(wheel, cr);
+    fn draw(&self, cr: &cairo::Context) -> Inhibit {
+        self.parent_draw(cr);
 
-        let width = f64::from(wheel.allocated_width());
-        let height = f64::from(wheel.allocated_height());
+        let width = f64::from(self.obj().allocated_width());
+        let height = f64::from(self.obj().allocated_height());
 
         let radius = width.min(height) / 2.;
 
@@ -155,7 +136,7 @@ impl WidgetImpl for ColorWheelInner {
         cr.fill().unwrap();
 
         // Draw selector circle
-        let hs = wheel.hs();
+        let hs = self.obj().hs();
         let x = radius + hs.h.cos() * (*hs.s) * radius;
         let y = radius - hs.h.sin() * (*hs.s) * radius;
         cr.arc(x, y, 7.5, 0., 2. * PI);
@@ -168,8 +149,9 @@ impl WidgetImpl for ColorWheelInner {
         Inhibit(false)
     }
 
-    fn size_allocate(&self, wheel: &ColorWheel, rect: &gdk::Rectangle) {
-        self.parent_size_allocate(wheel, rect);
+    fn size_allocate(&self, rect: &gdk::Rectangle) {
+        self.parent_size_allocate(rect);
+        let wheel = self.obj();
         let (future, abort_handle) = abortable(clone!(@weak wheel, @strong rect => async move {
             let surface = Some(wheel.generate_surface(&rect).await);
             wheel.inner().surface.replace(surface);
@@ -183,23 +165,23 @@ impl WidgetImpl for ColorWheelInner {
         });
     }
 
-    fn request_mode(&self, _widget: &Self::Type) -> gtk::SizeRequestMode {
+    fn request_mode(&self) -> gtk::SizeRequestMode {
         gtk::SizeRequestMode::HeightForWidth
     }
 
-    fn preferred_width(&self, _widget: &Self::Type) -> (i32, i32) {
+    fn preferred_width(&self) -> (i32, i32) {
         (0, 300)
     }
 
-    fn preferred_height(&self, _widget: &Self::Type) -> (i32, i32) {
+    fn preferred_height(&self) -> (i32, i32) {
         (0, 300)
     }
 
-    fn preferred_height_for_width(&self, _widget: &Self::Type, width: i32) -> (i32, i32) {
+    fn preferred_height_for_width(&self, width: i32) -> (i32, i32) {
         (0, width)
     }
 
-    fn preferred_width_for_height(&self, _widget: &Self::Type, height: i32) -> (i32, i32) {
+    fn preferred_width_for_height(&self, height: i32) -> (i32, i32) {
         (0, height)
     }
 }
@@ -213,11 +195,11 @@ glib::wrapper! {
 
 impl ColorWheel {
     pub fn new() -> Self {
-        glib::Object::new(&[]).unwrap()
+        glib::Object::new()
     }
 
     fn inner(&self) -> &ColorWheelInner {
-        ColorWheelInner::from_instance(self)
+        ColorWheelInner::from_obj(self)
     }
 
     pub fn hs(&self) -> Hs {
@@ -279,7 +261,8 @@ impl ColorWheel {
                 data
             })
             .unwrap()
-            .await;
+            .await
+            .unwrap();
 
         cairo::ImageSurface::create_for_data(data, cairo::Format::Rgb24, size, size, stride)
             .unwrap()

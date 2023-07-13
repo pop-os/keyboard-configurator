@@ -25,11 +25,15 @@ fn main() {
             .unwrap_or_else(|| {
                 panic!("'keyboard:' not found in {}", path.display());
             });
+        let is_qmk = meta
+            .get("is_qmk")
+            .and_then(|v| v.as_bool())
+            .unwrap_or(false);
 
         writeln!(
             outfile,
-            "    (\"system76/{}\", \"{}\"),",
-            file_name, keyboard
+            "    (\"system76/{}\", \"{}\", {}),",
+            file_name, keyboard, is_qmk
         )
         .unwrap();
 

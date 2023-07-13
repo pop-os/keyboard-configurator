@@ -9,5 +9,5 @@ name = "system76_keyboard_configurator"
 crate-type = [ "cdylib" ]
 
 [dependencies]
-gtk = "0.15.0"
+gtk = "0.17.0"
 system76-keyboard-configurator-widgets = { path = "../widgets" }

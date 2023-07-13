@@ -556,8 +556,13 @@ parser = argparse.ArgumentParser(usage="./layouts.py --qmk ../qmk_firmware syste
 parser.add_argument("ecdir", help='For QMK boards that is the qmk_firmware (github.com/system76/qmk_firmware) directory itself, otherwise use the ec directory (github.com/system76/ec)')
 parser.add_argument("board", help='The name of the manufacturer and board name. Example: "system76/launch_2"')
 parser.add_argument("--qmk", action="store_true", help="Required if you plan on using a keyboard with QMK firmware.")
+parser.add_argument("--qmk-legacy", action="store_true", help="Re-generate keymap json for old qmk version.")
 parser.add_argument("--override", help="Override the output directory. See layouts/keyboards/. Usage: '--override overrides/0.19.12/'", default='')
 args = parser.parse_args()
+
+if args.qmk_legacy:
+    # Only keymap differs for legacy qmk, so don't generate anything related to individial boards
+    sys.exit(0)
 
 if args.board == 'all':
     if args.qmk:
@@ -570,3 +575,5 @@ if args.board == 'all':
         generate_layout_dir(args.ecdir, f'system76/{i}', args.qmk, args.override)
 else:
     generate_layout_dir(args.ecdir, args.board, args.qmk, args.override)
+
+

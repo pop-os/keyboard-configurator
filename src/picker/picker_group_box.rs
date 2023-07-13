@@ -42,8 +42,8 @@ impl ObjectSubclass for PickerGroupBoxInner {
 }
 
 impl ObjectImpl for PickerGroupBoxInner {
-    fn constructed(&self, widget: &PickerGroupBox) {
-        self.parent_constructed(widget);
+    fn constructed(&self) {
+        self.parent_constructed();
 
         let style_provider = cascade! {
             gtk::CssProvider::new();
@@ -73,14 +73,14 @@ impl ObjectImpl for PickerGroupBoxInner {
 
         for group in &groups {
             group.vbox.show();
-            group.vbox.set_parent(widget);
+            group.vbox.set_parent(&*self.obj());
         }
 
         self.keys.set(keys);
         self.groups.set(groups);
 
         cascade! {
-            widget;
+            self.obj();
             ..connect_signals();
             ..show_all();
         };
@@ -88,23 +88,20 @@ impl ObjectImpl for PickerGroupBoxInner {
 
     fn signals() -> &'static [Signal] {
         static SIGNALS: Lazy<Vec<Signal>> = Lazy::new(|| {
-            vec![Signal::builder(
-                "key-pressed",
-                &[String::static_type().into()],
-                glib::Type::UNIT.into(),
-            )
-            .build()]
+            vec![Signal::builder("key-pressed")
+                .param_types([String::static_type()])
+                .build()]
         });
         SIGNALS.as_ref()
     }
 }
 
 impl WidgetImpl for PickerGroupBoxInner {
-    fn request_mode(&self, _widget: &Self::Type) -> gtk::SizeRequestMode {
+    fn request_mode(&self) -> gtk::SizeRequestMode {
         gtk::SizeRequestMode::HeightForWidth
     }
 
-    fn preferred_width(&self, _widget: &Self::Type) -> (i32, i32) {
+    fn preferred_width(&self) -> (i32, i32) {
         let minimum_width = self
             .groups
             .iter()
@@ -121,8 +118,9 @@ impl WidgetImpl for PickerGroupBoxInner {
         (minimum_width, natural_width)
     }
 
-    fn preferred_height_for_width(&self, widget: &Self::Type, width: i32) -> (i32, i32) {
-        let rows = widget.rows_for_width(width);
+    fn preferred_height_for_width(&self, width: i32) -> (i32, i32) {
+        let obj = self.obj();
+        let rows = obj.rows_for_width(width);
         let height = rows
             .iter()
             .map(|row| {
@@ -137,9 +135,10 @@ impl WidgetImpl for PickerGroupBoxInner {
         (height, height)
     }
 
-    fn size_allocate(&self, obj: &Self::Type, allocation: &gtk::Allocation) {
-        self.parent_size_allocate(obj, allocation);
+    fn size_allocate(&self, allocation: &gtk::Allocation) {
+        self.parent_size_allocate(allocation);
 
+        let obj = self.obj();
         let rows = obj.rows_for_width(allocation.width());
 
         let total_width = rows
@@ -171,7 +170,9 @@ impl WidgetImpl for PickerGroupBoxInner {
         }
     }
 
-    fn realize(&self, widget: &Self::Type) {
+    fn realize(&self) {
+        let widget = self.obj();
+
         let allocation = widget.allocation();
         widget.set_realized(true);
 
@@ -188,23 +189,18 @@ impl WidgetImpl for PickerGroupBoxInner {
 
         let window = gdk::Window::new(widget.parent_window().as_ref(), &attrs);
         widget.register_window(&window);
-        widget.set_window(&window);
+        widget.set_window(window);
     }
 }
 
 impl ContainerImpl for PickerGroupBoxInner {
-    fn forall(
-        &self,
-        _obj: &Self::Type,
-        _include_internals: bool,
-        cb: &gtk::subclass::container::Callback,
-    ) {
+    fn forall(&self, _include_internals: bool, cb: &gtk::subclass::container::Callback) {
         for group in self.groups.iter() {
             cb.call(group.vbox.upcast_ref());
         }
     }
 
-    fn remove(&self, _obj: &Self::Type, child: &gtk::Widget) {
+    fn remove(&self, child: &gtk::Widget) {
         child.unparent();
     }
 }
@@ -216,11 +212,11 @@ glib::wrapper! {
 
 impl PickerGroupBox {
     pub fn new() -> Self {
-        glib::Object::new(&[]).unwrap()
+        glib::Object::new()
     }
 
     fn inner(&self) -> &PickerGroupBoxInner {
-        PickerGroupBoxInner::from_instance(self)
+        PickerGroupBoxInner::from_obj(self)
     }
 
     fn connect_signals(&self) {

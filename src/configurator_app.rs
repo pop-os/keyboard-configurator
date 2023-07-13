@@ -21,10 +21,12 @@ impl ObjectSubclass for ConfiguratorAppInner {
 }
 
 impl ObjectImpl for ConfiguratorAppInner {
-    fn constructed(&self, app: &ConfiguratorApp) {
+    fn constructed(&self) {
+        let app = self.obj();
+
         app.set_application_id(Some("com.system76.keyboardconfigurator"));
 
-        self.parent_constructed(app);
+        self.parent_constructed();
 
         app.add_main_option(
             "fake-keyboard",
@@ -54,7 +56,7 @@ impl ObjectImpl for ConfiguratorAppInner {
 }
 
 impl ApplicationImpl for ConfiguratorAppInner {
-    fn handle_local_options(&self, _app: &ConfiguratorApp, opts: &glib::VariantDict) -> i32 {
+    fn handle_local_options(&self, opts: &glib::VariantDict) -> glib::ExitCode {
         fn lookup<T: glib::FromVariant>(opts: &glib::VariantDict, key: &str) -> Option<T> {
             opts.lookup_value(key, None)?.get()
         }
@@ -69,11 +71,11 @@ impl ApplicationImpl for ConfiguratorAppInner {
         self.debug_layers.set(opts.contains("debug-layers"));
         self.launch_test.set(opts.contains("launch-test"));
 
-        -1
+        self.parent_handle_local_options(opts)
     }
 
-    fn startup(&self, app: &ConfiguratorApp) {
-        self.parent_startup(app);
+    fn startup(&self) {
+        self.parent_startup();
 
         let about_action = cascade! {
             gio::SimpleAction::new("about", None);
@@ -110,6 +112,7 @@ impl ApplicationImpl for ConfiguratorAppInner {
             });
         };
 
+        let app = self.obj();
         app.add_action(&about_action);
         app.add_action(&flash_heavy_1);
         app.add_action(&flash_2);
@@ -122,14 +125,14 @@ impl ApplicationImpl for ConfiguratorAppInner {
         }
     }
 
-    fn activate(&self, app: &ConfiguratorApp) {
-        self.parent_activate(app);
+    fn activate(&self) {
+        self.parent_activate();
 
-        if let Some(window) = app.active_window() {
+        if let Some(window) = self.obj().active_window() {
             info!("Focusing current window");
             window.present();
         } else {
-            MainWindow::new(app);
+            MainWindow::new(&*self.obj());
         }
     }
 }
@@ -144,11 +147,11 @@ glib::wrapper! {
 
 impl ConfiguratorApp {
     fn new() -> Self {
-        glib::Object::new(&[]).unwrap()
+        glib::Object::new()
     }
 
     fn inner(&self) -> &ConfiguratorAppInner {
-        ConfiguratorAppInner::from_instance(self)
+        ConfiguratorAppInner::from_obj(self)
     }
 
     pub fn phony_board_names(&self) -> &[String] {
@@ -225,7 +228,7 @@ fn windows_init() {
     }
 }
 
-pub fn run() -> i32 {
+pub fn run() -> glib::ExitCode {
     gtk::init().unwrap();
 
     glib::set_prgname(Some("com.system76.keyboardconfigurator"));
