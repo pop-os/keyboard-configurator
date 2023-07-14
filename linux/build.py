@@ -60,4 +60,4 @@ subprocess.check_call([f"./{LINUXDEPLOY}",
                        f"--icon-file={ICON}",
                         "--plugin", "gtk",
                         "--output", "appimage"])
-shutil.move(glob.glob(f"System76_Keyboard_Configurator-*-{ARCH}.AppImage")[0], f"{PKG}-{ARCH}.AppImage")
+shutil.move(f"System76_Keyboard_Configurator-{ARCH}.AppImage", f"{PKG}-{ARCH}.AppImage")
