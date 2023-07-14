@@ -392,16 +392,17 @@ def parse_layout_define(keymap_h: str, is_qmk) -> Tuple[List[str], List[List[str
     assert is_qmk or all(len(i) == len(physical2[0]) for i in physical2)
     return physical, physical2
 
-def parse_led_config(led_c: str, physical: List[str]) -> Dict[str, List[int]]:
+def parse_led_config(led_c: str, physical2: List[List[str]]) -> Dict[str, List[int]]:
     led_c = re.sub(r'//.*', '', led_c)
     led_c = re.sub(r'/\*.*?\*/', '', led_c)
-    m = re.search(r'LAYOUT\((.*?)\)', led_c, re.MULTILINE | re.DOTALL)
+    m = re.search(r'g_led_config.*{ \{(.*?)^},', led_c, re.MULTILINE | re.DOTALL)
     leds: Dict[str, List[int]] = {}
     if m is None:
         return leds
-    led_indexes = m.group(1).replace(',', ' ').replace('\\', '').split()
-    for i, physical_name in enumerate(physical):
-        leds[physical_name] = [int(led_indexes[i])]
+    for i, line in enumerate(re.findall(r'{(.*)?}', m.group(1))):
+        for j, led_index in enumerate(line.replace(',', ' ').split()):
+            if led_index != '__':
+                leds[physical2[i][j]] = [int(led_index)]
     return leds
 
 def parse_keymap(keymap_c: str, mapping: Dict[str, str], physical: List[str], is_qmk: bool) -> Dict[str, List[str]]:
@@ -451,10 +452,10 @@ def gen_keymap_json(path: str, scancodes: typing.OrderedDict[str, int]) -> None:
 
     write_json_file(path, scancodes)
 
-def gen_leds_json(path: str, leds: Dict[str, List[int]]) -> None:
+def gen_leds_json(path: str, leds: [str, List[int]]) -> None:
     "Generate leds.json file"
 
-    write_json_file(path, leds)
+    write_json_file(path, leds, sort_keys=True)
 
 def gen_default_json(path: str, board: str, keymap: Dict[str, List[str]], is_qmk: bool) -> None:
     "Generate default.json file"
@@ -487,9 +488,9 @@ def update_meta_json(meta_json: str, has_brightness: bool, has_color: bool, keyb
     write_json_file(meta_json, meta)
 
 
-def write_json_file(path: str, data):
+def write_json_file(path: str, data, sort_keys=False):
     with open(path, 'w') as f:
-        json.dump(data, f, indent=2)
+        json.dump(data, f, indent=2, sort_keys=sort_keys)
         f.write('\n')
 
 
@@ -536,7 +537,7 @@ def generate_layout_dir(ecdir: str, board: str, is_qmk: bool) -> None:
     os.makedirs(f'layouts/keyboards/{keyboard}', exist_ok=True)
 
     physical, physical2 = parse_layout_define(keymap_h, is_qmk)
-    leds = parse_led_config(led_c, physical)
+    leds = parse_led_config(led_c, physical2)
     _scancodes, mapping = extract_scancodes(ecdir, is_qmk)
     default_keymap = parse_keymap(default_c, mapping, physical, is_qmk)
     gen_layout_json(f'layouts/keyboards/{keyboard}/layout.json', physical, physical2)
