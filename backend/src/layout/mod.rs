@@ -53,10 +53,12 @@ macro_rules! keyboards {
                         include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/../layouts/", $board, "/meta.json"));
                     let default_json =
                         include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/../layouts/", $board, "/default.json"));
-                    let keymap_json = if use_legacy_scancodes {
-                        include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/../layouts/keyboards/", $keyboard, "/keymap.json"))
+                    let keymap_json = if use_legacy_scancodes && $is_qmk {
+                        include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/../layouts/keymap/qmk_legacy.json"))
+                    } else if $is_qmk {
+                        include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/../layouts/keymap/qmk.json"))
                     } else {
-                        include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/../layouts/keyboards/overrides/0.19.12/", $keyboard, "/keymap.json"))
+                        include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/../layouts/keymap/ec.json"))
                     };
                     let layout_json =
                         include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/../layouts/keyboards/", $keyboard, "/layout.json"));
@@ -83,6 +85,7 @@ include!(concat!(env!("OUT_DIR"), "/keyboards.rs"));
 
 impl Layout {
     pub fn from_data(
+        board: &str,
         meta_json: &str,
         default_json: &str,
         keymap_json: &str,
@@ -93,7 +96,7 @@ impl Layout {
     ) -> Self {
         let meta = serde_json::from_str(meta_json).unwrap();
         let default = default_json.into();
-        let (keymap, scancode_names) = parse_keymap_json(keymap_json);
+        let (keymap, scancode_names) = parse_keymap_json(keymap_json, board, &meta);
         let layout = serde_json::from_str(layout_json).unwrap();
         let leds = serde_json::from_str(leds_json).unwrap();
         let physical = PhysicalLayout::from_str(physical_json);
@@ -110,7 +113,7 @@ impl Layout {
     }
 
     #[allow(dead_code)]
-    pub fn from_dir<P: AsRef<Path>>(dir: P) -> Self {
+    pub fn from_dir<P: AsRef<Path>>(board: &str, dir: P) -> Self {
         let dir = dir.as_ref();
 
         let meta_json =
@@ -127,6 +130,7 @@ impl Layout {
             fs::read_to_string(dir.join("physical.json")).expect("Failed to load physical.json");
 
         Self::from_data(
+            board,
             &meta_json,
             &default_json,
             &keymap_json,
@@ -144,6 +148,7 @@ impl Layout {
         layout_data(board, use_legacy_scancodes).map(
             |(meta_json, default_json, keymap_json, layout_json, leds_json, physical_json)| {
                 Self::from_data(
+                    board,
                     meta_json,
                     default_json,
                     keymap_json,
@@ -208,12 +213,30 @@ impl Layout {
     }
 }
 
-fn parse_keymap_json(keymap_json: &str) -> (HashMap<String, u16>, HashMap<u16, String>) {
+fn parse_keymap_json(
+    keymap_json: &str,
+    board: &str,
+    meta: &Meta,
+) -> (HashMap<String, u16>, HashMap<u16, String>) {
+    let mut keymap: HashMap<String, u16> = serde_json::from_str(keymap_json).unwrap();
+
+    // Filter out keycodes that aren't relevant to this particular model
+    // TODO: Support bonw backlight over USB?
+    if meta.has_color || board == "system76/bonw14" || board == "system76/bonw15" {
+        keymap.remove("KBD_BKL");
+    } else if meta.has_brightness {
+        keymap.remove("KBD_COLOR");
+    } else {
+        for i in ["KBD_COLOR", "KBD_DOWN", "KBD_UP", "KBD_BKL", "KBD_TOGGLE"] {
+            keymap.remove(i);
+        }
+    }
+
     let mut scancode_names = HashMap::new();
-    let keymap: HashMap<String, u16> = serde_json::from_str(keymap_json).unwrap();
     for (scancode_name, scancode) in &keymap {
         scancode_names.insert(*scancode, scancode_name.clone());
     }
+
     (keymap, scancode_names)
 }
 
@@ -270,6 +293,29 @@ mod tests {
                 assert_eq!(layout_qmk.keymap.keys().find(|x| x == &k), Some(k));
             }
         }
+    }
+
+    #[test]
+    fn color_brightness_keycodes() {
+        const VERSION: &str = "0.19.12";
+
+        let layout_no_color = Layout::from_board("system76/lemp10", VERSION).unwrap();
+        assert!(
+            layout_no_color.keymap.contains_key("KBD_BKL")
+                && !layout_no_color.keymap.contains_key("KBD_COLOR")
+        );
+
+        let layout_color = Layout::from_board("system76/gaze15", VERSION).unwrap();
+        assert!(
+            layout_color.keymap.contains_key("KBD_COLOR")
+                && !layout_color.keymap.contains_key("KBD_BKL")
+        );
+
+        let layout_bonw = Layout::from_board("system76/bonw14", VERSION).unwrap();
+        assert!(
+            layout_bonw.keymap.contains_key("KBD_COLOR")
+                && !layout_bonw.keymap.contains_key("KBD_BKL")
+        );
     }
 
     #[test]
