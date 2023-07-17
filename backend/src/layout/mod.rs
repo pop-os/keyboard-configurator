@@ -163,38 +163,40 @@ impl Layout {
 
     /// Get the scancode number corresponding to a name
     pub fn scancode_to_name(&self, scancode: u16) -> Option<String> {
-        let (qk_mod_tap, qk_mod_tap_max) = if self.use_legacy_scancodes {
-            (QK_MOD_TAP_LEGACY, QK_MOD_TAP_MAX_LEGACY)
-        } else {
-            (QK_MOD_TAP, QK_MOD_TAP_MAX)
-        };
-        if scancode >= qk_mod_tap && scancode < qk_mod_tap_max {
-            let mod_ = (scancode >> 8) & 0x1f;
-            let kc = scancode & 0xff;
-            let mod_name = MOD_TAP_MODS.iter().find(|(_, v)| **v == mod_)?.0;
-            let kc_name = self.scancode_names.get(&kc)?;
-            Some(format!("MT({}, {})", mod_name, kc_name))
-        } else {
-            self.scancode_names.get(&scancode).cloned()
+        if self.meta.is_qmk {
+            let (qk_mod_tap, qk_mod_tap_max) = if self.use_legacy_scancodes {
+                (QK_MOD_TAP_LEGACY, QK_MOD_TAP_MAX_LEGACY)
+            } else {
+                (QK_MOD_TAP, QK_MOD_TAP_MAX)
+            };
+            if scancode >= qk_mod_tap && scancode < qk_mod_tap_max {
+                let mod_ = (scancode >> 8) & 0x1f;
+                let kc = scancode & 0xff;
+                let mod_name = MOD_TAP_MODS.iter().find(|(_, v)| **v == mod_)?.0;
+                let kc_name = self.scancode_names.get(&kc)?;
+                return Some(format!("MT({}, {})", mod_name, kc_name));
+            }
         }
+        self.scancode_names.get(&scancode).cloned()
     }
 
     /// Get the name corresponding to a scancode number
     pub fn scancode_from_name(&self, name: &str) -> Option<u16> {
-        // Check if mod-tap
-        let mt_re = Regex::new("MT\\(([^()]+), ([^()]+)\\)").unwrap();
-        if let Some(captures) = mt_re.captures(name) {
-            let qk_mod_tap = if self.use_legacy_scancodes {
-                QK_MOD_TAP_LEGACY
-            } else {
-                QK_MOD_TAP
-            };
-            let mod_ = *MOD_TAP_MODS.get(&captures.get(1).unwrap().as_str())?;
-            let kc = *self.keymap.get(captures.get(2).unwrap().as_str())?;
-            Some(qk_mod_tap | ((mod_ & 0x1f) << 8) | (kc & 0xff))
-        } else {
-            self.keymap.get(name).copied()
+        if self.meta.is_qmk {
+            // Check if mod-tap
+            let mt_re = Regex::new("MT\\(([^()]+), ([^()]+)\\)").unwrap();
+            if let Some(captures) = mt_re.captures(name) {
+                let qk_mod_tap = if self.use_legacy_scancodes {
+                    QK_MOD_TAP_LEGACY
+                } else {
+                    QK_MOD_TAP
+                };
+                let mod_ = *MOD_TAP_MODS.get(&captures.get(1).unwrap().as_str())?;
+                let kc = *self.keymap.get(captures.get(2).unwrap().as_str())?;
+                return Some(qk_mod_tap | ((mod_ & 0x1f) << 8) | (kc & 0xff));
+            }
         }
+        self.keymap.get(name).copied()
     }
 
     pub fn f_keys(&self) -> impl Iterator<Item = &str> {
