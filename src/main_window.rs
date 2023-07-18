@@ -9,7 +9,6 @@ use gtk::{
     subclass::prelude::*,
 };
 use std::{
-    borrow::Borrow,
     cell::RefCell,
     sync::atomic::{AtomicBool, Ordering},
     time::Duration,
@@ -279,7 +278,7 @@ impl MainWindow {
                 if !REFRESH_DISABLED.load(Ordering::Relaxed) {
                   let inner = window.inner();
                   inner.backend.refresh();
-                  if **inner.is_testing_mode.borrow() && !inner.back_button.is_visible() {
+                  if *inner.is_testing_mode && !inner.back_button.is_visible() {
                       inner.backend.check_for_bootloader()
                   }
                 }
