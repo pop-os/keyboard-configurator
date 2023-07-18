@@ -1,6 +1,9 @@
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
-use std::collections::HashMap;
-use std::io::{Read, Write};
+use std::{
+    collections::HashMap,
+    convert::TryFrom,
+    io::{Read, Write},
+};
 
 use crate::Hs;
 
@@ -77,8 +80,9 @@ impl KeyMap {
     }
 }
 
-impl From<&str> for KeyMap {
-    fn from(s: &str) -> Self {
-        serde_json::from_str(s).unwrap()
+impl TryFrom<&str> for KeyMap {
+    type Error = serde_json::Error;
+    fn try_from(s: &str) -> Result<Self, serde_json::Error> {
+        serde_json::from_str(s)
     }
 }

@@ -1,6 +1,6 @@
 use cascade::cascade;
 use regex::Regex;
-use std::{collections::HashMap, fs, path::Path};
+use std::{collections::HashMap, convert::TryFrom, fs, path::Path, str::FromStr};
 
 mod meta;
 use once_cell::sync::Lazy;
@@ -9,6 +9,10 @@ pub use self::meta::Meta;
 pub(crate) use physical_layout::{PhysicalLayout, PhysicalLayoutKey};
 
 use crate::KeyMap;
+
+// Merge date of https://github.com/system76/ec/pull/229
+// Before this, `PAUSE` will not work.
+const EC_PAUSE_DATE: (u16, u16, u16) = (2022, 5, 23);
 
 const QK_MOD_TAP_LEGACY: u16 = 0x6000;
 const QK_MOD_TAP_MAX_LEGACY: u16 = 0x7FFF;
@@ -92,11 +96,21 @@ impl Layout {
         layout_json: &str,
         leds_json: &str,
         physical_json: &str,
+        version: &str,
         use_legacy_scancodes: bool,
     ) -> Self {
-        let meta = serde_json::from_str(meta_json).unwrap();
-        let default = default_json.into();
-        let (keymap, scancode_names) = parse_keymap_json(keymap_json, board, &meta);
+        let meta: Meta = serde_json::from_str(meta_json).unwrap();
+        let has_pause_scancode = if meta.is_qmk {
+            true
+        } else {
+            parse_ec_date(version).map_or(true, |date| date >= EC_PAUSE_DATE)
+        };
+        let mut default = KeyMap::try_from(default_json).unwrap();
+        if !has_pause_scancode {
+            keymap_remove_pause(&mut default);
+        }
+        let (keymap, scancode_names) =
+            parse_keymap_json(keymap_json, board, &meta, has_pause_scancode);
         let layout = serde_json::from_str(layout_json).unwrap();
         let leds = serde_json::from_str(leds_json).unwrap();
         let physical = PhysicalLayout::from_str(physical_json);
@@ -137,6 +151,7 @@ impl Layout {
             &layout_json,
             &leds_json,
             &physical_json,
+            "dummy",
             false,
         )
     }
@@ -155,6 +170,7 @@ impl Layout {
                     layout_json,
                     leds_json,
                     physical_json,
+                    version,
                     use_legacy_scancodes,
                 )
             },
@@ -219,6 +235,7 @@ fn parse_keymap_json(
     keymap_json: &str,
     board: &str,
     meta: &Meta,
+    has_pause_scancode: bool,
 ) -> (HashMap<String, u16>, HashMap<u16, String>) {
     let mut keymap: HashMap<String, u16> = serde_json::from_str(keymap_json).unwrap();
 
@@ -234,12 +251,41 @@ fn parse_keymap_json(
         }
     }
 
+    if !has_pause_scancode {
+        keymap.remove("PAUSE");
+    }
+
+    // Generate reverse mapping, from scancode to names
     let mut scancode_names = HashMap::new();
     for (scancode_name, scancode) in &keymap {
         scancode_names.insert(*scancode, scancode_name.clone());
     }
 
     (keymap, scancode_names)
+}
+
+fn parse_ec_date(version: &str) -> Option<(u16, u16, u16)> {
+    let groups = Regex::new(r"^(\d+)-(\d+)-(\d+)_")
+        .unwrap()
+        .captures(version)?;
+    let mut groups = groups
+        .iter()
+        .skip(1)
+        .map(|g| u16::from_str(g.unwrap().as_str()).unwrap());
+    Some((
+        groups.next().unwrap(),
+        groups.next().unwrap(),
+        groups.next().unwrap(),
+    ))
+}
+
+fn keymap_remove_pause(keymap: &mut KeyMap) {
+    for values in keymap.map.values_mut() {
+        if values.get(1).map(String::as_str) == Some("PAUSE") {
+            // Change `PAUSE` on layer 2 to match layer 1
+            values[1] = values[0].clone();
+        }
+    }
 }
 
 #[cfg(test)]
