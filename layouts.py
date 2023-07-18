@@ -519,7 +519,8 @@ def generate_layout_dir(ecdir: str, board: str, is_qmk: bool) -> None:
         m = re.search('^KBLED=(.*)$', board_mk, re.MULTILINE)
         assert m is not None
         kbled = m.group(1)
-        if kbled == 'white_dac':
+        # darp9 uses `rgb_pwm` but has keyboard with single-color backlight installed
+        if kbled == 'white_dac' or board == 'system76/darp9':
             has_color = False
         # bonw14/bonw15: Handled through USB. Can configurator support this?
         elif kbled in ['none', 'bonw14', 'bonw15']:
