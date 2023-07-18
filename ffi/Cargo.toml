@@ -2,7 +2,7 @@
 name = "ffi"
 version = "0.1.0"
 authors = ["Ian Douglas Scott <idscott@system76.com>"]
-edition = "2018"
+edition = "2021"
 
 [lib]
 name = "system76_keyboard_configurator"
