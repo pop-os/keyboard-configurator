@@ -1,6 +1,6 @@
 use cascade::cascade;
 use regex::Regex;
-use std::{collections::HashMap, fs, path::Path};
+use std::{collections::HashMap, convert::TryFrom, fs, path::Path, str::FromStr};
 
 mod meta;
 use once_cell::sync::Lazy;
@@ -9,6 +9,10 @@ pub use self::meta::Meta;
 pub(crate) use physical_layout::{PhysicalLayout, PhysicalLayoutKey};
 
 use crate::KeyMap;
+
+// Merge date of https://github.com/system76/ec/pull/229
+// Before this, `PAUSE` will not work.
+const EC_PAUSE_DATE: (u16, u16, u16) = (2022, 5, 23);
 
 const QK_MOD_TAP_LEGACY: u16 = 0x6000;
 const QK_MOD_TAP_MAX_LEGACY: u16 = 0x7FFF;
@@ -53,10 +57,12 @@ macro_rules! keyboards {
                         include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/../layouts/", $board, "/meta.json"));
                     let default_json =
                         include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/../layouts/", $board, "/default.json"));
-                    let keymap_json = if use_legacy_scancodes {
-                        include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/../layouts/keyboards/", $keyboard, "/keymap.json"))
+                    let keymap_json = if use_legacy_scancodes && $is_qmk {
+                        include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/../layouts/keymap/qmk_legacy.json"))
+                    } else if $is_qmk {
+                        include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/../layouts/keymap/qmk.json"))
                     } else {
-                        include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/../layouts/keyboards/overrides/0.19.12/", $keyboard, "/keymap.json"))
+                        include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/../layouts/keymap/ec.json"))
                     };
                     let layout_json =
                         include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/../layouts/keyboards/", $keyboard, "/layout.json"));
@@ -83,17 +89,28 @@ include!(concat!(env!("OUT_DIR"), "/keyboards.rs"));
 
 impl Layout {
     pub fn from_data(
+        board: &str,
         meta_json: &str,
         default_json: &str,
         keymap_json: &str,
         layout_json: &str,
         leds_json: &str,
         physical_json: &str,
+        version: &str,
         use_legacy_scancodes: bool,
     ) -> Self {
-        let meta = serde_json::from_str(meta_json).unwrap();
-        let default = default_json.into();
-        let (keymap, scancode_names) = parse_keymap_json(keymap_json);
+        let meta: Meta = serde_json::from_str(meta_json).unwrap();
+        let has_pause_scancode = if meta.is_qmk {
+            true
+        } else {
+            parse_ec_date(version).map_or(true, |date| date >= EC_PAUSE_DATE)
+        };
+        let mut default = KeyMap::try_from(default_json).unwrap();
+        if !has_pause_scancode {
+            keymap_remove_pause(&mut default);
+        }
+        let (keymap, scancode_names) =
+            parse_keymap_json(keymap_json, board, &meta, has_pause_scancode);
         let layout = serde_json::from_str(layout_json).unwrap();
         let leds = serde_json::from_str(leds_json).unwrap();
         let physical = PhysicalLayout::from_str(physical_json);
@@ -110,7 +127,7 @@ impl Layout {
     }
 
     #[allow(dead_code)]
-    pub fn from_dir<P: AsRef<Path>>(dir: P) -> Self {
+    pub fn from_dir<P: AsRef<Path>>(board: &str, dir: P) -> Self {
         let dir = dir.as_ref();
 
         let meta_json =
@@ -127,12 +144,14 @@ impl Layout {
             fs::read_to_string(dir.join("physical.json")).expect("Failed to load physical.json");
 
         Self::from_data(
+            board,
             &meta_json,
             &default_json,
             &keymap_json,
             &layout_json,
             &leds_json,
             &physical_json,
+            "dummy",
             false,
         )
     }
@@ -144,12 +163,14 @@ impl Layout {
         layout_data(board, use_legacy_scancodes).map(
             |(meta_json, default_json, keymap_json, layout_json, leds_json, physical_json)| {
                 Self::from_data(
+                    board,
                     meta_json,
                     default_json,
                     keymap_json,
                     layout_json,
                     leds_json,
                     physical_json,
+                    version,
                     use_legacy_scancodes,
                 )
             },
@@ -158,38 +179,40 @@ impl Layout {
 
     /// Get the scancode number corresponding to a name
     pub fn scancode_to_name(&self, scancode: u16) -> Option<String> {
-        let (qk_mod_tap, qk_mod_tap_max) = if self.use_legacy_scancodes {
-            (QK_MOD_TAP_LEGACY, QK_MOD_TAP_MAX_LEGACY)
-        } else {
-            (QK_MOD_TAP, QK_MOD_TAP_MAX)
-        };
-        if scancode >= qk_mod_tap && scancode < qk_mod_tap_max {
-            let mod_ = (scancode >> 8) & 0x1f;
-            let kc = scancode & 0xff;
-            let mod_name = MOD_TAP_MODS.iter().find(|(_, v)| **v == mod_)?.0;
-            let kc_name = self.scancode_names.get(&kc)?;
-            Some(format!("MT({}, {})", mod_name, kc_name))
-        } else {
-            self.scancode_names.get(&scancode).cloned()
+        if self.meta.is_qmk {
+            let (qk_mod_tap, qk_mod_tap_max) = if self.use_legacy_scancodes {
+                (QK_MOD_TAP_LEGACY, QK_MOD_TAP_MAX_LEGACY)
+            } else {
+                (QK_MOD_TAP, QK_MOD_TAP_MAX)
+            };
+            if scancode >= qk_mod_tap && scancode < qk_mod_tap_max {
+                let mod_ = (scancode >> 8) & 0x1f;
+                let kc = scancode & 0xff;
+                let mod_name = MOD_TAP_MODS.iter().find(|(_, v)| **v == mod_)?.0;
+                let kc_name = self.scancode_names.get(&kc)?;
+                return Some(format!("MT({}, {})", mod_name, kc_name));
+            }
         }
+        self.scancode_names.get(&scancode).cloned()
     }
 
     /// Get the name corresponding to a scancode number
     pub fn scancode_from_name(&self, name: &str) -> Option<u16> {
-        // Check if mod-tap
-        let mt_re = Regex::new("MT\\(([^()]+), ([^()]+)\\)").unwrap();
-        if let Some(captures) = mt_re.captures(name) {
-            let qk_mod_tap = if self.use_legacy_scancodes {
-                QK_MOD_TAP_LEGACY
-            } else {
-                QK_MOD_TAP
-            };
-            let mod_ = *MOD_TAP_MODS.get(&captures.get(1).unwrap().as_str())?;
-            let kc = *self.keymap.get(captures.get(2).unwrap().as_str())?;
-            Some(qk_mod_tap | ((mod_ & 0x1f) << 8) | (kc & 0xff))
-        } else {
-            self.keymap.get(name).copied()
+        if self.meta.is_qmk {
+            // Check if mod-tap
+            let mt_re = Regex::new("MT\\(([^()]+), ([^()]+)\\)").unwrap();
+            if let Some(captures) = mt_re.captures(name) {
+                let qk_mod_tap = if self.use_legacy_scancodes {
+                    QK_MOD_TAP_LEGACY
+                } else {
+                    QK_MOD_TAP
+                };
+                let mod_ = *MOD_TAP_MODS.get(&captures.get(1).unwrap().as_str())?;
+                let kc = *self.keymap.get(captures.get(2).unwrap().as_str())?;
+                return Some(qk_mod_tap | ((mod_ & 0x1f) << 8) | (kc & 0xff));
+            }
         }
+        self.keymap.get(name).copied()
     }
 
     pub fn f_keys(&self) -> impl Iterator<Item = &str> {
@@ -208,13 +231,61 @@ impl Layout {
     }
 }
 
-fn parse_keymap_json(keymap_json: &str) -> (HashMap<String, u16>, HashMap<u16, String>) {
+fn parse_keymap_json(
+    keymap_json: &str,
+    board: &str,
+    meta: &Meta,
+    has_pause_scancode: bool,
+) -> (HashMap<String, u16>, HashMap<u16, String>) {
+    let mut keymap: HashMap<String, u16> = serde_json::from_str(keymap_json).unwrap();
+
+    // Filter out keycodes that aren't relevant to this particular model
+    // TODO: Support bonw backlight over USB?
+    if meta.has_color || board == "system76/bonw14" || board == "system76/bonw15" {
+        keymap.remove("KBD_BKL");
+    } else if meta.has_brightness {
+        keymap.remove("KBD_COLOR");
+    } else {
+        for i in ["KBD_COLOR", "KBD_DOWN", "KBD_UP", "KBD_BKL", "KBD_TOGGLE"] {
+            keymap.remove(i);
+        }
+    }
+
+    if !has_pause_scancode {
+        keymap.remove("PAUSE");
+    }
+
+    // Generate reverse mapping, from scancode to names
     let mut scancode_names = HashMap::new();
-    let keymap: HashMap<String, u16> = serde_json::from_str(keymap_json).unwrap();
     for (scancode_name, scancode) in &keymap {
         scancode_names.insert(*scancode, scancode_name.clone());
     }
+
     (keymap, scancode_names)
+}
+
+fn parse_ec_date(version: &str) -> Option<(u16, u16, u16)> {
+    let groups = Regex::new(r"^(\d+)-(\d+)-(\d+)_")
+        .unwrap()
+        .captures(version)?;
+    let mut groups = groups
+        .iter()
+        .skip(1)
+        .map(|g| u16::from_str(g.unwrap().as_str()).unwrap());
+    Some((
+        groups.next().unwrap(),
+        groups.next().unwrap(),
+        groups.next().unwrap(),
+    ))
+}
+
+fn keymap_remove_pause(keymap: &mut KeyMap) {
+    for values in keymap.map.values_mut() {
+        if values.get(1).map(String::as_str) == Some("PAUSE") {
+            // Change `PAUSE` on layer 2 to match layer 1
+            values[1] = values[0].clone();
+        }
+    }
 }
 
 #[cfg(test)]
@@ -270,6 +341,29 @@ mod tests {
                 assert_eq!(layout_qmk.keymap.keys().find(|x| x == &k), Some(k));
             }
         }
+    }
+
+    #[test]
+    fn color_brightness_keycodes() {
+        const VERSION: &str = "0.19.12";
+
+        let layout_no_color = Layout::from_board("system76/lemp10", VERSION).unwrap();
+        assert!(
+            layout_no_color.keymap.contains_key("KBD_BKL")
+                && !layout_no_color.keymap.contains_key("KBD_COLOR")
+        );
+
+        let layout_color = Layout::from_board("system76/gaze15", VERSION).unwrap();
+        assert!(
+            layout_color.keymap.contains_key("KBD_COLOR")
+                && !layout_color.keymap.contains_key("KBD_BKL")
+        );
+
+        let layout_bonw = Layout::from_board("system76/bonw14", VERSION).unwrap();
+        assert!(
+            layout_bonw.keymap.contains_key("KBD_COLOR")
+                && !layout_bonw.keymap.contains_key("KBD_BKL")
+        );
     }
 
     #[test]

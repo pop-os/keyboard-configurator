@@ -12,6 +12,7 @@ import tempfile
 import typing
 from typing import List, Tuple, Dict
 
+EXCLUDED_SCANCODES = ['INT_1', 'INT_2']
 QMK_MAPPING = {
     'APPLICATION': 'APP',
     'AUDIO_MUTE': 'MUTE',
@@ -291,7 +292,7 @@ def read_stripping_includes(path: str) -> str:
                 output += line
     return output
 
-def extract_scancodes(ecdir: str, board: str, is_qmk: bool, has_brightness: bool, has_color: bool) -> Tuple[typing.OrderedDict[str, int], Dict[str, str]]:
+def extract_scancodes(ecdir: str, is_qmk: bool) -> Tuple[typing.OrderedDict[str, int], Dict[str, str]]:
     "Extract mapping from scancode names to numbers"
 
     is_old_qmk = False
@@ -370,15 +371,7 @@ def extract_scancodes(ecdir: str, board: str, is_qmk: bool, has_brightness: bool
     else:
         scancode_list['NONE'] = 0x0000
 
-    excluded_scancodes = ['INT_1', 'INT_2']
-    if has_color or board == 'system76/bonw14' or board == "system76/bonw15":
-        excluded_scancodes += ['KBD_BKL']
-    elif has_brightness:
-        excluded_scancodes += ['KBD_COLOR']
-    else:
-        excluded_scancodes += ['KBD_COLOR', 'KBD_DOWN', 'KBD_UP', 'KBD_BKL', 'KBD_TOGGLE']
-
-    scancode_list = OrderedDict((name, code) for (name, code) in scancode_list.items() if name not in excluded_scancodes)
+    scancode_list = OrderedDict((name, code) for (name, code) in scancode_list.items() if name not in EXCLUDED_SCANCODES)
 
     # Make sure scancodes are unique
     assert len(scancode_list.keys()) == len(set(scancode_list.values()))
@@ -399,16 +392,17 @@ def parse_layout_define(keymap_h: str, is_qmk) -> Tuple[List[str], List[List[str
     assert is_qmk or all(len(i) == len(physical2[0]) for i in physical2)
     return physical, physical2
 
-def parse_led_config(led_c: str, physical: List[str]) -> Dict[str, List[int]]:
+def parse_led_config(led_c: str, physical2: List[List[str]]) -> Dict[str, List[int]]:
     led_c = re.sub(r'//.*', '', led_c)
     led_c = re.sub(r'/\*.*?\*/', '', led_c)
-    m = re.search(r'LAYOUT\((.*?)\)', led_c, re.MULTILINE | re.DOTALL)
+    m = re.search(r'g_led_config.*{ \{(.*?)^},', led_c, re.MULTILINE | re.DOTALL)
     leds: Dict[str, List[int]] = {}
     if m is None:
         return leds
-    led_indexes = m.group(1).replace(',', ' ').replace('\\', '').split()
-    for i, physical_name in enumerate(physical):
-        leds[physical_name] = [int(led_indexes[i])]
+    for i, line in enumerate(re.findall(r'{(.*)?}', m.group(1))):
+        for j, led_index in enumerate(line.replace(',', ' ').split()):
+            if led_index != '__':
+                leds[physical2[i][j]] = [int(led_index)]
     return leds
 
 def parse_keymap(keymap_c: str, mapping: Dict[str, str], physical: List[str], is_qmk: bool) -> Dict[str, List[str]]:
@@ -458,10 +452,10 @@ def gen_keymap_json(path: str, scancodes: typing.OrderedDict[str, int]) -> None:
 
     write_json_file(path, scancodes)
 
-def gen_leds_json(path: str, leds: Dict[str, List[int]]) -> None:
+def gen_leds_json(path: str, leds: [str, List[int]]) -> None:
     "Generate leds.json file"
 
-    write_json_file(path, leds)
+    write_json_file(path, leds, sort_keys=True)
 
 def gen_default_json(path: str, board: str, keymap: Dict[str, List[str]], is_qmk: bool) -> None:
     "Generate default.json file"
@@ -494,13 +488,13 @@ def update_meta_json(meta_json: str, has_brightness: bool, has_color: bool, keyb
     write_json_file(meta_json, meta)
 
 
-def write_json_file(path: str, data):
+def write_json_file(path: str, data, sort_keys=False):
     with open(path, 'w') as f:
-        json.dump(data, f, indent=2)
+        json.dump(data, f, indent=2, sort_keys=sort_keys)
         f.write('\n')
 
 
-def generate_layout_dir(ecdir: str, board: str, is_qmk: bool, override: str) -> None:
+def generate_layout_dir(ecdir: str, board: str, is_qmk: bool) -> None:
     print(f'Generating layouts/{board}...')
 
     has_brightness = True
@@ -525,7 +519,8 @@ def generate_layout_dir(ecdir: str, board: str, is_qmk: bool, override: str) -> 
         m = re.search('^KBLED=(.*)$', board_mk, re.MULTILINE)
         assert m is not None
         kbled = m.group(1)
-        if kbled == 'white_dac':
+        # darp9 uses `rgb_pwm` but has keyboard with single-color backlight installed
+        if kbled == 'white_dac' or board == 'system76/darp9':
             has_color = False
         # bonw14/bonw15: Handled through USB. Can configurator support this?
         elif kbled in ['none', 'bonw14', 'bonw15']:
@@ -543,12 +538,11 @@ def generate_layout_dir(ecdir: str, board: str, is_qmk: bool, override: str) -> 
     os.makedirs(f'layouts/keyboards/{keyboard}', exist_ok=True)
 
     physical, physical2 = parse_layout_define(keymap_h, is_qmk)
-    leds = parse_led_config(led_c, physical)
-    scancodes, mapping = extract_scancodes(ecdir, board, is_qmk, has_brightness, has_color)
+    leds = parse_led_config(led_c, physical2)
+    _scancodes, mapping = extract_scancodes(ecdir, is_qmk)
     default_keymap = parse_keymap(default_c, mapping, physical, is_qmk)
-    gen_layout_json(f'layouts/keyboards/{override}{keyboard}/layout.json', physical, physical2)
-    gen_leds_json(f'layouts/keyboards/{override}{keyboard}/leds.json', leds)
-    gen_keymap_json(f'layouts/keyboards/{override}{keyboard}/keymap.json', scancodes)
+    gen_layout_json(f'layouts/keyboards/{keyboard}/layout.json', physical, physical2)
+    gen_leds_json(f'layouts/keyboards/{keyboard}/leds.json', leds)
     gen_default_json(f'layouts/{board}/default.json', board, default_keymap, is_qmk)
     update_meta_json(f'layouts/{board}/meta.json', has_brightness, has_color, keyboard)
 
@@ -556,9 +550,18 @@ parser = argparse.ArgumentParser(usage="./layouts.py --qmk ../qmk_firmware syste
 parser.add_argument("ecdir", help='For QMK boards that is the qmk_firmware (github.com/system76/qmk_firmware) directory itself, otherwise use the ec directory (github.com/system76/ec)')
 parser.add_argument("board", help='The name of the manufacturer and board name. Example: "system76/launch_2"')
 parser.add_argument("--qmk", action="store_true", help="Required if you plan on using a keyboard with QMK firmware.")
-parser.add_argument("--qmk-legacy", action="store_true", help="Re-generate keymap json for old qmk version.")
-parser.add_argument("--override", help="Override the output directory. See layouts/keyboards/. Usage: '--override overrides/0.19.12/'", default='')
+parser.add_argument("--qmk-legacy", action="store_true", help="Re-generate keymap json for old qmk version. (pre 0.19)")
 args = parser.parse_args()
+
+# Generate keymap file, used for all ec or qmk boards
+scancodes, _mapping = extract_scancodes(args.ecdir, args.qmk or args.qmk_legacy)
+if args.qmk_legacy:
+    keymap_path = 'layouts/keymap/qmk_legacy.json'
+elif args.qmk:
+    keymap_path = 'layouts/keymap/qmk.json'
+else:
+    keymap_path = 'layouts/keymap/ec.json'
+gen_keymap_json(keymap_path, scancodes)
 
 if args.qmk_legacy:
     # Only keymap differs for legacy qmk, so don't generate anything related to individial boards
@@ -572,8 +575,8 @@ if args.board == 'all':
     for i in os.listdir(boarddir):
         if i == 'common' or not os.path.isdir(f'{boarddir}/{i}') or f"system76/{i}" in EXCLUDE_BOARDS:
             continue
-        generate_layout_dir(args.ecdir, f'system76/{i}', args.qmk, args.override)
+        generate_layout_dir(args.ecdir, f'system76/{i}', args.qmk)
 else:
-    generate_layout_dir(args.ecdir, args.board, args.qmk, args.override)
+    generate_layout_dir(args.ecdir, args.board, args.qmk)
 
 

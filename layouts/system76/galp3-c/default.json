@@ -59,8 +59,8 @@
       "PRINT_SCREEN"
     ],
     "K0E": [
-      "NONE",
-      "NONE"
+      "PAUSE",
+      "PAUSE"
     ],
     "K0F": [
       "INSERT",
@@ -68,7 +68,7 @@
     ],
     "K0G": [
       "DEL",
-      "DEL"
+      "SCROLL_LOCK"
     ],
     "K10": [
       "TICK",

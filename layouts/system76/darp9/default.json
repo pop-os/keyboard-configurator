@@ -1,5 +1,5 @@
 {
-  "model": "system76/gaze15",
+  "model": "system76/darp9",
   "version": 1,
   "map": {
     "K00": [
@@ -12,7 +12,7 @@
     ],
     "K02": [
       "F2",
-      "DISPLAY_TOGGLE"
+      "MIC_MUTE"
     ],
     "K03": [
       "F3",
@@ -144,7 +144,7 @@
     ],
     "K1F": [
       "NUM_SLASH",
-      "KBD_COLOR"
+      "KBD_BKL"
     ],
     "K1G": [
       "NUM_ASTERISK",

@@ -12,7 +12,7 @@
     ],
     "K02": [
       "F2",
-      "DISPLAY_TOGGLE"
+      "MIC_MUTE"
     ],
     "K03": [
       "F3",
@@ -60,7 +60,7 @@
     ],
     "K0E": [
       "INSERT",
-      "INSERT"
+      "SCROLL_LOCK"
     ],
     "K0F": [
       "DEL",
@@ -76,11 +76,11 @@
     ],
     "K0I": [
       "PGUP",
-      "PGUP"
+      "PAUSE"
     ],
     "K0J": [
       "PGDN",
-      "PGDN"
+      "PAUSE"
     ],
     "K10": [
       "TICK",
