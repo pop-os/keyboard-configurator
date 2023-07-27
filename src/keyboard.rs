@@ -566,9 +566,6 @@ impl Keyboard {
         // This function is called by Picker::set_keyboard()
         *self.inner().picker.borrow_mut() = match picker {
             Some(picker) => {
-                if let Some(widget) = picker.parent() {
-                    widget.downcast::<gtk::Container>().unwrap().remove(picker);
-                }
                 self.inner().picker_box.add(picker);
                 picker.set_sensitive(!self.selected().is_empty() && self.layer() != None);
                 picker.downgrade()
