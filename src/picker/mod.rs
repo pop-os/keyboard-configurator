@@ -99,6 +99,10 @@ impl Picker {
             old_kb.set_picker(None);
         }
 
+        if let Some(widget) = self.parent() {
+            widget.downcast::<gtk::Container>().unwrap().remove(self);
+        }
+
         if let Some(kb) = &keyboard {
             // Check that scancode is available for the keyboard
             self.inner()

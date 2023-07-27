@@ -453,6 +453,8 @@ impl MainWindow {
         if let Some(idx) = boards.iter().position(|(kb, _)| kb.board().board() == id) {
             let (keyboard, row) = boards.remove(idx);
             if self.inner().stack.visible_child().as_ref() == Some(keyboard.upcast_ref()) {
+                // Set picker keyboard to to `None` before destroying keyboard widget
+                self.inner().picker.set_keyboard(None);
                 self.show_keyboard_list();
             }
             self.inner().stack.remove(&keyboard);
