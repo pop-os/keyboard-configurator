@@ -1,6 +1,6 @@
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::{
-    collections::HashMap,
+    collections::BTreeMap,
     convert::TryFrom,
     io::{Read, Write},
 };
@@ -24,20 +24,20 @@ mod hs_map_serde {
     use super::*;
 
     pub fn serialize<S: Serializer>(
-        map: &HashMap<String, Option<Hs>>,
+        map: &BTreeMap<String, Option<Hs>>,
         serializer: S,
     ) -> Result<S::Ok, S::Error> {
         let map = map
             .iter()
             .map(|(k, hs)| (k, hs.map(|hs| hs.to_ints())))
-            .collect::<HashMap<_, _>>();
+            .collect::<BTreeMap<_, _>>();
         map.serialize(serializer)
     }
 
     pub fn deserialize<'de, D: Deserializer<'de>>(
         deserializer: D,
-    ) -> Result<HashMap<String, Option<Hs>>, D::Error> {
-        let map = <HashMap<String, Option<(u8, u8)>>>::deserialize(deserializer)?;
+    ) -> Result<BTreeMap<String, Option<Hs>>, D::Error> {
+        let map = <BTreeMap<String, Option<(u8, u8)>>>::deserialize(deserializer)?;
         Ok(map
             .into_iter()
             .map(|(k, v)| (k, v.map(|(h, s)| Hs::from_ints(h, s))))
@@ -57,9 +57,9 @@ pub struct KeyMapLayer {
 pub struct KeyMap {
     pub model: String,
     pub version: u8,
-    pub map: HashMap<String, Vec<String>>,
+    pub map: BTreeMap<String, Vec<String>>,
     #[serde(with = "hs_map_serde")]
-    pub key_leds: HashMap<String, Option<Hs>>,
+    pub key_leds: BTreeMap<String, Option<Hs>>,
     pub layers: Vec<KeyMapLayer>,
 }
 
