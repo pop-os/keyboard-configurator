@@ -3,7 +3,7 @@ use once_cell::sync::{Lazy, OnceCell};
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::{
-    collections::HashMap,
+    collections::BTreeMap,
     process::Command,
     sync::{
         atomic::{AtomicBool, Ordering},
@@ -245,8 +245,8 @@ impl Board {
     }
 
     pub fn export_keymap(&self) -> KeyMap {
-        let mut map = HashMap::new();
-        let mut key_leds = HashMap::new();
+        let mut map = BTreeMap::new();
+        let mut key_leds = BTreeMap::new();
         for key in self.keys().iter() {
             let scancodes = (0..self.layout().meta.num_layers as usize)
                 .map(|layer| key.get_scancode(layer).unwrap().1)
