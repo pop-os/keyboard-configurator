@@ -1725,7 +1725,7 @@ dependencies = [
 
 [[package]]
 name = "system76-keyboard-configurator"
-version = "1.3.7"
+version = "1.3.9"
 dependencies = [
  "cascade",
  "env_logger",
