@@ -310,8 +310,21 @@ impl<R: Read + Send + 'static, W: Write + Send + 'static> Daemon for DaemonServe
                     info.usage_page(),
                     info.usage(),
                 ) {
-                    // System76 launch_1, launch_lite_1, launch_2, launch_heavy_1
-                    (0x3384, 0x0001 | 0x0005 | 0x0006 | 0x0007, interface, usage_page, usage)
+                    // System76
+                    (0x3384,
+                        // launch_1
+                        0x0001 |
+                        // launch_lite_1
+                        0x0005 |
+                        // launch_2
+                        0x0006 |
+                        // launch_heavy_1
+                        0x0007 |
+                        // launch_3
+                        0x0009 |
+                        // launch_heavy_3
+                        0x000A,
+                        interface, usage_page, usage)
                         if is_qmk_raw_interface(interface, usage_page, usage) =>
                     {
                         // Skip if device already open

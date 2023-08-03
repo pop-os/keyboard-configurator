@@ -1,0 +1,13 @@
+{
+  "display_name": "Launch Keyboard",
+  "has_mode": true,
+  "has_per_layer": true,
+  "num_layers": 4,
+  "has_brightness": true,
+  "has_color": true,
+  "is_qmk": true,
+  "has_mod_tap": true,
+  "no_fn_f": true,
+  "pressed_color": "#202020",
+  "keyboard": "system76/launch_3"
+}
