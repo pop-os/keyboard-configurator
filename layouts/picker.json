@@ -636,6 +636,10 @@
       {
         "keysym": "LAYER_SWITCH_4",
         "label": "Switch to\nLayer\u00a04"
+      },
+      {
+        "keysym": "FNLOCK",
+        "label": "FnLock"
       }
     ]
   }
