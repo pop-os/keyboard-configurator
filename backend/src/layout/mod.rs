@@ -13,6 +13,8 @@ use crate::KeyMap;
 // Merge date of https://github.com/system76/ec/pull/229
 // Before this, `PAUSE` will not work.
 const EC_PAUSE_DATE: (u16, u16, u16) = (2022, 5, 23);
+// https://github.com/system76/ec/pull/263
+const EC_FNLOCK_DATE: (u16, u16, u16) = (2023, 8, 1);
 
 const QK_MOD_TAP_LEGACY: u16 = 0x6000;
 const QK_MOD_TAP_MAX_LEGACY: u16 = 0x7FFF;
@@ -100,17 +102,33 @@ impl Layout {
         use_legacy_scancodes: bool,
     ) -> Self {
         let meta: Meta = serde_json::from_str(meta_json).unwrap();
+        let mut default = KeyMap::try_from(default_json).unwrap();
+
         let has_pause_scancode = if meta.is_qmk {
             true
         } else {
             parse_ec_date(version).map_or(true, |date| date >= EC_PAUSE_DATE)
         };
-        let mut default = KeyMap::try_from(default_json).unwrap();
         if !has_pause_scancode {
             keymap_remove_pause(&mut default);
         }
-        let (keymap, scancode_names) =
-            parse_keymap_json(keymap_json, board, &meta, has_pause_scancode);
+
+        let has_fnlock_scancode = if meta.is_qmk {
+            false
+        } else {
+            parse_ec_date(version).map_or(true, |date| date >= EC_FNLOCK_DATE)
+        };
+        if !has_fnlock_scancode {
+            keymap_remove_fnlock(&mut default);
+        }
+
+        let (keymap, scancode_names) = parse_keymap_json(
+            keymap_json,
+            board,
+            &meta,
+            has_pause_scancode,
+            has_fnlock_scancode,
+        );
         let layout = serde_json::from_str(layout_json).unwrap();
         let leds = serde_json::from_str(leds_json).unwrap();
         let physical = PhysicalLayout::from_str(physical_json);
@@ -236,6 +254,7 @@ fn parse_keymap_json(
     board: &str,
     meta: &Meta,
     has_pause_scancode: bool,
+    has_fnlock_scancode: bool,
 ) -> (HashMap<String, u16>, HashMap<u16, String>) {
     let mut keymap: HashMap<String, u16> = serde_json::from_str(keymap_json).unwrap();
 
@@ -253,6 +272,9 @@ fn parse_keymap_json(
 
     if !has_pause_scancode {
         keymap.remove("PAUSE");
+    }
+    if !has_fnlock_scancode {
+        keymap.remove("FNLOCK");
     }
 
     // Generate reverse mapping, from scancode to names
@@ -282,7 +304,16 @@ fn parse_ec_date(version: &str) -> Option<(u16, u16, u16)> {
 fn keymap_remove_pause(keymap: &mut KeyMap) {
     for values in keymap.map.values_mut() {
         if values.get(1).map(String::as_str) == Some("PAUSE") {
-            // Change `PAUSE` on layer 2 to match layer 1
+            // Change `PAUSE` on layer 1 to match layer 0
+            values[1] = values[0].clone();
+        }
+    }
+}
+
+fn keymap_remove_fnlock(keymap: &mut KeyMap) {
+    for values in keymap.map.values_mut() {
+        if values.get(1).map(String::as_str) == Some("FNLOCK") {
+            // Change `FNLOCK` on layer 1 to match layer 0
             values[1] = values[0].clone();
         }
     }
@@ -335,6 +366,7 @@ mod tests {
                     || k == "CAMERA_TOGGLE"
                     || k == "AIRPLANE_MODE"
                     || k == "MIC_MUTE"
+                    || k == "FNLOCK"
                 {
                     continue;
                 }
