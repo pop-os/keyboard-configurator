@@ -3,14 +3,17 @@
 // TODO: Hotplug detection support
 
 use std::iter::Iterator;
-use zbus::{dbus_proxy, fdo::ObjectManagerProxy, Connection};
+use zbus::{blocking::fdo::ObjectManagerProxy, blocking::Connection, dbus_proxy};
 
 use super::{err_str, BoardId, Daemon, Matrix};
 use crate::{fl, Benchmark, Nelson, NelsonKind, Rgb};
 
 const DBUS_NAME: &str = "com.system76.PowerDaemon";
 
-#[dbus_proxy(interface = "com.system76.PowerDaemon.Keyboard")]
+#[dbus_proxy(
+    interface = "com.system76.PowerDaemon.Keyboard",
+    assume_defaults = true
+)]
 trait Keyboard {
     #[dbus_proxy(property, name = "brightness")]
     fn brightness(&self) -> zbus::Result<i32>;
@@ -30,15 +33,19 @@ trait Keyboard {
 }
 
 struct Keyboard {
-    proxy: KeyboardProxy<'static>,
+    proxy: KeyboardProxyBlocking<'static>,
 }
 
 impl Keyboard {
     fn new(path: &str) -> Result<Self, String> {
-        let connection = Connection::new_system().map_err(err_str)?;
-        let proxy =
-            KeyboardProxy::new_for_owned(connection, DBUS_NAME.to_string(), path.to_string())
-                .map_err(err_str)?;
+        let connection = Connection::system().map_err(err_str)?;
+        let proxy = KeyboardProxyBlocking::builder(&connection)
+            .destination(DBUS_NAME.to_owned())
+            .map_err(err_str)?
+            .path(path.to_owned())
+            .map_err(err_str)?
+            .build()
+            .map_err(err_str)?;
         Ok(Self { proxy })
     }
 }
@@ -59,10 +66,14 @@ impl DaemonS76Power {
     pub fn new() -> Result<Self, String> {
         let mut boards = Vec::new();
 
-        let connection = Connection::new_system().map_err(err_str)?;
-        let proxy =
-            ObjectManagerProxy::new_for(&connection, DBUS_NAME, "/com/system76/PowerDaemon")
-                .map_err(err_str)?;
+        let connection = Connection::system().map_err(err_str)?;
+        let proxy = ObjectManagerProxy::builder(&connection)
+            .destination(DBUS_NAME)
+            .map_err(err_str)?
+            .path("/com/system76/PowerDaemon")
+            .map_err(err_str)?
+            .build()
+            .map_err(err_str)?;
         let objects = proxy.get_managed_objects().map_err(err_str)?;
 
         for path in objects.keys() {
