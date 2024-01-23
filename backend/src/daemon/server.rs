@@ -37,7 +37,9 @@ impl DaemonServer<io::Stdin, io::Stdout> {
 
 impl<R: Read + Send + 'static, W: Write + Send + 'static> DaemonServer<R, W> {
     pub fn new(read: R, write: W) -> Result<Self, String> {
+        #[cfg_attr(not(target_os = "linux"), allow(unused_mut))]
         let mut boards = HashMap::new();
+        #[cfg_attr(not(target_os = "linux"), allow(unused_mut))]
         let mut board_ids = Vec::new();
 
         #[cfg(target_os = "linux")]

@@ -169,8 +169,8 @@ impl ConfiguratorApp {
 
 #[cfg(target_os = "macos")]
 fn macos_init() {
-    use gtk::traits::SettingsExt;
-    use std::{env, process};
+    use gtk::traits::GtkSettingsExt;
+    use std::process;
     let mut prefer_dark = false;
     // This command returns Dark if we should use the dark theme
     // defaults read -g AppleInterfaceStyle
