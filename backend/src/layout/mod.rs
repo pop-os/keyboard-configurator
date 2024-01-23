@@ -90,6 +90,7 @@ macro_rules! keyboards {
 include!(concat!(env!("OUT_DIR"), "/keyboards.rs"));
 
 impl Layout {
+    #[allow(clippy::too_many_arguments)]
     pub fn from_data(
         board: &str,
         meta_json: &str,

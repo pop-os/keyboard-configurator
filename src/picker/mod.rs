@@ -158,7 +158,7 @@ mod tests {
         for i in layouts() {
             let layout = Layout::from_board(i, "dummy").unwrap();
             for j in layout.default.map.values().flatten() {
-                if SCANCODE_LABELS.keys().find(|x| x == &j).is_none() {
+                if !SCANCODE_LABELS.keys().any(|x| x == j) {
                     missing.insert(j.to_owned());
                 }
             }

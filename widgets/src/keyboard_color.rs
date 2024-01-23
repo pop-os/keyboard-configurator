@@ -27,11 +27,11 @@ impl KeyboardColorIndex {
             KeyboardColorIndex::Keys(keys) => {
                 let futures = FuturesUnordered::new();
                 for i in keys.iter() {
-                    futures.push(board.keys()[*i as usize].set_color(Some(hs)));
+                    futures.push(board.keys()[*i].set_color(Some(hs)));
                 }
                 futures.try_collect::<()>().await?
             }
-            KeyboardColorIndex::Layer(i) => board.layers()[*i as usize].set_color(hs).await?,
+            KeyboardColorIndex::Layer(i) => board.layers()[*i].set_color(hs).await?,
         };
         Ok(())
     }
@@ -40,11 +40,11 @@ impl KeyboardColorIndex {
         match self {
             KeyboardColorIndex::Keys(keys) => keys
                 .iter()
-                .filter_map(|i| board.keys()[*i as usize].color())
+                .filter_map(|i| board.keys()[*i].color())
                 .collect(),
             KeyboardColorIndex::Layer(i) => cascade! {
                 BTreeSet::new();
-                ..insert(board.layers()[*i as usize].color());
+                ..insert(board.layers()[*i].color());
             },
         }
     }
@@ -71,12 +71,12 @@ impl KeyboardColorIndex {
             KeyboardColorIndex::Keys(keys) => {
                 let futures = FuturesUnordered::new();
                 for i in keys.iter() {
-                    futures.push(board.keys()[*i as usize].set_color(colors.get(i).copied()));
+                    futures.push(board.keys()[*i].set_color(colors.get(i).copied()));
                 }
                 futures.try_collect::<()>().await?
             }
             KeyboardColorIndex::Layer(i) => {
-                board.layers()[*i as usize]
+                board.layers()[*i]
                     .set_color(*colors.get(i).unwrap())
                     .await?
             }

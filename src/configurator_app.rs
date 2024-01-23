@@ -132,7 +132,7 @@ impl ApplicationImpl for ConfiguratorAppInner {
             info!("Focusing current window");
             window.present();
         } else {
-            MainWindow::new(&*self.obj());
+            MainWindow::new(&self.obj());
         }
     }
 }

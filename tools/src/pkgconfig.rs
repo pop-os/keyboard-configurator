@@ -20,7 +20,7 @@ fn main() -> io::Result<()> {
     fs::create_dir_all("target/")?;
 
     let target = ["target/", &app, ".pc"].concat();
-    let mut file = File::create(&target).expect("unable to create pkgconfig file");
+    let mut file = File::create(target).expect("unable to create pkgconfig file");
 
     writeln!(
         &mut file,

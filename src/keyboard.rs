@@ -413,7 +413,7 @@ impl Keyboard {
 
         if chooser.run() == gtk::ResponseType::Accept {
             let path = chooser.filename().unwrap();
-            match File::open(&path) {
+            match File::open(path) {
                 Ok(file) => match KeyMap::from_reader(file) {
                     Ok(keymap) => {
                         let self_ = self.clone();
@@ -452,11 +452,11 @@ impl Keyboard {
                 show_error_dialog(
                     &self.window().unwrap(),
                     &fl!("error-unsupported-keymap"),
-                    &fl!("error-unsupported-keymap-desc"),
+                    fl!("error-unsupported-keymap-desc"),
                 )
             }
 
-            match File::create(&path) {
+            match File::create(path) {
                 Ok(file) => match keymap.to_writer_pretty(file) {
                     Ok(()) => {}
                     Err(err) => {
@@ -567,7 +567,7 @@ impl Keyboard {
         *self.inner().picker.borrow_mut() = match picker {
             Some(picker) => {
                 self.inner().picker_box.add(picker);
-                picker.set_sensitive(!self.selected().is_empty() && self.layer() != None);
+                picker.set_sensitive(!self.selected().is_empty() && self.layer().is_some());
                 picker.downgrade()
             }
             None => WeakRef::new(),
@@ -595,7 +595,7 @@ impl Keyboard {
         }
         picker.set_selected(selected_scancodes);
 
-        picker.set_sensitive(selected.len() > 0 && self.layer() != None);
+        picker.set_sensitive(selected.len() > 0 && self.layer().is_some());
 
         self.inner().selected.replace(selected);
 

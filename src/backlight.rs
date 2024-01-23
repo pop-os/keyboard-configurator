@@ -337,7 +337,7 @@ impl Backlight {
         let board = self.board().clone();
         let speed = self.inner().speed_scale.value();
         let mode = self.mode();
-        let layer = self.inner().layer.get() as usize;
+        let layer = self.inner().layer.get();
         glib::MainContext::default().spawn_local(async move {
             let layer = &board.layers()[layer];
             if let Err(err) = layer.set_mode(mode, speed as u8).await {

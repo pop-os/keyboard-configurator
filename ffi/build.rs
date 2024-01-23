@@ -12,6 +12,6 @@ fn main() {
 
     File::create(target_dir.join("system76_keyboard_configurator.pc.stub"))
         .expect("failed to create pc.stub")
-        .write_all(&pkg_config.as_bytes())
+        .write_all(pkg_config.as_bytes())
         .expect("failed to write pc.stub");
 }
