@@ -2,7 +2,7 @@ use crate::fl;
 use cascade::cascade;
 use futures::{prelude::*, stream::FuturesUnordered};
 use gtk::{
-    glib::{self, clone},
+    glib::{self, clone, ControlFlow},
     prelude::*,
     subclass::prelude::*,
 };
@@ -251,9 +251,9 @@ impl Backlight {
         if has_led_save {
             glib::timeout_add_seconds_local(
                 10,
-                clone!(@weak obj => @default-return Continue(false), move || {
+                clone!(@weak obj => @default-return ControlFlow::Break, move || {
                     obj.led_save();
-                    Continue(true)
+                    ControlFlow::Continue
                 }),
             );
         }

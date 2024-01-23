@@ -4,7 +4,7 @@ use cascade::cascade;
 use futures::future::{abortable, AbortHandle};
 use gtk::{
     cairo, gdk,
-    glib::{self, clone},
+    glib::{self, clone, Propagation},
     prelude::*,
     subclass::prelude::*,
 };
@@ -111,7 +111,7 @@ impl ObjectImpl for ColorWheelInner {
 }
 
 impl WidgetImpl for ColorWheelInner {
-    fn draw(&self, cr: &cairo::Context) -> Inhibit {
+    fn draw(&self, cr: &cairo::Context) -> Propagation {
         self.parent_draw(cr);
 
         let width = f64::from(self.obj().allocated_width());
@@ -146,7 +146,7 @@ impl WidgetImpl for ColorWheelInner {
         cr.set_line_width(1.);
         cr.stroke().unwrap();
 
-        Inhibit(false)
+        Propagation::Proceed
     }
 
     fn size_allocate(&self, rect: &gdk::Rectangle) {

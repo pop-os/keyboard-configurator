@@ -3,7 +3,7 @@ use cascade::cascade;
 use futures::StreamExt;
 use gtk::{
     gio,
-    glib::{self, clone},
+    glib::{self, clone, ControlFlow},
     pango,
     prelude::*,
     subclass::prelude::*,
@@ -274,7 +274,7 @@ impl MainWindow {
         window.inner().is_testing_mode.set(is_testing_mode);
         glib::timeout_add_seconds_local(
             1,
-            clone!(@weak window => @default-return glib::Continue(false), move || {
+            clone!(@weak window => @default-return ControlFlow::Break, move || {
                 if !REFRESH_DISABLED.load(Ordering::Relaxed) {
                   let inner = window.inner();
                   inner.backend.refresh();
@@ -282,7 +282,7 @@ impl MainWindow {
                       inner.backend.check_for_bootloader()
                   }
                 }
-                glib::Continue(true)
+                ControlFlow::Continue
             }),
         );
 

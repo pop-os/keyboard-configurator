@@ -1,5 +1,5 @@
 use cascade::cascade;
-use gtk::{cairo, gdk, glib, pango, prelude::*, subclass::prelude::*};
+use gtk::{cairo, gdk, glib, glib::Propagation, pango, prelude::*, subclass::prelude::*};
 use once_cell::unsync::OnceCell;
 use std::{
     cell::{Cell, RefCell},
@@ -77,7 +77,7 @@ impl ObjectImpl for KeyboardLayerInner {
 }
 
 impl WidgetImpl for KeyboardLayerInner {
-    fn draw(&self, cr: &cairo::Context) -> Inhibit {
+    fn draw(&self, cr: &cairo::Context) -> Propagation {
         self.parent_draw(cr);
 
         let selected = Rgb::new(0xfb, 0xb8, 0x6c).to_floats();
@@ -148,14 +148,14 @@ impl WidgetImpl for KeyboardLayerInner {
             pangocairo::show_layout(cr, &layout);
         }
 
-        Inhibit(false)
+        Propagation::Proceed
     }
 
-    fn button_press_event(&self, evt: &gdk::EventButton) -> Inhibit {
+    fn button_press_event(&self, evt: &gdk::EventButton) -> Propagation {
         self.parent_button_press_event(evt);
 
         if !self.selectable.get() {
-            return Inhibit(false);
+            return Propagation::Proceed;
         }
 
         let pos = evt.position();
@@ -183,7 +183,7 @@ impl WidgetImpl for KeyboardLayerInner {
             self.obj().set_selected(selected);
         }
 
-        Inhibit(false)
+        Propagation::Proceed
     }
 
     fn request_mode(&self) -> gtk::SizeRequestMode {

@@ -1,5 +1,5 @@
 use cascade::cascade;
-use gtk::{cairo, glib, prelude::*, subclass::prelude::*};
+use gtk::{cairo, glib, glib::Propagation, prelude::*, subclass::prelude::*};
 use std::{cell::RefCell, collections::BTreeSet, f64::consts::PI};
 
 use backend::Hs;
@@ -21,7 +21,7 @@ impl ObjectSubclass for ColorCircleInner {
 impl ObjectImpl for ColorCircleInner {}
 
 impl WidgetImpl for ColorCircleInner {
-    fn draw(&self, cr: &cairo::Context) -> Inhibit {
+    fn draw(&self, cr: &cairo::Context) -> Propagation {
         let width = f64::from(self.obj().allocated_width());
         let height = f64::from(self.obj().allocated_height());
 
@@ -58,7 +58,7 @@ impl WidgetImpl for ColorCircleInner {
         cr.set_source_rgb(0.5, 0.5, 0.5);
         cr.stroke().unwrap();
 
-        Inhibit(false)
+        Propagation::Proceed
     }
 }
 
