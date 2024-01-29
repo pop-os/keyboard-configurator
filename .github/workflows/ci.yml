@@ -49,7 +49,7 @@ jobs:
     - uses: msys2/setup-msys2@v2
       with:
         msystem: MINGW32
-        install: mingw-w64-i686-gtk3 mingw-w64-i686-rust mingw-w64-i686-toolchain mingw-w64-i686-ntldd mingw-w64-i686-imagemagick
+        install: mingw-w64-i686-gtk3 mingw-w64-i686-rust mingw-w64-i686-toolchain mingw-w64-i686-ntldd mingw-w64-x86_64-imagemagick
     - uses: actions/checkout@v2
     - name: Build and package
       shell: msys2 {0}

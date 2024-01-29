@@ -29,6 +29,10 @@ ICON = "../data/icons/scalable/apps/com.system76.keyboardconfigurator.svg"
 
 DLL_RE = r"(?<==> )(.*\\mingw32)\\bin\\(\S+.dll)"
 
+# mingw32 version seems to no longer be packaged, and need to avoid unrelated
+# System32/convert
+CONVERT = os.path.dirname(os.environ['MSYSTEM_PREFIX']) + r'\mingw64\bin\convert.exe'
+
 ADWAITA_FILES = [
     'index.theme',
     'symbolic/actions/open-menu-symbolic.svg',
@@ -119,11 +123,11 @@ crate_version = package['version']
 
 # Generate Icon and installer banner
 subprocess.check_call(["rsvg-convert", "--width", "256", "--height", "256", "-o", "keyboard-configurator.png", ICON])
-subprocess.check_call(["convert", "keyboard-configurator.png", "out/keyboard-configurator.ico"])
+subprocess.check_call([CONVERT, "keyboard-configurator.png", "out/keyboard-configurator.ico"])
 subprocess.check_call(["rsvg-convert", "--width", "493", "--height", "58", "-o", "banner.png", "banner.svg"])
-subprocess.check_call(["convert", "banner.png", "banner.bmp"])
+subprocess.check_call([CONVERT, "banner.png", "banner.bmp"])
 subprocess.check_call(["rsvg-convert", "--width", "493", "--height", "312", "-o", "dialog.png", "dialog.svg"])
-subprocess.check_call(["convert", "dialog.png", "dialog.bmp"])
+subprocess.check_call([CONVERT, "dialog.png", "dialog.bmp"])
 
 # Generate libraries.wxi
 with open('libraries.wxi', 'w') as f:
