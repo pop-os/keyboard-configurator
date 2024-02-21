@@ -3,7 +3,7 @@ use cascade::cascade;
 use futures::future::abortable;
 use gtk::{
     gio,
-    glib::{self, clone},
+    glib::{self, clone, Propagation},
     prelude::*,
 };
 use std::{cell::RefCell, rc::Rc};
@@ -38,7 +38,7 @@ pub async fn choose_color<W: IsA<gtk::Widget>>(
             let (r, g, b) = color_wheel.hs().to_rgb().to_floats();
             cr.set_source_rgb(r, g, b);
             cr.paint().unwrap();
-            Inhibit(false)
+            Propagation::Proceed
         }));
     };
 

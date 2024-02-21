@@ -3,7 +3,7 @@ use backend::{Board, DerefCell, NelsonKind, Rgb};
 use cascade::cascade;
 use futures::channel::oneshot;
 use gtk::{
-    glib::{self, clone},
+    glib::{self, clone, Propagation},
     prelude::*,
     subclass::prelude::*,
 };
@@ -109,7 +109,7 @@ impl ObjectImpl for TestingInner {
                 ..connect_draw(move |_w, cr| {
                     cr.set_source_rgb(r, g, b);
                     cr.paint().unwrap();
-                    Inhibit(false)
+                    Propagation::Proceed
                 });
             }
         }

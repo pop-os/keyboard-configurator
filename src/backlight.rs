@@ -2,7 +2,7 @@ use crate::fl;
 use cascade::cascade;
 use futures::{prelude::*, stream::FuturesUnordered};
 use gtk::{
-    glib::{self, clone},
+    glib::{self, clone, ControlFlow},
     prelude::*,
     subclass::prelude::*,
 };
@@ -251,9 +251,9 @@ impl Backlight {
         if has_led_save {
             glib::timeout_add_seconds_local(
                 10,
-                clone!(@weak obj => @default-return Continue(false), move || {
+                clone!(@weak obj => @default-return ControlFlow::Break, move || {
                     obj.led_save();
-                    Continue(true)
+                    ControlFlow::Continue
                 }),
             );
         }
@@ -337,7 +337,7 @@ impl Backlight {
         let board = self.board().clone();
         let speed = self.inner().speed_scale.value();
         let mode = self.mode();
-        let layer = self.inner().layer.get() as usize;
+        let layer = self.inner().layer.get();
         glib::MainContext::default().spawn_local(async move {
             let layer = &board.layers()[layer];
             if let Err(err) = layer.set_mode(mode, speed as u8).await {

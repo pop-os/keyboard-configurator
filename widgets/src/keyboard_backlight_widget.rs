@@ -4,7 +4,7 @@ use crate::fl;
 use cascade::cascade;
 use futures::StreamExt;
 use gtk::{
-    glib::{self, clone},
+    glib::{self, clone, Propagation},
     prelude::*,
 };
 
@@ -65,7 +65,7 @@ fn page(board: Board) -> gtk::Widget {
                     eprintln!("{}: {}", fl!("error-set-brightness"), err);
                 }
             }));
-            Inhibit(false)
+            Propagation::Proceed
         }));
     };
 
