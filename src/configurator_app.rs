@@ -169,7 +169,6 @@ impl ConfiguratorApp {
 
 #[cfg(target_os = "macos")]
 fn macos_init() {
-    use gtk::traits::GtkSettingsExt;
     use std::process;
     let mut prefer_dark = false;
     // This command returns Dark if we should use the dark theme
@@ -211,7 +210,6 @@ fn macos_init() {
 fn windows_init() {
     // This is a dword with a value of 0 if we should use the dark theme:
     // HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize\AppsUseLightTheme
-    use gtk::traits::SettingsExt;
     use winreg::RegKey;
     let mut prefer_dark = false;
     let hkcu = RegKey::predef(winreg::enums::HKEY_CURRENT_USER);
