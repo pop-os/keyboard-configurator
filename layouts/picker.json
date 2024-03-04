@@ -493,7 +493,7 @@
   },
   {
     "label": "Media",
-    "cols": 3,
+    "cols": 4,
     "width": 1,
     "keys": [
       {
@@ -511,6 +511,10 @@
       {
         "keysym": "PLAY_PAUSE",
         "label": "Play Pause"
+      },
+      {
+        "keysym": "MEDIA_STOP",
+        "label": "Stop"
       },
       {
         "keysym": "MEDIA_NEXT",
