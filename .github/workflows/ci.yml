@@ -74,6 +74,7 @@ jobs:
       with:
         name: keyboard-configurator-mingw32-${{ github.sha }}
     - run: msiexec /i keyboard-configurator.msi /qb
+    - run: Start-Sleep 10
     - run: '& "C:\Program Files (x86)\System76\Keyboard Configurator\system76-keyboard-configurator.exe" --help-gtk'
 
   macos:
