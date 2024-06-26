@@ -77,7 +77,8 @@ jobs:
     - run: '& "C:\Program Files (x86)\System76\Keyboard Configurator\system76-keyboard-configurator.exe" --help-gtk'
 
   macos:
-    runs-on: macos-latest
+    # TODO: `macos-14` runner uses Apple Silicon
+    runs-on: macos-13
     steps:
     - run: brew install gtk+3 imagemagick librsvg adwaita-icon-theme
     - run: npm install -g appdmg
@@ -96,7 +97,7 @@ jobs:
         path: macos/keyboard-configurator.dmg
 
   macos-test:
-    runs-on: macos-latest
+    runs-on: macos-13
     needs: macos
     steps:
     - uses: actions/download-artifact@v2
