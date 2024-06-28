@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - run: sudo apt-get update && sudo apt-get install libgtk-3-dev libhidapi-dev libudev-dev
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4.1.7
     - run: rustup component add rustfmt
     - run: cargo test --all
     - run: cargo fmt -- --check
@@ -24,9 +24,9 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
     - run: sudo apt-get update && sudo apt-get install cargo libgtk-3-dev libhidapi-dev libudev-dev patchelf
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4.1.7
     - run: cd linux && ./build.py $RELEASE
-    - uses: actions/upload-artifact@v2
+    - uses: actions/upload-artifact@v4.3.3
       with:
         if-no-files-found: error
         name: keyboard-configurator-linux-x86_64-${{ github.sha }}
@@ -60,7 +60,7 @@ jobs:
         SSL_COM_TOTP_SECRET: ${{ github.event_name == 'release' && secrets.SSL_COM_TOTP_SECRET || '' }}
         SIGN: ${{ github.event_name == 'release' && '--sign' || '' }}
       run: cd windows && python build.py $RELEASE $SIGN
-    - uses: actions/upload-artifact@v2
+    - uses: actions/upload-artifact@v4.3.3
       with:
         if-no-files-found: error
         name: keyboard-configurator-mingw32-${{ github.sha }}
@@ -70,7 +70,7 @@ jobs:
     runs-on: windows-latest
     needs: windows-mingw32
     steps:
-    - uses: actions/download-artifact@v2
+    - uses: actions/download-artifact@v4.1.7
       with:
         name: keyboard-configurator-mingw32-${{ github.sha }}
     - run: msiexec /i keyboard-configurator.msi /qb
@@ -82,7 +82,7 @@ jobs:
     - run: brew install gtk+3 imagemagick librsvg adwaita-icon-theme
     - run: npm install -g appdmg
     - run: echo "$HOME/.local/bin" >> $GITHUB_PATH
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4.1.7
     - env:
         AC_PASSWORD: ${{ github.event_name == 'release' && secrets.AC_PASSWORD || '' }}
         AC_USERNAME: ${{ github.event_name == 'release' && secrets.AC_USERNAME || '' }}
@@ -99,7 +99,7 @@ jobs:
     runs-on: macos-latest
     needs: macos
     steps:
-    - uses: actions/download-artifact@v2
+    - uses: actions/download-artifact@v4.1.7
       with:
         name: keyboard-configurator-macos-${{ github.sha }}
     - run: mkdir mnt && hdiutil attach keyboard-configurator.dmg -mountpoint $PWD/mnt
@@ -111,10 +111,10 @@ jobs:
     runs-on: ubuntu-latest
     needs: [linux-x86_64, windows-mingw32, macos]
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4.1.7
     - run: echo VERSION=$(./.github/workflows/version.py) > $GITHUB_ENV
-    - uses: actions/download-artifact@v2
-    - uses: actions/upload-release-asset@v1
+    - uses: actions/download-artifact@v4.1.7
+    - uses: actions/upload-release-asset@v3.0
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
@@ -122,7 +122,7 @@ jobs:
         asset_path: keyboard-configurator-linux-x86_64-${{ github.sha }}/keyboard-configurator-x86_64.AppImage
         asset_name: keyboard-configurator-${{ env.VERSION }}-x86_64.AppImage
         asset_content_type: application/vnd.appimage
-    - uses: actions/upload-release-asset@v1
+    - uses: actions/upload-release-asset@v3.0
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
@@ -130,7 +130,7 @@ jobs:
         asset_path: keyboard-configurator-mingw32-${{ github.sha }}/keyboard-configurator.msi
         asset_name: keyboard-configurator-${{ env.VERSION }}.msi
         asset_content_type: application/x-msi
-    - uses: actions/upload-release-asset@v1
+    - uses: actions/upload-release-asset@v3.0
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
