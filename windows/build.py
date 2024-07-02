@@ -16,8 +16,20 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--release', action='store_true')
 parser.add_argument('--sign', action='store_true')
 parser.add_argument('--cargo', default='cargo')
-parser.add_argument('--wix', default="C:/Program Files (x86)/WiX Toolset v3.11")
+parser.add_argument('--wix', default=None)
 args = parser.parse_args()
+
+if args.wix == None:
+    # look for WiX.
+    # If there are somehow multiple versions, use newest.
+    program_files = "C:/Program Files (x86)/"
+    wix_dirs = sorted(i for i in os.listdir(program_files) if i.startswith("WiX Toolset v"))
+    try:
+        wix_dir = program_files + wix_dirs[-1]
+    except IndexError:
+        sys.exit("WiX not found. Install or pass `--wix`.")
+else:
+    wix_dir = args.wix
 
 CARGO = shlex.split(args.cargo)
 # Executables to install
@@ -158,8 +170,8 @@ with open('libraries.wxi', 'w') as f:
     f.write('</Include>\n')
 
 # Build .msi
-subprocess.check_call([f"{args.wix}/bin/candle.exe", ".\keyboard-configurator.wxs", f"-dcrate_version={crate_version}"])
-subprocess.check_call([f"{args.wix}/bin/light.exe", "-ext", "WixUIExtension", ".\keyboard-configurator.wixobj"])
+subprocess.check_call([f"{wix_dir}/bin/candle.exe", ".\keyboard-configurator.wxs", f"-dcrate_version={crate_version}"])
+subprocess.check_call([f"{wix_dir}/bin/light.exe", "-ext", "WixUIExtension", ".\keyboard-configurator.wixobj"])
 
 if args.sign:
     if not os.path.isdir('sign'):

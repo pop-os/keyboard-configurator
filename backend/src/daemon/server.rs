@@ -264,7 +264,11 @@ impl<R: Read + Send + 'static, W: Write + Send + 'static> Daemon for DaemonServe
 
     fn brightness(&self, board: BoardId, index: u8) -> Result<i32, String> {
         let mut ec = self.board(board)?;
-        unsafe { ec.led_get_value(index).map(|x| i32::from(x.0)).map_err(err_str) }
+        unsafe {
+            ec.led_get_value(index)
+                .map(|x| i32::from(x.0))
+                .map_err(err_str)
+        }
     }
 
     fn set_brightness(&self, board: BoardId, index: u8, brightness: i32) -> Result<(), String> {
