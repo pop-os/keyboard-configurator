@@ -1,4 +1,5 @@
 import hashlib
+import platform
 import os
 import re
 import shutil
@@ -7,7 +8,10 @@ import subprocess
 APPDIR = 'System76 Keyboard Configurator.app'
 BINDIR = APPDIR + '/Contents/MacOS'
 RESOURCEDIR = APPDIR + '/Contents/Resources'
-PREFIX = '/usr/local'
+if platform.machine() == 'arm64':
+    PREFIX = '/opt/homebrew'
+else:
+    PREFIX = '/usr/local'
 
 ADWAITA_FILES = [
     'index.theme',
