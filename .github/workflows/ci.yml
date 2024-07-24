@@ -78,7 +78,6 @@ jobs:
     - run: '& "C:\Program Files (x86)\System76\Keyboard Configurator\system76-keyboard-configurator.exe" --help-gtk'
 
   macos:
-    # TODO: `macos-14` runner uses Apple Silicon
     runs-on: macos-13
     steps:
     - run: brew install gtk+3 imagemagick librsvg adwaita-icon-theme
@@ -107,6 +106,40 @@ jobs:
     - run: mkdir mnt && hdiutil attach keyboard-configurator.dmg -mountpoint $PWD/mnt
     - run: '"./mnt/System76 Keyboard Configurator.app/Contents/MacOS/keyboard-configurator" --help-gtk'
     - run: 'open "mnt/System76 Keyboard Configurator.app" --args --help-gtk'
+
+  # `macos-14` runner uses Apple Silicon
+  macos-arm64:
+    runs-on: macos-14
+    steps:
+    - run: brew install gtk+3 imagemagick librsvg adwaita-icon-theme
+    - run: npm install -g appdmg
+    - run: echo "$HOME/.local/bin" >> $GITHUB_PATH
+    - uses: actions/checkout@v2
+    - env:
+        AC_PASSWORD: ${{ github.event_name == 'release' && secrets.AC_PASSWORD || '' }}
+        AC_USERNAME: ${{ github.event_name == 'release' && secrets.AC_USERNAME || '' }}
+        MACOS_CERTIFICATE: ${{ github.event_name == 'release' && secrets.MACOS_CERTIFICATE || '' }}
+        MACOS_SCRIPT: ${{ github.event_name == 'release' && 'bash ./signing.sh' || 'python3 ./build.py' }}
+      run: cd macos && $MACOS_SCRIPT $RELEASE
+    - run: mv macos/keyboard-configurator.dmg macos/keyboard-configurator-arm64.dmg
+    - uses: actions/upload-artifact@v2
+      with:
+        if-no-files-found: error
+        name: keyboard-configurator-macos-arm64-${{ github.sha }}
+        path: macos/keyboard-configurator-arm64.dmg
+
+  macos-arm64-test:
+    runs-on: macos-14
+    needs: macos-arm64
+    steps:
+    - uses: actions/download-artifact@v2
+      with:
+        name: keyboard-configurator-macos-arm64-${{ github.sha }}
+    - run: mkdir mnt && hdiutil attach keyboard-configurator-arm64.dmg -mountpoint $PWD/mnt
+    - run: '"./mnt/System76 Keyboard Configurator.app/Contents/MacOS/keyboard-configurator" --help-gtk'
+    - run: 'open "mnt/System76 Keyboard Configurator.app" --args --help-gtk'
+
+
 
   upload-to-release:
     if: github.event_name == 'release'
