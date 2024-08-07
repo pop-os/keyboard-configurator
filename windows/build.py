@@ -127,6 +127,18 @@ for i in ADDITIONAL_FILES:
     copy(mingw_dir, 'out', i)
 subprocess.check_call(["glib-compile-schemas", "out/share/glib-2.0/schemas"])
 
+# Copy themes, and set default
+# Based on https://www.gtk.org/docs/installations/windows#building-and-distributing-your-application
+os.makedirs("out/share/themes/Windows10")
+os.makedirs("out/share/themes/Windows10-dark")
+os.makedirs("out/etc/gtk-3.0")
+print("Copy themes/Windows-10/gtk-3.20 -> out/share/themes/Windows10/gtk-3.0")
+shutil.copytree("themes/Windows-10/gtk-3.20", "out/share/themes/Windows10/gtk-3.0")
+print("Copy themes/Windows-10-dark/gtk-3.20 -> out/share/themes/Windows10-dark/gtk-3.0")
+shutil.copytree("themes/Windows-10-dark/gtk-3.20", "out/share/themes/Windows10-dark/gtk-3.0")
+with open("out/etc/gtk-3.0/settings.ini", "w") as f:
+    f.write("[Settings]\ngtk-theme-name=Windows10\ngtk-font-name=Segoe UI 9\n")
+
 # Extract crate version from cargo
 meta_str = subprocess.check_output(CARGO + ["metadata", "--format-version", "1", "--no-deps"])
 meta = json.loads(meta_str)
