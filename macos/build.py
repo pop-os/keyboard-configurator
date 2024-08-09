@@ -71,14 +71,14 @@ if args.sign is not None:
     subprocess.check_call([
         "find", APPDIR + "/Contents/Resources",
         "-name", "*.dylib",
-        "-exec", "codesign", "--verbose", "--sign", args.sign, "{}", ";"])
+        "-exec", "codesign", "--force", "--verbose", "--sign", args.sign, "{}", ";"])
     # Sign all .so files in the Resources folder
     subprocess.check_call([
         "find", APPDIR + "/Contents/Resources",
         "-name", "*.so",
-        "-exec", "codesign", "--verbose", "--sign", args.sign, "{}", ";"])
+        "-exec", "codesign", "--force", "--verbose", "--sign", args.sign, "{}", ";"])
     # Sign app bundle (with hardened runtime)
-    subprocess.check_call(["codesign", "--verbose", "--deep", "--options", "runtime", "--sign", args.sign, APPDIR])
+    subprocess.check_call(["codesign", "--force", "--verbose", "--deep", "--options", "runtime", "--sign", args.sign, APPDIR])
 
 # Build .dmg
 if os.path.exists("keyboard-configurator.dmg"):
