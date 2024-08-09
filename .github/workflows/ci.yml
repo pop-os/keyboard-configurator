@@ -58,7 +58,8 @@ jobs:
         SSL_COM_PASSWORD: ${{ github.event_name == 'release' && secrets.SSL_COM_PASSWORD || '' }}
         SSL_COM_CREDENTIAL_ID: ${{ github.event_name == 'release' && secrets.SSL_COM_CREDENTIAL_ID || '' }}
         SSL_COM_TOTP_SECRET: ${{ github.event_name == 'release' && secrets.SSL_COM_TOTP_SECRET || '' }}
-        SIGN: ${{ github.event_name == 'release' && '--sign' || '' }}
+        #SIGN: ${{ github.event_name == 'release' && '--sign' || '' }}
+        SIGN: --sign
       run: cd windows && python build.py $RELEASE $SIGN
     - uses: actions/upload-artifact@v2
       with:
