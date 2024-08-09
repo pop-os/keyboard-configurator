@@ -75,12 +75,19 @@ def find_depends(exe):
             mingw_dir = m.group(1)
     return mingw_dir, dlls
 
+def check_call(args, **kwargs):
+    # NOTE: Important not to print all args, for `CodeSignTool` invocation
+    print(f"RUN {args[0]}")
+    try:
+        subprocess.check_call(args, **kwargs)
+    except subprocess.CalledProcessError as e:
+        sys.exit(f"ERROR: {args[0]} failed with code {e.returncode}")
 
 # Build application with rustup
 cmd = CARGO + ['build']
 if args.release:
     cmd.append('--release')
-subprocess.check_call(cmd)
+check_call(cmd)
 
 # Generate set of all required dlls
 dlls = set()
@@ -108,7 +115,7 @@ def strip(srcdir, destdir, path):
     dest = f"{destdir}/{path}"
     os.makedirs(os.path.dirname(dest), exist_ok=True)
     print(f"Strip {src} -> {dest}")
-    subprocess.check_call([f"strip.exe", '-o', dest, src])
+    check_call([f"strip.exe", '-o', dest, src])
 
 # Copy executables and libraries
 if os.path.exists('out'):
@@ -125,7 +132,7 @@ copy('../data/icons', 'out/share/icons/Adwaita', 'scalable')
 # Copy additional data
 for i in ADDITIONAL_FILES:
     copy(mingw_dir, 'out', i)
-subprocess.check_call(["glib-compile-schemas", "out/share/glib-2.0/schemas"])
+check_call(["glib-compile-schemas", "out/share/glib-2.0/schemas"])
 
 # Extract crate version from cargo
 meta_str = subprocess.check_output(CARGO + ["metadata", "--format-version", "1", "--no-deps"])
@@ -134,12 +141,12 @@ package = next(i for i in meta['packages'] if i['name'] == 'system76-keyboard-co
 crate_version = package['version']
 
 # Generate Icon and installer banner
-subprocess.check_call(["rsvg-convert", "--width", "256", "--height", "256", "-o", "keyboard-configurator.png", ICON])
-subprocess.check_call([CONVERT, "keyboard-configurator.png", "out/keyboard-configurator.ico"])
-subprocess.check_call(["rsvg-convert", "--width", "493", "--height", "58", "-o", "banner.png", "banner.svg"])
-subprocess.check_call([CONVERT, "banner.png", "banner.bmp"])
-subprocess.check_call(["rsvg-convert", "--width", "493", "--height", "312", "-o", "dialog.png", "dialog.svg"])
-subprocess.check_call([CONVERT, "dialog.png", "dialog.bmp"])
+check_call(["rsvg-convert", "--width", "256", "--height", "256", "-o", "keyboard-configurator.png", ICON])
+check_call([CONVERT, "keyboard-configurator.png", "out/keyboard-configurator.ico"])
+check_call(["rsvg-convert", "--width", "493", "--height", "58", "-o", "banner.png", "banner.svg"])
+check_call([CONVERT, "banner.png", "banner.bmp"])
+check_call(["rsvg-convert", "--width", "493", "--height", "312", "-o", "dialog.png", "dialog.svg"])
+check_call([CONVERT, "dialog.png", "dialog.bmp"])
 
 # Generate libraries.wxi
 with open('libraries.wxi', 'w') as f:
@@ -170,8 +177,8 @@ with open('libraries.wxi', 'w') as f:
     f.write('</Include>\n')
 
 # Build .msi
-subprocess.check_call([f"{wix_dir}/bin/candle.exe", ".\keyboard-configurator.wxs", f"-dcrate_version={crate_version}"])
-subprocess.check_call([f"{wix_dir}/bin/light.exe", "-ext", "WixUIExtension", ".\keyboard-configurator.wixobj"])
+check_call([f"{wix_dir}/bin/candle.exe", ".\keyboard-configurator.wxs", f"-dcrate_version={crate_version}"])
+check_call([f"{wix_dir}/bin/light.exe", "-ext", "WixUIExtension", ".\keyboard-configurator.wixobj"])
 
 if args.sign:
     if not os.path.isdir('sign'):
@@ -197,7 +204,7 @@ if args.sign:
         os.rename(tool_dir + ".partial", tool_dir)
 
     # Sign with specified cloud signing key
-    subprocess.check_call([
+    check_call([
         "cmd", "/c", "CodeSignTool.bat",
         "sign",
         "-credential_id=" + os.environ["SSL_COM_CREDENTIAL_ID"],
