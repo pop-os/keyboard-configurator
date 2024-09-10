@@ -105,5 +105,5 @@ def deploy_with_deps(binpath):
 
     module_dir = f"{RESOURCEDIR}/lib/gdk-pixbuf-2.0/{pixbuf_ver}"
     with open(f"{module_dir}/loaders.cache", 'w') as cachefile:
-        cache = subprocess.check_output(['gdk-pixbuf-query-loaders'], env=dict(os.environ, GDK_PIXBUF_MODULEDIR=f"{module_dir}/loaders")).decode()
-        cachefile.write(cache.replace(APPDIR + '/Contents', '@executable_path/..'))
+        cache = subprocess.check_output(['gdk-pixbuf-query-loaders']).decode()
+        cachefile.write(re.sub(f'{PREFIX}/[a-zA-Z]+/gdk-pixbuf-2.0/', '@executable_path/../Resources/lib/gdk-pixbuf-2.0/', cache))
