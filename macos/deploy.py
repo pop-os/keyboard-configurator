@@ -12,6 +12,13 @@ if platform.machine() == 'arm64':
     PREFIX = '/opt/homebrew'
 else:
     PREFIX = '/usr/local'
+if not os.path.exists(PREFIX):
+    if os.path.exists('/opt/local'):
+        print("Homebrew not found, using MacPorts")
+        PREFIX = '/opt/local'
+    else:
+        print("Homebrew and MacPorts not found")
+        sys.exit(1)
 
 ADWAITA_FILES = [
     'index.theme',
