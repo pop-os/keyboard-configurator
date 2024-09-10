@@ -26,7 +26,7 @@ jobs:
     - run: sudo apt-get update && sudo apt-get install cargo libgtk-3-dev libhidapi-dev libudev-dev patchelf
     - uses: actions/checkout@v2
     - run: cd linux && ./build.py $RELEASE
-    - uses: actions/upload-artifact@v2
+    - uses: actions/upload-artifact@v4
       with:
         if-no-files-found: error
         name: keyboard-configurator-linux-x86_64-${{ github.sha }}
@@ -37,7 +37,7 @@ jobs:
     needs: linux-x86_64
     steps:
     - run: sudo apt-get install xvfb libfuse2
-    - uses: actions/download-artifact@v2
+    - uses: actions/download-artifact@v4
       with:
         name: keyboard-configurator-linux-x86_64-${{ github.sha }}
     - run: chmod +x keyboard-configurator-x86_64.AppImage
@@ -61,7 +61,7 @@ jobs:
         MSYS2_ENV_CONV_EXCL: SSL_COM_TOTP_SECRET
         SIGN: ${{ github.event_name == 'release' && '--sign' || '' }}
       run: cd windows && python build.py $RELEASE $SIGN
-    - uses: actions/upload-artifact@v2
+    - uses: actions/upload-artifact@v4
       with:
         if-no-files-found: error
         name: keyboard-configurator-mingw32-${{ github.sha }}
@@ -71,7 +71,7 @@ jobs:
     runs-on: windows-latest
     needs: windows-mingw32
     steps:
-    - uses: actions/download-artifact@v2
+    - uses: actions/download-artifact@v4
       with:
         name: keyboard-configurator-mingw32-${{ github.sha }}
     - run: msiexec /i keyboard-configurator.msi /qb
@@ -91,7 +91,7 @@ jobs:
         MACOS_CERTIFICATE: ${{ github.event_name == 'release' && secrets.MACOS_CERTIFICATE || '' }}
         MACOS_SCRIPT: ${{ github.event_name == 'release' && 'bash ./signing.sh' || 'python3 ./build.py' }}
       run: cd macos && $MACOS_SCRIPT $RELEASE
-    - uses: actions/upload-artifact@v2
+    - uses: actions/upload-artifact@v4
       with:
         if-no-files-found: error
         name: keyboard-configurator-macos-${{ github.sha }}
@@ -101,7 +101,7 @@ jobs:
     runs-on: macos-13
     needs: macos
     steps:
-    - uses: actions/download-artifact@v2
+    - uses: actions/download-artifact@v4
       with:
         name: keyboard-configurator-macos-${{ github.sha }}
     - run: mkdir mnt && hdiutil attach keyboard-configurator.dmg -mountpoint $PWD/mnt
@@ -123,7 +123,7 @@ jobs:
         MACOS_SCRIPT: ${{ github.event_name == 'release' && 'bash ./signing.sh' || 'python3 ./build.py' }}
       run: cd macos && $MACOS_SCRIPT $RELEASE
     - run: mv macos/keyboard-configurator.dmg macos/keyboard-configurator-arm64.dmg
-    - uses: actions/upload-artifact@v2
+    - uses: actions/upload-artifact@v4
       with:
         if-no-files-found: error
         name: keyboard-configurator-macos-arm64-${{ github.sha }}
@@ -133,7 +133,7 @@ jobs:
     runs-on: macos-14
     needs: macos-arm64
     steps:
-    - uses: actions/download-artifact@v2
+    - uses: actions/download-artifact@v4
       with:
         name: keyboard-configurator-macos-arm64-${{ github.sha }}
     - run: mkdir mnt && hdiutil attach keyboard-configurator-arm64.dmg -mountpoint $PWD/mnt
@@ -149,7 +149,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - run: echo VERSION=$(./.github/workflows/version.py) > $GITHUB_ENV
-    - uses: actions/download-artifact@v2
+    - uses: actions/download-artifact@v4
     - uses: actions/upload-release-asset@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
