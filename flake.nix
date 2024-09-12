@@ -12,18 +12,23 @@
       let
         pkgs = import nixpkgs { inherit system; };
         naersk-lib = naersk.lib."${system}";
-        cargo = pkgs.cargo;
-      in {
-        defaultPackage = naersk-lib.buildPackage {
-          name = "system76-keyboard-configurator";
-          version = "1.3.0";
-          src = ./.;
-          buildInputs =
-            (with pkgs; [ pkg-config rustc cargo hidapi glib gtk3 ]);
+      in
+      {
+        packages = rec {
+          default = system76-keyboard-configurator;
+
+          system76-keyboard-configurator = naersk-lib.buildPackage {
+            name = "system76-keyboard-configurator";
+            version = "1.3.12";
+            src = ./.;
+            buildInputs = with pkgs; [ pkg-config rustc cargo hidapi glib gtk3 ];
+          };
         };
-        devShell = pkgs.mkShell {
+
+        devShells.default = pkgs.mkShell {
           buildInputs = with pkgs; [ pkg-config rustc cargo hidapi glib gtk3 ];
         };
+
         formatter = nixpkgs.legacyPackages."${system}".nixfmt;
       });
 }
