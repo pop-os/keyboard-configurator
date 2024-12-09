@@ -25,7 +25,7 @@ jobs:
     steps:
     - run: sudo apt-get update && sudo apt-get install cargo libgtk-3-dev libhidapi-dev libudev-dev patchelf
     - uses: actions/checkout@v4
-    - run: cd linux && ./build.py x86_64 $RELEASE
+    - run: cd linux && ./build.py $RELEASE
     - uses: actions/upload-artifact@v4
       with:
         if-no-files-found: error
@@ -43,12 +43,13 @@ jobs:
     - run: chmod +x keyboard-configurator-x86_64.AppImage
     - run: xvfb-run ./keyboard-configurator-x86_64.AppImage --help-gtk
 
-  linux-arm65:
+  linux-arm64:
     runs-on: ubuntu-20.04
     steps:
     - run: sudo apt-get update && sudo apt-get install cargo libgtk-3-dev libhidapi-dev libudev-dev patchelf
-    - uses: actions/checkout@v4
-    - run: cd linux && ./build.py aarch64 $RELEASE
+    - run: | 
+    echo "Building for ARM64 architecture"
+    cd linux && ./build.py --arm64 $RELEASE
     - uses: actions/upload-artifact@v4
       with:
         if-no-files-found: error
