@@ -46,10 +46,9 @@ jobs:
   linux-arm64:
     runs-on: ubuntu-20.04
     steps:
+    - run: echo "Running on ARM64!"
     - run: sudo apt-get update && sudo apt-get install cargo libgtk-3-dev libhidapi-dev libudev-dev patchelf
-    - run: | 
-    echo "Building for ARM64 architecture"
-    cd linux && ./build.py --arm64 $RELEASE
+    - run: cd linux && ./build.py --arm64 $RELEASE
     - uses: actions/upload-artifact@v4
       with:
         if-no-files-found: error
