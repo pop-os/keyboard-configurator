@@ -49,10 +49,10 @@ layout-reset = Standaardwaarden
 layout-invert-f-keys = Primair gedrag functietoetsen (F1, F2...) wijzigen
 
 ### What is the context, I don't use special keyboards that often. What is Flash to Launch Heavy 1 etc.!
-flash-to-launch-heavy = (Engels:) Flash to Launch Heavy 1
-flash-to-launch-2 = (Engels:) Flash to Launch 2
-flash-to-launch-1 = (Engels:) Flash to Launch 1
-flash-to-launch-lite-1 = (Engels:) Flash to Launch Lite 1
+flash-to-launch-heavy = Firmware flashen voor Launch Heavy 1
+flash-to-launch-2 = Firmware flashen voor Launch 2
+flash-to-launch-1 = Firmware flashen voor Launch 1
+flash-to-launch-lite-1 = Firmware flashen voor Launch Lite 1
 
 loading = Toetsenbord(en) aangetroffen. Bezig met laden...
 loading-keyboard = Indelingen en ledconfiguraties van {$keyboard} worden geladen
