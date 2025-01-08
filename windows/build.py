@@ -59,7 +59,7 @@ ADWAITA_FILES = [
     'symbolic/actions/edit-find-symbolic.svg',
 ]
 ADWAITA_FILES = [f'share/icons/Adwaita/{i}' for i in ADWAITA_FILES]
-ADDITIONAL_FILES = ['share/glib-2.0/schemas/org.gtk.Settings.FileChooser.gschema.xml', 'share/icons/hicolor/index.theme', 'lib/p11-kit', 'lib/gdk-pixbuf-2.0'] + ADWAITA_FILES
+ADDITIONAL_FILES = ['share/glib-2.0/schemas/org.gtk.Settings.FileChooser.gschema.xml', 'share/icons/hicolor/index.theme', 'lib/gdk-pixbuf-2.0'] + ADWAITA_FILES
 
 # Use ntldd to find the mingw dlls required by a .exe
 def find_depends(exe):
@@ -98,7 +98,7 @@ for i in EXES:
     mingw_dir = mingw_dir or mingw_dir_new
 
 # The svg module is loaded at runtime, so it's dependencies are also needed
-dlls = dlls.union(find_depends(f"{mingw_dir}/lib/gdk-pixbuf-2.0/2.10.0/loaders/libpixbufloader-svg.dll")[1])
+dlls = dlls.union(find_depends(f"{mingw_dir}/lib/gdk-pixbuf-2.0/2.10.0/loaders/pixbufloader_svg.dll")[1])
 
 def copy(srcdir, destdir, path):
     src = f"{srcdir}/{path}"
