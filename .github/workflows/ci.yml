@@ -47,7 +47,7 @@ jobs:
     runs-on: ubuntu-22.04-arm
     steps:
     - uses: actions/checkout@v4
-    - run: sudo apt-get update && sudo apt-get install cargo libgtk-3-dev libhidapi-dev libudev-dev patchelf
+    - run: sudo apt-get update && sudo apt-get install cargo libgtk-3-dev libhidapi-dev libudev-dev patchelf libfuse2
     - run: cd linux && ./build.py --arm64 $RELEASE
     - uses: actions/upload-artifact@v4
       with:
