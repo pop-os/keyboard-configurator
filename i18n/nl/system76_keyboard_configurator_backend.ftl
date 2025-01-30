@@ -14,4 +14,4 @@ mode-raindrops = Elementen
 mode-splash = Waterlanding
 mode-multisplash = Meteorenzwerm
 
-no-board = Geen bord
+no-board = Geen toetsenbord
