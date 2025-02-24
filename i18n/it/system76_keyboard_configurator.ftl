@@ -26,7 +26,7 @@ error-set-layer-brightness = Impostazione luminosità livello fallita
 error-set-layer-color = Impostazione colore livello fallita
 error-set-layer-mode = Impostazione modalità a livelli fallita
 error-unsupported-keymap = File mappa della tastiera non supportato
-error-unsupported-keymap-desc = Il file mappa della tastiera, sembra provenire da una nuova versione del Configuratore.
+error-unsupported-keymap-desc = Il file mappa della tastiera sembra provenire da una nuova versione del Configuratore.
 
 firmware-version = La versione {$version} del firmware non supporta la configurazione della mappa della tastiera.
 
