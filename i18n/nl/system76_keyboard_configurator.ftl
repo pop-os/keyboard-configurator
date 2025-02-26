@@ -46,9 +46,8 @@ layer-saturation = Laagverzadiging:
 layout-export = Indeling exporteren
 layout-import = Indeling importeren
 layout-reset = Standaardwaarden
-layout-invert-f-keys = Primair gedrag functietoetsen (F1, F2...) wijzigen
+layout-invert-f-keys = Primair gedrag functietoetsen omwisselen
 
-### What is the context, I don't use special keyboards that often. What is Flash to Launch Heavy 1 etc.!
 flash-to-launch-heavy = Firmware flashen voor Launch Heavy 1
 flash-to-launch-2 = Firmware flashen voor Launch 2
 flash-to-launch-1 = Firmware flashen voor Launch 1
@@ -57,8 +56,8 @@ flash-to-launch-lite-1 = Firmware flashen voor Launch Lite 1
 loading = Toetsenbord(en) aangetroffen. Bezig met laden...
 loading-keyboard = Indelingen en ledconfiguraties van {$keyboard} worden geladen
 
-page-electrical = Elektronisch
-page-keycaps = Toetskapje
+page-electrical = Elektrisch
+page-keycaps = Toetsenkapjes
 page-layer1 = Laag 1
 page-layer2 = Laag 2
 page-layer3 = Laag 3
