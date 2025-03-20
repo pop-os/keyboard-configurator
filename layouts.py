@@ -520,7 +520,7 @@ def generate_layout_dir(ecdir: str, board: str, is_qmk: bool) -> None:
         assert m is not None
         kbled = m.group(1)
         # Some models use PWM and support RGB, but only ship with a white-backlit keyboard
-        if kbled == 'white_dac' or board in ['system76/darp9', 'system76/darp10']:
+        if kbled == 'white_dac' or board in ['system76/darp9', 'system76/darp10', 'system76/darp11']:
             has_color = False
         # bonw14/bonw15: Handled through USB. Can configurator support this?
         elif kbled in ['none', 'bonw14', 'bonw15']:
