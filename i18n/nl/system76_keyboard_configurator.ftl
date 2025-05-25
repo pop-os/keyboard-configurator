@@ -19,14 +19,14 @@ error-import-keymap = Kon keymap niet importeren
 error-key-led = Kon ledje van toets niet configureren
 error-open-file = Kon bestand niet openen
 error-save-leds = Kon ledjes niet opslaan
-error-set-keyboard-brightness = Kon helderheid niet instellen
-error-set-keyboard-mode = Kon toetsenbordmodus niet instellen
-error-set-keymap = Kon keymap niet instellen
-error-set-layer-brightness = Kon helderheid van laag niet instellen
+error-set-keyboard-brightness = Kon helderheid niet aanpassen
+error-set-keyboard-mode = Kon toetsenbordmodus niet aanpassen
+error-set-keymap = Kon keymap niet aanpassen
+error-set-layer-brightness = Kon laaghelderheid niet aanpassen
 error-set-layer-color = Kon laagkleur niet instellen
 error-set-layer-mode = Kon laagmodus niet instellen
-error-unsupported-keymap = Keymap-bestand wordt niet ondersteund
-error-unsupported-keymap-desc = Keymap-bestand lijkt van nieuwere Configurator-versie te zijn.
+error-unsupported-keymap = Keymapbestand wordt niet ondersteund
+error-unsupported-keymap-desc = Keymapbestand lijkt van een te nieuwe versie van Toetsenbordconfigurator te zijn.
 
 firmware-version = Firmware-versie { $version } ondersteunt geen keymap-configuratie.
 
@@ -37,16 +37,16 @@ key-color = Toetsenkleur:
 
 keymap-for-board = Keymap is voor { $model }-model toetsenbord
 
-layer-all-brightness = Helderheid (alle lagen):
+layer-all-brightness = Helderheid (van alle lagen):
 layer-animation-speed = Animatiesnelheid van laag:
-layer-color = Kleur van laag:
+layer-color = Laagkleur:
 layer-color-pattern = Kleurpatroon van laag:
-layer-saturation = Verzadiging van laag:
+layer-saturation = Laagverzadiging:
 
 layout-export = Indeling exporteren
 layout-import = Indeling importeren
 layout-reset = Indeling resetten
-layout-invert-f-keys = F-toetsen omwisselen
+layout-invert-f-keys = Primair gedrag functietoetsen omwisselen
 
 flash-to-launch-heavy = Firmware flashen voor Launch Heavy 1
 flash-to-launch-2 = Firmware flashen voor Launch 2
@@ -54,7 +54,7 @@ flash-to-launch-1 = Firmware flashen voor Launch 1
 flash-to-launch-lite-1 = Firmware flashen voor Launch Lite 1
 
 loading = Toetenbord(en) gedetecteerd. Bezig met laden...
-loading-keyboard = Keymap en ledjes laden voor { $keyboard }
+loading-keyboard = Keymap en ledconfiguratie voor { $keyboard } laden
 firmware-update-required = Firmware-update voor toetsenbord vereist!
 
 page-electrical = Elektrisch
@@ -67,20 +67,20 @@ page-leds = ledjes
 page-logical = Logisch
 
 no-boards = Geen toetsenbord gedetecteerd
-no-boards-msg = Zorg ervoor dat uw ingebouwde toetsenbord up-to-date
- System76 Open Firmware heeft.
- Als u een extern toetsenbord gebruikt, controleer dan of
- het goed is aangesloten.
+no-boards-msg = 
+ Zorg ervoor dat uw ingebouwde toetsenbord over 
+ de nieuwste System76 Open Firmware beschikt.
+ Als u een extern toetsenbord gebruikt, 
+ controleer dan of het goed is aangesloten.
 
 show-help-overlay = Sneltoetsen
 
 stack-keymap = Keymap
-stack-keymap-desc =
- Selecteer een toets op de toetsenmap om de instellingen te wijzigen. Shift + klik om meer dan één klik te selecteren. Uw wijzigingen worden automatisch opgeslagen in de firmware.
+stack-keymap-desc = Selecteer een toets op de keymap om de instellingen te wijzigen. Shift + klik om meerdere toetsen tegelijk te selecteren. Uw wijzigingen worden automatisch opgeslagen in de firmware.
 
 stack-leds = Ledjes
-stack-leds-desc = Selecteer een toets op de keymap om de instellingen te wijzigen. Kies Solid Pattern per toets om de ledkleur van elke toets aan te passen. Shift + klik om meer dan één toets te selecteren. Uw wijzigingen worden automatisch opgeslagen in de firmware.
-stack-leds-desc-builtin = Na het opnieuw opstarten worden de instellingen van de ledjes gereset. Er wordt gewerkt aan meer functionaliteit.
+stack-leds-desc = Selecteer een toets op de keymap om de instellingen te wijzigen. Kies per toets 'Solid Pattern' om de ledkleur van álle toets aan te passen. Shift + klik om meer dan één toets te selecteren. Uw wijzigingen worden automatisch opgeslagen in de firmware.
+stack-leds-desc-builtin = Na het opnieuw opstarten worden de instellingen van de ledjes gereset. In de toekomst komt er meer functionaliteit.
 
 stack-testing = Testen
 
@@ -90,4 +90,4 @@ test-number-of-runs = Aantal keer opnieuw testen
 test-replace-switch = Controleren op te vervangen toetsen
 test-spurious-keypress = Controleren op ongewenste toetsaanslagen
 
-untitled-layout = Toetsenindeling zonder titel
+untitled-layout = Naamloze indeling
