@@ -16,9 +16,9 @@ button-stop = Stoppen
 error-disable-key = Kon toets niet uitschakelen
 error-export-keymap = Kon keymap niet exporteren
 error-import-keymap = Kon keymap niet importeren
-error-key-led = Kon led van toets niet configureren
+error-key-led = Kon ledje van toets niet configureren
 error-open-file = Kon bestand niet openen
-error-save-leds = Kon leds niet opslaan
+error-save-leds = Kon ledjes niet opslaan
 error-set-keyboard-brightness = Kon helderheid niet instellen
 error-set-keyboard-mode = Kon toetsenbordmodus niet instellen
 error-set-keymap = Kon keymap niet instellen
@@ -48,46 +48,46 @@ layout-import = Indeling importeren
 layout-reset = Indeling resetten
 layout-invert-f-keys = F-toetsen omwisselen
 
-flash-to-launch-heavy = Flash to Launch Heavy 1
-flash-to-launch-2 = Flash to Launch 2
-flash-to-launch-1 = Flash to Launch 1
-flash-to-launch-lite-1 = Flash to Launch Lite 1
+flash-to-launch-heavy = Firmware flashen voor Launch Heavy 1
+flash-to-launch-2 = Firmware flashen voor Launch 2
+flash-to-launch-1 = Firmware flashen voor Launch 1
+flash-to-launch-lite-1 = Firmware flashen voor Launch Lite 1
 
-loading = Keyboard(s) detected. Loading...
-loading-keyboard = Loading keymap and LEDs for {$keyboard}
-firmware-update-required = Keyboard Firmware Update Required!
+loading = Toetenbord(en) gedetecteerd. Bezig met laden...
+loading-keyboard = Keymap en ledjes laden voor { $keyboard }
+firmware-update-required = Firmware-update voor toetsenbord vereist!
 
-page-electrical = Electrical
+page-electrical = Elektrisch
 page-keycaps = Keycaps
-page-layer1 = Layer 1
-page-layer2 = Layer 2
-page-layer3 = Layer 3
-page-layer4 = Layer 4
-page-leds = LEDs
-page-logical = Logical
+page-layer1 = Laag 1
+page-layer2 = Laag 2
+page-layer3 = Laag 3
+page-layer4 = Laag 4
+page-leds = ledjes
+page-logical = Logisch
 
-no-boards = No keyboard detected
-no-boards-msg = Make sure your built-in keyboard has up to date
- System76 Open Firmware.
- If using an external keyboard, make sure it is
- plugged in properly
+no-boards = Geen toetsenbord gedetecteerd
+no-boards-msg = Zorg ervoor dat uw ingebouwde toetsenbord up-to-date
+ System76 Open Firmware heeft.
+ Als u een extern toetsenbord gebruikt, controleer dan of
+ het goed is aangesloten.
 
-show-help-overlay = Keyboard Shortcuts
+show-help-overlay = Sneltoetsen
 
 stack-keymap = Keymap
 stack-keymap-desc =
- Select a key on the keymap to change its settings. Shift + click to select more than one click. Your settings are automatically saved to firmware.
+ Selecteer een toets op de toetsenmap om de instellingen te wijzigen. Shift + klik om meer dan één klik te selecteren. Uw wijzigingen worden automatisch opgeslagen in de firmware.
 
-stack-leds = LEDs
-stack-leds-desc = Select a key on the keymap to change its settings. Choose per key Solid Pattern to customize each key's LED color. Shift + click to select more than one key. Your settings are automatically saved to firmware.
-stack-leds-desc-builtin = LED settings will reset after reboot. More functionality is coming in the future.
+stack-leds = Ledjes
+stack-leds-desc = Selecteer een toets op de keymap om de instellingen te wijzigen. Kies Solid Pattern per toets om de ledkleur van elke toets aan te passen. Shift + klik om meer dan één toets te selecteren. Uw wijzigingen worden automatisch opgeslagen in de firmware.
+stack-leds-desc-builtin = Na het opnieuw opstarten worden de instellingen van de ledjes gereset. Er wordt gewerkt aan meer functionaliteit.
 
-stack-testing = Testing
+stack-testing = Testen
 
-test-check-pins = Check pins (missing)
-test-check-key = Check key (sticking)
-test-number-of-runs = Number of runs
-test-replace-switch = Replace switch
-test-spurious-keypress = Spurious keypress
+test-check-pins = Controleren op ontbrekende pinnetjes
+test-check-key = Controleren op vastzittende toetsen
+test-number-of-runs = Aantal keer opnieuw testen
+test-replace-switch = Controleren op te vervangen toetsen
+test-spurious-keypress = Controleren op ongewenste toetsaanslagen
 
-untitled-layout = Untitled Layout
+untitled-layout = Toetsenindeling zonder titel
