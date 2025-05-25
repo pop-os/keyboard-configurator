@@ -26,7 +26,7 @@ error-set-layer-brightness = Kon laaghelderheid niet aanpassen
 error-set-layer-color = Kon laagkleur niet instellen
 error-set-layer-mode = Kon laagmodus niet instellen
 error-unsupported-keymap = Keymapbestand wordt niet ondersteund
-error-unsupported-keymap-desc = Keymapbestand lijkt van een te nieuwe versie van Toetsenbordconfigurator te zijn.
+error-unsupported-keymap-desc = Keymapbestand lijkt van een te nieuwe versie van Toetsenbordconfigurator afkomstig te zijn.
 
 firmware-version = Firmware-versie { $version } ondersteunt geen keymap-configuratie.
 
