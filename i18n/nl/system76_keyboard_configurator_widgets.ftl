@@ -4,8 +4,8 @@ button-save = Opslaan
 
 choose-color = Kleur instellen
 
-error-set-color = De kleur kan niet worden ingesteld
-error-set-brightness = De helderheid kan niet worden ingesteld
+error-set-color = Kon kleur toetenbord niet aanpassen
+error-set-brightness = Kon helderheid toetsenbord niet aanpassen
 
 label-hue = Tint
 label-saturation = Verzadiging
