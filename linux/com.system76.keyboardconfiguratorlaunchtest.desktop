@@ -1,5 +1,6 @@
 [Desktop Entry]
 Name=System76 Keyboard Tester
+Name[hu]=System76 Billentyűzet-tesztelő
 Exec=system76-keyboard-configurator --launch-test
 Icon=com.system76.keyboardconfigurator
 Type=Application

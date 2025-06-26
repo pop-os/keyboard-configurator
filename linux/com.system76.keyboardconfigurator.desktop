@@ -1,5 +1,6 @@
 [Desktop Entry]
 Name=System76 Keyboard Configurator
+Name[hu]=System76 Billentyűzet-konfigurátor
 Exec=system76-keyboard-configurator
 Icon=com.system76.keyboardconfigurator
 Type=Application
