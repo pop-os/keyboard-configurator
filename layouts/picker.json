@@ -315,6 +315,22 @@
       {
         "keysym": "F12",
         "label": "F12"
+      },
+      {
+        "keysym": "F13",
+        "label": "F13"
+      },
+      {
+        "keysym": "F14",
+        "label": "F14"
+      },
+      {
+        "keysym": "F15",
+        "label": "F15"
+      },
+      {
+        "keysym": "F16",
+        "label": "F16"
       }
     ]
   },
