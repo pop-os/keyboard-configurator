@@ -102,7 +102,7 @@ jobs:
     - run: '& "C:\Program Files (x86)\System76\Keyboard Configurator\system76-keyboard-configurator.exe" --help-gtk'
 
   macos:
-    runs-on: macos-13
+    runs-on: macos-15-intel
     steps:
     - run: brew install gtk+3 imagemagick librsvg adwaita-icon-theme
     - run: npm install -g appdmg
@@ -121,7 +121,7 @@ jobs:
         path: macos/keyboard-configurator.dmg
 
   macos-test:
-    runs-on: macos-13
+    runs-on: macos-15-intel
     needs: macos
     steps:
     - uses: actions/download-artifact@v4
@@ -133,7 +133,7 @@ jobs:
 
   # `macos-14` runner uses Apple Silicon
   macos-arm64:
-    runs-on: macos-14
+    runs-on: macos-15
     steps:
     - run: brew install gtk+3 imagemagick librsvg adwaita-icon-theme
     - run: npm install -g appdmg
@@ -153,7 +153,7 @@ jobs:
         path: macos/keyboard-configurator-arm64.dmg
 
   macos-arm64-test:
-    runs-on: macos-14
+    runs-on: macos-15
     needs: macos-arm64
     steps:
     - uses: actions/download-artifact@v4
