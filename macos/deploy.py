@@ -94,6 +94,8 @@ def deploy_with_deps(binpath):
         os.makedirs(os.path.dirname(dest), exist_ok=True)
         shutil.copy(src, dest)
         subprocess.check_call(cmd + [dest])
+        # Generate new "adhoc" signature for modified binary (required on arm64)
+        subprocess.check_call(['codesign', '-f', '-s', '-', dest])
 
     copy_and_install_name_tool(binpath, os.path.join(BINDIR, os.path.basename(binpath) + '-bin'))
     for i in deps.union(set(pixbuf_libs)):
