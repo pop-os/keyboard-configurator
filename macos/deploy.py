@@ -46,7 +46,7 @@ def copy(srcdir, destdir, path):
     else:
         shutil.copy(src, dest)
 
-def otool_recursive(path, libs=set()):
+def otool_recursive(path, libs):
     output = subprocess.check_output(["otool", "-L", path]).decode()
     for i in output.splitlines():
         m = re.match('\t(' + PREFIX + '.*.dylib)', i)
@@ -72,7 +72,8 @@ def deploy_with_deps(binpath):
     pixbuf_dir = f"{PREFIX}/lib/gdk-pixbuf-2.0/{pixbuf_ver}/loaders"
     pixbuf_libs = [f"{pixbuf_dir}/{i}" for i in os.listdir(pixbuf_dir) if i.endswith('.so')]
 
-    deps = otool_recursive(binpath)
+    deps = set()
+    otool_recursive(binpath, deps)
     for lib in pixbuf_libs:
         otool_recursive(lib, deps)
 
