@@ -77,6 +77,11 @@ def deploy_with_deps(binpath):
     for lib in pixbuf_libs:
         otool_recursive(lib, deps)
 
+    # TODO: Parse `LC_RPATH` instead of special casing?
+    rsvg_libdir = subprocess.check_output(['pkg-config', 'librsvg-2.0', '--variable=libdir']).decode().strip()
+    rsvg_lib = f"{rsvg_libdir}/librsvg-2.2.dylib"
+    deps.add(rsvg_lib)
+
     duplicates = {}
     shasums = {}
     for i in deps:
@@ -90,6 +95,7 @@ def deploy_with_deps(binpath):
     for i in deps:
         dest = newpath(duplicates.get(i, i))
         cmd += ['-change', i, '@executable_path/' + os.path.relpath(dest, BINDIR)]
+    cmd += ['-change', '@rpath/librsvg-2.2.dylib', '@executable_path/' + os.path.relpath(newpath(rsvg_lib), BINDIR)]
 
     def copy_and_install_name_tool(src, dest):
         os.makedirs(os.path.dirname(dest), exist_ok=True)
