@@ -1,43 +1,43 @@
 -name = Toetsenbordconfigurator
 
 app-about = Over {-name}
-app-title = System76 - {-name}
+app-title = System76 {-name}
 
 board-fake = {$model}, namaak
 
 button-cancel = Annuleren
-button-configure = Toetsenbord instellen
+button-configure = Toetsenbord configureren
 button-disable = Uitschakelen
 button-import = Importeren
 button-test = Testen
-button-start = Start
-button-stop = Stop
+button-start = Starten
+button-stop = Stoppen
 
-error-disable-key = Kon deze toets niet uitschakelen
-error-export-keymap = Kon de indeling niet exporteren
-error-import-keymap = Kon de indeling niet importeren
-error-key-led = Kon gedrag van de led niet aanpassen
+error-disable-key = Kon toets niet uitschakelen
+error-export-keymap = Kon keymap niet exporteren
+error-import-keymap = Kon keymap niet importeren
+error-key-led = Kon ledje van toets niet configureren
 error-open-file = Kon bestand niet openen
-error-save-leds = Kon ledinstellingen niet opslaan
-error-set-keyboard-brightness = Kon toetsenbordhelderheid niet aanpassen
-error-set-keyboard-mode = Kon toetsenbordmodus niet instellen
-error-set-keymap = Kon toetsenbordindeling niet instellen
-error-set-layer-brightness = Kon helderheidslaag niet instellen
-error-set-layer-color = Kon kleurlaag niet instellen
-error-set-layer-mode = Kon toetsenbordfunctielaag niet instellen
-error-unsupported-keymap = Toetsenbordindelingsbestand wordt niet ondersteund
-error-unsupported-keymap-desc = Dit bestand lijkt afkomstig te zijn van een nieuwere versie van Toetsenbordconfigurator.
+error-save-leds = Kon ledjes niet opslaan
+error-set-keyboard-brightness = Kon helderheid niet aanpassen
+error-set-keyboard-mode = Kon toetsenbordmodus niet aanpassen
+error-set-keymap = Kon keymap niet aanpassen
+error-set-layer-brightness = Kon laaghelderheid niet aanpassen
+error-set-layer-color = Kon laagkleur niet instellen
+error-set-layer-mode = Kon laagmodus niet instellen
+error-unsupported-keymap = Keymapbestand wordt niet ondersteund
+error-unsupported-keymap-desc = Keymapbestand lijkt van een te nieuwe versie van Toetsenbordconfigurator afkomstig te zijn.
 
-firmware-version = Versie {$version} van de firmware heeft geen ondersteuning voor deze instellingen.
+firmware-version = Firmware-versie { $version } ondersteunt geen keymap-configuratie.
 
 keyboard-brightness = Helderheid:
 keyboard-color = Kleur:
 
-key-color = Toetskleur:
+key-color = Toetsenkleur:
 
-keymap-for-board = Deze indeling is gemaakt voor '{$model}'
+keymap-for-board = Keymap is voor { $model }-model toetsenbord
 
-layer-all-brightness = Helderheid (alle lagen):
+layer-all-brightness = Helderheid (van alle lagen):
 layer-animation-speed = Animatiesnelheid van laag:
 layer-color = Laagkleur:
 layer-color-pattern = Kleurpatroon van laag:
@@ -45,7 +45,7 @@ layer-saturation = Laagverzadiging:
 
 layout-export = Indeling exporteren
 layout-import = Indeling importeren
-layout-reset = Standaardwaarden
+layout-reset = Indeling resetten
 layout-invert-f-keys = Primair gedrag functietoetsen omwisselen
 
 flash-to-launch-heavy = Firmware flashen voor Launch Heavy 1
@@ -53,39 +53,41 @@ flash-to-launch-2 = Firmware flashen voor Launch 2
 flash-to-launch-1 = Firmware flashen voor Launch 1
 flash-to-launch-lite-1 = Firmware flashen voor Launch Lite 1
 
-loading = Toetsenbord(en) aangetroffen. Bezig met laden...
-loading-keyboard = Indelingen en ledconfiguraties van {$keyboard} worden geladen
+loading = Toetenbord(en) gedetecteerd. Bezig met laden...
+loading-keyboard = Keymap en ledconfiguratie voor { $keyboard } laden
+firmware-update-required = Firmware-update voor toetsenbord vereist!
 
 page-electrical = Elektrisch
-page-keycaps = Toetsenkapjes
+page-keycaps = Keycaps
 page-layer1 = Laag 1
 page-layer2 = Laag 2
 page-layer3 = Laag 3
 page-layer4 = Laag 4
-page-leds = Ledverlichting
+page-leds = ledjes
 page-logical = Logisch
 
-no-boards = Er is geen toetsenbord aangetroffen
-no-boards-msg = Zorg er voor dat uw ingebouwde toetsenbord beschikt over de nieuwste
-  System76 Open Firmware.
-  Als u gebruikmaakt van een extern toetsenbord, zorg er dan voor dat
-  het toetsenbord goed is aangesloten.
+no-boards = Geen toetsenbord gedetecteerd
+no-boards-msg = 
+ Zorg ervoor dat uw ingebouwde toetsenbord over 
+ de nieuwste System76 Open Firmware beschikt.
+ Als u een extern toetsenbord gebruikt, 
+ controleer dan of het goed is aangesloten.
 
 show-help-overlay = Sneltoetsen
 
-stack-keymap = Toetsindeling
-stack-keymap-desc = Selecteer een toets op de toetsindeling om de instellingen ervan te wijzigen. Shift + klik om meerdere toetsen tegelijk te selecteren. De instellingen worden automatisch opgeslagen in de firmware.
+stack-keymap = Keymap
+stack-keymap-desc = Selecteer een toets op de keymap om de instellingen te wijzigen. Shift + klik om meerdere toetsen tegelijk te selecteren. Uw wijzigingen worden automatisch opgeslagen in de firmware.
 
-stack-leds = Ledverlichting
-stack-leds-desc = Selecteer een toets op de toetsindeling om de instellingen ervan te wijzigen. Kies per toets een vast kleurpatroon om zo de ledkleuren aan te passen. Shift + klik om meerdere toetsen tegelijk te selecteren. De instellingen worden automatisch opgeslagen in de firmware.
-stack-leds-desc-builtin = Opmerking: uw aanpassingen aan de ledverlichting worden na het opnieuw opstarten van uw computer gereset. Meer functionaliteit komt in de toekomst.
+stack-leds = Ledjes
+stack-leds-desc = Selecteer een toets op de keymap om de instellingen te wijzigen. Kies per toets 'Solid Pattern' om de ledkleur van álle toets aan te passen. Shift + klik om meer dan één toets te selecteren. Uw wijzigingen worden automatisch opgeslagen in de firmware.
+stack-leds-desc-builtin = Na het opnieuw opstarten worden de instellingen van de ledjes gereset. In de toekomst komt er meer functionaliteit.
 
 stack-testing = Testen
 
-test-check-pins = Check missende pinnen
-test-check-key = Check vastzittende toetsen
-test-number-of-runs = Aantal checks achter elkaar
-test-replace-switch = Check te vervangen schakelmechanismen
-test-spurious-keypress = Check spontane toetsdrukken
+test-check-pins = Controleren op ontbrekende pinnetjes
+test-check-key = Controleren op vastzittende toetsen
+test-number-of-runs = Aantal keer opnieuw testen
+test-replace-switch = Controleren op te vervangen toetsen
+test-spurious-keypress = Controleren op ongewenste toetsaanslagen
 
 untitled-layout = Naamloze indeling
