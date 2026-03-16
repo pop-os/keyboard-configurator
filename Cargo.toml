@@ -36,3 +36,6 @@ winreg = "0.8"
 
 [features]
 appimage = ["backend/appimage"]
+
+[profile.release]
+lto = true
