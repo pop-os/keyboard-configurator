@@ -1,5 +1,9 @@
 /result
 /target
+# Local working notes, reference material, and machine-specific editor settings.
+/memory-bank/
+/partials/
+/.vscode/settings.json
 /linux/system76-keyboard-configurator
 /windows/out
 /windows/sign

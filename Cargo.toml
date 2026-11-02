@@ -7,7 +7,7 @@ edition = "2021"
 rust-version = "1.64"
 
 [workspace]
-members = [ "tools", "ffi", "backend", "widgets" ]
+members = [ "tools", "ffi", "backend", "widgets", "profile-engine" ]
 
 [dependencies]
 cascade = "1"
@@ -21,6 +21,7 @@ serde_json = "1.0"
 log = "0.4.0"
 env_logger = "0.10"
 backend = { package = "system76-keyboard-configurator-backend", path = "backend" }
+profile-engine = { path = "profile-engine" }
 widgets = { package = "system76-keyboard-configurator-widgets", path = "widgets" }
 
 # Translation support

@@ -4,6 +4,7 @@ use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::{
     collections::BTreeMap,
+    path::PathBuf,
     process::Command,
     sync::{
         atomic::{AtomicBool, Ordering},
@@ -167,6 +168,81 @@ impl Board {
         &self.0.model
     }
 
+    pub async fn profile_read(&self) -> Result<profile_engine::Snapshot, String> {
+        self.thread_client().profile_read(self.board()).await
+    }
+
+    pub async fn profile_apply(
+        &self,
+        target: profile_engine::Snapshot,
+        backup: impl Into<PathBuf>,
+    ) -> Result<usize, String> {
+        let result = self
+            .thread_client()
+            .profile_apply(self.board(), target, backup.into())
+            .await;
+        let refresh = self.refresh_profile_cache().await;
+        match (result, refresh) {
+            (Err(error), Err(refresh)) => Err(format!(
+                "{error}\nCould not refresh editor cache: {refresh}"
+            )),
+            (Err(error), _) => Err(error),
+            (Ok(_), Err(refresh)) => Err(format!(
+                "Settings applied but editor refresh failed: {refresh}"
+            )),
+            (Ok(count), Ok(())) => Ok(count),
+        }
+    }
+
+    pub async fn official_apply(
+        &self,
+        json: String,
+        backup: impl Into<PathBuf>,
+    ) -> Result<usize, String> {
+        let result = self
+            .thread_client()
+            .official_apply(self.board(), json, backup.into())
+            .await;
+        match result {
+            Ok((count, state)) => {
+                self.update_profile_cache(&state);
+                Ok(count)
+            }
+            Err(error) => match self.refresh_profile_cache().await {
+                Ok(()) => Err(error),
+                Err(refresh) => Err(format!(
+                    "{error}\nCould not refresh editor cache: {refresh}"
+                )),
+            },
+        }
+    }
+
+    pub fn profile_progress(&self) -> crate::ProfileProgress {
+        self.thread_client().profile_progress()
+    }
+
+    async fn refresh_profile_cache(&self) -> Result<(), String> {
+        // Refresh caches even after rollback; never leave stale labels on screen.
+        let state = self.profile_read().await?;
+        self.update_profile_cache(&state);
+        Ok(())
+    }
+
+    fn update_profile_cache(&self, state: &profile_engine::Snapshot) {
+        for key in self.keys() {
+            if let Some(codes) = state.keys.get(&key.logical_name) {
+                let color = key.leds.first().and_then(|i| state.leds.get(i)).copied();
+                key.update_profile_cache(codes, color);
+            }
+        }
+        for (layer, value) in self.layers().iter().zip(&state.layers) {
+            layer.update_profile_cache(value);
+        }
+        self.0.leds_changed.store(false, Ordering::SeqCst);
+        self.send_event(BoardEvent::KeymapChanged);
+        self.send_event(BoardEvent::LedsChanged);
+    }
+
     pub fn version(&self) -> &str {
         &self.0.version
     }
@@ -240,7 +316,7 @@ impl Board {
         self.0.keys.get().unwrap()
     }
 
-    pub(crate) fn matrix(&self) -> MutexGuard<Matrix> {
+    pub(crate) fn matrix(&self) -> MutexGuard<'_, Matrix> {
         self.0.matrix.lock().unwrap()
     }
 

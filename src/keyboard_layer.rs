@@ -13,7 +13,34 @@ use widgets::SelectedKeys;
 const SCALE: f64 = 64.;
 const MARGIN: f64 = 2.;
 const RADIUS: f64 = 4.;
-const HALF_KEYBOARD_VSPACING: f64 = 16.;
+const MINIMUM_WIDTH: i32 = 320;
+
+/// One transform for both drawing and hit testing. Never rearrange physical keys
+/// when the window narrows; scale the complete keyboard down instead.
+#[derive(Clone, Copy, Debug)]
+struct LayoutTransform {
+    scale: f64,
+    offset: f64,
+}
+
+impl LayoutTransform {
+    fn new(available: i32, natural: i32) -> Self {
+        let scale = (f64::from(available.max(1)) / f64::from(natural.max(1))).min(1.0);
+        Self {
+            scale,
+            offset: (f64::from(available) - f64::from(natural) * scale).max(0.0) / 2.0,
+        }
+    }
+
+    fn position(self, rect: Rect) -> Rect {
+        Rect {
+            x: rect.x * self.scale + self.offset,
+            y: rect.y * self.scale,
+            w: rect.w * self.scale,
+            h: rect.h * self.scale,
+        }
+    }
+}
 
 #[derive(Default)]
 pub struct KeyboardLayerInner {
@@ -23,7 +50,6 @@ pub struct KeyboardLayerInner {
     selectable: Cell<bool>,
     wide_width: OnceCell<i32>,
     wide_height: OnceCell<i32>,
-    narrow_width: OnceCell<i32>,
     testing_colors: RefCell<TestingColors>,
 }
 
@@ -80,12 +106,17 @@ impl WidgetImpl for KeyboardLayerInner {
     fn draw(&self, cr: &cairo::Context) -> Propagation {
         self.parent_draw(cr);
 
+        let transform = self.obj().transform();
+        cr.save().unwrap();
+        cr.translate(transform.offset, 0.0);
+        cr.scale(transform.scale, transform.scale);
+
         let selected = Rgb::new(0xfb, 0xb8, 0x6c).to_floats();
 
         let testing_colors = self.testing_colors.borrow();
 
         for (i, k) in self.obj().keys().iter().enumerate() {
-            let Rect { x, y, w, h } = self.obj().key_position(k);
+            let Rect { x, y, w, h } = self.obj().key_position_wide(k);
 
             let mut bg = if let Some(rgb) = testing_colors
                 .0
@@ -148,6 +179,7 @@ impl WidgetImpl for KeyboardLayerInner {
             pangocairo::show_layout(cr, &layout);
         }
 
+        cr.restore().unwrap();
         Propagation::Proceed
     }
 
@@ -191,20 +223,18 @@ impl WidgetImpl for KeyboardLayerInner {
     }
 
     fn preferred_width(&self) -> (i32, i32) {
-        (self.obj().narrow_width(), self.obj().wide_width())
+        let natural = self.obj().wide_width();
+        (MINIMUM_WIDTH.min(natural), natural)
     }
 
     fn preferred_height(&self) -> (i32, i32) {
-        let height = self.obj().narrow_height();
+        let height = self.obj().wide_height();
         (height, height)
     }
 
     fn preferred_height_for_width(&self, width: i32) -> (i32, i32) {
-        let height = if width < self.obj().wide_width() {
-            self.obj().narrow_height()
-        } else {
-            self.obj().wide_height()
-        };
+        let transform = LayoutTransform::new(width, self.obj().wide_width());
+        let height = (f64::from(self.obj().wide_height()) * transform.scale).ceil() as i32;
         (height, height)
     }
 
@@ -245,6 +275,26 @@ impl KeyboardLayer {
         self.inner().board.keys()
     }
 
+    /// Read-only smoke metrics use the same rectangles as actual hit testing.
+    pub fn fit_metrics(&self) -> serde_json::Value {
+        let mut right: f64 = 0.0;
+        let mut bottom: f64 = 0.0;
+        let mut hits_match = true;
+        for (index, key) in self.keys().iter().enumerate() {
+            let rect = self.key_position(key);
+            right = right.max(rect.x + rect.w);
+            bottom = bottom.max(rect.y + rect.h);
+            hits_match &= self.keys().iter().position(|other| {
+                self.key_position(other)
+                    .contains(rect.x + rect.w / 2.0, rect.y + rect.h / 2.0)
+            }) == Some(index);
+        }
+        serde_json::json!({"width":self.allocated_width(), "height":self.allocated_height(),
+            "scale":self.transform().scale, "keys":self.keys().len(), "right":right, "bottom":bottom,
+            "hits_match":hits_match,
+            "fits":right <= f64::from(self.allocated_width()) + 1.0 && bottom <= f64::from(self.allocated_height()) + 1.0})
+    }
+
     pub fn selected(&self) -> SelectedKeys {
         self.inner().selected.borrow().clone()
     }
@@ -267,30 +317,15 @@ impl KeyboardLayer {
     fn wide_width(&self) -> i32 {
         self.keys_maximize(&self.inner().wide_width, |k| {
             let pos = self.key_position_wide(k);
-            (pos.x + pos.w) as i32
+            (pos.x + pos.w).ceil() as i32
         })
     }
 
     fn wide_height(&self) -> i32 {
         self.keys_maximize(&self.inner().wide_height, |k| {
             let pos = self.key_position_wide(k);
-            (pos.y + pos.h + 4.) as i32
+            (pos.y + pos.h + 4.).ceil() as i32
         })
-    }
-
-    fn narrow_width(&self) -> i32 {
-        self.keys_maximize(&self.inner().narrow_width, |k| {
-            let mut pos = self.key_position_wide(k);
-            let width = self.wide_width() as f64 / 2.;
-            if pos.x + pos.w / 2. > width {
-                pos.x -= width;
-            }
-            (pos.x + pos.w) as i32
-        })
-    }
-
-    fn narrow_height(&self) -> i32 {
-        self.wide_height() * 2 + HALF_KEYBOARD_VSPACING as i32
     }
 
     fn key_position_wide(&self, k: &Key) -> Rect {
@@ -302,23 +337,44 @@ impl KeyboardLayer {
         }
     }
 
-    fn key_position_narrow(&self, k: &Key) -> Rect {
-        let mut rect = self.key_position_wide(k);
-        let width = self.wide_width() as f64 / 2.;
-        if rect.x + rect.w / 2. > width {
-            rect.x -= (self.wide_width() - self.narrow_width()) as f64;
-            rect.y += self.wide_height() as f64 + HALF_KEYBOARD_VSPACING;
-        }
-        rect
+    fn transform(&self) -> LayoutTransform {
+        LayoutTransform::new(self.allocated_width(), self.wide_width())
     }
 
     fn key_position(&self, k: &Key) -> Rect {
-        let (mut pos, width) = if self.allocated_width() < self.wide_width() {
-            (self.key_position_narrow(k), self.narrow_width())
-        } else {
-            (self.key_position_wide(k), self.wide_width())
-        };
-        pos.x += (self.allocated_width() - width) as f64 / 2.;
-        pos
+        self.transform().position(self.key_position_wide(k))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn scales_without_rearranging_and_centers_without_upscaling() {
+        let right_key = Rect::new(1200.0, 64.0, 60.0, 60.0);
+        let narrow = LayoutTransform::new(640, 1280);
+        let pos = narrow.position(right_key);
+        assert_eq!(narrow.scale, 0.5);
+        assert_eq!((pos.x, pos.y, pos.w, pos.h), (600.0, 32.0, 30.0, 30.0));
+        assert!(pos.contains(615.0, 47.0));
+        assert!(!pos.contains(1199.0, 64.0));
+        let wide = LayoutTransform::new(1500, 1280);
+        assert_eq!(wide.scale, 1.0);
+        assert_eq!(wide.position(right_key).x, 1310.0);
+    }
+
+    #[test]
+    fn resize_preserves_every_key_center_and_bounds() {
+        for width in [320, 480, 640, 900, 1280, 1500] {
+            let transform = LayoutTransform::new(width, 1280);
+            for column in 0..20 {
+                let rect = Rect::new(f64::from(column * 64 + 2), 322.0, 60.0, 60.0);
+                let pos = transform.position(rect);
+                assert!(pos.x >= 0.0 && pos.x + pos.w <= f64::from(width));
+                assert!(pos.contains(pos.x + pos.w / 2.0, pos.y + pos.h / 2.0));
+                assert!((pos.y / transform.scale - rect.y).abs() < 1e-9);
+            }
+        }
     }
 }

@@ -32,6 +32,7 @@ pub struct KeyboardInner {
     picker_box: DerefCell<gtk::Box>,
     backlight: DerefCell<Backlight>,
     testing: DerefCell<Option<Testing>>,
+    profile_switching: Cell<bool>,
 }
 
 #[glib::object_subclass]
@@ -322,7 +323,36 @@ impl Keyboard {
         self.board().export_keymap()
     }
 
+    pub fn profile_switching(&self) -> bool {
+        self.inner().profile_switching.get()
+    }
+
+    pub fn set_profile_switching(&self, switching: bool) {
+        self.inner().profile_switching.set(switching);
+        self.set_sensitive(!switching);
+        for name in self.inner().action_group.list_actions() {
+            if let Some(action) = self.inner().action_group.lookup_action(&name) {
+                if let Ok(action) = action.downcast::<gio::SimpleAction>() {
+                    action.set_enabled(
+                        !switching && (name != "invert-f-keys" || !self.layout().meta.no_fn_f),
+                    );
+                }
+            }
+        }
+    }
+
+    pub fn profile_applied(&self) {
+        if let Some(layer) = self.layer() {
+            self.inner().backlight.set_layer(layer);
+        }
+        self.set_selected(self.selected());
+        self.queue_draw();
+    }
+
     pub async fn import_keymap(&self, keymap: KeyMap) {
+        if self.profile_switching() {
+            return;
+        }
         // TODO: Ideally don't want this function to be O(Keys^2)
         // TODO: Make sure it doesn't panic with invalid json with invalid indexes?
 
@@ -335,6 +365,7 @@ impl Keyboard {
             return;
         }
 
+        self.set_profile_switching(true);
         let _loader = self.toplevel().and_then(|x| {
             Some(
                 x.downcast_ref::<MainWindow>()?
@@ -397,6 +428,7 @@ impl Keyboard {
         }
 
         futures.collect::<()>().await;
+        self.set_profile_switching(false);
     }
 
     fn import(&self) {
@@ -475,6 +507,10 @@ impl Keyboard {
     }
 
     async fn invert_f_keys(&self) {
+        if self.profile_switching() {
+            return;
+        }
+        self.set_profile_switching(true);
         let key_indices = self
             .board()
             .keys()
@@ -507,6 +543,7 @@ impl Keyboard {
         }
 
         futures.collect::<()>().await;
+        self.set_profile_switching(false);
     }
 
     fn update_selectable(&self) {

@@ -88,6 +88,13 @@ impl Layer {
         self.brightness.load(Ordering::SeqCst)
     }
 
+    pub(crate) fn update_profile_cache(&self, layer: &profile_engine::Layer) {
+        *self.mode.lock().unwrap() = Some(layer.mode);
+        self.brightness
+            .store(i32::from(layer.brightness), Ordering::SeqCst);
+        *self.color.lock().unwrap() = Hs::from_ints(layer.color.0, layer.color.1);
+    }
+
     pub async fn set_brightness(&self, brightness: i32) -> Result<(), String> {
         let board = self.board();
         board

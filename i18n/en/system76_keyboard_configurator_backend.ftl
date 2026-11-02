@@ -15,3 +15,12 @@ mode-splash = Splashdown
 mode-multisplash = Meteor Shower
 
 no-board = No board
+profile-object-required = Expected an official Configurator JSON object.
+profile-official-required = Select a JSON exported by System76 Keyboard Configurator, not a Switcher profile or backup.
+profile-model-mismatch = Profile version or keyboard model does not match.
+profile-incomplete = The profile must contain every key and all four layers.
+profile-led-mismatch = The profile LED key set does not match this keyboard.
+profile-key-layers = Key {$name} must contain four layers.
+profile-key-unknown = Unsupported key assignment for {$name}: {$code}
+profile-mode-invalid = Unsupported LED mode.
+profile-brightness-invalid = Invalid LED brightness.

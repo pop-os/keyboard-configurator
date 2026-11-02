@@ -20,6 +20,7 @@ regex = "1"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 log = "0.4.0"
+profile-engine = { path = "../profile-engine" }
 uuid = { version = "1", features = ["v4"] }
 i18n-embed = { version = "0.13.0", features = ["fluent-system", "desktop-requester"] }
 i18n-embed-fl = "0.6.0"

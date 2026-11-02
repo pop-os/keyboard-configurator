@@ -1537,6 +1537,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "profile-engine"
+version = "0.1.0"
+dependencies = [
+ "hidapi",
+ "serde",
+ "serde_json",
+ "system76_ectool",
+]
+
+[[package]]
 name = "quote"
 version = "1.0.33"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1965,6 +1975,7 @@ dependencies = [
  "log",
  "once_cell",
  "pangocairo",
+ "profile-engine",
  "rust-embed",
  "serde",
  "serde_json",
@@ -1990,6 +2001,7 @@ dependencies = [
  "once_cell",
  "ordered-float",
  "palette",
+ "profile-engine",
  "regex",
  "rust-embed",
  "serde",

@@ -49,6 +49,7 @@ pub struct MainWindowInner {
     board_loading: RefCell<Option<Loader>>,
     board_list_stack: DerefCell<gtk::Stack>,
     is_testing_mode: DerefCell<bool>,
+    dummy_backends: RefCell<Vec<Backend>>,
 }
 
 #[glib::object_subclass]
@@ -63,6 +64,10 @@ impl ObjectImpl for MainWindowInner {
         self.parent_constructed();
 
         let window = self.obj();
+        let settings_action = gio::SimpleAction::new("quick-switch-settings", None);
+        settings_action
+            .connect_activate(clone!(@weak window=>move |_,_|window.open_quick_switch_settings()));
+        window.add_action(&settings_action);
         let back_button = cascade! {
             gtk::Button::new();
             ..add(&gtk::Image::from_icon_name(Some("go-previous-symbolic"), gtk::IconSize::Button));
@@ -101,6 +106,7 @@ impl ObjectImpl for MainWindowInner {
             });
             ..append_section(None, &cascade! {
                 gio::Menu::new();
+                ..append(Some(&fl!("quick-switch-settings-menu")), Some("win.quick-switch-settings"));
                 ..append(Some(&fl!("show-help-overlay")), Some("win.show-help-overlay"));
                 ..append(Some(&fl!("app-about")), Some("app.about"));
             });
@@ -152,7 +158,8 @@ impl ObjectImpl for MainWindowInner {
 
         let keyboard_box = cascade! {
             gtk::Box::new(gtk::Orientation::Vertical, 0);
-            ..set_halign(gtk::Align::Center);
+            ..set_halign(gtk::Align::Fill);
+            ..set_hexpand(true);
         };
         board_list_stack.add_named(&keyboard_box, "keyboards");
 
@@ -238,7 +245,11 @@ impl MainWindow {
         let is_testing_mode = app.launch_test();
         app.add_window(&window);
 
-        let (backend, receiver) = daemon();
+        let (backend, receiver) = if std::env::var_os("LAUNCH_HEAVY_FAKE_ONLY").is_some() {
+            Backend::new_dummy(vec![]).expect("Failed to create isolated test backend")
+        } else {
+            daemon()
+        };
         window.handle_backend_event_stream(receiver, false);
         backend.refresh();
 
@@ -265,6 +276,7 @@ impl MainWindow {
                 Ok((backend, receiver)) => {
                     window.handle_backend_event_stream(receiver, true);
                     backend.refresh();
+                    window.inner().dummy_backends.borrow_mut().push(backend);
                 }
                 Err(err) => error!("{}", err),
             }
@@ -291,6 +303,74 @@ impl MainWindow {
 
     fn inner(&self) -> &MainWindowInner {
         MainWindowInner::from_obj(self)
+    }
+
+    pub fn open_quick_switch_settings(&self) {
+        if !self.is_sensitive()
+            || self
+                .inner()
+                .keyboards
+                .borrow()
+                .iter()
+                .any(|(k, _)| k.profile_switching())
+        {
+            return;
+        }
+        let keyboards = self.inner().keyboards.borrow();
+        let board = keyboards
+            .iter()
+            .find(|(k, _)| self.inner().stack.visible_child().as_ref() == Some(k.upcast_ref()))
+            .filter(|(k, _)| crate::quick_switch::supported(k.board()))
+            .or_else(|| {
+                keyboards
+                    .iter()
+                    .find(|(k, _)| crate::quick_switch::supported(k.board()))
+            })
+            .map(|(k, _)| k.board().clone());
+        drop(keyboards);
+        match board {
+            Some(board) => crate::quick_switch::settings(self.upcast_ref(), board),
+            None => crate::show_error_dialog(
+                self,
+                &fl!("quick-switch-title"),
+                fl!("quick-switch-connect"),
+            ),
+        }
+    }
+
+    pub fn quick_switch_finished(&self) {
+        self.inner().keyboard_box.queue_draw();
+        for (keyboard, _) in self.inner().keyboards.borrow().iter() {
+            keyboard.profile_applied();
+        }
+    }
+
+    pub fn begin_quick_switch(&self) -> bool {
+        let keyboards = self.inner().keyboards.borrow();
+        if keyboards.iter().any(|(k, _)| k.profile_switching()) {
+            return false;
+        }
+        for (keyboard, _) in keyboards.iter() {
+            keyboard.set_profile_switching(true);
+        }
+        REFRESH_DISABLED.store(true, Ordering::Relaxed);
+        true
+    }
+
+    pub fn end_quick_switch(&self) {
+        for (keyboard, _) in self.inner().keyboards.borrow().iter() {
+            keyboard.set_profile_switching(false);
+        }
+        REFRESH_DISABLED.store(false, Ordering::Relaxed);
+    }
+
+    pub fn smoke_board(&self) -> Option<Board> {
+        std::env::var_os("LAUNCH_HEAVY_FAKE_ONLY")?;
+        self.inner()
+            .keyboards
+            .borrow()
+            .first()
+            .map(|(k, _)| k.board().clone())
     }
 
     fn handle_backend_event_stream(&self, mut receiver: backend::Events, is_dummy: bool) {
@@ -327,6 +407,7 @@ impl MainWindow {
                 self.add_keyboard(board);
             }
             backend::Event::Board(id, event) => {
+                self.inner().keyboard_box.queue_draw();
                 if let backend::BoardEvent::MatrixChanged = &event {
                     self.inner().keyboard_box.queue_draw();
                 }
@@ -350,6 +431,15 @@ impl MainWindow {
     }
 
     fn show_keyboard_list(&self) {
+        if self
+            .inner()
+            .keyboards
+            .borrow()
+            .iter()
+            .any(|(k, _)| k.profile_switching())
+        {
+            return;
+        }
         let inner = self.inner();
         inner
             .stack
@@ -364,6 +454,9 @@ impl MainWindow {
     }
 
     fn show_keyboard(&self, keyboard: &Keyboard) {
+        if keyboard.profile_switching() {
+            return;
+        }
         let inner = self.inner();
 
         inner
@@ -378,6 +471,7 @@ impl MainWindow {
         inner.back_button.set_visible(true);
 
         inner.picker.set_keyboard(Some(keyboard.clone()));
+        keyboard.profile_applied();
     }
 
     fn add_keyboard(&self, board: Board) {
@@ -385,7 +479,8 @@ impl MainWindow {
 
         let keyboard = cascade! {
             Keyboard::new(board.clone(), app.debug_layers(), app.launch_test());
-            ..set_halign(gtk::Align::Center);
+            ..set_halign(gtk::Align::Fill);
+            ..set_hexpand(true);
             ..show_all();
         };
 
@@ -415,14 +510,31 @@ impl MainWindow {
 
         let keyboard_layer = cascade! {
             KeyboardLayer::new(Page::Layer1, keyboard.board().clone());
-            ..set_halign(gtk::Align::Center);
+            ..set_halign(gtk::Align::Fill);
+            ..set_hexpand(true);
         };
-        let row = cascade! {
+        let keyboard_content = cascade! {
             gtk::Box::new(gtk::Orientation::Vertical, 12);
-            ..set_margin(12);
             ..add(&label);
             ..add(&keyboard_layer);
             ..add(&button);
+        };
+        // Keep the keyboard/editor control at the top. Only this lower region
+        // consumes surplus height, centering the quick switches in that space.
+        let quick_switch_area = cascade! {
+            gtk::Box::new(gtk::Orientation::Vertical, 0);
+            ..set_widget_name("quick-switch-area");
+            ..set_vexpand(true);
+        };
+        if board.has_keymap() && !app.launch_test() && crate::quick_switch::supported(&board) {
+            quick_switch_area.add(&crate::quick_switch::build(board.clone()));
+        }
+        let row = cascade! {
+            gtk::Box::new(gtk::Orientation::Vertical, 0);
+            ..set_margin(12);
+            ..set_vexpand(true);
+            ..pack_start(&keyboard_content, false, false, 0);
+            ..pack_start(&quick_switch_area, true, true, 0);
             ..show_all();
         };
         self.inner().keyboard_box.add(&row);
@@ -446,6 +558,7 @@ impl MainWindow {
         self.inner()
             .board_list_stack
             .set_visible_child_name("keyboards");
+        crate::smoke::start(self);
     }
 
     fn remove_keyboard(&self, id: BoardId) {

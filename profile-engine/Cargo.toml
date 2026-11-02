@@ -1,0 +1,11 @@
+[package]
+name = "profile-engine"
+version = "0.1.0"
+edition = "2021"
+license = "GPL-3.0-or-later"
+
+[dependencies]
+hidapi = { version = "1.2", default-features = false, features = ["linux-shared-hidraw"] }
+system76_ectool = { version = "0.3.8", features = ["hidapi", "std"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"

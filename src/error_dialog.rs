@@ -3,8 +3,10 @@ use gtk::prelude::*;
 use std::fmt::Display;
 
 pub fn show_error_dialog<W: IsA<gtk::Window>, E: Display>(parent: &W, title: &str, err: E) {
+    let title_markup = gtk::glib::markup_escape_text(title);
+    let error_markup = gtk::glib::markup_escape_text(&err.to_string());
     let label = cascade! {
-        gtk::Label::new(Some(&format!("<b>{}</b>:\n{}", title, err)));
+        gtk::Label::new(Some(&format!("<b>{}</b>:\n{}", title_markup, error_markup)));
         ..set_use_markup(true);
         ..show();
     };

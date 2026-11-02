@@ -1,7 +1,11 @@
+#[cfg(not(windows))]
+use ectool::AccessHid;
 #[cfg(target_os = "linux")]
 use ectool::AccessLpcLinux;
-use ectool::{Access, AccessHid, Ec};
+use ectool::{Access, Ec};
 use hidapi::{DeviceInfo, HidApi};
+#[cfg(windows)]
+use profile_engine::VerifiedHid as AccessHid;
 use std::{
     cell::{Cell, RefCell, RefMut},
     collections::HashMap,
@@ -17,6 +21,19 @@ use crate::{Benchmark, Matrix, Nelson, NelsonKind};
 
 const QMK_RAW_USAGE_PAGE: u16 = 0xFF60;
 const QMK_RAW_USAGE_ID: u16 = 0x61;
+
+// Keep the existing retry policy on Linux/macOS. The stale-response workaround
+// was introduced for Windows HID reads and must not replace other transports.
+fn open_hid_access(device: hidapi::HidDevice) -> Result<AccessHid, ectool::Error> {
+    #[cfg(windows)]
+    {
+        Ok(AccessHid::new(device))
+    }
+    #[cfg(not(windows))]
+    {
+        AccessHid::new(device, 10, 1000)
+    }
+}
 
 #[allow(clippy::type_complexity)]
 pub struct DaemonServer<R: Read + Send + 'static, W: Write + Send + 'static> {
@@ -114,7 +131,7 @@ impl<R: Read + Send + 'static, W: Write + Send + 'static> DaemonServer<R, W> {
         Ok(())
     }
 
-    fn board(&self, board: BoardId) -> Result<RefMut<Ec<Box<dyn Access>>>, String> {
+    fn board(&self, board: BoardId) -> Result<RefMut<'_, Ec<Box<dyn Access>>>, String> {
         let mut boards = self.boards.borrow_mut();
         if boards.get_mut(&board).is_some() {
             Ok(RefMut::map(boards, |x| &mut x.get_mut(&board).unwrap().0))
@@ -339,7 +356,7 @@ impl<R: Read + Send + 'static, W: Write + Send + 'static> Daemon for DaemonServe
                         }
 
                         match info.open_device(api) {
-                            Ok(device) => match AccessHid::new(device, 10, 1000) {
+                            Ok(device) => match open_hid_access(device) {
                                 Ok(access) => match unsafe { Ec::new(access) } {
                                     Ok(ec) => {
                                         info!("Adding USB HID EC at {:?}", info.path());
@@ -373,7 +390,7 @@ impl<R: Read + Send + 'static, W: Write + Send + 'static> Daemon for DaemonServe
                         }
 
                         match info.open_device(api) {
-                            Ok(device) => match AccessHid::new(device, 10, 1000) {
+                            Ok(device) => match open_hid_access(device) {
                                 Ok(access) => match unsafe { Ec::new(access) } {
                                     Ok(ec) => {
                                         info!("Adding Nelson at {:?}", info.path());

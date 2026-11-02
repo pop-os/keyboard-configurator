@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<WixLocalization Culture="ja-jp" xmlns="http://schemas.microsoft.com/wix/2006/localization">
+  <String Id="NewerVersionInstalled">新しいバージョンが既にインストールされています。</String>
+  <String Id="SameOrNewerVersionInstalled">同じ版または新しい版が既にあります。修復にはインストール済みのMSIを使用してください。</String>
+  <String Id="Requires64BitWindows">このパッケージは64bit版Windows専用です。</String>
+</WixLocalization>

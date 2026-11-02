@@ -12,6 +12,7 @@ use std::{
     cmp::PartialEq,
     collections::HashMap,
     hash::{Hash, Hasher},
+    path::PathBuf,
     rc::Rc,
     sync::{Arc, Mutex, Weak},
     thread::{self, JoinHandle},
@@ -60,12 +61,22 @@ enum SetEnum {
     Refresh,
     BootLoaderUpdate(Option<Bootloaded>),
     NoInput(BoardId, bool),
+    ProfileRead(BoardId),
+    ProfileApply(BoardId, profile_engine::Snapshot, PathBuf),
+    OfficialApply(BoardId, String, PathBuf),
     Exit,
 }
 
 impl SetEnum {
     fn is_cancelable(&self) -> bool {
-        !matches!(self, Self::Nelson(_, _) | Self::Benchmark(_))
+        !matches!(
+            self,
+            Self::Nelson(_, _)
+                | Self::Benchmark(_)
+                | Self::ProfileRead(_)
+                | Self::ProfileApply(..)
+                | Self::OfficialApply(..)
+        )
     }
 }
 
@@ -81,6 +92,9 @@ enum Response {
     Canceled,
     Empty,
     Nelson(Box<Nelson>),
+    Profile(profile_engine::Snapshot),
+    Changes(usize),
+    Applied(usize, profile_engine::Snapshot),
 }
 
 impl From<Benchmark> for Response {
@@ -109,6 +123,7 @@ impl Set {
 
 #[derive(Debug)]
 pub struct ThreadClient {
+    progress: Mutex<crate::ProfileProgress>,
     cancels: Mutex<HashMap<SetEnum, AbortHandle>>,
     channel: async_mpsc::UnboundedSender<Set>,
     join_handle: Mutex<Option<JoinHandle<()>>>,
@@ -121,6 +136,7 @@ impl ThreadClient {
     ) -> Arc<Self> {
         let (sender, reciever) = async_mpsc::unbounded();
         let client = Arc::new(Self {
+            progress: Mutex::new(crate::ProfileProgress::default()),
             cancels: Mutex::new(HashMap::new()),
             channel: sender,
             join_handle: Mutex::new(None),
@@ -273,6 +289,28 @@ impl ThreadClient {
         self.send_noresp(SetEnum::NoInput(board, no_input)).await
     }
 
+    pub async fn profile_read(&self, board: BoardId) -> Result<profile_engine::Snapshot, String> {
+        match self.send(SetEnum::ProfileRead(board)).await? {
+            Response::Profile(state) => Ok(state),
+            _ => Err("Profile read canceled".into()),
+        }
+    }
+
+    pub async fn profile_apply(
+        &self,
+        board: BoardId,
+        state: profile_engine::Snapshot,
+        backup: PathBuf,
+    ) -> Result<usize, String> {
+        match self
+            .send(SetEnum::ProfileApply(board, state, backup))
+            .await?
+        {
+            Response::Changes(count) => Ok(count),
+            _ => Err("Profile apply canceled".into()),
+        }
+    }
+
     pub fn close(&self) {
         let join_handle = match self.join_handle.lock().unwrap().take() {
             Some(join_handle) => join_handle,
@@ -290,6 +328,29 @@ impl ThreadClient {
 
         // Wait for thread to terminate
         join_handle.join().unwrap();
+    }
+
+    pub async fn official_apply(
+        &self,
+        board: BoardId,
+        json: String,
+        backup: PathBuf,
+    ) -> Result<(usize, profile_engine::Snapshot), String> {
+        *self.progress.lock().unwrap() = crate::ProfileProgress {
+            stage: "Preparing switch".into(),
+            fraction: 0.0,
+        };
+        match self
+            .send(SetEnum::OfficialApply(board, json, backup))
+            .await?
+        {
+            Response::Applied(count, state) => Ok((count, state)),
+            _ => Err("Profile operation canceled".into()),
+        }
+    }
+
+    pub fn profile_progress(&self) -> crate::ProfileProgress {
+        self.progress.lock().unwrap().clone()
     }
 }
 
@@ -408,6 +469,35 @@ impl Thread {
             SetEnum::BootLoaderUpdate(update) => set.reply(self.bootloader_update(update)),
             SetEnum::NoInput(board, no_input) => {
                 set.reply(self.daemon.set_no_input(board, no_input))
+            }
+            SetEnum::ProfileRead(board) => {
+                let result =
+                    crate::profile::read(self.daemon.as_ref(), board).map(Response::Profile);
+                let _ = set.oneshot.send(result);
+            }
+            SetEnum::ProfileApply(board, ref state, ref backup) => {
+                let result = crate::profile::apply(self.daemon.as_ref(), board, state, backup)
+                    .map(Response::Changes);
+                let _ = set.oneshot.send(result);
+            }
+            SetEnum::OfficialApply(board, ref json, ref backup) => {
+                let client = self.client.upgrade().unwrap();
+                let progress = |value| *client.progress.lock().unwrap() = value;
+                let result = crate::profile::apply_official(
+                    self.daemon.as_ref(),
+                    board,
+                    json,
+                    backup,
+                    &progress,
+                )
+                .map(|(count, state)| Response::Applied(count, state));
+                if result.is_err() {
+                    progress(crate::ProfileProgress {
+                        stage: "Refreshing keyboard after failure".into(),
+                        fraction: 0.0,
+                    });
+                }
+                let _ = set.oneshot.send(result);
             }
             SetEnum::Exit => return false,
         }

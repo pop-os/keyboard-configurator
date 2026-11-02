@@ -26,6 +26,7 @@ impl BoardDummy {
 
 pub struct DaemonDummy {
     boards: Vec<BoardDummy>,
+    read_delay: std::time::Duration,
 }
 
 impl DaemonDummy {
@@ -47,7 +48,14 @@ impl DaemonDummy {
                 ));
             }
         }
-        Ok(Self { boards })
+        let read_delay = std::time::Duration::from_millis(
+            std::env::var("LAUNCH_HEAVY_DUMMY_IO_DELAY_MS")
+                .ok()
+                .and_then(|v| v.parse::<u64>().ok())
+                .unwrap_or(0)
+                .min(10),
+        );
+        Ok(Self { boards, read_delay })
     }
 
     fn board(&self, board: BoardId) -> Result<&BoardDummy, String> {
@@ -75,6 +83,9 @@ impl Daemon for DaemonDummy {
     }
 
     fn keymap_get(&self, board: BoardId, layer: u8, output: u8, input: u8) -> Result<u16, String> {
+        if !self.read_delay.is_zero() {
+            std::thread::sleep(self.read_delay);
+        }
         let keymap = self.board(board)?.keymap.borrow();
         Ok(keymap.get(&(layer, output, input)).copied().unwrap_or(0))
     }

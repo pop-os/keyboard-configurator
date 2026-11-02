@@ -131,6 +131,19 @@ impl Key {
         *self.led_color.lock().unwrap()
     }
 
+    pub(crate) fn update_profile_cache(&self, codes: &[u16; 4], color: Option<(u8, u8, u8)>) {
+        for (slot, code) in self.scancodes.iter().zip(codes) {
+            slot.store(*code, Ordering::SeqCst);
+        }
+        *self.led_color.lock().unwrap() = color.and_then(|(r, g, b)| {
+            if (r, g, b) == (0, 0, 0) {
+                None
+            } else {
+                Some(Rgb::new(r, g, b).to_hs_lossy())
+            }
+        });
+    }
+
     pub async fn set_color(&self, color: Option<Hs>) -> Result<(), String> {
         let board = self.board();
         let Rgb { r, g, b } = color.map_or(Rgb::new(0, 0, 0), Hs::to_rgb);
